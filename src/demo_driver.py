@@ -15,29 +15,34 @@ from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
 
 
-def visualize_sdr_all_rows(sdr: SDR, title: str = "Composite SDR – All Rows"):
+def visualize_sdr_all_rows(sdr: SDR, title: str = "Composite SDR – Grid View"):
     """
-    Visualize a multi-row SDR: each row in the SDR's first dimension is one demo row.
+    Visualize a composite SDR (multiple rows) as a single 2D square/rectangular grid.
     """
+    # Flatten SDR to 1D dense bit array
     dense = np.array(sdr.get_dense())
+    n = dense.size
 
-    # reshape according to SDR dimensions (e.g., [num_rows, bits_per_row])
-    if len(sdr.dimensions) == 1:
-        arr2d = dense.reshape(1, -1)
-        row_labels = ["Row 0"]
-    else:
-        arr2d = dense.reshape(sdr.dimensions)
-        num_rows = sdr.dimensions[0]
-        row_labels = [f"Row {i}" for i in range(num_rows)]
+    # Compute smallest square that fits all bits
+    side = int(np.ceil(np.sqrt(n)))
 
+    # Pad if necessary
+    padded = np.zeros(side * side, dtype=int)
+    padded[:n] = dense
+
+    # Reshape into a 2D grid
+    grid = padded.reshape(side, side)
+
+    # Colormap: white (0) and blue (1)
     cmap = ListedColormap(["white", "blue"])
 
-    plt.figure(figsize=(12, 3 + arr2d.shape[0]))
-    plt.imshow(arr2d, cmap=cmap, aspect="auto", interpolation="nearest")
-    plt.yticks(range(len(row_labels)), row_labels)
-    plt.xlabel("Bit Index")
+    plt.figure(figsize=(10, 10))
+    plt.imshow(grid, cmap=cmap, interpolation="nearest")
     plt.title(title)
-    plt.show()
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.show(block=True)
 
 
 def build_demo_dataframe() -> pd.DataFrame:
@@ -71,10 +76,10 @@ def main():
     print("Raw DataFrame from Excel:")
     print(full_df.head())
 
-    # 👇 pick as many rows as you want here
-    # demo_df = full_df.iloc[0:10]      # first 10 rows
+    # pick as many rows as you want here
+    demo_df = full_df.iloc[0:10]  # first 10 rows
     # demo_df = full_df                # or ALL rows
-    demo_df = full_df.sample(5)  # or a random 5 rows
+    # demo_df = full_df.sample(5)      # or a random 5 rows
 
     df = ih.to_dataframe(demo_df)
 
@@ -83,8 +88,9 @@ def main():
 
     print("Composite SDR dimensions:", composite.dimensions)
     print("Composite SDR size:", composite.size)
+    print("Composite Sparsity:", composite.get_sparsity())
 
-    visualize_sdr_all_rows(composite, title="Composite SDR – All Rows")
+    visualize_sdr_all_rows(composite, title="Composite SDR – Rows")
 
 
 if __name__ == "__main__":
