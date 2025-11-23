@@ -5,7 +5,7 @@ DataFrame, sequence, etc.
 
 import datetime
 import os
-from typing import Union
+from typing import Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -61,13 +61,19 @@ class InputHandler:
         # Optionally, you could call _to_dataframe here if needed
         return self.get_data()
 
-    def get_sequence(self, data: Union[list, bytearray, bytes, np.ndarray, str]) -> list:
+    def get_sequence(
+        self, data: Union[list, bytearray, bytes, np.ndarray, str, pd.DataFrame]
+    ) -> Sequence:
         """
         Public method to get the current data as a normalized sequence.
 
         Returns:
             list: The data as a normalized sequence.
         """
+
+        assert data is not None, "Input data is None."
+        assert isinstance(self._data, pd.DataFrame), "Data is not a DataFrame."
+        assert not self._data.empty, "Data is empty. Load data first."
         return self._raw_to_sequence(self._data.values.tolist())
 
     def _load_raw_data(self, filepath: str, required_columns: list) -> object:
@@ -137,13 +143,16 @@ class InputHandler:
             dataframe = pd.DataFrame(data)
         else:
             raise TypeError(
-                "Unsupported data type for conversion to DataFrame. Supported types: DataFrame, list, bytearray, numpy ndarray."
+                "Unsupported data type for conversion to DataFrame. Supported types: "
+                "DataFrame, list, bytearray, numpy ndarray."
             )
 
         self._fill_missing_values(dataframe)
         return dataframe
 
-    def _raw_to_sequence(self, data: Union[list, bytearray, bytes, np.ndarray, str]) -> list:
+    def _raw_to_sequence(
+        self, data: Union[list, bytearray, bytes, np.ndarray, str, pd.DataFrame]
+    ) -> Sequence:
         """
         Convert raw data to a normalized sequence list with guaranteed date metadata.
 
