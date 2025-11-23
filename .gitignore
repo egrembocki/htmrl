@@ -160,6 +160,7 @@ venv.bak/
 .requirements.txt
 #.flake8
 htmrlenv/
+htmrl_env/
 
 
 # Spyder project settings
