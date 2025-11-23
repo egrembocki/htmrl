@@ -23,12 +23,12 @@
 
 """
 
-from psu_capstone.utils import Parameters
 from abc import ABC, abstractmethod
 from math import prod
-from typing import List, TypeVar, Generic, Any, Optional
+from typing import Any, Generic, List, Optional, TypeVar
 
 from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.utils import Parameters
 
 
 class BaseEncoder(ABC):

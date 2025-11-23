@@ -85,7 +85,7 @@ def main():
     for test_name, test_data in test_inputs.items():
         try:
             print(f"--- Test: {test_name} ---")
-            sequence = handler.raw_to_sequence(test_data)
+            sequence = handler.get_sequence(test_data)
             print("Resulting Sequence:", sequence)
             print()
         except Exception as e:
@@ -93,16 +93,18 @@ def main():
             print()
 
     # Set some raw data, will need more abstraction later
-    data_set = handler.load_data(os.path.join(DATA_PATH, "concat_ESData.xlsx"))
+    data_set = handler.input_data(
+        os.path.join(DATA_PATH, "concat_ESData.xlsx"), required_columns=["Date"]
+    )
 
     print("Raw Data Loaded.", type(data_set), "\n", DATA_PATH)
 
     # Explicitly convert raw data to DataFrame
-    data_frame = handler.to_dataframe(data_set)
+    # data_frame = handler.to_dataframe(data_set)
 
-    print("Data Frame Created.", type(data_frame), "\n", data_frame.head())
-    print("Data Validation:", handler.validate_data())
-    print(data_frame.info())
+    print("Data Frame Created.", type(data_set), "\n", data_set.head())
+    # print("Data Validation:", handler.validate_data())
+    print(data_set.info())
 
 
 if __name__ == "__main__":

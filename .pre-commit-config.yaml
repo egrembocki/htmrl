@@ -2,10 +2,9 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-    # - id: detect-private-key
-    #   description: Prevent committing private keys to the repository
     - id: no-commit-to-branch
       args: [--branch, discovery]
+      exclude: ^htmrl_env/
     - id: check-merge-conflict
       description: Prevent committing if a merge conflict is unresolved
     - id: check-yaml
@@ -14,7 +13,7 @@ repos:
       exclude: \.(drawio|png)$
     - id: mixed-line-ending
       args: ["--fix=lf"]
-    - id: check-shebang-scripts-are-executable
+    # - id: check-shebang-scripts-are-executable
   - repo: local
     hooks:
       - id: python-flake8
@@ -23,12 +22,14 @@ repos:
         pass_filenames: false
         types: [python]
         language: system
+        exclude: ^htmrl_env/
       - id: python-format
         name: Python Formatting
         entry: make format
         pass_filenames: false
         types: [python]
         language: system
+        exclude: ^htmrl_env/
       # - id: shellcheck
       #   name: Shell Linter
       #   entry: scripts/run-shellcheck.sh
