@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import List
 
 import pandas as pd
-
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder

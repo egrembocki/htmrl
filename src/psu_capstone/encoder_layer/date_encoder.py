@@ -5,10 +5,11 @@ from __future__ import annotations
 import copy
 import math
 import time
-import pandas as pd
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Set, Union
+
+import pandas as pd
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
