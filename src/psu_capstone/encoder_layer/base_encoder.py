@@ -34,14 +34,11 @@ from psu_capstone.utils import Parameters
 class BaseEncoder(ABC):
     """Base class for all encoders"""
 
-    def __init__(self, dimensions: Optional[List[int]] = None):
+    def __init__(self, dimensions: List[int] | None = None, size: int | None = None):
         """Initializes the BaseEncoder with given dimensions."""
 
         self._dimensions: List[int] = dimensions if dimensions is not None else []
-        if self._dimensions:
-            self._size: int = prod(int(dim) for dim in self._dimensions)
-        else:
-            self._size: int = 0
+        self._size: int = size if size is not None else prod(int(dim) for dim in self._dimensions)
 
     @property
     def dimensions(self) -> List[int]:

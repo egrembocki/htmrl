@@ -82,20 +82,19 @@ class RDSEParameters:
 class RandomDistributedScalarEncoder(BaseEncoder):
     """Random Distributed Scalar Encoder (RDSE) implementation."""
 
-    def __init__(
-        self, parameters: RDSEParameters | Parameters, dimensions: Optional[List[int]] = None
-    ):
-        super().__init__(dimensions)
-        self.parameters = copy.deepcopy(parameters)
-        self.parameters = self.check_parameters(self.parameters)
+    def __init__(self, parameters: RDSEParameters, dimensions: List[int] | None = None):
+        self._parameters = copy.deepcopy(parameters)
+        self._parameters = self.check_parameters(self._parameters)
 
-        self._size = self.parameters.size
-        self._active_bits = self.parameters.active_bits
-        self._sparsity = self.parameters.sparsity
-        self._radius = self.parameters.radius
-        self._resolution = self.parameters.resolution
-        self._category = self.parameters.category
-        self._seed = self.parameters.seed
+        self._size = self._parameters.size
+        self._active_bits = self._parameters.active_bits
+        self._sparsity = self._parameters.sparsity
+        self._radius = self._parameters.radius
+        self._resolution = self._parameters.resolution
+        self._category = self._parameters.category
+        self._seed = self._parameters.seed
+
+        super().__init__(dimensions, self._size)
 
     """
     Encodes an input value into an SDR with a random distributed scalar encoder.
@@ -132,7 +131,7 @@ class RandomDistributedScalarEncoder(BaseEncoder):
         output.set_dense(data)
 
     # After encode we may need a check_parameters method since most of the encoders have this
-    def check_parameters(self, parameters: RDSEParameters | Parameters):
+    def check_parameters(self, parameters: RDSEParameters):
         assert parameters.size > 0
 
         num_active_args = 0

@@ -8,7 +8,9 @@ from psu_capstone.encoder_layer.sdr import SDR
 
 @pytest.fixture
 def category_instance():
-    """Fixture to create a Category encoder instance for tests"""
+    """Fixture to create a Category encoder instance for tests
+    This is used for teardown purposes if needed in the future.
+    """
 
 
 def test_category_initialization():
@@ -17,10 +19,11 @@ def test_category_initialization():
     Note: there is an optional dimensions parameter not being used here.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, RDSEused=False)
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    """Checking if the instance is correct."""
+
     assert isinstance(e, CategoryEncoder)
+    """Checking if the instance is correct."""
 
 
 def test_encode_us():
@@ -29,7 +32,7 @@ def test_encode_us():
     3 categories and 1 unknown category. This is w or width of 3 times 4 which is 12 long.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, RDSEused=False)
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
     a = SDR([1, 12])
     e.encode("US", a)
@@ -43,7 +46,7 @@ def test_unknown_category():
     the categories specified.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, RDSEused=False)
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
     a = SDR([1, 12])
     e.encode("NA", a)
@@ -57,7 +60,7 @@ def test_encode_es():
     shows different active bits for different categories.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, RDSEused=False)
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
     a = SDR([1, 12])
     e.encode("ES", a)
@@ -76,7 +79,7 @@ def test_with_width_one():
         [0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 1],
     ]
-    parameters = CategoryParameters(w=1, category_list=categories, RDSEused=False)
+    parameters = CategoryParameters(w=1, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
     i = 0
     """The respective category should equal their index of expected results."""

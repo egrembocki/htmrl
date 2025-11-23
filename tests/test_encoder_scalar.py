@@ -31,8 +31,6 @@ def test_scalar_encoder_initialization():
         radius=0.0,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
 
     # Act
@@ -61,8 +59,6 @@ def test_clipping_inputs():
         radius=0.0,
         resolution=0.0,
         category=False,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     # Act and Assert baseline
     encoder = ScalarEncoder(p, dimensions=[2, 5])
@@ -101,8 +97,6 @@ def test_valid_scalar_inputs():
         resolution=0.0,
         clip_input=False,
         periodic=False,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
 
     # Act and Assert - baseline
@@ -138,8 +132,6 @@ def test_scalar_encoder_category_encode():
         resolution=0.0,
         clip_input=False,
         periodic=False,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
 
     # Act and Assert - baseline
@@ -181,8 +173,6 @@ def test_scalar_encoder_non_integer_bucket_width():
         radius=0.0,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
 
     encoder = ScalarEncoder(params, [1, 7])
@@ -210,8 +200,6 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
         radius=0.0,
         category=False,
         resolution=1,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
 
     # Act and Assert - baseline
@@ -252,8 +240,6 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
         radius=0.0,
         category=False,
         resolution=1,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     encoder = ScalarEncoder(params, [1, 10])
 
@@ -299,8 +285,6 @@ def test_scalar_encoder_serialization():
         radius=0.1337,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     inputs.append(ScalarEncoder(p, [1, 34]))
 
@@ -315,8 +299,6 @@ def test_scalar_encoder_serialization():
         radius=0.1337,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     inputs.append(ScalarEncoder(p, [1, 34]))
 
@@ -331,8 +313,6 @@ def test_scalar_encoder_serialization():
         radius=0.1337,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     inputs.append(ScalarEncoder(p, [1, 34]))
 
@@ -347,8 +327,6 @@ def test_scalar_encoder_serialization():
         radius=0.0,
         category=False,
         resolution=0.1337,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     inputs.append(ScalarEncoder(p, [1, 34]))
 
@@ -363,8 +341,6 @@ def test_scalar_encoder_serialization():
         radius=0.0,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     inputs.append(ScalarEncoder(q, [1, 100]))
 
@@ -379,16 +355,14 @@ def test_scalar_encoder_serialization():
         radius=0.0,
         category=False,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0,
     )
     inputs.append(ScalarEncoder(r, [1, 700]))
     inputs.append(ScalarEncoder(r, [1, 700]))
 
     for encoder in inputs:
         if type(encoder) is ScalarEncoder:
-            p1 = encoder.parameters
-            p2 = encoder.parameters
+            p1 = encoder._parameters
+            p2 = encoder._parameters
 
             assert p1.size == p2.size
             assert getattr(p1, "category", None) == getattr(p2, "category", None)

@@ -62,7 +62,7 @@ def test_copy_deepcopy_sdr(handler: EncoderHandler):
     for i, encoder in enumerate(handler._encoders):
         input_value = rows.iloc[i]
 
-        output_sdr = SDR(encoder.dimensions)
+        output_sdr = SDR([encoder.size])
 
         output_sdr.zero()
 

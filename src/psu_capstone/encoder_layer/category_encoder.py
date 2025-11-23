@@ -1,11 +1,8 @@
 """Category Encoder implementation"""
 
 import copy
-import math
-import random
-import struct
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -33,7 +30,7 @@ class CategoryParameters:
     RDSE for each category encoded unless this is false, then it will use a
     basic scalar encoder like the htm core implementation.
     """
-    RDSEused: Optional[bool] = True
+    rdse_used: bool = True
 
 
 class CategoryEncoder(BaseEncoder):
@@ -53,16 +50,16 @@ class CategoryEncoder(BaseEncoder):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: CategoryParameters, dimensions: List[int] = None):
-        super().__init__(dimensions)
+    def __init__(self, parameters: CategoryParameters, dimensions: List[int] | None = None):
 
-        self.parameters = copy.deepcopy(parameters)
-        self._w = self.parameters.w
-        self._category_list = self.parameters.category_list
-        self._RDSEused = self.parameters.RDSEused
-
+        self._parameters = copy.deepcopy(parameters)
+        self._w = self._parameters.w
+        self._category_list = self._parameters.category_list
+        self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
+        self._size = self._num_categories * self._w
 
+        super().__init__(dimensions, self._size)
         """
         If we want the RDSE to be used this will set our encoder object equal to an RDSE with the proper paremeters.
         """
@@ -93,13 +90,11 @@ class CategoryEncoder(BaseEncoder):
                 size=0,
                 radius=1.0,
                 resolution=0.0,
-                size_or_radius_or_category_or_resolution=0,
-                active_bits_or_sparsity=0,
             )
             self.encoder = ScalarEncoder(self.sp, dimensions=[self.sp.size])
             self._dimensions = [self.sp.size]
 
-    def encode(self, input_value: str, output_sdr):
+    def encode(self, input_value: str, output_sdr: SDR) -> None:
         if input_value not in self._category_list:
             index = 0
         else:

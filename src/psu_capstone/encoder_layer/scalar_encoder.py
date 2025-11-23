@@ -100,12 +100,6 @@ class ScalarEncoderParameters:
      * resolution are guaranteed to have different representations.
      */"""
 
-    size_or_radius_or_category_or_resolution: Union[int, float, bool]
-    """Helper field to indicate which of size, radius, category, or resolution is specified."""
-
-    active_bits_or_sparsity: Union[int, float]
-    """Helper field to indicate which of active_bits or sparsity is specified."""
-
 
 class ScalarEncoder(BaseEncoder):
     """
@@ -121,21 +115,22 @@ class ScalarEncoder(BaseEncoder):
      * $ python -m htm.examples.encoders.scalar_encoder --help
      */"""
 
-    def __init__(self, parameters: ScalarEncoderParameters, dimensions: List[int] = None):
-        super().__init__(dimensions)
-        self.parameters = copy.deepcopy(parameters)
-        self.parameters = self.check_parameters(self.parameters)
+    def __init__(self, parameters: ScalarEncoderParameters, dimensions: List[int] | None = None):
+        self._parameters = copy.deepcopy(parameters)
+        self._parameters = self.check_parameters(self._parameters)
 
-        self._minimum = self.parameters.minimum
-        self._maximum = self.parameters.maximum
-        self._clip_input = self.parameters.clip_input
-        self._periodic = self.parameters.periodic
-        self._category = self.parameters.category
-        self._active_bits = self.parameters.active_bits
-        self._sparsity = self.parameters.sparsity
-        self._size = self.parameters.size
-        self._radius = self.parameters.radius
-        self._resolution = self.parameters.resolution
+        self._minimum = self._parameters.minimum
+        self._maximum = self._parameters.maximum
+        self._clip_input = self._parameters.clip_input
+        self._periodic = self._parameters.periodic
+        self._category = self._parameters.category
+        self._active_bits = self._parameters.active_bits
+        self._sparsity = self._parameters.sparsity
+        self._size = self._parameters.size
+        self._radius = self._parameters.radius
+        self._resolution = self._parameters.resolution
+
+        super().__init__(dimensions, self._size)
 
     """
         Encodes an input value into an SDR with a block of 1's.
