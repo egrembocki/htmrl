@@ -37,8 +37,6 @@ from typing import Dict, List, Set
 
 import pandas as pd
 
-import pandas as pd
-
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters

@@ -47,7 +47,7 @@ def test_input_to_encoder_passes_same_dataframe_object():
 
     # Create the InputHandler and convert raw data → DataFrame
     handler = InputHandler()
-    df = handler.to_dataframe(data_list)
+    df = handler._to_dataframe(data_list)
 
     # handler returns a DataFrame
     assert isinstance(df, pd.DataFrame)
