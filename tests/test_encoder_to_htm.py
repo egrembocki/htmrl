@@ -43,7 +43,7 @@ def test_encoder_to_htm_receives_sdr_object():
     fib_sequence = [0, 1, 1, 2, 3, 5, 8, 13]
 
     handler = InputHandler()
-    df = handler.to_dataframe(fib_sequence)
+    df = handler._to_dataframe(fib_sequence)
 
     encoder = DummyEncoder()
     encoder.attach_input(df)
