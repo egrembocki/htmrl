@@ -71,7 +71,10 @@ def main():
     excel_path = (
         r"C:\Users\alexb\Desktop\SWENG 480-481 Final Project\psu-capstone\data\concat_ESData.xlsx"
     )
-    full_df = ih.load_data(excel_path)
+
+    required_columns = None
+
+    full_df = ih._load_raw_data(excel_path, required_columns=required_columns)
 
     print("Raw DataFrame from Excel:")
     print(full_df.head())
@@ -81,7 +84,7 @@ def main():
     # demo_df = full_df                # or ALL rows
     # demo_df = full_df.sample(5)      # or a random 5 rows
 
-    df = ih.to_dataframe(demo_df)
+    df = demo_df
 
     handler = EncoderHandler(df)
     composite: SDR = handler.build_composite_sdr(df)
