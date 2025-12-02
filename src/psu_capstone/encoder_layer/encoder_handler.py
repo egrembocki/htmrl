@@ -55,7 +55,7 @@ class EncoderHandler:
         self._data_frame = copy.deepcopy(input_data)
         self._encoders: List[BaseEncoder] = []
 
-    def build_composite_sdr(self, input_data: pd.DataFrame) -> SDR:
+    def build_composite_sdr(self, input_data: pd.DataFrame) -> list[SDR]:
         """Builds a composite SDR from multiple encoders based on the input data.
 
         For each column in the input DataFrame, selects an encoder based on the column's dtype,
@@ -65,7 +65,7 @@ class EncoderHandler:
             input_data (pd.DataFrame): DataFrame containing input values for each encoder.
 
         Returns:
-            SDR: Composite SDR built from all encoded columns.
+            list[SDR]: Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.
@@ -84,9 +84,9 @@ class EncoderHandler:
                 if isinstance(value, float) or isinstance(value, np.floating):
                     encoder = RandomDistributedScalarEncoder(
                         RDSEParameters(
-                            active_bits=21,
+                            active_bits=5,
                             sparsity=0.0,
-                            size=2048,
+                            size=100,
                             radius=100.0,
                             resolution=0.0,
                             category=False,
@@ -105,7 +105,7 @@ class EncoderHandler:
                             periodic=False,
                             active_bits=5,
                             sparsity=0.0,
-                            size=10,
+                            size=100,
                             radius=0.0,
                             category=False,
                             resolution=0.0,
@@ -130,13 +130,13 @@ class EncoderHandler:
                         DateEncoderParameters(
                             season_width=0,
                             season_radius=91.5,
-                            day_of_week_width=3,
+                            day_of_week_width=7,
                             day_of_week_radius=1.0,
-                            weekend_width=3,
-                            holiday_width=0,
-                            holiday_dates=[[12, 25]],
-                            time_of_day_width=3,
-                            time_of_day_radius=4.0,
+                            weekend_width=2,
+                            holiday_width=4,
+                            holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
+                            time_of_day_width=24,
+                            time_of_day_radius=1.0,
                             custom_width=0,
                             custom_days=[],
                             rdse_used=False,
@@ -176,29 +176,8 @@ class EncoderHandler:
         if not row_sdrs:
             raise ValueError("No SDRs were created from the input data.")
 
-        # If only one row, just return its SDR (backwards compatible)
-        if len(row_sdrs) == 1:
-            return row_sdrs[0]
-
-        # --- pack all row SDRs into a single 2D SDR ---
-        row_size = row_sdrs[0].size
-        for rs in row_sdrs[1:]:
-            assert rs.size == row_size, "All row SDRs must have the same size"
-
-        num_rows = len(row_sdrs)
-        total_bits = num_rows * row_size
-
-        matrix_sdr = SDR([total_bits])
-
-        sparse_indices: list[int] = []
-        for i, rs in enumerate(row_sdrs):
-            base = i * row_size
-            sparse_indices.extend(base + idx for idx in rs.get_sparse())
-
-        matrix_sdr.set_sparse(sparse_indices)
-        matrix_sdr.reshape([num_rows, row_size])
-
-        return matrix_sdr
+        # Always return the list of SDRs, one per row
+        return row_sdrs
 
 
 if __name__ == "__main__":
@@ -215,11 +194,18 @@ if __name__ == "__main__":
                 "int_col": int(42),
                 "str_col": str("B"),
                 "date_col": datetime(2023, 12, 25),
-            }
+            },
+            {
+                "float_col": float(2.71),
+                "int_col": int(7),
+                "str_col": str("A"),
+                "date_col": datetime(2024, 1, 1),
+            },
         ]
     )
 
     handler = EncoderHandler(df)
     composite_sdr = handler.build_composite_sdr(df)
-    print("Composite SDR sparse representation:", composite_sdr.get_sparse())
-    print("Composite SDR size:", composite_sdr.size)
+    for idx, sdr in enumerate(composite_sdr):
+        print(f"Composite SDR {idx} sparse representation:", sdr.get_sparse())
+        print(f"Composite SDR {idx} size:", sdr.size)

@@ -8,46 +8,52 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import os
+
 from matplotlib.colors import ListedColormap
 
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
 
+# Set the path to the Excel file relative to the project root
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
 
-def visualize_sdr_all_rows(sdr: SDR, title: str = "Composite SDR – Grid View"):
+
+def visualize_sdr_all_rows(sdrs: list[SDR], title: str = "Composite SDR – Grid View"):
     """
-    Visualize a composite SDR (multiple rows) as a single 2D square/rectangular grid.
+    Visualize a list of SDRs (one per row) as individual 2D square/rectangular grids.
     """
-    # Flatten SDR to 1D dense bit array
-    dense = np.array(sdr.get_dense())
-    n = dense.size
+    for idx, sdr in enumerate(sdrs):
+        dense = np.array(sdr.get_dense())
+        n = dense.size
 
-    # Compute smallest square that fits all bits
-    side = int(np.ceil(np.sqrt(n)))
+        # Compute smallest square that fits all bits
+        side = int(np.ceil(np.sqrt(n)))
 
-    # Pad if necessary
-    padded = np.zeros(side * side, dtype=int)
-    padded[:n] = dense
+        # Pad if necessary
+        padded = np.zeros(side * side, dtype=int)
+        padded[:n] = dense
 
-    # Reshape into a 2D grid
-    grid = padded.reshape(side, side)
+        # Reshape into a 2D grid
+        grid = padded.reshape(side, side)
 
-    # Colormap: white (0) and blue (1)
-    cmap = ListedColormap(["white", "blue"])
+        # Colormap: white (0) and blue (1)
+        cmap = ListedColormap(["white", "blue"])
 
-    plt.figure(figsize=(10, 10))
-    plt.imshow(grid, cmap=cmap, interpolation="nearest")
-    plt.title(title)
-    plt.xticks([])
-    plt.yticks([])
-    plt.grid(False)
-    plt.show(block=True)
+        plt.figure(figsize=(6, 6))
+        plt.imshow(grid, cmap=cmap, interpolation="nearest")
+        plt.title(f"{title} – Row {idx}")
+        plt.xticks([])
+        plt.yticks([])
+        plt.grid(False)
+        plt.show(block=True)
 
 
 def build_demo_dataframe() -> pd.DataFrame:
 
-    rows = [
+    scalar_rows = [
         {
             "temp_c": 21.5,
             "visits": 3,
@@ -61,39 +67,55 @@ def build_demo_dataframe() -> pd.DataFrame:
             "timestamp": datetime(2015, 3, 25, 8, 30),
         },
     ]
-    return pd.DataFrame(rows)
+    return pd.DataFrame(scalar_rows)
 
 
 def main():
 
     ih = InputHandler()
 
-    excel_path = (
-        r"C:\Users\alexb\Desktop\SWENG 480-481 Final Project\psu-capstone\data\concat_ESData.xlsx"
-    )
+    required_columns_manual = ["temp_c", "visits", "country", "timestamp"]
 
-    required_columns = None
+    required_columns_excel = [
+        "Date",
+        "Open",
+        "High",
+        "Low",
+        "Close",
+        "RSI",
+        "MACD",
+        "MACDState",
+        "HAColor",
+        "HABodyRangeRatio",
+        "HALongWick",
+        "HAGreenConsec",
+        "HARedConsec",
+        "EMAState",
+        "HAHighToEMALong",
+        "HACloseToEMALong",
+        "HALowToEMALong",
+        "HAHighToEMAShort",
+        "HACloseToEMAShort",
+        "HALowToEMAShort",
+        "MyWAZLTTrend",
+    ]
 
-    full_df = ih._load_raw_data(excel_path, required_columns=required_columns)
+    sub_set_df = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
 
-    print("Raw DataFrame from Excel:")
-    print(full_df.head())
+    print("Raw DataFrame first ten rows from Excel:")
 
-    # pick as many rows as you want here
-    demo_df = full_df.iloc[0:10]  # first 10 rows
-    # demo_df = full_df                # or ALL rows
-    # demo_df = full_df.sample(5)      # or a random 5 rows
+    print(sub_set_df.head())
 
-    df = demo_df
+    handler = EncoderHandler(sub_set_df)
+    composite_list = handler.build_composite_sdr(sub_set_df)
 
-    handler = EncoderHandler(df)
-    composite: SDR = handler.build_composite_sdr(df)
+    print("Composite SDR count:", len(composite_list))
+    for idx, composite in enumerate(composite_list):
+        print(f"Composite SDR {idx} dimensions:", composite.dimensions)
+        print(f"Composite SDR {idx} size:", composite.size)
+        print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
 
-    print("Composite SDR dimensions:", composite.dimensions)
-    print("Composite SDR size:", composite.size)
-    print("Composite Sparsity:", composite.get_sparsity())
-
-    visualize_sdr_all_rows(composite, title="Composite SDR – Rows")
+    visualize_sdr_all_rows(composite_list, title="Composite SDR – Rows")
 
 
 if __name__ == "__main__":
