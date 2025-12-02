@@ -4,11 +4,21 @@ This module provides the EncoderHandler class, which manages multiple encoder ty
 and dynamically selects the appropriate encoder for each column in a pandas DataFrame
 based on its dtype. It builds composite Sparse Distributed Representations (SDRs)
 from the encoded columns.
+
+**
+TODO:
+We may also need to build in support for state tracking to ensure consistent encoding to help the HTM
+Poolers learn correctly over time. This could involve maintaining encoder instances for each column
+across multiple calls to build_composite_sdr.
+
+It has to be fully atomic, the list of SDRs encoded all at once from the DataFrame, so that the
+resulting composite SDRs are consistent across calls.
+**
 """
 
 import copy
 from datetime import datetime
-from typing import Any, List, Self
+from typing import List, Self
 
 import numpy as np  # Add this import
 import pandas as pd

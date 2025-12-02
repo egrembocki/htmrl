@@ -3,26 +3,25 @@ demo_driver.py
 
 """
 
+import os
 from datetime import datetime
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import os
-
-import matplotlib
 
 matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
 
 from matplotlib.colors import ListedColormap
 
-from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-from psu_capstone.encoder_layer.sdr import SDR
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.input_layer.input_handler import InputHandler
 
 # Set the path to the Excel file relative to the project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
