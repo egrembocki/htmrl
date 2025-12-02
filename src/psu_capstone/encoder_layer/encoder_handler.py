@@ -94,11 +94,11 @@ class EncoderHandler:
                 if isinstance(value, float) or isinstance(value, np.floating):
                     encoder = RandomDistributedScalarEncoder(
                         RDSEParameters(
-                            active_bits=5,
+                            active_bits=10,
                             sparsity=0.0,
                             size=100,
-                            radius=100.0,
-                            resolution=0.0,
+                            radius=0.0,
+                            resolution=1.0,
                             category=False,
                             seed=42,
                         )

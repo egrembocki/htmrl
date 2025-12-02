@@ -84,7 +84,7 @@ def build_demo_dataframe() -> pd.DataFrame:
         {
             "temp_c": 4.5,
             "visits": 12,
-            "country": "US",
+            "country": "MX",
             "timestamp": datetime(2015, 3, 25, 8, 30),
         },
         {
@@ -92,6 +92,12 @@ def build_demo_dataframe() -> pd.DataFrame:
             "visits": 7,
             "country": "CA",
             "timestamp": datetime(2022, 7, 4, 14, 0),
+        },
+        {
+            "temp_c": 21.5,
+            "visits": 3,
+            "country": "US",
+            "timestamp": datetime(2023, 12, 25, 8, 30),
         },
     ]
     return pd.DataFrame(scalar_rows)
@@ -121,7 +127,7 @@ def main():
             active_bits=10,
             size=100,
             sparsity=0.0,
-            radius=1.0,
+            radius=0.1,
             resolution=0.0,
             category=False,
             seed=42,
@@ -173,7 +179,7 @@ def main():
         "MyWAZLTTrend",
     ]
 
-    scalar_values = [25.0, 50.0, 75.0]
+    scalar_values = [25.1, 50.2, 75.5]
     category_values = ["US", "CA", "MX"]  # Added two more category values
     scalar_sdrs = []
     rdse_sdrs = []
@@ -209,6 +215,15 @@ def main():
     demo_sample_df = build_demo_dataframe()
     sub_set_df = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
 
+    # change values to all float to trigger rdse in sub_set_df
+    for col in sub_set_df.columns:
+        if sub_set_df[col].dtype == int:
+            try:
+                sub_set_df[col] = sub_set_df[col].astype(float)
+            except ValueError:
+                pass  # Ignore columns that cannot be converted to float
+
+    # encoder parameters are hardcoded in EncoderHandler for demo purposes
     handler = EncoderHandler(demo_sample_df)
     composite_list = handler.build_composite_sdr(demo_sample_df)
 
