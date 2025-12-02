@@ -10,9 +10,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
-
 from matplotlib.colors import ListedColormap
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -22,6 +19,9 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
+
+matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
+
 
 # Set the path to the Excel file relative to the project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -98,7 +98,7 @@ def build_demo_dataframe() -> pd.DataFrame:
 
 
 def main():
-
+    print("Beginning Demo...")
     ih = InputHandler()
 
     scalar_encoder = ScalarEncoder(
