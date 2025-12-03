@@ -1,5 +1,7 @@
 """
 demo_driver.py
+@Alex
+@Chris
 
 """
 
@@ -61,7 +63,7 @@ def visualize_sdr_all_rows(
         try:
             mng = plt.get_current_fig_manager()
             # For TkAgg backend
-            mng.window.wm_geometry("+0+0")
+            mng.window.wm_geometry("+0+0")  # type: ignore # Move window to top-left corner
         except Exception:
             pass
         plt.imshow(grid, cmap=cmap, interpolation="nearest")
@@ -214,6 +216,11 @@ def main():
     # Test composite SDR building
     demo_sample_df = build_demo_dataframe()
     sub_set_df = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
+
+    print("Demo DataFrame:")
+    print(demo_sample_df.dtypes)
+    print("Sample DataFrame from Excel:")
+    print(sub_set_df.dtypes)
 
     # change values to all float to trigger rdse in sub_set_df
     for col in sub_set_df.columns:
