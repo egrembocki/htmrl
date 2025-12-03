@@ -3,6 +3,10 @@ demo_driver.py
 @Alex
 @Chris
 
+This script demonstrates the encoding and visualization of various data types using the encoder layer
+of the psu-capstone project. It showcases scalar, category, date, and RDSE encoders, builds composite
+SDRs for sample and Excel data, and visualizes the resulting SDRs as 2D grids. The script is intended
+for demonstration and testing purposes, providing insight into how input data is transformed into SDRs.
 """
 
 import os
@@ -36,6 +40,8 @@ def visualize_sdr_all_rows(
     """
     Visualize a list of SDRs (one per row) as individual 2D square/rectangular grids.
     Optionally display a label for each row in the plot title.
+
+    Allows interactive navigation between SDRs using left/right arrow keys.
     """
 
     # Precompute grids and labels
@@ -108,6 +114,12 @@ def visualize_sdr_all_rows(
 
 
 def build_demo_dataframe() -> pd.DataFrame:
+    """
+    Build a simple demonstration DataFrame with scalar, category, and datetime columns.
+
+    Returns:
+        pd.DataFrame: DataFrame containing sample rows for encoding demonstration.
+    """
 
     scalar_rows = [
         {
@@ -139,6 +151,16 @@ def build_demo_dataframe() -> pd.DataFrame:
 
 
 def main():
+    """
+    Main driver function for the demo.
+
+    - Initializes encoders for scalar, category, date, and RDSE types.
+    - Encodes sample values and visualizes their SDRs.
+    - Loads and preprocesses Excel data, builds composite SDRs for both sample and Excel data.
+    - Visualizes composite SDRs for each row, displaying relevant labels.
+    - Prints SDR statistics for inspection.
+    """
+
     print("Beginning Demo...")
     ih = InputHandler()
 
@@ -147,7 +169,7 @@ def main():
             minimum=0.0,
             maximum=100.0,
             size=100,
-            active_bits=10,
+            active_bits=10,  # sparisty of 10% for visualization
             clip_input=True,
             periodic=False,
             category=False,
@@ -159,10 +181,10 @@ def main():
 
     rdse_encoder = RandomDistributedScalarEncoder(
         RDSEParameters(
-            active_bits=10,
+            active_bits=10,  # sparisty of 10% for visualization
             size=100,
             sparsity=0.0,
-            radius=0.1,
+            radius=0.1,  # small radius for demo, all us to see a float encoding
             resolution=0.0,
             category=False,
             seed=42,
