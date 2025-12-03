@@ -293,6 +293,7 @@ def main():
         print(f"Composite SDR {idx} dimensions:", composite.dimensions)
         print(f"Composite SDR {idx} size:", composite.size)
         print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
+        print(f"Composite SDR {idx} Density:", composite.get_dense())
 
     # For demo_sample_df, show all values being encoded for each row, but skip any datetime/Timestamp in the label
     def all_row_label(row, max_len=60):
@@ -328,7 +329,6 @@ def main():
         print(f"Composite SDR {idx} dimensions:", composite.dimensions)
         print(f"Composite SDR {idx} size:", composite.size)
         print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
-        print(f"Composite SDR {idx} Density:", composite.get_dense())
 
     row_labels_excel = [all_row_label(row) for _, row in sub_set_df.iterrows()]
     visualize_sdr_all_rows(composite_list_excel, title="Composite SDR", row_labels=row_labels_excel)
