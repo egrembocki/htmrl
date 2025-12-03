@@ -1,7 +1,5 @@
 """
 demo_driver.py
-@Alex
-@Chris
 
 """
 
@@ -37,6 +35,11 @@ def visualize_sdr_all_rows(
     Visualize a list of SDRs (one per row) as individual 2D square/rectangular grids.
     Optionally display a label for each row in the plot title.
     """
+
+    # Precompute grids and labels
+    grids: list[np.ndarray] = []
+    labels: list[str] = []
+
     for idx, sdr in enumerate(sdrs):
         dense = np.array(sdr.get_dense())
         n = dense.size
@@ -50,28 +53,56 @@ def visualize_sdr_all_rows(
 
         # Reshape into a 2D grid
         grid = padded.reshape(side, side)
-
-        # Colormap: white (0) and blue (1)
-        cmap = ListedColormap(["white", "blue"])
+        grids.append(grid)
 
         label = ""
         if row_labels is not None and idx < len(row_labels):
             label = f" ({row_labels[idx]})"
+        labels.append(label)
 
-        plt.figure(figsize=(12, 12))
-        # Set window location to top-left before drawing
-        try:
-            mng = plt.get_current_fig_manager()
-            # For TkAgg backend
-            mng.window.wm_geometry("+0+0")  # type: ignore # Move window to top-left corner
-        except Exception:
-            pass
-        plt.imshow(grid, cmap=cmap, interpolation="nearest")
-        plt.title(f"{title} – Row {idx}{label}")
-        plt.xticks([])
-        plt.yticks([])
-        plt.grid(False)
-        plt.show(block=True)
+    cmap = ListedColormap(["white", "blue"])
+
+    # Set up a single figure
+    fig, ax = plt.subplots(figsize=(12, 12))
+
+    # Try to move window to top-left
+    try:
+        mng = plt.get_current_fig_manager()
+        mng.window.wm_geometry("+0+0")  # TkAgg-specific
+    except Exception:
+        pass
+
+    class IndexTracker:
+        def __init__(self, num_items: int):
+            self.idx = 0
+            self.num_items = num_items
+
+        def update(self):
+            ax.clear()
+            ax.imshow(grids[self.idx], cmap=cmap, interpolation="nearest")
+            ax.set_title(f"{title} – Row {self.idx}{labels[self.idx]}")
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.grid(False)
+            fig.canvas.draw_idle()
+
+        def on_key(self, event):
+            if event.key in ("right"):  # next
+                self.idx = (self.idx + 1) % self.num_items
+                self.update()
+            elif event.key in ("left"):  # previous
+                self.idx = (self.idx - 1) % self.num_items
+                self.update()
+            elif event.key in ("escape", "up"):
+                plt.close(fig)
+
+    tracker = IndexTracker(len(grids))
+    tracker.update()
+
+    # Connect key-press events
+    fig.canvas.mpl_connect("key_press_event", tracker.on_key)
+
+    plt.show(block=True)
 
 
 def build_demo_dataframe() -> pd.DataFrame:
@@ -181,8 +212,13 @@ def main():
         "MyWAZLTTrend",
     ]
 
-    scalar_values = [25.1, 50.2, 75.5, 25.1]  # Show 25.1 twice
-    category_values = ["US", "CA", "MX", "US"]  # Match length with scalar_values
+    scalar_values = [25.1, 50.2, 75.5]
+    date_values = [
+        datetime(2024, 6, 15, 10, 30),
+        datetime(2024, 12, 25, 8, 0),
+        datetime(2024, 7, 4, 21, 15),
+    ]
+    category_values = ["US", "CA", "MX"]  # Added two more category values
     scalar_sdrs = []
     rdse_sdrs = []
     category_sdrs = []
@@ -195,7 +231,7 @@ def main():
         scalar_encoder.encode(value, sdr1)
         rdse_encoder.encode(value, sdr2)
         category_encoder.encode(category_values[i], sdr3)
-        date_encoder.encode(datetime(2024, 6, 15, 10, 30), sdr4)
+        date_encoder.encode(date_values[i], sdr4)
         scalar_sdrs.append(sdr1)
         rdse_sdrs.append(sdr2)
         category_sdrs.append(sdr3)
@@ -209,18 +245,11 @@ def main():
         rdse_sdrs, title="RDSE Encoder SDR", row_labels=[str(v) for v in scalar_values]
     )
     visualize_sdr_all_rows(category_sdrs, title="Category Encoder SDR", row_labels=category_values)
-    visualize_sdr_all_rows(
-        date_sdrs, title="Date Encoder SDR", row_labels=["2024-06-15 10:30"] * len(date_sdrs)
-    )
+    visualize_sdr_all_rows(date_sdrs, title="Date Encoder SDR", row_labels=date_values)
 
     # Test composite SDR building
     demo_sample_df = build_demo_dataframe()
     sub_set_df = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
-
-    print("Demo DataFrame:")
-    print(demo_sample_df.dtypes)
-    print("Sample DataFrame from Excel:")
-    print(sub_set_df.dtypes)
 
     # change values to all float to trigger rdse in sub_set_df
     for col in sub_set_df.columns:
