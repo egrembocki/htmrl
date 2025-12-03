@@ -63,12 +63,12 @@ def visualize_sdr_all_rows(
     cmap = ListedColormap(["white", "blue"])
 
     # Set up a single figure
-    fig, ax = plt.subplots(figsize=(12, 12))
+    fig, ax = plt.subplots(figsize=(10, 10))
 
     # Try to move window to top-left
     try:
         mng = plt.get_current_fig_manager()
-        mng.window.wm_geometry("+0+0")  # TkAgg-specific
+        mng.window.wm_geometry("+0+0")  # type: ignore # TkAgg-specific
     except Exception:
         pass
 
@@ -212,13 +212,13 @@ def main():
         "MyWAZLTTrend",
     ]
 
-    scalar_values = [25.1, 50.2, 75.5]
+    scalar_values = [25.1, 50.2, 75.5, 25.1]
     date_values = [
         datetime(2024, 6, 15, 10, 30),
         datetime(2024, 12, 25, 8, 0),
         datetime(2024, 7, 4, 21, 15),
     ]
-    category_values = ["US", "CA", "MX"]  # Added two more category values
+    category_values = ["US", "CA", "MX", "US"]  # Added two more category values
     scalar_sdrs = []
     rdse_sdrs = []
     category_sdrs = []
