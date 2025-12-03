@@ -1,5 +1,7 @@
 """
 demo_driver.py
+@Alex
+@Chris
 
 """
 
@@ -217,6 +219,7 @@ def main():
         datetime(2024, 6, 15, 10, 30),
         datetime(2024, 12, 25, 8, 0),
         datetime(2024, 7, 4, 21, 15),
+        datetime(2024, 6, 15, 10, 30),
     ]
     category_values = ["US", "CA", "MX", "US"]  # Added two more category values
     scalar_sdrs = []
