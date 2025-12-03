@@ -270,7 +270,7 @@ def main():
         rdse_sdrs, title="RDSE Encoder SDR", row_labels=[str(v) for v in scalar_values]
     )
     visualize_sdr_all_rows(category_sdrs, title="Category Encoder SDR", row_labels=category_values)
-    visualize_sdr_all_rows(date_sdrs, title="Date Encoder SDR", row_labels=date_values)
+    visualize_sdr_all_rows(date_sdrs, title="Date Encoder SDR", row_labels=date_values)  # type: ignore
 
     # Test composite SDR building
     demo_sample_df = build_demo_dataframe()
