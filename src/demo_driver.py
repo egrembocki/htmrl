@@ -179,8 +179,8 @@ def main():
         "MyWAZLTTrend",
     ]
 
-    scalar_values = [25.1, 50.2, 75.5]
-    category_values = ["US", "CA", "MX"]  # Added two more category values
+    scalar_values = [25.1, 50.2, 75.5, 25.1]  # Show 25.1 twice
+    category_values = ["US", "CA", "MX", "US"]  # Match length with scalar_values
     scalar_sdrs = []
     rdse_sdrs = []
     category_sdrs = []
