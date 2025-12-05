@@ -236,7 +236,7 @@ def main():
         "MyWAZLTTrend",
     ]
 
-    scalar_values = [25.1, 50.2, 75.5, 25.1]
+    scalar_values = [25, 50, 75, 25]
     date_values = [
         datetime(2024, 6, 15, 10, 30),
         datetime(2024, 12, 25, 8, 0),
