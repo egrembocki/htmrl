@@ -8,9 +8,9 @@ from the encoded columns.
 
 import copy
 from datetime import datetime
-from typing import Any, List, Self
+from typing import List, Self
 
-import numpy as np  # Add this import
+import numpy as np
 import pandas as pd
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -54,6 +54,17 @@ class EncoderHandler:
         """
         self._data_frame = copy.deepcopy(input_data)
         self._encoders: List[BaseEncoder] = []
+
+    @classmethod
+    def get_instance(cls) -> "EncoderHandler":
+        """Returns the singleton instance of EncoderHandler.
+
+        Returns:
+            EncoderHandler: The singleton instance.
+        """
+        if cls.__instance is None:
+            raise Exception("EncoderHandler instance has not been created yet.")
+        return cls.__instance
 
     def build_composite_sdr(self, input_data: pd.DataFrame) -> SDR:
         """Builds a composite SDR from multiple encoders based on the input data.
