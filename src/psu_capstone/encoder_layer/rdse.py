@@ -24,39 +24,40 @@ from psu_capstone.utils import Parameters
 
 @dataclass
 class RDSEParameters:
-    """
-    * Member "size" is the total number of bits in the encoded output SDR.
-    """
 
     size: int
     """
-    * Member "activeBits" is the number of true bits in the encoded output SDR.
+    * Member "size" is the total number of bits in the encoded output SDR.
     """
     active_bits: int
+    """
+    * Member "activeBits" is the number of true bits in the encoded output SDR.
+    """
+    sparsity: float
     """
     * Member "sparsity" is the fraction of bits in the encoded output which this
     * encoder will activate. This is an alternative way to specify the member
     * "activeBits".
     """
-    sparsity: float
+    radius: float
     """
     * Member "radius" Two inputs separated by more than the radius have
     * non-overlapping representations. Two inputs separated by less than the
     * radius will in general overlap in at least some of their bits. You can
     * think of this as the radius of the input.
     """
-    radius: float
+    resolution: float
     """
     * Member "resolution" Two inputs separated by greater than, or equal to the
     * resolution will in general have different representations.
     """
-    resolution: float
+    category: bool
     """
     * Member "category" means that the inputs are enumerated categories.
     * If true then this encoder will only encode unsigned integers, and all
     * inputs will have unique / non-overlapping representations.
     """
-    category: bool
+    seed: int
     """
     * Member "seed" forces different encoders to produce different outputs, even
     * if the inputs and all other parameters are the same.  Two encoders with the
@@ -64,7 +65,6 @@ class RDSEParameters:
     *
     * The seed 0 is special.  Seed 0 is replaced with a random number.
     """
-    seed: int
 
 
 """

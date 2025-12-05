@@ -35,6 +35,7 @@ class InputHandler:
         self._instance = None
         """The singleton instance."""
 
+        # this will have to be more abstract later to handle different data types
         self._data = pd.DataFrame()
         """The input data of any type."""
 
@@ -49,9 +50,12 @@ class InputHandler:
     # Getters, maybe use properties later
     def get_data(self) -> pd.DataFrame:
         """Getter for the data attribute"""
+
+        # more dynamic type checks may be needed here
+        assert isinstance(self._data, pd.DataFrame)
         return pd.DataFrame(self._data)
 
-    def input_data(self, filepath: str, required_columns: list) -> object:
+    def input_data(self, filepath: str, required_columns: list) -> pd.DataFrame:
         """
         Public method to load, convert, and validate data in one step.
 
@@ -71,18 +75,16 @@ class InputHandler:
 
     def get_sequence(
         self, data: Union[list, bytearray, bytes, np.ndarray, str, pd.DataFrame]
-    ) -> Sequence:
+    ) -> list:
         """
         Public method to get the current data as a normalized sequence.
 
         Returns:
             list: The data as a normalized sequence.
         """
-
-        assert data is not None, "Input data is None."
-        assert isinstance(self._data, pd.DataFrame), "Data is not a DataFrame."
-        assert not self._data.empty, "Data is empty. Load data first."
-        return self._raw_to_sequence(self._data.values.tolist())
+        # more type checks may be needed here
+        assert isinstance(data, pd.DataFrame)
+        return self._raw_to_sequence(data.values.tolist())
 
     def _load_raw_data(self, filepath: str, required_columns: list) -> object:
         """Load data from a file with pandas based on file extension.

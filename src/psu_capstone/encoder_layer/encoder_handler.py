@@ -4,11 +4,21 @@ This module provides the EncoderHandler class, which manages multiple encoder ty
 and dynamically selects the appropriate encoder for each column in a pandas DataFrame
 based on its dtype. It builds composite Sparse Distributed Representations (SDRs)
 from the encoded columns.
+
+**
+TODO:
+We may also need to build in support for state tracking to ensure consistent encoding to help the HTM
+Poolers learn correctly over time. This could involve maintaining encoder instances for each column
+across multiple calls to build_composite_sdr.
+
+It has to be fully atomic, the list of SDRs encoded all at once from the DataFrame, so that the
+resulting composite SDRs are consistent across calls.
+**
 """
 
 import copy
 from datetime import datetime
-from typing import Any, List, Self
+from typing import List, Self
 
 import numpy as np  # Add this import
 import pandas as pd
@@ -55,7 +65,7 @@ class EncoderHandler:
         self._data_frame = copy.deepcopy(input_data)
         self._encoders: List[BaseEncoder] = []
 
-    def build_composite_sdr(self, input_data: pd.DataFrame) -> SDR:
+    def build_composite_sdr(self, input_data: pd.DataFrame) -> list[SDR]:
         """Builds a composite SDR from multiple encoders based on the input data.
 
         For each column in the input DataFrame, selects an encoder based on the column's dtype,
@@ -65,116 +75,119 @@ class EncoderHandler:
             input_data (pd.DataFrame): DataFrame containing input values for each encoder.
 
         Returns:
-            SDR: Composite SDR built from all encoded columns.
+            list[SDR]: Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.
             ValueError: If no SDRs are created or an unexpected error occurs.
         """
-        row = input_data.iloc[0]
-        sdrs = []
-        self._encoders = []  # Reset encoders for each call
+        self._encoders = []
 
-        for col_name, value in row.items():
-            # Select encoder based on dtype
-            if isinstance(value, float) or isinstance(value, np.floating):
-                encoder = RandomDistributedScalarEncoder(
-                    RDSEParameters(
-                        active_bits=5,
-                        sparsity=0.0,
-                        size=10,
-                        radius=10.0,
-                        resolution=0.0,
-                        category=False,
-                        seed=42,
+        row_sdrs: list[SDR] = []
+
+        # --- existing per-row logic, wrapped in a loop ---
+        for _, row in input_data.iterrows():
+            sdrs: list[SDR] = []
+
+            for col_name, value in row.items():
+                # everything below here is *your existing code* per column:
+                if isinstance(value, float) or isinstance(value, np.floating):
+                    encoder = RandomDistributedScalarEncoder(
+                        RDSEParameters(
+                            active_bits=2,
+                            sparsity=0.0,
+                            size=100,
+                            radius=0.0,
+                            resolution=1.0,
+                            category=False,
+                            seed=42,
+                        )
                     )
-                )
-                sdr = SDR([encoder.size])
-                encoder.encode(float(value), sdr)
+                    sdr = SDR([encoder.size])
+                    encoder.encode(float(value), sdr)
 
-            elif isinstance(value, int) or isinstance(value, np.integer):
-                encoder = ScalarEncoder(
-                    ScalarEncoderParameters(
-                        minimum=0.0,
-                        maximum=100.0,
-                        clip_input=True,
-                        periodic=False,
-                        active_bits=5,
-                        sparsity=0.0,
-                        size=10,
-                        radius=0.0,
-                        category=False,
-                        resolution=0.0,
+                elif isinstance(value, int) or isinstance(value, np.integer):
+                    encoder = ScalarEncoder(
+                        ScalarEncoderParameters(
+                            minimum=0.0,
+                            maximum=100.0,
+                            clip_input=True,
+                            periodic=False,
+                            active_bits=5,
+                            sparsity=0.0,
+                            size=100,
+                            radius=0.0,
+                            category=False,
+                            resolution=0.0,
+                        )
                     )
-                )
-                sdr = SDR([encoder.size])
-                encoder.encode(float(value), sdr)
+                    sdr = SDR([encoder.size])
+                    encoder.encode(float(value), sdr)
 
-            elif isinstance(value, str):
-                # Build category_list from all unique values in the column
-                category_list = input_data[col_name].unique().tolist()
-                encoder = CategoryEncoder(CategoryParameters(w=3, category_list=category_list))
-                print(
-                    f"Encoding string value '{value}' with category list: {encoder._parameters.category_list}"
-                )
-                sdr = SDR(encoder.dimensions)
-                encoder.encode(value, sdr)
-
-            elif isinstance(value, pd.Timestamp) or isinstance(value, datetime):
-                encoder = DateEncoder(
-                    DateEncoderParameters(
-                        season_width=0,
-                        season_radius=91.5,
-                        day_of_week_width=3,
-                        day_of_week_radius=1.0,
-                        weekend_width=3,
-                        holiday_width=0,
-                        holiday_dates=[[12, 25]],
-                        time_of_day_width=3,
-                        time_of_day_radius=4.0,
-                        custom_width=0,
-                        custom_days=[],
-                        rdse_used=False,
+                elif isinstance(value, str):
+                    category_list = input_data[col_name].unique().tolist()
+                    encoder = CategoryEncoder(
+                        CategoryParameters(
+                            w=3,
+                            category_list=category_list,
+                        )
                     )
-                )
-                # Use encoder.size for SDR size
-                sdr = SDR([encoder.size])
-                encoder.encode(value, sdr)
+                    sdr = SDR(encoder.dimensions)
+                    encoder.encode(value, sdr)
 
+                elif isinstance(value, pd.Timestamp) or isinstance(value, datetime):
+                    encoder = DateEncoder(
+                        DateEncoderParameters(
+                            season_width=0,
+                            season_radius=91.5,
+                            day_of_week_width=7,
+                            day_of_week_radius=1.0,
+                            weekend_width=2,
+                            holiday_width=4,
+                            holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
+                            time_of_day_width=24,
+                            time_of_day_radius=1.0,
+                            custom_width=0,
+                            custom_days=[],
+                            rdse_used=False,
+                        )
+                    )
+                    sdr = SDR([encoder.size])
+                    encoder.encode(value, sdr)
+
+                else:
+                    raise TypeError(f"Unsupported value type for encoder: {type(value)}")
+
+                sdrs.append(copy.deepcopy(sdr))
+
+            if not sdrs:
+                raise ValueError("No SDRs were created from the input data.")
+
+            if len(sdrs) >= 2:
+                flat_sdrs = []
+                for s in sdrs:
+                    if len(s.dimensions) != 1:
+                        flat = SDR([s.size])
+                        flat.set_sparse(s.get_sparse())
+                        flat_sdrs.append(flat)
+                    else:
+                        flat_sdrs.append(s)
+
+                total_size = sum(s.size for s in flat_sdrs)
+                row_union = SDR([total_size])
+                row_union.concatenate(flat_sdrs, axis=0)
+            elif len(sdrs) == 1:
+                row_union = copy.deepcopy(sdrs[0])
             else:
-                raise TypeError(f"Unsupported value type for encoder: {type(value)}")
+                raise ValueError("Unexpected error in building composite SDR.")
 
-            print(f"Column '{col_name}' encoded sparse SDR:", sdr.get_sparse())
-            if sdr.get_sparse() == []:
-                print(
-                    f"Warning: Encoding failed for column '{col_name}' with value '{value}' and encoder '{type(encoder).__name__}'"
-                )
-                continue  # Skip this column
-            self._encoders.append(copy.deepcopy(encoder))
-            sdrs.append(copy.deepcopy(sdr))
+            row_sdrs.append(row_union)
 
-        if not sdrs:
+        if not row_sdrs:
             raise ValueError("No SDRs were created from the input data.")
 
-        if len(sdrs) >= 2:
-            # Flatten all SDRs to 1D before concatenation
-            flat_sdrs = []
-            for sdr in sdrs:
-                # If SDR is not 1D, flatten it
-                if len(sdr.dimensions) != 1:
-                    flat_sdr = SDR([sdr.size])
-                    flat_sdr.set_sparse(sdr.get_sparse())
-                    flat_sdrs.append(flat_sdr)
-                else:
-                    flat_sdrs.append(sdr)
-            total_size = sum(sdr.size for sdr in flat_sdrs)
-            union_sdr = SDR([total_size])
-            union_sdr.concatenate(flat_sdrs, axis=0)
-            return union_sdr
-        elif len(sdrs) == 1:
-            return copy.deepcopy(sdrs[0])
-        else:
-            raise ValueError("Unexpected error in building composite SDR.")
+        # Always return the list of SDRs, one per row
+        return row_sdrs
 
 
 if __name__ == "__main__":
@@ -191,11 +204,18 @@ if __name__ == "__main__":
                 "int_col": int(42),
                 "str_col": str("B"),
                 "date_col": datetime(2023, 12, 25),
-            }
+            },
+            {
+                "float_col": float(2.71),
+                "int_col": int(7),
+                "str_col": str("A"),
+                "date_col": datetime(2024, 1, 1),
+            },
         ]
     )
 
     handler = EncoderHandler(df)
     composite_sdr = handler.build_composite_sdr(df)
-    print("Composite SDR sparse representation:", composite_sdr.get_sparse())
-    print("Composite SDR size:", composite_sdr.size)
+    for idx, sdr in enumerate(composite_sdr):
+        print(f"Composite SDR {idx} sparse representation:", sdr.get_sparse())
+        print(f"Composite SDR {idx} size:", sdr.size)

@@ -1,8 +1,5 @@
 """Visual tests for SDR class."""
 
-from time import time
-
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
