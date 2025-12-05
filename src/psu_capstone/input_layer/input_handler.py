@@ -38,6 +38,14 @@ class InputHandler:
         self._data = pd.DataFrame()
         """The input data of any type."""
 
+    @classmethod
+    def get_instance(cls) -> "InputHandler":
+        """Static access method to get the singleton instance."""
+
+        if cls._instance is None:
+            cls._instance = InputHandler()
+        return cls._instance
+
     # Getters, maybe use properties later
     def get_data(self) -> pd.DataFrame:
         """Getter for the data attribute"""
