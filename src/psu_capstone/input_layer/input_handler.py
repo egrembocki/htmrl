@@ -5,15 +5,17 @@ DataFrame, sequence, etc.
 
 import datetime
 import os
-from typing import Sequence, Union
+from typing import Generic, Sequence, TypeVar, Union
 
 import numpy as np
 import pandas as pd
 
 from psu_capstone.log import logger
 
+T = TypeVar("T")
 
-class InputHandler:
+
+class InputHandler(Generic[T]):
     """
     Singleton InputHandler class to handle input data.
 
@@ -36,7 +38,7 @@ class InputHandler:
         """The singleton instance."""
 
         # this will have to be more abstract later to handle different data types
-        self._data = pd.DataFrame()
+        self._data = T
         """The input data of any type."""
 
     @classmethod
