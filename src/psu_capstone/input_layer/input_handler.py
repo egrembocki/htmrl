@@ -5,7 +5,8 @@ DataFrame, sequence, etc.
 
 import datetime
 import os
-from typing import Generic, Sequence, TypeVar, Union
+import re
+from typing import ClassVar, Generic, Sequence, TypeVar, Union
 
 import numpy as np
 import pandas as pd
@@ -21,7 +22,7 @@ class InputHandler(Generic[T]):
 
     """
 
-    __instance = None
+    __instance: ClassVar["InputHandler"] | None = None
 
     def __new__(cls) -> "InputHandler":
         """Constructor -- Singleton pattern implementation."""
@@ -34,30 +35,26 @@ class InputHandler(Generic[T]):
     def __init__(self):
         """Initialize the InputHandler singleton."""
 
-        self._instance = None
-        """The singleton instance."""
-
         # this will have to be more abstract later to handle different data types
-        self._data = T
+        self._data: T
         """The input data of any type."""
 
     @classmethod
     def get_instance(cls) -> "InputHandler":
         """Static access method to get the singleton instance."""
 
-        if cls._instance is None:
-            cls._instance = InputHandler()
-        return cls._instance
+        if cls.__instance is None:
+            cls.__instance = InputHandler()
+        return cls.__instance
 
     # Getters, maybe use properties later
-    def get_data(self) -> pd.DataFrame:
+    def get_data(self) -> T:
         """Getter for the data attribute"""
 
         # more dynamic type checks may be needed here
-        assert isinstance(self._data, pd.DataFrame)
-        return pd.DataFrame(self._data)
+        return self._data
 
-    def input_data(self, filepath: str, required_columns: list) -> pd.DataFrame:
+    def input_data(self, filepath: str, required_columns: list) -> T:
         """
         Public method to load, convert, and validate data in one step.
 
@@ -72,11 +69,11 @@ class InputHandler(Generic[T]):
             ValueError, FileNotFoundError, TypeError: On failure.
         """
         self._load_raw_data(filepath, required_columns)
-        # Optionally, you could call _to_dataframe here if needed
-        return self.get_data()
+
+        return self._data
 
     def get_sequence(
-        self, data: Union[list, bytearray, bytes, np.ndarray, str, pd.DataFrame]
+        self, data: Union[Sequence, bytearray, bytes, np.ndarray, str, pd.DataFrame]
     ) -> list:
         """
         Public method to get the current data as a normalized sequence.
@@ -84,11 +81,10 @@ class InputHandler(Generic[T]):
         Returns:
             list: The data as a normalized sequence.
         """
-        # more type checks may be needed here
-        assert isinstance(data, pd.DataFrame)
+
         return self._raw_to_sequence(data.values.tolist())
 
-    def _load_raw_data(self, filepath: str, required_columns: list) -> object:
+    def _load_raw_data(self, filepath: str, required_columns: list) -> None:
         """Load data from a file with pandas based on file extension.
         This will automatically create a dataframe.
 
@@ -119,6 +115,9 @@ class InputHandler(Generic[T]):
             ".json": pd.read_json,
         }
 
+        self._validate_data(required_columns=required_columns)
+        logger.info(f"data converted to: {type(self._data)}")
+
         file_extension = os.path.splitext(filepath)[1].lower()
         print(f"Loading file: {file_extension} {filepath}")
 
@@ -126,20 +125,16 @@ class InputHandler(Generic[T]):
             self._data = loaders[file_extension](filepath)
         elif file_extension == ".txt":
             with open(filepath, "r") as file:
-                self._data = file.readlines()
-            self._data = pd.DataFrame(self._data)
+                lines = file.readlines()
+            self._data = lines
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
 
-        self._validate_data(required_columns=required_columns)
-        logger.info("data converted to dataframe")
-        return self._data
-
-    def _to_dataframe(self, data: object) -> pd.DataFrame:
+    def _to_dataframe(self, data: T) -> pd.DataFrame:
         """Convert input data to a pandas DataFrame, supporting DataFrame, list, bytearray, or numpy ndarray.
 
         Args:
-            data (object): The input data to convert.
+            data (T): The input data to convert.
 
         Returns:
             pd.DataFrame: The converted DataFrame.
@@ -151,7 +146,7 @@ class InputHandler(Generic[T]):
         if isinstance(data, pd.DataFrame):
             logger.info("already dataframe")
             dataframe = data
-        elif isinstance(data, (list, bytearray, np.ndarray)):
+        elif isinstance(data, (Sequence, bytearray, np.ndarray)):
             dataframe = pd.DataFrame(data)
         else:
             raise TypeError(
