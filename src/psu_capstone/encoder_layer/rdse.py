@@ -3,7 +3,7 @@ import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, override
 
 import mmh3
 
@@ -79,7 +79,7 @@ class RDSEParameters:
 """
 
 
-class RandomDistributedScalarEncoder(BaseEncoder):
+class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Random Distributed Scalar Encoder (RDSE) implementation."""
 
     def __init__(self, parameters: RDSEParameters, dimensions: List[int] | None = None):
@@ -101,10 +101,11 @@ class RandomDistributedScalarEncoder(BaseEncoder):
     We employ the murmur hashing.
     """
 
-    def encode(self, input_value: float, output: SDR) -> None:
-        assert output.size == self._size, "Output SDR size does not match encoder size."
+    @override
+    def encode(self, input_value: float, output_sdr: SDR) -> None:
+        assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
         if math.isnan(input_value):
-            output.zero()
+            output_sdr.zero()
             return
         if self._category:
             if input_value != int(input_value) or input_value < 0:
@@ -128,7 +129,7 @@ class RandomDistributedScalarEncoder(BaseEncoder):
             """
             data[bucket] = 1
 
-        output.set_dense(data)
+        output_sdr.set_dense(data)
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: RDSEParameters):
@@ -181,15 +182,15 @@ class RandomDistributedScalarEncoder(BaseEncoder):
         return args
 
 
-"""# Tests
-params = RDSEParameters(
-    size=1000, active_bits=20, sparsity=0.0, radius=0, resolution=1.5, category=False, seed=0, deterministic=False
-)
-encoder = RandomDistributedScalarEncoder(params, [1, 1000])
-output = SDR([1, 1000])
-encoder.encode(10, output)
-print(output.get_sparse())
-output2 = SDR([1, 1000])
-encoder.encode(10, output2)
-print(output2.get_sparse())
-This should be made a test probably"""
+if __name__ == "__main__":
+    # Tests
+    params = RDSEParameters(
+        size=1000, active_bits=20, sparsity=0.0, radius=0, resolution=1.5, category=False, seed=0
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    output = SDR([encoder.size])
+    encoder.encode(10.0, output)
+    print(output.get_sparse())
+    output2 = SDR([encoder.size])
+    encoder.encode(10.0, output2)
+    print(output2.get_sparse())

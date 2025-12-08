@@ -20,7 +20,7 @@ import copy
 from datetime import datetime
 from typing import List, Self
 
-import numpy as np  # Add this import
+import numpy as np
 import pandas as pd
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -109,8 +109,8 @@ class EncoderHandler:
                 elif isinstance(value, int) or isinstance(value, np.integer):
                     encoder = ScalarEncoder(
                         ScalarEncoderParameters(
-                            minimum=0.0,
-                            maximum=100.0,
+                            minimum=0,
+                            maximum=100,
                             clip_input=True,
                             periodic=False,
                             active_bits=5,
@@ -122,7 +122,7 @@ class EncoderHandler:
                         )
                     )
                     sdr = SDR([encoder.size])
-                    encoder.encode(float(value), sdr)
+                    encoder.encode(int(value), sdr)
 
                 elif isinstance(value, str):
                     category_list = input_data[col_name].unique().tolist()

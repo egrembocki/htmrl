@@ -25,13 +25,15 @@
 
 from abc import ABC, abstractmethod
 from math import prod
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Generic, List, TypeVar
 
 from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.utils import Parameters
 
+T = TypeVar("T")
 
-class BaseEncoder(ABC):
+
+class BaseEncoder(ABC, Generic[T]):
     """Base class for all encoders"""
 
     def __init__(self, dimensions: List[int] | None = None, size: int | None = None):
@@ -55,6 +57,6 @@ class BaseEncoder(ABC):
         self._size = 0
 
     @abstractmethod
-    def encode(self, input_value: float, output_sdr: SDR) -> None:
-        """Encodes the input value into the provided output SDR."""
+    def encode(self, input_value: T, output_sdr: SDR) -> None:
+        """Encodes the input value into the provided output SDR by reference."""
         raise NotImplementedError("Subclasses must implement this method")
