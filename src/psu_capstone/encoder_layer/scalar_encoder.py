@@ -15,7 +15,7 @@
 import copy
 import math
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.sdr import SDR
@@ -145,6 +145,7 @@ class ScalarEncoder(BaseEncoder[int]):
         an SDR that has the encoding of the input value.
     """
 
+    @override
     def encode(self, input_value: int, output_sdr: SDR) -> None:
         assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
 
