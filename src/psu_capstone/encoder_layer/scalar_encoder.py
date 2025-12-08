@@ -69,19 +69,14 @@ class ScalarEncoderParameters:
     """
     active_bits: int
     """Number of active bits in the output SDR.
-     
      * Member "activeBits" is the number of true bits in the encoded output SDR.
      * The output encodings will have a contiguous block of this many 1's.
-     
     """
     sparsity: float
     """Sparsity level -- % of active bits.
-    
-     * Member "sparsity" is an alternative way to specify the member "activeBits".
-     * Sparsity requires that the size to also be specified.
-     * Specify only one of: activeBits or sparsity.
-     
-
+    * Member "sparsity" is an alternative way to specify the member "activeBits".
+    * Sparsity requires that the size to also be specified.
+    * Specify only one of: activeBits or sparsity.
     """
     size: int
     """Total number of bits in the output SDR.
