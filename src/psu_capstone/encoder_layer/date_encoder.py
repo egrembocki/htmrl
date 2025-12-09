@@ -33,7 +33,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, override
 
 import pandas as pd
 
@@ -140,7 +140,7 @@ class DateEncoderParameters:
     """Enable RDSE usage for date encoder."""
 
 
-class DateEncoder(BaseEncoder):
+class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]):
     """
     Python port of the HTM DateEncoder, using the existing ScalarEncoder + SDR.
     Encodes up to 6 attributes of a timestamp into one SDR:
@@ -232,8 +232,8 @@ class DateEncoder(BaseEncoder):
             else:
 
                 p = ScalarEncoderParameters(
-                    minimum=0.0,
-                    maximum=366.0,
+                    minimum=0,
+                    maximum=366,
                     clip_input=False,
                     periodic=True,
                     category=False,
@@ -266,8 +266,8 @@ class DateEncoder(BaseEncoder):
             else:
 
                 p = ScalarEncoderParameters(
-                    minimum=0.0,
-                    maximum=7.0,
+                    minimum=0,
+                    maximum=7,
                     clip_input=False,
                     periodic=True,
                     category=False,
@@ -298,8 +298,8 @@ class DateEncoder(BaseEncoder):
                 self._weekend_encoder = RandomDistributedScalarEncoder(p)
             else:
                 p = ScalarEncoderParameters(
-                    minimum=0.0,
-                    maximum=1.0,
+                    minimum=0,
+                    maximum=1,
                     clip_input=False,
                     periodic=False,
                     category=True,  # binary category 0/1
@@ -356,8 +356,8 @@ class DateEncoder(BaseEncoder):
                 self._customdays_encoder = RandomDistributedScalarEncoder(p)
             else:
                 p = ScalarEncoderParameters(
-                    minimum=0.0,
-                    maximum=1.0,
+                    minimum=0,
+                    maximum=1,
                     clip_input=False,
                     periodic=False,
                     category=True,  # boolean category
@@ -393,8 +393,8 @@ class DateEncoder(BaseEncoder):
                 self._holiday_encoder = RandomDistributedScalarEncoder(p)
             else:
                 p = ScalarEncoderParameters(
-                    minimum=0.0,
-                    maximum=2.0,
+                    minimum=0,
+                    maximum=2,
                     clip_input=False,
                     periodic=True,
                     category=False,
@@ -426,8 +426,8 @@ class DateEncoder(BaseEncoder):
                 self._timeofday_encoder = RandomDistributedScalarEncoder(p)
             else:
                 p = ScalarEncoderParameters(
-                    minimum=0.0,
-                    maximum=24.0,
+                    minimum=0,
+                    maximum=24,
                     clip_input=False,
                     periodic=True,
                     category=False,
@@ -445,8 +445,9 @@ class DateEncoder(BaseEncoder):
 
         self._size = size
 
+    @override
     def encode(
-        self, input_value: datetime | pd.Timestamp | float | time.struct_time | None, output: SDR
+        self, input_value: datetime | pd.Timestamp | time.struct_time | None, output_sdr: SDR
     ) -> None:
         """
         Encode a timestamp-like value into `output` SDR.
@@ -457,8 +458,8 @@ class DateEncoder(BaseEncoder):
           - datetime      -> datetime (naive treated as local)
           - struct_time   -> used directly
         """
-        if output.size != self._size:
-            raise ValueError(f"Output SDR size {output.size} != DateEncoder size {self._size}")
+        if output_sdr.size != self._size:
+            raise ValueError(f"Output SDR size {output_sdr.size} != DateEncoder size {self._size}")
 
         if input_value is None:
             t = time.localtime()
@@ -559,8 +560,8 @@ class DateEncoder(BaseEncoder):
                 all_sparse.append(idx + offset)
             offset += s.size
 
-        output.zero()
-        output.set_sparse(all_sparse)
+        output_sdr.zero()
+        output_sdr.set_sparse(all_sparse)
 
     def _holiday_value(self, t: time.struct_time) -> float:
         """Return the holiday ramp value for the provided timestamp."""

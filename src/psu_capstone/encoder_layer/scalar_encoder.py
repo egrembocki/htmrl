@@ -15,7 +15,7 @@
 import copy
 import math
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.sdr import SDR
@@ -24,8 +24,12 @@ from psu_capstone.encoder_layer.sdr import SDR
 @dataclass
 class ScalarEncoderParameters:
 
-    minimum: float
-    maximum: float
+    minimum: int
+    """Min and Max
+     * Members "minimum" and "maximum" define the range of the input signal.
+     * These endpoints are inclusive.
+     */"""
+    maximum: int
     """Min and Max
      * Members "minimum" and "maximum" define the range of the input signal.
      * These endpoints are inclusive.
@@ -64,19 +68,15 @@ class ScalarEncoderParameters:
      */
     """
     active_bits: int
-    sparsity: float
-    """Number of active bits or sparsity level.
-     /**
+    """Number of active bits in the output SDR.
      * Member "activeBits" is the number of true bits in the encoded output SDR.
      * The output encodings will have a contiguous block of this many 1's.
-     */
-
-      /**
-     * Member "sparsity" is an alternative way to specify the member "activeBits".
-     * Sparsity requires that the size to also be specified.
-     * Specify only one of: activeBits or sparsity.
-     */
-
+    """
+    sparsity: float
+    """Sparsity level -- % of active bits.
+    * Member "sparsity" is an alternative way to specify the member "activeBits".
+    * Sparsity requires that the size to also be specified.
+    * Specify only one of: activeBits or sparsity.
     """
     size: int
     """Total number of bits in the output SDR.
@@ -101,7 +101,7 @@ class ScalarEncoderParameters:
      */"""
 
 
-class ScalarEncoder(BaseEncoder):
+class ScalarEncoder(BaseEncoder[int]):
     """
     /**
      * Encodes a real number as a contiguous block of 1's.
@@ -140,12 +140,13 @@ class ScalarEncoder(BaseEncoder):
         an SDR that has the encoding of the input value.
     """
 
-    def encode(self, input_value: float, output_sdr: SDR) -> bool:
+    @override
+    def encode(self, input_value: int, output_sdr: SDR) -> None:
         assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
 
         if math.isnan(input_value):
             output_sdr.zero()
-            return False
+            return
 
         elif self._clip_input:
             if self._periodic:
@@ -185,10 +186,6 @@ class ScalarEncoder(BaseEncoder):
             sparse.sort()
 
         output_sdr.set_sparse(sparse)
-
-        self.__sdr = output_sdr
-
-        return self.__sdr == output_sdr
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: ScalarEncoderParameters):
@@ -293,25 +290,26 @@ class ScalarEncoder(BaseEncoder):
         return args
 
 
-"""p = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+if __name__ == "__main__":
+    # Example usage
+    p = ScalarEncoderParameters(
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=False,
         category=False,
         active_bits=2,
         sparsity=0.0,
-        size= 10,
+        size=10,
         radius=0.0,
         resolution=0.0,
-        size_or_radius_or_category_or_resolution=0,
-        active_bits_or_sparsity=0
-)
-encoder3 = ScalarEncoder(p ,dimensions=[p.size])
-output = SDR(dimensions=[p.size])
-encoder3.encode(10.0, output)
-encoder3.encode(20.0, output)
-print(output)
-#encoder3.encode(9.9, output) ValueError
-#encoder3.encode(20.1, output) ValueError
-print(output)"""
+    )
+
+    encoder3 = ScalarEncoder(p, dimensions=[p.size])
+    output = SDR(dimensions=[p.size])
+    encoder3.encode(10, output)
+    encoder3.encode(20, output)
+    print(output)
+    # encoder3.encode(9.9, output) ValueError
+    # encoder3.encode(20.1, output) ValueError
+    print(output)
