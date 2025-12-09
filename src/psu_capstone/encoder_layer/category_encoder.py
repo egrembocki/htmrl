@@ -87,8 +87,8 @@ class CategoryEncoder(BaseEncoder):
                 category=False,
                 active_bits=self._w,
                 sparsity=0.0,
-                size=0,
-                radius=1.0,
+                size=self._num_categories * self._w,
+                radius=0.0,
                 resolution=0.0,
             )
             self.encoder = ScalarEncoder(self.sp, dimensions=[self.sp.size])
@@ -111,9 +111,10 @@ class CategoryEncoder(BaseEncoder):
         return parameters
 
 
-"""# This tests the Scalar and RDSE versions to make sure we are getting correct encodings
+"""
+# This tests the Scalar and RDSE versions to make sure we are getting correct encodings
 categories = ["ES", "GB", "US"]
-parameters = CategoryParameters(w=3, category_list=categories, RDSEused=False)
+parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
 e = CategoryEncoder(parameters=parameters)
 a = SDR([1, 12])
 e.encode("US", a)

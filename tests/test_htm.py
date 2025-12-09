@@ -286,3 +286,15 @@ def test_matching_synapse_ignores_permanence():
     prev_active = {fc1}
 
     assert s.matching_synapses(prev_active) == [s1]
+
+
+def test_synapse_source_input():
+    s = synapse.Synapse(1, 2)
+
+    assert s.source_input == 1
+
+
+def test_synapse_permanence_input():
+    s = synapse.Synapse(3, 6)
+
+    assert s.permanence == 6

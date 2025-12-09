@@ -208,7 +208,7 @@ def main():
             time_of_day_radius=1.0,
             custom_width=0,
             custom_days=[],
-            rdse_used=False,
+            rdse_used=True,
         )
     )
 
