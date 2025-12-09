@@ -3,9 +3,9 @@ import pytest
 
 # should not have to pull from multiple layers like this
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.input_layer.input_interface import InputInterface
 
 

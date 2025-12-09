@@ -23,11 +23,11 @@
 
 """
 
-import pandas as pd
-
 from abc import ABC, abstractmethod
 from math import prod
 from typing import Any, Generic, TypeVar
+
+import pandas as pd
 
 from psu_capstone.agent_layer.agent_interface import AgentInterface
 

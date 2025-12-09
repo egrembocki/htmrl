@@ -19,10 +19,10 @@ resulting composite SDRs are consistent across calls.
 from __future__ import annotations
 
 import copy
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
-
-from datetime import datetime
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
