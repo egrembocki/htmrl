@@ -3,20 +3,20 @@ Implemented as a singleton  layer handler for now, with methods to convert raw d
 DataFrame, sequence, etc.
 
 input_data call paths:
-1. File path input -> _load_from_file -> _to_dataframe -> _raw_to_sequence -> (_apply_required_columns) -> _validate_data -> _data copy
-2. Non-file input -> _raw_to_sequence -> (_apply_required_columns) -> _validate_data -> _data copy
+1. File path input -> _load_from_file -> _to_dataframe -> _raw_to_sequence -> (_apply_required_columns) -> _validate_data -> _data
+2. Non-file input -> _raw_to_sequence -> (_apply_required_columns) -> _validate_data -> _data
 """
 
 from __future__ import annotations
 
 import datetime
-import os
-from collections.abc import Sequence
-from typing import Any, Callable, ClassVar
-
 import numpy as np
 import pandas as pd
+import os
 
+from collections.abc import Sequence
+from typing import Any, Callable, ClassVar
+from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
 
@@ -46,6 +46,8 @@ class InputHandler:
     }
     _TEXT_EXTENSION: ClassVar[str] = ".txt"
 
+    __interface: EncoderInterface
+
     def __new__(cls) -> "InputHandler":
         """Constructor -- Singleton pattern implementation."""
 
@@ -64,7 +66,7 @@ class InputHandler:
         """
 
         self._data: pd.DataFrame = (
-            self._raw_to_sequence(data).copy() if data is not None else pd.DataFrame()
+            self._raw_to_sequence(data) if data is not None else pd.DataFrame()
         )
         """The normalized input data."""
 
@@ -83,11 +85,15 @@ class InputHandler:
     def data(self) -> pd.DataFrame:
         return self._data
 
-    def input_data(
-        self,
-        input_source: Any,
-        required_columns: list[str] | None = None,
-    ) -> pd.DataFrame:
+    @property
+    def interface(self) -> EncoderInterface:
+        return self.__interface
+
+    @interface.setter
+    def interface(self, interface: EncoderInterface) -> None:
+        self.__interface = interface
+
+    def input_data(self, input_source: Any, required_columns: list[str] = []) -> pd.DataFrame:
         """
         Ingest a payload, normalize it, optionally enforce column names, and validate the result.
 
@@ -124,7 +130,7 @@ class InputHandler:
             if os.path.exists(input_source):
                 raw_data = self._load_from_file(input_source)
                 normalized_frame = self._raw_to_sequence(self._to_dataframe(raw_data))
-                self._data = normalized_frame.copy()
+                self._data = normalized_frame
                 if required_columns:
                     self._apply_required_columns(required_columns)
                 self._validate_data(required_columns)
@@ -133,7 +139,7 @@ class InputHandler:
                 raise FileNotFoundError(f"No file found at {input_source}")
 
         normalized_frame = self._raw_to_sequence(input_source)
-        self._data = normalized_frame.copy()
+        self._data = normalized_frame
         if required_columns:
             self._apply_required_columns(required_columns)
         self._validate_data(required_columns)
@@ -185,7 +191,7 @@ class InputHandler:
 
         if isinstance(data, pd.DataFrame):
             logger.info("already dataframe")
-            dataframe = data.copy()
+            dataframe = data
         elif isinstance(data, (Sequence, bytearray, np.ndarray, dict)):
             dataframe = pd.DataFrame(data)
         else:
@@ -231,7 +237,7 @@ class InputHandler:
         """
 
         if isinstance(data, pd.DataFrame):
-            df = data.copy()
+            df = data
             return df, df.shape[1] > 1
 
         iterable, is_nested = self._coerce_iterable_for_sequence(data)
@@ -313,7 +319,7 @@ class InputHandler:
             name="timestamp",
             dtype="object",
         )
-        dataframe = dataframe.copy()
+        dataframe = dataframe
         dataframe.insert(0, "timestamp", timestamp_series)
         return dataframe
 

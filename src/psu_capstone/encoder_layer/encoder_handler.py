@@ -16,12 +16,13 @@ resulting composite SDRs are consistent across calls.
 **
 """
 
-import copy
-from datetime import datetime
-from typing import List, Self
+from __future__ import annotations
 
+import copy
 import numpy as np
 import pandas as pd
+
+from datetime import datetime
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -39,13 +40,13 @@ class EncoderHandler:
     based on its dtype and builds a composite SDR from the encoded columns.
     """
 
-    __instance: Self | None = None
+    __instance: EncoderHandler | None = None
 
-    def __new__(cls, input_data: pd.DataFrame) -> "EncoderHandler":
+    def __new__(cls, input_data: pd.DataFrame | None = None) -> "EncoderHandler":
         """Implements the singleton pattern for EncoderHandler.
 
         Args:
-            input_data (pd.DataFrame): Input data for encoder initialization.
+            input_data (pd.DataFrame | None): Input data for encoder initialization.
 
         Returns:
             EncoderHandler: The singleton instance.
@@ -56,14 +57,28 @@ class EncoderHandler:
 
         return cls.__instance
 
-    def __init__(self, input_data: pd.DataFrame):
+    def __init__(self, input_data: pd.DataFrame | None = None):
         """Initializes the EncoderHandler with a DataFrame of input data.
 
         Args:
-            input_data (pd.DataFrame): DataFrame containing input data.
+            input_data (pd.DataFrame | None): DataFrame containing input data.
         """
-        self._data_frame = copy.deepcopy(input_data)
-        self._encoders: List[BaseEncoder] = []
+        self._data_frame = copy.deepcopy(input_data) if input_data is not None else pd.DataFrame()
+        self._encoders: list[BaseEncoder] = []
+
+    @classmethod
+    def get_instance(cls) -> "EncoderHandler":
+        """Returns the singleton instance of EncoderHandler.
+
+        Args:
+            input_data (pd.DataFrame): Input data for encoder initialization.
+
+        Returns:
+            EncoderHandler: The singleton instance.
+        """
+        if cls.__instance is None:
+            cls.__instance = EncoderHandler()
+        return cls.__instance
 
     def build_composite_sdr(self, input_data: pd.DataFrame) -> list[SDR]:
         """Builds a composite SDR from multiple encoders based on the input data.

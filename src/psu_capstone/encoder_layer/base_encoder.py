@@ -23,12 +23,13 @@
 
 """
 
+import pandas as pd
+
 from abc import ABC, abstractmethod
 from math import prod
-from typing import Generic, List, TypeVar
+from typing import Any, Generic, TypeVar
 
-from psu_capstone.encoder_layer.sdr import SDR
-from psu_capstone.input_layer.input_interface import InputInterface
+from psu_capstone.agent_layer.agent_interface import AgentInterface
 
 T = TypeVar("T")
 
@@ -36,39 +37,75 @@ T = TypeVar("T")
 class BaseEncoder(ABC, Generic[T]):
     """Base class for all encoders"""
 
-    __interface: InputInterface | None = None
+    __interface: AgentInterface | None = None
 
-    def __init__(self, dimensions: List[int] | None = None, size: int | None = None):
+    __buffered_data: pd.DataFrame | None = None
+
+    __buffer_bounds: tuple[int, int] | None = None
+
+    def __init__(self, dimensions: list[int] | None = None, size: int | None = None):
         """Initializes the BaseEncoder with given dimensions."""
 
-        self._dimensions: List[int] = dimensions if dimensions is not None else []
+        self._dimensions: list[int] = dimensions if dimensions is not None else []
         self._size: int = size if size is not None else prod(int(dim) for dim in self._dimensions)
 
     @property
-    def interface(self) -> InputInterface | None:
-        """Gets the InputInterface associated with this encoder."""
+    def interface(self) -> AgentInterface | None:
+        """Gets the AgentInterface associated with this encoder."""
         return self.__interface
 
     @interface.setter
-    def interface(self, value: InputInterface | None) -> None:
-        """Sets the InputInterface associated with this encoder."""
+    def interface(self, value: AgentInterface | None) -> None:
+        """Sets the AgentInterface associated with this encoder."""
         self.__interface = value
 
     @property
-    def dimensions(self) -> List[int]:
+    def dimensions(self) -> list[int]:
         return self._dimensions
 
     @property
     def size(self) -> int:
         return self._size
 
+    @property
+    def buffered_data(self) -> pd.DataFrame | None:
+        """Gets the buffered data for processing by the encoder."""
+        return self.__buffered_data
+
     def reset(self):
         """Resets the encoder to its initial state if applicable."""
 
         self._dimensions = []
         self._size = 0
+        self.__buffered_data = None
+        self.__buffer_bounds = None
+
+    def buffer_data(self, input_data: Any, start: int = 0, stop: int | None = None) -> pd.DataFrame:
+        """Buffers the input data for processing by the encoder.
+
+        Args:
+            input_data (Any): The input data to be buffered.
+            start (int): Inclusive row index where buffering begins.
+            stop (int | None): Exclusive row index where buffering ends; defaults to the DataFrame length.
+        """
+        df = input_data if isinstance(input_data, pd.DataFrame) else pd.DataFrame(input_data)
+        total_len = len(df)
+        if total_len == 0:
+            raise ValueError("input_data must contain at least one row")
+        if start < 0 or start >= total_len:
+            raise ValueError("start must be within the range of input_data")
+
+        stop = total_len if stop is None else stop
+        if stop <= start:
+            raise ValueError("stop must be greater than start")
+        if stop > total_len:
+            raise ValueError("stop must not exceed the length of input_data")
+
+        self.__buffer_bounds = (start, stop)
+        self.__buffered_data = df
+        return self.__buffered_data
 
     @abstractmethod
-    def encode(self, input_value: T, output_sdr: SDR) -> None:
+    def encode(self, input_value: T, output_sdr: Any) -> None:
         """Encodes the input value into the provided output SDR by reference."""
         raise NotImplementedError("Subclasses must implement this method")
