@@ -16,136 +16,137 @@ def handler() -> InputHandler:
     return InputHandler()
 
 
-def test_load_raw_data_csv(tmp_path: Path, handler: InputHandler) -> None:
-    """Test loading a simple CSV file."""
-
+def test_load_input_data_csv(tmp_path: Path, handler: InputHandler) -> None:
     # Arrange
     csv_path = tmp_path / "sample.csv"
-    csv_content = "a,b,c\n1,2,3\n4,5,6\n"
-    csv_path.write_text(csv_content)
+    csv_path.write_text("a,b,c\n1,2,3\n4,5,6\n")
+    required = ["timestamp", "a", "b", "c"]
 
     # Act
-    df = handler._load_raw_data(str(csv_path), required_columns=["a", "b"])
+    df = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
-    assert isinstance(df, pd.DataFrame)
-    assert list(df.columns) == ["a", "b", "c"]
-    assert df.shape == (2, 3)
-    assert df.iloc[0].tolist() == [1, 2, 3]
+    assert list(df.columns) == required
+    assert df.shape == (2, 4)
+    assert df.loc[0, ["a", "b", "c"]].values.tolist() == [1, 2, 3]  # type: ignore
 
 
-def test_load_raw_data_excel_xlsx(tmp_path: Path, handler: InputHandler) -> None:
+def test_load_input_data_excel_xlsx(tmp_path: Path, handler: InputHandler) -> None:
+    # Arrange
     xlsx_path = tmp_path / "sample.xlsx"
     df_in = pd.DataFrame({"a": [10, 20], "b": [30, 40]})
     df_in.to_excel(xlsx_path, index=False)
+    required = ["timestamp", "a", "b"]
 
-    df = handler._load_raw_data(str(xlsx_path), required_columns=["a", "b"])
+    # Act
+    df = handler.input_data(str(xlsx_path), required_columns=required)
 
-    assert isinstance(df, pd.DataFrame)
-    # Excel may coerce types but values should match
-    assert list(df.columns) == ["a", "b"]
-    assert df.shape == (2, 2)
-    assert df.iloc[0]["a"] == 10
-    assert df.iloc[1]["b"] == 40
+    # Assert
+    assert list(df.columns) == required
+    assert df["a"].tolist() == [10, 20]
+    assert df["b"].tolist() == [30, 40]
 
 
-def test_load_raw_data_excel_xls(tmp_path: Path, handler: InputHandler) -> None:
+def test_load_input_data_excel_xls(tmp_path: Path, handler: InputHandler) -> None:
+    # Arrange
     xls_path = tmp_path / "sample.xls"
     df_in = pd.DataFrame({"a": [1], "b": [2]})
     df_in.to_excel(xls_path, index=False)
+    required = ["timestamp", "a", "b"]
 
-    df = handler._load_raw_data(str(xls_path), required_columns=["a", "b"])
+    # Act
+    df = handler.input_data(str(xls_path), required_columns=required)
 
-    assert isinstance(df, pd.DataFrame)
-    assert list(df.columns) == ["a", "b"]
-    assert df.shape == (1, 2)
+    # Assert
+    assert list(df.columns) == required
+    assert df.shape == (1, 3)
+    assert df.loc[0, "a"] == 1
 
 
-def test_load_raw_data_json(tmp_path: Path, handler: InputHandler) -> None:
+def test_load_input_data_json(tmp_path: Path, handler: InputHandler) -> None:
+    # Arrange
     json_path = tmp_path / "sample.json"
     df_in = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df_in.to_json(json_path, orient="records")
+    required = ["timestamp", "a", "b"]
 
-    df = handler._load_raw_data(str(json_path), required_columns=["a", "b"])
+    # Act
+    df = handler.input_data(str(json_path), required_columns=required)
 
-    assert isinstance(df, pd.DataFrame)
-    # pd.read_json(orient="records") yields default columns
-    assert df.shape == (2, 2)
+    # Assert
+    assert list(df.columns) == required
+    assert df["a"].tolist() == [1, 2]
+    assert df["b"].tolist() == [3, 4]
 
 
-def test_load_raw_data_txt_returns_dataframe_of_lines(
+def test_load_input_data_txt_returns_dataframe_of_lines(
     tmp_path: Path, handler: InputHandler
 ) -> None:
+    # Arrange
     txt_path = tmp_path / "sample.txt"
     lines = ["first line\n", "second line\n", "third line\n"]
     txt_path.write_text("".join(lines))
 
-    df = handler._load_raw_data(str(txt_path), required_columns=[])
+    # Act
+    df = handler.input_data(str(txt_path), required_columns=["timestamp", "value"])
 
-    # _data is a list of lines; method wraps it in a DataFrame
-    assert isinstance(df, pd.DataFrame)
-    assert df.shape[0] == len(lines)
-    # First column with raw text
-    assert df.iloc[0, 0] == "first line\n"
-    assert df.iloc[-1, 0] == "third line\n"
+    # Assert
+    assert list(df.columns) == ["timestamp", "value"]
+    assert df.shape == (len(lines), 2)
+    assert df["value"].tolist() == lines
 
 
-def test_load_raw_data_unsupported_extension_raises_value_error(
+def test_load_input_data_unsupported_extension_raises_value_error(
     tmp_path: Path, handler: InputHandler
 ) -> None:
+    # Arrange
     bad_path = tmp_path / "sample.xml"
     bad_path.write_text("<root><a>1</a></root>")
 
-    with pytest.raises(ValueError) as excinfo:
-        handler._load_raw_data(str(bad_path), required_columns=["a", "b"])
+    # Act / Assert
+    with pytest.raises(ValueError):
+        handler.input_data(str(bad_path))
 
-    assert "Unsupported file type" in str(excinfo.value)
 
-
-def test_load_raw_data_missing_file_raises(tmp_path: Path, handler: InputHandler) -> None:
-    """Test that _load_raw_data raises an error when the file does not exist."""
-
+def test_load_input_data_missing_file_raises(tmp_path: Path, handler: InputHandler) -> None:
     # Arrange
     missing_path = tmp_path / "missing.csv"
 
-    # Act & Assert
-    # Code uses both assert and explicit FileNotFoundError
-    with pytest.raises((AssertionError, FileNotFoundError)):
-        handler._load_raw_data(str(missing_path), required_columns=["a", "b"])
+    # Act / Assert
+    with pytest.raises(FileNotFoundError):
+        handler.input_data(str(missing_path), required_columns=["timestamp", "a"])
 
 
-def test_load_raw_data_requires_string_path(tmp_path: Path, handler: InputHandler) -> None:
-    """Test that _load_raw_data raises an error when given a non-string path."""
-
+def test_load_input_data_requires_string_path(tmp_path: Path, handler: InputHandler) -> None:
     # Arrange
     csv_path = tmp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")
 
-    # Act & Assert
-    # Call with non-string to trigger the type assertion
-    with pytest.raises(ValueError):
-        handler._load_raw_data(csv_path, required_columns=["a", "b"])  # type: ignore[arg-type]
+    # Act / Assert
+    with pytest.raises(TypeError):
+        handler.input_data(csv_path)  # type: ignore[arg-type]
 
 
 def test_input_handler_is_singleton() -> None:
+    # Arrange / Act
     h1 = InputHandler().get_instance()
     h2 = InputHandler().get_instance()
-    assert h1 == h2
+
+    # Assert
+    assert h1 is h2
 
 
-def test_load_raw_data_sets_internal_data(tmp_path: Path, handler: InputHandler) -> None:
-    """Test that _load_raw_data sets the internal _data attribute correctly."""
-
+def test_load_input_data_sets_internal_data(tmp_path: Path, handler: InputHandler) -> None:
     # Arrange
     csv_path = tmp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")
+    required = ["timestamp", "a", "b"]
 
     # Act
-    df = handler._load_raw_data(str(csv_path), required_columns=["a", "b"])
+    df = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
-    # get_data returns a new DataFrame copy
-    df_copy = handler.get_data()
+    df_copy = handler.data
     assert isinstance(df_copy, pd.DataFrame)
     assert df_copy.equals(df)
-    assert df_copy is not df  # not the same object
+    assert df_copy is not df

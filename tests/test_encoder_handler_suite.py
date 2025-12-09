@@ -2,14 +2,11 @@
 
 import copy
 from datetime import datetime
-from typing import List
 
 import pandas as pd
 import pytest
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.encoder_layer.sdr import SDR
 
 

@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import datetime
 import os
+from collections.abc import Sequence
+from typing import Any, Callable, ClassVar
 
-from typing import Any
 import numpy as np
 import pandas as pd
 
-from psu_capstone.log import logger
-from collections.abc import Sequence
 from psu_capstone.input_layer.input_interface import InputInterface
+from psu_capstone.log import logger
 
 
 class InputHandler:
@@ -37,6 +37,14 @@ class InputHandler:
     """
 
     __instance = None
+    _DATAFRAME_READERS: ClassVar[dict[str, Callable[[str], pd.DataFrame]]] = {
+        ".csv": pd.read_csv,
+        ".xls": pd.read_excel,
+        ".xlsx": pd.read_excel,
+        ".json": pd.read_json,
+        ".parquet": pd.read_parquet,
+    }
+    _TEXT_EXTENSION: ClassVar[str] = ".txt"
 
     def __new__(cls) -> "InputHandler":
         """Constructor -- Singleton pattern implementation."""
@@ -73,9 +81,6 @@ class InputHandler:
 
     @property
     def data(self) -> pd.DataFrame:
-        """Getter for the data attribute"""
-
-        # more dynamic type checks may be needed here
         return self._data
 
     def input_data(
@@ -111,14 +116,21 @@ class InputHandler:
         self._appended_required_columns.clear()
 
         # If input is a string, check if it is a file path
-        if isinstance(input_source, str) and os.path.exists(input_source):
-            raw_data = self._load_from_file(input_source)
-            normalized_frame = self._raw_to_sequence(self._to_dataframe(raw_data))
-            self._data = normalized_frame.copy()
-            if required_columns:
-                self._apply_required_columns(required_columns)
-            self._validate_data(required_columns)
-            return self._data
+        if isinstance(input_source, os.PathLike):
+            raise TypeError("Path-like objects must be converted to strings before ingestion.")
+
+        if isinstance(input_source, str):
+            file_extension = os.path.splitext(input_source)[1].lower()
+            if os.path.exists(input_source):
+                raw_data = self._load_from_file(input_source)
+                normalized_frame = self._raw_to_sequence(self._to_dataframe(raw_data))
+                self._data = normalized_frame.copy()
+                if required_columns:
+                    self._apply_required_columns(required_columns)
+                self._validate_data(required_columns)
+                return self._data
+            if file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION:
+                raise FileNotFoundError(f"No file found at {input_source}")
 
         normalized_frame = self._raw_to_sequence(input_source)
         self._data = normalized_frame.copy()
@@ -144,26 +156,18 @@ class InputHandler:
 
             logger.info(f"Loading data from {filepath}")
 
-            loaders = {
-                ".csv": pd.read_csv,
-                ".xls": pd.read_excel,
-                ".xlsx": pd.read_excel,
-                ".json": pd.read_json,
-                ".parquet": pd.read_parquet,
-            }
-
             file_extension = os.path.splitext(filepath)[1].lower()
 
-            if file_extension in loaders:
-                return loaders[file_extension](filepath)
-            elif file_extension == ".txt":
-                with open(filepath, "r") as file:
-                    return file.readlines()
-            else:
-                raise ValueError(f"Unsupported file type: {file_extension}")
+            if file_extension in self._DATAFRAME_READERS:
+                return self._DATAFRAME_READERS[file_extension](filepath)
+            if file_extension == self._TEXT_EXTENSION:
+                with open(filepath, "r", encoding="utf-8") as file:
+                    return pd.DataFrame({"value": file.readlines()})
+            raise ValueError(f"Unsupported file type: {file_extension}")
 
         except Exception as e:
             logger.error(f"Error loading file {filepath}: {e}")
+            raise
 
     def _to_dataframe(self, data: Any) -> pd.DataFrame:
         """Convert input data to a pandas DataFrame, supporting DataFrame, list, dict, bytearray, or numpy ndarray.
