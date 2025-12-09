@@ -9,7 +9,7 @@ from psu_capstone.input_layer.input_interface import InputInterface
 
 @pytest.fixture
 def handler() -> InputInterface:
-    return InputHandler()
+    return InputHandler.get_instance()
 
 
 @pytest.fixture
@@ -24,9 +24,7 @@ def encoder() -> BaseEncoder:
     return _DummyEncoder()
 
 
-def test_input_to_encoder_passes_same_dataframe_object(
-    handler: InputInterface, encoder: BaseEncoder
-):
+def test_input_to_encoder_passes_same_dataframe_object(handler, encoder):
     """
     This test verifies that InputInterface.data returns a pandas DataFrame
     and that passing that DataFrame into an encoder keeps the *same object*.

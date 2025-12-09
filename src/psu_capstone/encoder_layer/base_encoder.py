@@ -30,7 +30,6 @@ from typing import Generic, List, TypeVar
 from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_interface import InputInterface
 
-
 T = TypeVar("T")
 
 
