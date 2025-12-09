@@ -10,12 +10,13 @@ input_data call paths:
 from __future__ import annotations
 
 import datetime
-import numpy as np
-import pandas as pd
 import os
-
 from collections.abc import Sequence
 from typing import Any, Callable, ClassVar
+
+import numpy as np
+import pandas as pd
+
 from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
@@ -467,7 +468,7 @@ class InputHandler:
             self._data.columns = renamed
             existing_cols = list(self._data.columns)
 
-        for column in required_columns[len(existing_cols):]:
+        for column in required_columns[len(existing_cols) :]:
             if column not in self._data.columns:
                 self._data[column] = pd.NA
                 self._appended_required_columns.add(column)
