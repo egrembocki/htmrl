@@ -28,7 +28,8 @@ from math import prod
 from typing import Generic, List, TypeVar
 
 from psu_capstone.encoder_layer.sdr import SDR
-from psu_capstone.utils import Parameters
+from psu_capstone.input_layer.input_interface import InputInterface
+
 
 T = TypeVar("T")
 
@@ -36,11 +37,23 @@ T = TypeVar("T")
 class BaseEncoder(ABC, Generic[T]):
     """Base class for all encoders"""
 
+    __interface: InputInterface | None = None
+
     def __init__(self, dimensions: List[int] | None = None, size: int | None = None):
         """Initializes the BaseEncoder with given dimensions."""
 
         self._dimensions: List[int] = dimensions if dimensions is not None else []
         self._size: int = size if size is not None else prod(int(dim) for dim in self._dimensions)
+
+    @property
+    def interface(self) -> InputInterface | None:
+        """Gets the InputInterface associated with this encoder."""
+        return self.__interface
+
+    @interface.setter
+    def interface(self, value: InputInterface | None) -> None:
+        """Sets the InputInterface associated with this encoder."""
+        self.__interface = value
 
     @property
     def dimensions(self) -> List[int]:

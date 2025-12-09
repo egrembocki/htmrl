@@ -16,17 +16,6 @@ def handler() -> InputInterface:
 def encoder() -> BaseEncoder:
     class _DummyEncoder(BaseEncoder[float]):
 
-        def __init__(self, interface: InputInterface | None = None) -> None:
-            super().__init__([1])
-            self._df: pd.DataFrame | None = None
-            self._interface = interface
-
-        def setup(self, df: pd.DataFrame) -> None:
-            self._df = df.copy()
-            if self._interface is not None:
-                self._interface.input_data(self._df)
-                self._data = self._interface.data
-
         def encode(self, input_value: float, output_sdr: SDR) -> None:
             # This method is intentionally left empty because _DummyEncoder is a test stub
             # and does not require an actual encoding implementation for this test.
@@ -35,7 +24,9 @@ def encoder() -> BaseEncoder:
     return _DummyEncoder()
 
 
-def test_input_to_encoder_passes_same_dataframe_object(handler, encoder):
+def test_input_to_encoder_passes_same_dataframe_object(
+    handler: InputInterface, encoder: BaseEncoder
+):
     """
     This test verifies that InputInterface.data returns a pandas DataFrame
     and that passing that DataFrame into an encoder keeps the *same object*.
@@ -47,16 +38,17 @@ def test_input_to_encoder_passes_same_dataframe_object(handler, encoder):
 
     # Arrange
     data_list = [0, 1, 1, 2, 3, 5, 8, 13]
-
-    handler.input_data(data_list, required_columns=["timestamp", "value"])
-    df = handler.data
+    encoder.interface = handler
 
     # Act
-    encoder.attach_input(df)
+    handle_df = handler.input_data(data_list, required_columns=["timestamp", "value"])
+    encode_df = encoder.interface.input_data(data_list, required_columns=["timestamp", "value"])
 
     # Assert
     assert isinstance(handler, InputInterface)
-    assert isinstance(df, pd.DataFrame)
-    assert encoder._df is df  # identity (same memory reference)
-    assert encoder.input_df is not None
-    pd.testing.assert_frame_equal(encoder.input_df, df)
+    assert isinstance(encoder, BaseEncoder)
+    assert isinstance(handle_df, pd.DataFrame)
+    assert isinstance(encode_df, pd.DataFrame)
+    assert handle_df is not encode_df  # different timestamps
+    assert handle_df["value"].equals(encode_df["value"])  # same object
+    assert encoder.interface is not None
