@@ -128,8 +128,8 @@ def test_load_raw_data_requires_string_path(tmp_path: Path, handler: InputHandle
 
 
 def test_input_handler_is_singleton() -> None:
-    h1 = InputHandler()
-    h2 = InputHandler()
+    h1 = InputHandler().get_instance()
+    h2 = InputHandler().get_instance()
     assert h1 == h2
 
 
