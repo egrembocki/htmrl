@@ -467,9 +467,9 @@ class InputHandler:
             renamed = required_columns[:rename_count] + existing_cols[rename_count:]
             self._data.columns = renamed
             existing_cols = list(self._data.columns)
-        """the lint does not like this space before :"""
-        for column in required_columns[len(existing_cols) :]:
-            if column not in self._data.columns:
+        for i in range(len(existing_cols), len(required_columns)):
+            column = required_columns[i]
+            if column not in self._data:
                 self._data[column] = pd.NA
                 self._appended_required_columns.add(column)
 
