@@ -124,3 +124,20 @@ def test_one_of_activebit_or_sparsity_is_entered():
     """Make sure an exception is thrown here since neither active bits or sparsity was entered"""
     with pytest.raises(Exception):
         RandomDistributedScalarEncoder(parameters, [1, 1000])
+
+
+def test_2048_bits_40_active_bits():
+    """This test is to check and make sure our current RDSE can handler this many bits."""
+    parameters = RDSEParameters(
+        size=2048, active_bits=40, sparsity=0.0, radius=1.0, resolution=0.0, category=False, seed=0
+    )
+    rdse = RandomDistributedScalarEncoder(parameters, [1, 2048])
+
+    s = SDR([1, 2048])
+    rdse.encode(10, s)
+
+    """Checking for active bits accounting for hash collisions."""
+    assert 35 <= len(s.get_sparse()) <= 40
+    print(s.get_sparse)
+    """Make sure the density is 2048."""
+    assert len(s.get_dense()) == 2048
