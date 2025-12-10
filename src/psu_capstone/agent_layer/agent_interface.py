@@ -1,24 +1,20 @@
 """Exposed interface for Agent layer components."""
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
 class AgentInterface(Protocol):
     """Defines the interface for agent layer components."""
 
-    def perceive(self, input_data: Any) -> None:
+    def select_action(self, state: tuple) -> None:
         """Processes incoming data for the agent.
 
         Args:
-            input_data (Any): The data to be processed by the agent.
+            state (tuple): The current state of the environment.
         """
         ...
 
-    def act(self) -> Any:
-        """Generates an action based on the agent's current state.
-
-        Returns:
-            Any: The action produced by the agent.
-        """
+    def upate_policy(self) -> None:
+        """Updated MLP network policy based on experience."""
         ...
