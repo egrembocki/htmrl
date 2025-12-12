@@ -1,6 +1,6 @@
 exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 
-.PHONY: help install format lint clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup
+.PHONY: help install format lint clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -10,6 +10,9 @@ help: ## Show this help message
 ifeq ($(OS),Windows_NT)
 install: ## Install package and pre-commit hooks (Windows)
 	@echo "📦 Installing package in editable mode..."
+	@IF EXIST ".venv" (echo "🧹 Removing stale .venv..." && rmdir /S /Q .venv) || echo "ℹ️ No existing .venv"
+	@uv python install 3.12
+	@uv python pin 3.12
 	@uv sync --all-groups
 	@git rev-parse --git-dir >nul 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
@@ -18,12 +21,27 @@ install: ## Install package and pre-commit hooks (Windows)
 else
 install: ## Install package and pre-commit hooks (Unix)
 	@echo "📦 Installing package in editable mode..."
+	@rm -rf .venv || true
+	@uv python install 3.12
+	@uv python pin 3.12
 	@uv sync --all-groups
 	@git rev-parse --git-dir >/dev/null 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
 	@uv run --active pre-commit install
 	@echo "✅ Installation complete"
 endif
+
+recreate-venv: ## Force recreate uv virtual environment
+	@echo "🧪 Recreating uv virtual environment..."
+ifeq ($(OS),Windows_NT)
+	@IF EXIST ".venv" (rmdir /S /Q .venv) || echo "ℹ️ No existing .venv"
+else
+	@rm -rf .venv || true
+endif
+	@uv python install 3.12
+	@uv python pin 3.12
+	@uv sync --all-groups
+	@echo "✅ Environment recreated"
 
 setup-dev: ## Setup development environment
 	@echo "📚 Installing development dependencies..."
@@ -44,8 +62,19 @@ lint: ## Run linting checks
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."
+ifeq ($(OS),Windows_NT)
+	@IF EXIST "target" (rmdir /S /Q target) || echo "ℹ️ no target"
+	@IF EXIST "dist" (rmdir /S /Q dist) || echo "ℹ️ no dist"
+	@IF EXIST "build" (rmdir /S /Q build) || echo "ℹ️ no build"
+	@for /d %%D in (*.egg-info) do @rmdir /S /Q "%%D"
+	@IF EXIST "htmlcov" (rmdir /S /Q htmlcov) || echo "ℹ️ no htmlcov"
+	@IF EXIST ".coverage" (del /Q /F .coverage) || echo "ℹ️ no .coverage"
+	@IF EXIST ".pytest_cache" (rmdir /S /Q .pytest_cache) || echo "ℹ️ no .pytest_cache"
+	@for /r %%D in (__pycache__) do @rmdir /S /Q "%%D"
+else
 	@rm -rf target/* dist/* build/* *.egg-info htmlcov .coverage .pytest_cache
 	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+endif
 	@echo "✅ Cleanup complete"
 
 update: ## Update dependencies
@@ -98,7 +127,7 @@ endif
 
 setup-uv-windows: ## Install uv package manager on Windows
 	@echo "🚀 Installing uv package manager..."
-	@pip install uv
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
 	@echo "✅ uv installed successfully"
 
 setup-uv: ## Install uv package manager on Unix systems (Linux/MacOS)
