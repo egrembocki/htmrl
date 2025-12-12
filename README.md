@@ -28,15 +28,38 @@ This project uses the uv package manager for reproducible Python environments.
 - uv manages the virtual environment automatically (in `.venv`); commands like `uv run` use it.
 
 ### c. Optional: Recreate Environment
-- If you need a fresh environment:
-  ```bash
-  rm -rf .venv        # Unix
-  # or on Windows PowerShell:
-  Remove-Item -Recurse -Force .venv
-  uv python install 3.12
-  uv python pin 3.12
-  uv sync --all-groups
-  ```
+- If you need a fresh environment and already have `.venv`, you can recreate it in one of three ways:
+
+1) Using the Makefile (recommended):
+```bash
+make recreate-venv
+```
+- Removes `.venv`, installs/pins Python 3.12, and runs `uv sync --all-groups`.
+
+2) Manually (Unix/macOS):
+```bash
+rm -rf .venv
+uv python install 3.12
+uv python pin 3.12
+uv sync --all-groups
+```
+
+3) Manually (Windows PowerShell):
+```powershell
+Remove-Item -Recurse -Force .venv
+uv python install 3.12
+uv python pin 3.12
+uv sync --all-groups
+```
+
+Notes:
+- Use this when `.venv` points to a removed or incompatible Python, or dependency resolution is broken.
+- After recreation, run:
+```bash
+uv lock --upgrade
+uv sync --all-groups
+```
+to ensure dependencies are updated to the latest allowed versions.
 
 ---
 
@@ -96,7 +119,7 @@ Common targets:
 | Wrong Python version      | Env not pinned/installed           | `uv python install 3.12 && uv python pin 3.12`          |
 | Dependencies outdated     | Lockfile not upgraded              | `uv lock --upgrade && uv sync --all-groups`             |
 | Pre-commit fails          | Missing dependencies               | `make install`                                          |
-| Using wrong environment   | Stale `.venv` or external Python   | `make recreate-venv`                                    |
+| Using wrong environment   | Stale `.venv` or external Python   | `make recreate-venv` or remove `.venv` and re-run uv steps |
 
 ---
 
