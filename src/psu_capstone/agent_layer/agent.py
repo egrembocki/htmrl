@@ -1,12 +1,19 @@
 """Agent for HTMRL environment."""
 
+from src.psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
+from src.psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
+
 
 class Agent:
     """Agent for HTMRL environment."""
 
-    def __init__(self):
+    __poolers: list[SpatialPooler]
+    __memory: list[TemporalMemory]
+
+    def __init__(self, poolers: list[SpatialPooler], memory: list[TemporalMemory]):
         """Initialize the agent."""
-        pass
+        self.__poolers = poolers
+        self.__memory = memory
 
     def select_action(self, state: tuple):
         """Select an action based on the current state.

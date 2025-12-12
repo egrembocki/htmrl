@@ -18,3 +18,19 @@ class AgentInterface(Protocol):
     def upate_policy(self) -> None:
         """Updated MLP network policy based on experience."""
         ...
+
+    def set_poolers(self, poolers: list) -> None:
+        """Sets the spatial poolers for the agent.
+
+        Args:
+            poolers (list): List of spatial pooler instances.
+        """
+        ...
+
+    def set_memory(self, memory: list) -> None:
+        """Sets the temporal memory modules for the agent.
+
+        Args:
+            memory (list): List of temporal memory instances.
+        """
+        ...
