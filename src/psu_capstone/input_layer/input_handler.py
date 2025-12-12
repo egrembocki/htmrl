@@ -468,7 +468,7 @@ class InputHandler:
             self._data.columns = renamed
             existing_cols = list(self._data.columns)
 
-        for column in required_columns[len(existing_cols) :]:
+        for column in required_columns[len(existing_cols):]:
             if column not in self._data.columns:
                 self._data[column] = pd.NA
                 self._appended_required_columns.add(column)
