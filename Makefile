@@ -10,9 +10,13 @@ help: ## Show this help message
 ifeq ($(OS),Windows_NT)
 install: ## Install package and pre-commit hooks (Windows)
 	@echo "📦 Installing package in editable mode..."
-	@IF EXIST ".venv" (echo "🧹 Removing stale .venv..." && rmdir /S /Q .venv) || echo "ℹ️ No existing .venv"
-	@uv python install 3.12
-	@uv python pin 3.12
+	@IF EXIST ".venv" ( \
+		echo "ℹ️ Existing .venv detected. Skipping Python reinstall."; \
+	) ELSE ( \
+		echo "🚀 Creating new uv environment..."; \
+		uv python install 3.12 && uv python pin 3.12; \
+	)
+	@uv lock --upgrade
 	@uv sync --all-groups
 	@git rev-parse --git-dir >nul 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
@@ -21,9 +25,13 @@ install: ## Install package and pre-commit hooks (Windows)
 else
 install: ## Install package and pre-commit hooks (Unix)
 	@echo "📦 Installing package in editable mode..."
-	@rm -rf .venv || true
-	@uv python install 3.12
-	@uv python pin 3.12
+	@if [ -d ".venv" ]; then \
+		echo "ℹ️ Existing .venv detected. Skipping Python reinstall."; \
+	else \
+		echo "🚀 Creating new uv environment..."; \
+		uv python install 3.12 && uv python pin 3.12; \
+	fi
+	@uv lock --upgrade
 	@uv sync --all-groups
 	@git rev-parse --git-dir >/dev/null 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
