@@ -8,7 +8,7 @@ from typing import List, override
 import mmh3
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.sdr_layer.sdr import SDR
 
 """
  * Parameters for the RandomDistributedScalarEncoder (RDSE)

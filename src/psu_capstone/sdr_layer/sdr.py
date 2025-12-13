@@ -10,22 +10,26 @@ from __future__ import annotations
 
 import random
 from math import prod
-from typing import Callable, Iterable, List, Optional, Sequence
+from typing import Callable, Generic, Iterable, Sequence, TypeVar
+
+import numpy as np
 
 # Type aliases mirroring the C++ implementation
 
 elem_dense = int  #: Dense element type used for storing SDR bits.
 elem_sparse = int  #: Sparse index type mirroring the C++ implementation.
-sdr_dense_t = List[elem_dense]  #: Alias for the dense SDR container type.
-sdr_sparse_t = List[elem_sparse]  #: Alias for the sparse SDR container type.
-sdr_coordinate_t = List[List[int]]  #: Alias representing coordinates grouped per dimension.
+sdr_dense_t = list[elem_dense]  #: Alias for the dense SDR container type.
+sdr_sparse_t = list[elem_sparse]  #: Alias for the sparse SDR container type.
+sdr_coordinate_t = list[list[int]]  #: Alias representing coordinates grouped per dimension.
 sdr_callback_t = Callable[[], None]  #: Callback signature invoked on SDR state changes.
 
 
 INPUT_SDR_NONE_MSG = "Input SDR cannot be None."  #: Common error message for null SDR inputs.
 
+T = TypeVar("T")
 
-class SDR:
+
+class SDR(Generic[T]):
     """Python counterpart of NuPIC's SparseDistributedRepresentation.
 
     The instance maintains dense, sparse, and coordinate views that lazily
@@ -45,7 +49,7 @@ class SDR:
         __destroy_callbacks: Callbacks invoked during ``destroy``.
     """
 
-    def __init__(self, dimensions: List[int]) -> None:
+    def __init__(self, dimensions: list[int]) -> None:
         """Create a new SDR with the given dimensions.
 
         Args:
@@ -54,7 +58,7 @@ class SDR:
         Raises:
             AssertionError: If no dimensions are provided.
         """
-        self.__dimensions: List[int] = [int(dim) for dim in dimensions]
+        self.__dimensions: list[int] = [int(dim) for dim in dimensions]
         assert len(self.__dimensions) > 0, "SDR must have at least one dimension."
 
         self.__size: int = prod(int(dim) for dim in self.__dimensions)
@@ -67,8 +71,8 @@ class SDR:
         self._sparse_valid = False
         self._coordinates_valid = False
 
-        self.__callbacks: List[Optional[sdr_callback_t]] = []
-        self.__destroy_callbacks: List[Optional[sdr_callback_t]] = []
+        self.__callbacks: list[sdr_callback_t] = []
+        self.__destroy_callbacks: list[sdr_callback_t] = []
 
     # ------------------------------------------------------------------
     @property
@@ -77,7 +81,7 @@ class SDR:
         return self.__size
 
     @property
-    def dimensions(self) -> List[int]:
+    def dimensions(self) -> list[int]:
         """Return the dimensions of the SDR."""
         return self.__dimensions
 
@@ -194,7 +198,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Dimension helpers
     # ------------------------------------------------------------------
-    def get_dimensions(self) -> List[int]:
+    def get_dimensions(self) -> list[int]:
         """Return a copy of the SDR dimensionality."""
         return list(self.__dimensions)
 
@@ -333,6 +337,23 @@ class SDR:
             self.reshape(other_dims)
         self.set_sparse(int(idx) for idx in other.get_sparse())
 
+    def sdr_to_type(self, type: T) -> T:
+        """Convert the SDR to a specific type T.
+
+        Returns:
+            T: The converted SDR type.
+        """
+        if isinstance(type, list):
+            return self.get_sparse().tolist()
+        elif isinstance(type, set):
+            return set(self.get_sparse())
+        elif isinstance(type, dict):
+            return {idx: 1 for idx in self.get_sparse()}
+        elif isinstance(type, np.ndarray):
+            return np.ndarray(self.get_dense())
+        else:
+            raise TypeError("Unsupported conversion type for SDR.")
+
     # ------------------------------------------------------------------
     # Metrics
     # ------------------------------------------------------------------
@@ -343,6 +364,24 @@ class SDR:
     def get_sparsity(self) -> float:
         """Return the fraction of active bits relative to the configured size."""
         return len(self.get_sparse()) / float(int(self.__size))
+
+    def set_sparsity(self, sparsity: float) -> None:
+        """Set the SDR to a random pattern matching the requested sparsity.
+
+        Args:
+            sparsity: Desired sparsity as a fraction of total bits.
+
+        Raises:
+            AssertionError: If the sparsity is not within [0, 1].
+        """
+        assert 0.0 <= sparsity <= 1.0, "Sparsity must be within [0, 1]."
+        num_active = int(round(sparsity * float(int(self.__size))))
+        all_indices = list(range(int(self.__size)))
+        random.shuffle(all_indices)
+        selected = sorted(all_indices[:num_active])
+
+        self._sparse = [elem_sparse(idx) for idx in selected]
+        self.set_sparse_inplace()
 
     def get_overlap(self, other: "SDR") -> int:
         """Compute the overlap between this SDR and another with matching dimensions.
@@ -367,7 +406,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Boolean operations
     # ------------------------------------------------------------------
-    def intersection(self, sdrs: List["SDR"]) -> None:
+    def intersection(self, sdrs: list["SDR"]) -> None:
         """Compute the bitwise intersection of multiple SDRs and store it in-place.
 
         Args:
@@ -409,7 +448,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def _validate_concatenate_inputs(self, inputs: List["SDR"], axis_index: int) -> int:
+    def _validate_concatenate_inputs(self, inputs: list["SDR"], axis_index: int) -> int:
         """Validate concatenate inputs and return the combined size along the chosen axis."""
         concat_axis_size = 0
         for sdr in inputs:
@@ -425,7 +464,7 @@ class SDR:
                     ), "All non-axis dimensions must match for concatenate."
         return concat_axis_size
 
-    def set_union(self, sdrs: List["SDR"]) -> None:
+    def set_union(self, sdrs: list["SDR"]) -> None:
         """Compute the bitwise union of multiple SDRs and store it in-place.
 
         Args:
@@ -467,7 +506,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def concatenate(self, inputs: List["SDR"], axis: int = 0) -> None:
+    def concatenate(self, inputs: list["SDR"], axis: int = 0) -> None:
         """Concatenate SDRs along a chosen axis, writing the dense result into this instance.
 
         Args:
@@ -490,7 +529,7 @@ class SDR:
         ), "Concatenation axis dimensions do not sum to output size."
 
         buffers = [list(sdr.get_dense()) for sdr in inputs]
-        row_lengths: List[int] = []
+        row_lengths: list[int] = []
         for sdr in inputs:
             row = 1
             dims = sdr.get_dimensions()
@@ -589,7 +628,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Randomised operations
     # ------------------------------------------------------------------
-    def randomize(self, sparsity: float, rng: Optional[random.Random] = None) -> None:
+    def randomize(self, sparsity: float, rng: random.Random | None = None) -> None:
         """Populate the SDR with random active bits drawn at the requested sparsity."""
         assert 0.0 <= sparsity <= 1.0, "Sparsity must be within [0, 1]."
 
@@ -605,7 +644,7 @@ class SDR:
         self._sparse = [elem_sparse(idx) for idx in selected]
         self.set_sparse_inplace()
 
-    def add_noise(self, fraction_noise: float, rng: Optional[random.Random] = None) -> None:
+    def add_noise(self, fraction_noise: float, rng: random.Random | None = None) -> None:
         """Stochastically move active bits while preserving the overall sparsity."""
         assert 0.0 <= fraction_noise <= 1.0, "Noise fraction must be within [0, 1]."
         assert (

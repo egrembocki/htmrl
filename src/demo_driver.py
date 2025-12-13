@@ -23,8 +23,8 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.sdr_layer.sdr import SDR
 
 matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
 

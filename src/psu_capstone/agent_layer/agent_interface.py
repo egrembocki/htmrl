@@ -2,6 +2,9 @@
 
 from typing import Protocol, runtime_checkable
 
+from src.psu_capstone.agent_layer.htm.spatial_pooler import SpaitialPooler
+from src.psu_capstone.sdr_layer.sdr_interface import SDRInterface as SDR
+
 
 @runtime_checkable
 class AgentInterface(Protocol):
@@ -32,5 +35,13 @@ class AgentInterface(Protocol):
 
         Args:
             memory (list): List of temporal memory instances.
+        """
+        ...
+
+    def input_pooler(self, pooler: SpaitialPooler, sdr: list[SDR]) -> None:
+        """Inputs a spatial pooler into the agent.
+
+        Args:
+            pooler (SpatialPooler): The spatial pooler instance to input.
         """
         ...
