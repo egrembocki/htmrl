@@ -184,12 +184,30 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 if __name__ == "__main__":
     # Tests
     params = RDSEParameters(
-        size=1000, active_bits=20, sparsity=0.0, radius=0, resolution=1.5, category=False, seed=0
+        size=1000, active_bits=20, sparsity=0.0, radius=10, resolution=0, category=False, seed=1
     )
-    encoder = RandomDistributedScalarEncoder(params)
+    e1 = RandomDistributedScalarEncoder(params)
+    o1 = SDR([e1.size])
+    e1.encode(10.0, o1)
+    print(o1.get_sparse())
+
+    e2 = RandomDistributedScalarEncoder(params)
+
+    o2 = SDR([e2.size])
+    e2.encode(10.0, o2)
+    print(o2.get_sparse())
+
+    params2 = RDSEParameters(
+        size=1000, active_bits=20, sparsity=0.0, radius=10, resolution=0, category=False, seed=1
+    )
+    e3 = RandomDistributedScalarEncoder(params2)
+    o3 = SDR([e3.size])
+    e3.encode(10.0, o3)
+    print(o3.get_sparse())
+    """encoder = RandomDistributedScalarEncoder(params)
     output = SDR([encoder.size])
     encoder.encode(10.0, output)
     print(output.get_sparse())
     output2 = SDR([encoder.size])
     encoder.encode(10.0, output2)
-    print(output2.get_sparse())
+    print(output2.get_sparse())"""
