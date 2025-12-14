@@ -429,7 +429,8 @@ class InputHandler:
 
         # Check for duplicate columns
         if self._data.columns.duplicated().any():
-            raise ValueError("DataFrame has duplicate column names.")
+            logger.warning("DataFrame has duplicate column names.")
+            # raise ValueError("DataFrame has duplicate column names.")
 
         # Check for duplicate rows
         if self._data.duplicated().any():

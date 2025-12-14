@@ -116,7 +116,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
         for offset in range(self._active_bits):
             hash_buffer = index + offset
-            bucket = mmh3.hash(struct.pack("I", hash_buffer), self._seed, signed=False)
+            bucket = mmh3.hash(struct.pack("i", hash_buffer), self._seed, signed=False)
             bucket = bucket % self.size
             """
                 Don't worry about hash collisions.  Instead measure the critical

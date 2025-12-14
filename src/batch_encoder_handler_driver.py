@@ -12,25 +12,29 @@ from psu_capstone.input_layer.input_handler import InputHandler
 def main():
     handler = InputHandler.get_instance()
     # skipping the timestamp req in input handler
-    handler._prepend_timestamp_column = lambda df: df
+    # handler._prepend_timestamp_column = lambda df: df
 
-    excel_file_path = r"C:\Users\Josh\Downloads\rsi_data\RSI_column.xlsx"
+    excel_file_path = r"C:\Users\Josh\Downloads\rsi_data\small_data.xlsx"
 
-    input_data = handler.input_data(input_source=excel_file_path, required_columns=["RSI"])
+    input_data = handler.input_data(
+        input_source=excel_file_path, required_columns=["Date", "Open", "High", "Close"]
+    )
 
     print(input_data)
 
     encoder = BatchEncoderHandler(input_data)
     start_time = time.perf_counter()
-    sdrs = encoder.build_composite_sdr(input_data, threads_per_column=16)
+    sdrs = encoder.build_composite_sdr(input_data, threads_per_column=8)
     end_time = time.perf_counter()
     print(f"Encoded {len(sdrs)} SDRs for RSI column")
     print(f"Encoding took {end_time - start_time:.4f} seconds")
     print("Sample SDRs:")
-    for i, sdr in enumerate(sdrs[:5]):
-        print(sdr.get_sparse())
+    for col, sdr_list in sdrs.items():
+        print(f"Column: {col}")
+        for i, sdr in enumerate(sdr_list[:5]):
+            print(sdr.get_sparse())
 
-    print("Deterministic check with new encoders and same seed. First 5 data points:")
+    """print("Deterministic check with new encoders and same seed. First 5 data points:")
     params = RDSEParameters(
         size=2048, active_bits=40, sparsity=0.0, radius=1, resolution=0, category=False, seed=1
     )
@@ -57,9 +61,9 @@ def main():
     e1 = RandomDistributedScalarEncoder(params)
     o1 = SDR([e1.size])
     e1.encode(73.89, o1)
-    print(o1.get_sparse())
+    print(o1.get_sparse())"""
 
-    print("Non-threading encoder handler next:")
+    """print("Non-threading encoder handler next:")
     encoder1 = EncoderHandler(input_data)
     start_time1 = time.perf_counter()
     sdrs1 = encoder1.build_composite_sdr(input_data)
@@ -68,7 +72,7 @@ def main():
     print(f"Encoding took {end_time1 - start_time1:.4f} seconds")
     print("Sample SDRs:")
     for i, sdr in enumerate(sdrs1[:5]):
-        print(sdr.get_sparse())
+        print(sdr.get_sparse())"""
 
 
 if __name__ == "__main__":
