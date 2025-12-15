@@ -177,12 +177,9 @@ class BatchEncoderHandler:
             time_of_day_radius=1.0,
             custom_width=0,
             custom_days=[],
-            rdse_used=True,
         )
         category_list = input_data.columns.unique().tolist()
-        self._category_params = CategoryParameters(
-            w=3, category_list=category_list, rdse_used=False
-        )
+        self._category_params = CategoryParameters(w=3, category_list=category_list)
 
     @classmethod
     def get_instance(cls) -> "BatchEncoderHandler":
@@ -243,31 +240,34 @@ class BatchEncoderHandler:
 
         return column_sdrs
 
-    def build_composite_sdr(
-        self, input_data: pd.DataFrame | dict[list[SDR]], threads_per_column: int
-    ) -> list[SDR]:
-        """Takes in either a DataFrame or dict[list[SDR]] and creates the composite sdr for HTM consumption."""
+    def build_composite_sdr(self, input_data, threads_per_column: int) -> list[SDR]:
         if isinstance(input_data, pd.DataFrame):
             column_sdrs = self._build_dict_list_sdr(input_data, threads_per_column)
         else:
             column_sdrs = input_data
 
-        # num_rows = len(next(iter(column_sdrs.values())))
-        num_rows = len(input_data)
-
-        total_size = sum(col_sdrs[0].size for col_sdrs in column_sdrs.values())
-
-        composite_sdrs: List[SDR] = []
+        num_rows = len(next(iter(column_sdrs.values())))
+        composite_sdrs = []
 
         for i in range(num_rows):
-            composite = SDR([total_size])
-            offset = 0
-            for col_sdrs in column_sdrs.values():
-                sdr = col_sdrs[i]
-                shifted_sparse = [idx + offset for idx in sdr.get_sparse()]
-                composite._sparse.extend(shifted_sparse)
-                offset += sdr.size
-            composite.set_sparse_inplace()
+            row_sdrs = [col_sdrs[i] for col_sdrs in column_sdrs.values()]
+
+            flat_sdrs = []
+            for s in row_sdrs:
+                if len(s.dimensions) != 1:
+                    flat = SDR([s.size])
+                    flat.set_sparse(s.get_sparse())
+                    flat_sdrs.append(flat)
+                else:
+                    flat_sdrs.append(s)
+
+            total_size = sum(s.size for s in flat_sdrs)
+            if len(flat_sdrs) >= 2:
+                composite = SDR([total_size])
+                composite.concatenate(flat_sdrs, axis=0)
+            else:
+                composite = copy.deepcopy(flat_sdrs[0])
+
             composite_sdrs.append(composite)
 
         return composite_sdrs

@@ -100,13 +100,20 @@ class EncoderHandler:
 
         row_sdrs: list[SDR] = []
 
+        scalartrue = False
+
         # --- existing per-row logic, wrapped in a loop ---
         for _, row in input_data.iterrows():
             sdrs: list[SDR] = []
 
             for col_name, value in row.items():
                 # everything below here is *your existing code* per column:
-                if isinstance(value, float) or isinstance(value, np.floating):
+                if (
+                    isinstance(value, float)
+                    or isinstance(value, int)
+                    or isinstance(value, np.floating)
+                    or isinstance(value, np.integer)
+                ):
                     encoder = RandomDistributedScalarEncoder(
                         RDSEParameters(
                             active_bits=40,
@@ -121,16 +128,16 @@ class EncoderHandler:
                     sdr = SDR([encoder.size])
                     encoder.encode(float(value), sdr)
 
-                elif isinstance(value, int) or isinstance(value, np.integer):
+                elif scalartrue or isinstance(value, int) or isinstance(value, np.integer):
                     encoder = ScalarEncoder(
                         ScalarEncoderParameters(
                             minimum=0,
                             maximum=100,
                             clip_input=True,
                             periodic=False,
-                            active_bits=5,
+                            active_bits=40,
                             sparsity=0.0,
-                            size=100,
+                            size=2048,
                             radius=0.0,
                             category=False,
                             resolution=0.0,
@@ -164,7 +171,6 @@ class EncoderHandler:
                             time_of_day_radius=1.0,
                             custom_width=0,
                             custom_days=[],
-                            rdse_used=False,
                         )
                     )
                     sdr = SDR([encoder.size])
