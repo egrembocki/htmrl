@@ -17,7 +17,8 @@ dependencies = [
  "pandas>=2.1",
  "openpyxl>=3.1.2",
  "mmh3>=3.0",
- "matplotlib>=3.7"
+ "matplotlib>=3.7",
+ "scikit-learn>=1.7.2",
 ]
 
 

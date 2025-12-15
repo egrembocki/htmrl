@@ -437,6 +437,7 @@ class InputHandler:
             logger.warning("DataFrame has duplicate rows.")
 
         # Check for non-numeric columns
+        # This appears to think float64 is not numeric, there may be other data types that are numerical that will be marked as not.
         non_numeric = self._data.select_dtypes(exclude=["number"])
         if not non_numeric.empty:
             logger.info(f"Non-numeric columns detected: {non_numeric.columns.tolist()}")

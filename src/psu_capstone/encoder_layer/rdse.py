@@ -116,6 +116,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
         for offset in range(self._active_bits):
             hash_buffer = index + offset
+
+            """
+                The lower case i in the struct.pack makes this take in signed 32 bit integers.
+                It is important to note the previous iteration used an upper case I which
+                made this not take negative values. The struct.pack converts an integer
+                into a byte representation.
+            """
             bucket = mmh3.hash(struct.pack("i", hash_buffer), self._seed, signed=False)
             bucket = bucket % self.size
             """
