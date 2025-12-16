@@ -19,9 +19,25 @@ from psu_capstone.encoder_layer.sdr import SDR
 
 
 class RdseThread(Thread):
+    """
+    Custom thread class to run RDSE encoding.
+    This overrides the run to enable encoding as the thread work.
+    The offset is dynamically chosen based on the number of threads
+    in the main batch_encoder_handler class.
+    """
+
     def __init__(
         self, column_data: pd.Series, params: RDSEParameters, output: list[SDR], row_offset: int
     ):
+        """
+        Initializes the RdseThread with a Series of input data.
+
+        Args:
+            column_data (pd.Series): The input data column to encode.
+            params (RDSEParameters): Parameters for RDSE encoding.
+            output (List[SDR]): A list to store the encoded SDRs.
+            row_offset (int): Offset to place encoded SDRs in the output list.
+        """
         super().__init__()
         self._column_data = column_data
         self._encoder = RandomDistributedScalarEncoder(params)
@@ -29,6 +45,9 @@ class RdseThread(Thread):
         self._row_offset = row_offset
 
     def run(self):
+        """
+        Encodes the data column using RDSE and stores results in the output list.
+        """
         for i in range(len(self._column_data)):
             value = self._column_data.iloc[i]
 
@@ -46,6 +65,13 @@ class RdseThread(Thread):
 
 
 class ScalarThread(Thread):
+    """
+    Custom thread class to run Scalar encoding.
+    This overrides the run to enable encoding as the thread work.
+    The offset is dynamically chosen based on the number of threads
+    in the main batch_encoder_handler class.
+    """
+
     def __init__(
         self,
         column_data: pd.Series,
@@ -53,6 +79,15 @@ class ScalarThread(Thread):
         output: list[SDR],
         row_offset: int,
     ):
+        """
+        Initializes the ScalarThread with a Series of input data.
+
+        Args:
+            column_data (pd.Series): The input data column to encode.
+            params (ScalarEncoderParameters): Parameters for RDSE encoding.
+            output (List[SDR]): A list to store the encoded SDRs.
+            row_offset (int): Offset to place encoded SDRs in the output list.
+        """
         super().__init__()
         self._column_data = column_data
         self._encoder = ScalarEncoder(params)
@@ -60,6 +95,9 @@ class ScalarThread(Thread):
         self._row_offset = row_offset
 
     def run(self):
+        """
+        Encodes the data column using scalar encoder and stores results in the output list.
+        """
         for i in range(len(self._column_data)):
             value = self._column_data.iloc[i]
 
@@ -77,6 +115,13 @@ class ScalarThread(Thread):
 
 
 class DateThread(Thread):
+    """
+    Custom thread class to run Date encoding.
+    This overrides the run to enable encoding as the thread work.
+    The offset is dynamically chosen based on the number of threads
+    in the main batch_encoder_handler class.
+    """
+
     def __init__(
         self,
         column_data: pd.Series,
@@ -84,6 +129,15 @@ class DateThread(Thread):
         output: list[SDR],
         row_offset: int,
     ):
+        """
+        Initializes the DateThread with a Series of input data.
+
+        Args:
+            column_data (pd.Series): The input data column to encode.
+            params (DateEncoderParameters): Parameters for RDSE encoding.
+            output (List[SDR]): A list to store the encoded SDRs.
+            row_offset (int): Offset to place encoded SDRs in the output list.
+        """
         super().__init__()
         self._column_data = column_data
         self._encoder = DateEncoder(params)
@@ -91,6 +145,9 @@ class DateThread(Thread):
         self._row_offset = row_offset
 
     def run(self):
+        """
+        Encodes the data column using date encoder and stores results in the output list.
+        """
         for i in range(len(self._column_data)):
             value = self._column_data.iloc[i]
 
@@ -108,9 +165,25 @@ class DateThread(Thread):
 
 
 class CategoryThread(Thread):
+    """
+    Custom thread class to run Category encoding.
+    This overrides the run to enable encoding as the thread work.
+    The offset is dynamically chosen based on the number of threads
+    in the main batch_encoder_handler class.
+    """
+
     def __init__(
-        self, column_data: pd.Series, params: CategoryEncoder, output: list[SDR], row_offset: int
+        self, column_data: pd.Series, params: CategoryParameters, output: list[SDR], row_offset: int
     ):
+        """
+        Initializes the CategoryThread with a Series of input data.
+
+        Args:
+            column_data (pd.Series): The input data column to encode.
+            params (CategoryEncoder): Parameters for RDSE encoding.
+            output (List[SDR]): A list to store the encoded SDRs.
+            row_offset (int): Offset to place encoded SDRs in the output list.
+        """
         super().__init__()
         self._column_data = column_data
         self._encoder = CategoryEncoder(params)
@@ -118,6 +191,9 @@ class CategoryThread(Thread):
         self._row_offset = row_offset
 
     def run(self):
+        """
+        Encodes the data column using category encoder and stores results in the output list.
+        """
         for i in range(len(self._column_data)):
             value = self._column_data.iloc[i]
 
@@ -135,14 +211,39 @@ class CategoryThread(Thread):
 
 
 class BatchEncoderHandler:
+    """Handles multiple encoders to create composite SDRs.
+
+    This class uses a singleton pattern to ensure only one instance exists.
+    It dynamically selects the appropriate encoder for each DataFrame column
+    based on its dtype and builds a composite SDR from the encoded columns.
+    On top of that, it also enables custom configuration of specific encoder
+    parameters and allows for a custom encoding for specified columns in the
+    data. This is done through simple setter methods on the parameters and
+    on the custom encoding dict[str, str] which has the first string as a
+    column name and the second string as the encoder name.
+    """
+
     __instance: BatchEncoderHandler | None = None
 
     def __new__(cls, input_data: pd.DataFrame | None = None) -> "BatchEncoderHandler":
+        """Implements the singleton pattern for EncoderHandler.
+
+        Args:
+            input_data (pd.DataFrame | None): Input data for encoder initialization.
+
+        Returns:
+            BatchEncoderHandler: The singleton instance.
+        """
         if cls.__instance is None:
             cls.__instance = super(BatchEncoderHandler, cls).__new__(cls)
         return cls.__instance
 
     def __init__(self, input_data: pd.DataFrame | None = None):
+        """Initializes the EncoderHandler with a DataFrame of input data.
+
+        Args:
+            input_data (pd.DataFrame | None): DataFrame containing input data.
+        """
         self._data_frame = copy.deepcopy(input_data) if input_data is not None else pd.DataFrame()
         self._rdse_params = RDSEParameters(
             size=2048,
@@ -184,6 +285,14 @@ class BatchEncoderHandler:
 
     @classmethod
     def get_instance(cls) -> "BatchEncoderHandler":
+        """Returns the singleton instance of BatchEncoderHandler.
+
+        Args:
+            input_data (pd.DataFrame): Input data for encoder initialization.
+
+        Returns:
+            BatchEncoderHandler: The singleton instance.
+        """
         if cls.__instance is None:
             cls.__instance = BatchEncoderHandler()
         return cls.__instance
@@ -191,6 +300,23 @@ class BatchEncoderHandler:
     def _build_dict_list_sdr(
         self, input_data: pd.DataFrame, threads_per_column: int
     ) -> dict[list[SDR]]:
+        """
+        Builds a dictionary mapping each column name to a list of SDRs.
+
+        Each column in input_data will have a list of SDRs of length equal to the number of rows.
+        The SDRs are generated using an appropriate encoder based on the data type of each column
+        or a custom encoding specified in custom_encoding. The encoding process is parallelized
+        across batches using threads for efficiency.
+
+        Args:
+            input_data (pd.DataFrame): The input data whose columns will be converted into SDRs.
+            threads_per_column (int): The number of threads to use per column. The column is split
+                into this many batches for parallel processing.
+
+        Returns:
+            dict[list[SDR]]: A dictionary where each key is a column name and the corresponding value
+                is a list of SDR objects representing that column's data.
+        """
         num_rows = len(input_data)
         column_sdrs = {}
         # The sizes here may need to be dynamic based on parameter settings
@@ -252,6 +378,29 @@ class BatchEncoderHandler:
         return column_sdrs
 
     def build_composite_sdr(self, input_data, threads_per_column: int) -> list[SDR]:
+        """
+        Builds a list of composite SDRs by concatenating SDRs from each column for each row.
+
+        If input_data is a DataFrame, it first generates column-wise SDRs using
+        build_dict_list_sdr. Otherwise, it assumes input_data is already a dictionary
+        mapping column names to lists of SDRs. Each rows SDRs across columns are concatenated
+        into a single composite SDR. For multi-dimensional SDRs, they are flattened into 1D
+        before concatenation.
+
+        Args:
+            input_data (pd.DataFrame or dict[str, list[SDR]]): Input data to convert into SDRs.
+                If a DataFrame, column-wise SDRs are generated internally. If a dictionary,
+                it should already contain SDR lists per column.
+            threads_per_column (int): Number of threads to use per column when generating SDRs
+                from a DataFrame. Ignored if input_data is already a dictionary.
+
+        Returns:
+            list[SDR]: A list of composite SDRs, one for each row in the input data. Each
+                composite SDR represents the concatenation of all column SDRs for that row.
+
+        Future work: I believe we could add thread creation to merge row SDRs. This could
+        speed up the process significantly.
+        """
         if isinstance(input_data, pd.DataFrame):
             column_sdrs = self._build_dict_list_sdr(input_data, threads_per_column)
         else:
@@ -302,16 +451,48 @@ class BatchEncoderHandler:
         return row_sdrs, knn
 
     def set_category_encoder_parameters(self, params: CategoryParameters):
+        """
+        Set the parameters for the category encoder.
+
+        Args:
+            params (CategoryParameters): Configuration parameters for the category encoder.
+        """
         self._category_params = params
 
     def set_rdse_encoder_parameters(self, params: RDSEParameters):
+        """
+        Set the parameters for the RDSE (Random Distributed Scalar Encoder).
+
+        Args:
+            params (RDSEParameters): Configuration parameters for the RDSE encoder.
+        """
         self._rdse_params = params
 
     def set_scalar_encoder_parameters(self, params: ScalarEncoderParameters):
+        """
+        Set the parameters for the scalar encoder.
+
+        Args:
+            params (ScalarEncoderParameters): Configuration parameters for the scalar encoder.
+        """
         self._scalar_params = params
 
     def set_date_encoder_parameters(self, params: DateEncoderParameters):
+        """
+        Set the parameters for the date encoder.
+
+        Args:
+            params (DateEncoderParameters): Configuration parameters for the date encoder.
+        """
         self._date_params = params
 
     def choose_custom_column_encoding(self, custom_encoding: dict[str, str]):
+        """
+        Specify custom encoder types for specific columns.
+
+        Args:
+            custom_encoding (dict[str, str]): A dictionary mapping column names to
+                encoder types. Valid encoder types include "rdse", "scalar", "category", and "date".
+                This overrides automatic type detection for the specified columns.
+        """
         self._custom_encoding = custom_encoding
