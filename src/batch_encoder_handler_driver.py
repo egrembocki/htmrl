@@ -33,6 +33,7 @@ def main():
     # Composite sdr
     start_time = time.perf_counter()
     encoder = BatchEncoderHandler(input_data)
+    # encoder.choose_custom_column_encoding(dict["Wave", "category"]) #force the numerical to be encoded as category test
     sdrs = encoder.build_composite_sdr(input_data, 8)
     end_time = time.perf_counter()
     print(f"Encoded {len(sdrs)} SDRs for all columns")
@@ -63,7 +64,8 @@ def main():
     #print("Learning cells: ", learning_cells)
     predicted_columns_mask = tm.get_predictive_columns_mask()
     print(predicted_columns_mask)
-"""
+    """
+
     # test on multiple steps
     num_t = 1000
     tm_outputs = []

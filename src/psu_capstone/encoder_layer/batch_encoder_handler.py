@@ -178,6 +178,7 @@ class BatchEncoderHandler:
             custom_width=0,
             custom_days=[],
         )
+        self._custom_encoding = dict[str, str]
         category_list = input_data.columns.unique().tolist()
         self._category_params = CategoryParameters(w=3, category_list=category_list)
 
@@ -207,28 +208,38 @@ class BatchEncoderHandler:
             for batch in batches:
                 if len(batch) == 0:
                     continue
-                # will add proper data checks eventually
-                # if not pd.api.types.is_numeric_dtype(series):
-                #    print(f"Skipping column '{col}' (not numeric)")
-                #    continue
-                if pd.api.types.is_numeric_dtype(series) or (
-                    isinstance(series.dropna().iloc[0], (int, float))
-                ):
+
+                encoder_type = None
+                if self._custom_encoding is not None and col in self._custom_encoding:
+                    encoder_type = self._custom_encoding[col].lower()
+
+                if encoder_type is None:
+                    if pd.api.types.is_numeric_dtype(series) or isinstance(
+                        series.dropna().iloc[0], (int, float)
+                    ):
+                        encoder_type = "rdse"
+                    elif pd.api.types.is_string_dtype(series):
+                        encoder_type = "category"
+                    elif pd.api.types.is_datetime64_any_dtype(series):
+                        encoder_type = "date"
+                    elif scalartrue:
+                        encoder_type = "scalar"
+
+                thread = None
+                if encoder_type == "rdse":
                     params = self._rdse_params
                     thread = RdseThread(batch, params, column_sdrs[col], offset)
-                elif pd.api.types.is_string_dtype(series):
-                    # category_list = input_data[col].unique().tolist()
-                    params = self._category_params
-                    thread = CategoryThread(batch, params, column_sdrs[col], offset)
-                elif pd.api.types.is_datetime64_any_dtype(series):
-                    params = self._date_params
-                    thread = DateThread(batch, params, column_sdrs[col], offset)
-                elif scalartrue and pd.api.types.is_numeric_dtype(series):
+                elif encoder_type == "scalar":
                     params = self._scalar_params
                     thread = ScalarThread(batch, params, column_sdrs[col], offset)
+                elif encoder_type == "category":
+                    params = self._category_params
+                    thread = CategoryThread(batch, params, column_sdrs[col], offset)
+                elif encoder_type == "date":
+                    params = self._date_params
+                    thread = DateThread(batch, params, column_sdrs[col], offset)
                 else:
-                    print(f"Not any type. Column '{col}' dtype: {series.dtypes}")
-                    thread = None
+                    print(f"Skipping column '{col}' (unknown encoder type '{encoder_type}')")
 
                 if thread is not None:
                     threads.append(thread)
@@ -278,6 +289,7 @@ class BatchEncoderHandler:
     ) -> Tuple[list[SDR], NearestNeighbors]:
         """Takes in the dataframe returns a composite list of our sdrs as well as a kNN model to predict SDR values."""
         """Build our dict of lists of sdrs to use for kNN"""
+        """this method is incomplete and will need to be discussed with the team."""
         column_sdrs = self._build_dict_list_sdr(input_data, threads_per_column)
 
         """Make the kNN model."""
@@ -302,5 +314,4 @@ class BatchEncoderHandler:
         self._date_params = params
 
     def choose_custom_column_encoding(self, custom_encoding: dict[str, str]):
-
-        pass
+        self._custom_encoding = custom_encoding
