@@ -95,23 +95,23 @@ update: ## Update dependencies
 test: ## Run tests with coverage
 	@echo "🧪 Running tests with coverage..."
 ifeq ($(OS),Windows_NT)
-	@if [ -z "$(ARGS)" ]; then \
-			set PYTHONPATH=src && uv run pytest ^
-					--cov="psu_capstone" ^
-					--cov-report=term-missing ^
-					--cov-report=html:htmlcov ^
-					--durations=0 ^
-					--disable-warnings ^
-					tests/; \
-	else \
-			set PYTHONPATH=src && uv run pytest ^
-					--cov="psu_capstone" ^
-					--cov-report=term-missing ^
-					--cov-report=html:htmlcov ^
-					--durations=0 ^
-					--disable-warnings ^
-					$(ARGS); \
-	fi
+	@IF NOT DEFINED ARGS ( \
+		set PYTHONPATH=src && uv run pytest ^ \
+			--cov="psu_capstone" ^ \
+			--cov-report=term-missing ^ \
+			--cov-report=html:htmlcov ^ \
+			--durations=0 ^ \
+			--disable-warnings ^ \
+			tests/ \
+	) ELSE ( \
+		set PYTHONPATH=src && uv run pytest ^ \
+			--cov="psu_capstone" ^ \
+			--cov-report=term-missing ^ \
+			--cov-report=html:htmlcov ^ \
+			--durations=0 ^ \
+			--disable-warnings ^ \
+			$(ARGS) \
+	)
 else
 	@if [ -z "$(ARGS)" ]; then \
 			PYTHONPATH=src/ uv run --active pytest \
