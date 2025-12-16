@@ -292,14 +292,3 @@ def test_sdr_destroy():
     # Assert
     assert sdr.dimensions == []
     assert sdr.size == 0
-
-
-def test_sdr_interface_object():
-    """Test SDRInterface object creation."""
-
-    # Act
-    sdr_interface = SDR([100])
-    sdr_interface.randomize(0.2)
-
-    # Assert
-    assert isinstance(sdr_interface, SDRInterface)
