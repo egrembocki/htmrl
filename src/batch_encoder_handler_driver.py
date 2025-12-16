@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
+from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -12,13 +14,16 @@ from psu_capstone.input_layer.input_handler import InputHandler
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+"""
+    Why do I have so much here? A lot of this can be turned into integration tests and or unit tests.
+    I am keeping this for future test writing.
+"""
+
 
 def main():
     handler = InputHandler.get_instance()
-    # skipping the timestamp req in input handler
-    # handler._prepend_timestamp_column = lambda df: df
 
-    excel_file_path = r"C:\Users\Josh\Downloads\rsi_data\small_data.xlsx"
+    excel_file_path = r"C:\Users\Josh\Downloads\rsi_data\sin_wave.csv"
 
     input_data = handler.input_data(input_source=excel_file_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
@@ -33,10 +38,59 @@ def main():
     print(f"Encoded {len(sdrs)} SDRs for all columns")
     print(f"Encoding took {end_time - start_time:.4f} seconds")
     print("Sample SDRs:")
-    for i, sdr in enumerate(sdrs[:1]):  # first 5 SDRs
+    for i, sdr in enumerate(sdrs[:5]):  # first 5 SDRs
         print(f"Composite SDR index: {i}")
         print(f"Sparse indices: {sdr.get_sparse()}")
         print(f"Length of SDR: {len(sdr.get_dense())}\n")
+    """
+    # test on htm proposed flow
+    sdr0 = sdrs[0]
+    dense_input = np.asarray(sdr0.get_dense(), dtype=np.int8)
+    input_vector = [dense_input]
+    size = len(sdr0.get_dense())
+    sp = SpatialPooler(size, 40, 100)
+    mask, active_cols = sp.compute_active_columns(input_vector, inhibition_radius=10)
+    print(mask)
+    print(active_cols)
+    sp.learning_phase(active_cols, dense_input)
+    tm = TemporalMemory(sp.columns, 5)
+    tm_out = tm.step(active_cols)
+    active_cells = tm_out["active_cells"]
+    predictive_cells = tm_out["predictive_cells"]
+    learning_cells = tm_out["learning_cells"]
+    #print("Active cells: ", active_cells)
+    #print("Predictive cells: ", predictive_cells)
+    #print("Learning cells: ", learning_cells)
+    predicted_columns_mask = tm.get_predictive_columns_mask()
+    print(predicted_columns_mask)
+"""
+    # test on multiple steps
+    num_t = 1000
+    tm_outputs = []
+    tm_prediction_masks = []
+    sdr0 = sdrs[0]
+    size = len(sdr0.get_dense())
+    sp = SpatialPooler(size, 40, 100)
+    cells_per_column = 5
+    tm = TemporalMemory(columns=sp.columns, cells_per_column=cells_per_column)
+
+    for t in range(num_t):
+        sdr = sdrs[t % len(sdrs)]
+        dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
+
+        mask, active_cols = sp.compute_active_columns([dense_input], inhibition_radius=10)
+        tm_out = tm.step(active_cols)
+        m = tm.get_predictive_columns_mask()
+
+        tm_prediction_masks.append(m)
+        tm_outputs.append(tm_out)
+
+    active_cells = tm_out["active_cells"]
+    learning_cells = tm_out["learning_cells"]
+    print("Active cells: ", active_cells)
+    print("Learning cells: ", learning_cells)
+    for i, mask in enumerate(tm_prediction_masks):
+        print(f"Prediction mask {i}: {mask}")
 
     # Tests the dict list of column and sdr.
 
@@ -94,6 +148,8 @@ def main():
     e1.encode(73.89, o1)
     print(o1.get_sparse())"""
 
+
+"""
     # Tested the speed on 1 column of data of the other encoder handler
     # tested here on full dataset and it took over 18 minutes, this is on 4.5 billion bits roughly
     print("Non-threading encoder handler next:")
@@ -107,7 +163,7 @@ def main():
     for i, sdr in enumerate(sdrs1[:1]):
         print(sdr.get_sparse())
         print(f"Length of SDR: {len(sdr.get_dense())}\n")
-
+"""
 
 if __name__ == "__main__":
     main()

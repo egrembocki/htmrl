@@ -245,7 +245,8 @@ class BatchEncoderHandler:
             column_sdrs = self._build_dict_list_sdr(input_data, threads_per_column)
         else:
             column_sdrs = input_data
-
+        """I am thinking there could be batch thread processing here."""
+        #
         num_rows = len(next(iter(column_sdrs.values())))
         composite_sdrs = []
 
@@ -269,7 +270,7 @@ class BatchEncoderHandler:
                 composite = copy.deepcopy(flat_sdrs[0])
 
             composite_sdrs.append(composite)
-
+        #
         return composite_sdrs
 
     def create_knn_composite_sdr(
@@ -301,4 +302,5 @@ class BatchEncoderHandler:
         self._date_params = params
 
     def choose_custom_column_encoding(self, custom_encoding: dict[str, str]):
+
         pass
