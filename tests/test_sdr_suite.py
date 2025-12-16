@@ -292,3 +292,13 @@ def test_sdr_destroy():
     # Assert
     assert sdr.dimensions == []
     assert sdr.size == 0
+
+
+def test_sdr_interface_object(sdr_fixture: SDR):
+    """Test that SDR implements SDRInterface."""
+
+    # Arrange
+    sdr = sdr_fixture
+
+    # Assert
+    assert isinstance(sdr, SDRInterface)

@@ -5,9 +5,10 @@ Spatial Poolers and Temporal Memory components within the Hierarchical Temporal
 Memory (HTM) Reinforcement Learning framework.
 """
 
+from typing import Any
+
 from src.psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
 from src.psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
-from src.psu_capstone.sdr_layer.sdr_interface import SDRInterface
 
 
 class Agent:
@@ -33,7 +34,7 @@ class Agent:
         """
         self.__poolers = poolers
         self.__memory = memory
-        self._interface: SDRInterface = SDRInterface()
+        self._interface: Any
         self._sdr_size: int = 0
         self._cells_per_column: int = 0
         self._sparisty: float = 0.0
@@ -121,3 +122,11 @@ class Agent:
             column_count=column_count, cells_per_column=cells_per_column, seed=seed
         )
         self.__memory.append(memory)
+
+    def set_interface(self, interface: Any) -> None:
+        """Set the agent's interface for environment interaction.
+
+        Args:
+            interface: An object that defines how the agent interacts with the environment.
+        """
+        self._interface = interface
