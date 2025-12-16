@@ -330,27 +330,32 @@ class SDR(Generic[T]):
     def set_sdr(self, other: "SDR") -> None:
         """Copy shape and active bits from another SDR, reshaping if necessary."""
         other_dims = other.get_dimensions()
-        if not self.__dimensions:
+        if self.__dimensions != other_dims:
             self.__dimensions = [int(dim) for dim in other_dims]
             self.__size = prod(int(dim) for dim in self.__dimensions)
-        else:
-            self.reshape(other_dims)
+
+            # Re-initialize buffers
+            self._dense = [elem_dense(0)] * int(self.__size)
+            self._sparse = []
+            self._coordinates = [[] for _ in self.__dimensions]
+            self.clear()
+
         self.set_sparse(int(idx) for idx in other.get_sparse())
 
-    def sdr_to_type(self, type: T) -> T:
+    def sdr_to_type(self, target_type: T) -> T:
         """Convert the SDR to a specific type T.
 
         Returns:
             T: The converted SDR type.
         """
-        if isinstance(type, list):
-            return self.get_sparse().tolist()
-        elif isinstance(type, set):
+        if isinstance(target_type, list):
+            return list(self.get_sparse())
+        elif isinstance(target_type, set):
             return set(self.get_sparse())
-        elif isinstance(type, dict):
+        elif isinstance(target_type, dict):
             return {idx: 1 for idx in self.get_sparse()}
-        elif isinstance(type, np.ndarray):
-            return np.ndarray(self.get_dense())
+        elif isinstance(target_type, np.ndarray):
+            return np.array(self.get_dense())
         else:
             raise TypeError("Unsupported conversion type for SDR.")
 
@@ -738,5 +743,7 @@ if __name__ == "__main__":
     print("Union of SDR One, SDR Two, and SDR Three:", sdr_cat)
 
     sdr_sparse = SDR([32, 64])
+    sdr_sparse.randomize(0.02)
+    print("Sparse SDR:", sdr_sparse)
     sdr_sparse.randomize(0.02)
     print("Sparse SDR:", sdr_sparse)
