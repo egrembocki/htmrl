@@ -54,6 +54,7 @@ class RdseThread(Thread):
             # fresh sdr instance per row
             sdr_instance = SDR([self._encoder.size])
             self._encoder.encode(value, sdr_instance)
+
             self._output[self._row_offset + i] = sdr_instance
 
             """
@@ -149,6 +150,7 @@ class DateThread(Thread):
         Encodes the data column using date encoder and stores results in the output list.
         """
         for i in range(len(self._column_data)):
+
             value = self._column_data.iloc[i]
 
             # fresh sdr instance per row
@@ -278,6 +280,7 @@ class BatchEncoderHandler:
             time_of_day_radius=1.0,
             custom_width=0,
             custom_days=[],
+            rdse_used=False,
         )
         self._custom_encoding = dict[str, str]
         category_list = input_data.columns.unique().tolist()
@@ -319,9 +322,38 @@ class BatchEncoderHandler:
         """
         num_rows = len(input_data)
         column_sdrs = {}
+        size = 0
         # The sizes here may need to be dynamic based on parameter settings
         for col in input_data.columns:
-            size = 2048
+            size = 0
+            series = input_data[col].reset_index(drop=True)
+
+            encoder_type = None
+            if self._custom_encoding and col in self._custom_encoding:
+                encoder_type = self._custom_encoding[col].lower()
+
+            if encoder_type == "rdse":
+                size = self._rdse_params.size
+            elif pd.api.types.is_string_dtype(series) or pd.api.types.is_object_dtype(series):
+                width = self._category_params.w
+                unique_values = series.dropna().unique().tolist()
+                size = (len(unique_values) + 1) * width
+            elif encoder_type == "date":
+                size = DateEncoder(self._date_params)._size
+            elif encoder_type == "scalar":
+                size = self._scalar_params.size
+            else:
+                if pd.api.types.is_numeric_dtype(series):
+                    size = self._rdse_params.size
+                elif pd.api.types.is_string_dtype(series) or pd.api.types.is_object_dtype(series):
+                    width = self._category_params.w
+                    unique_values = series.dropna().unique().tolist()
+                    size = (len(unique_values) + 1) * width
+                elif pd.api.types.is_datetime64_any_dtype(series):
+                    size = DateEncoder(self._date_params)._size
+                else:
+                    print("No size")
+
             column_sdrs[col] = [SDR([size]) for _ in range(num_rows)]
 
         threads: list[Thread] = []
@@ -344,7 +376,9 @@ class BatchEncoderHandler:
                         series.dropna().iloc[0], (int, float)
                     ):
                         encoder_type = "rdse"
-                    elif pd.api.types.is_string_dtype(series):
+                    elif pd.api.types.is_string_dtype(series) or pd.api.types.is_object_dtype(
+                        series
+                    ):
                         encoder_type = "category"
                     elif pd.api.types.is_datetime64_any_dtype(series):
                         encoder_type = "date"
@@ -363,7 +397,7 @@ class BatchEncoderHandler:
                     thread = CategoryThread(batch, params, column_sdrs[col], offset)
                 elif encoder_type == "date":
                     params = self._date_params
-                    thread = DateThread(batch, params, column_sdrs[col], offset)
+                    thread = DateThread(batch, self._date_params, column_sdrs[col], offset)
                 else:
                     print(f"Skipping column '{col}' (unknown encoder type '{encoder_type}')")
 
