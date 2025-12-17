@@ -65,7 +65,6 @@ def main():
     predicted_columns_mask = tm.get_predictive_columns_mask()
     print(predicted_columns_mask)
     """
-
     # test on multiple steps
     num_t = 1000
     tm_outputs = []
