@@ -3,32 +3,26 @@
 This module mirrors NuPIC's C++ SDR behaviour using idiomatic Python.  It
 exposes the same public surface while providing type aliases, validation
 helpers, and callback hooks that keep dense, sparse, and coordinate caches
-in sync with each other.
-
-It also supports boolean operations, reshaping, and randomised
-
+in sync with each other. -- Renamed file
 """
 
 from __future__ import annotations
 
 import random
 from math import prod
-from typing import Any, Callable, Generic, Iterable, Sequence, TypeVar
-
-import numpy as np
+from typing import Any, Callable, Iterable, List, Optional, Sequence
 
 # Type aliases mirroring the C++ implementation
 
 elem_dense = int  #: Dense element type used for storing SDR bits.
 elem_sparse = int  #: Sparse index type mirroring the C++ implementation.
-sdr_dense_t = list[elem_dense]  #: Alias for the dense SDR container type.
-sdr_sparse_t = list[elem_sparse]  #: Alias for the sparse SDR container type.
-sdr_coordinate_t = list[list[int]]  #: Alias representing coordinates grouped per dimension.
+sdr_dense_t = List[elem_dense]  #: Alias for the dense SDR container type.
+sdr_sparse_t = List[elem_sparse]  #: Alias for the sparse SDR container type.
+sdr_coordinate_t = List[List[int]]  #: Alias representing coordinates grouped per dimension.
 sdr_callback_t = Callable[[], None]  #: Callback signature invoked on SDR state changes.
 
 
 INPUT_SDR_NONE_MSG = "Input SDR cannot be None."  #: Common error message for null SDR inputs.
-SPARSE_SDR_LABEL = "Sparse SDR:"  #: Constant label to avoid duplicate string literals.
 
 
 class SDR:
@@ -51,17 +45,16 @@ class SDR:
         __destroy_callbacks: Callbacks invoked during ``destroy``.
     """
 
-    def __init__(self, dimensions: list[int]) -> None:
+    def __init__(self, dimensions: List[int]) -> None:
         """Create a new SDR with the given dimensions.
 
         Args:
             dimensions: Iterable defining the length of each SDR dimension.
 
         Raises:
-            ValueError: If no dimensions are provided.
+            AssertionError: If no dimensions are provided.
         """
-        self.__dimensions: list[int] = [int(dim) for dim in dimensions]
-
+        self.__dimensions: List[int] = [int(dim) for dim in dimensions]
         assert len(self.__dimensions) > 0, "SDR must have at least one dimension."
 
         self.__size: int = prod(int(dim) for dim in self.__dimensions)
@@ -69,13 +62,14 @@ class SDR:
         self._dense: sdr_dense_t = [elem_dense(0)] * int(self.__size)
         self._sparse: sdr_sparse_t = []
         self._coordinates: sdr_coordinate_t = [[] for _ in self.__dimensions]
+        self._sparsity: float = 0.0
 
         self._dense_valid = True
         self._sparse_valid = False
         self._coordinates_valid = False
 
-        self.__callbacks: list[sdr_callback_t] = []
-        self.__destroy_callbacks: list[sdr_callback_t] = []
+        self.__callbacks: List[Optional[sdr_callback_t]] = []
+        self.__destroy_callbacks: List[Optional[sdr_callback_t]] = []
 
     # ------------------------------------------------------------------
     @property
@@ -84,13 +78,20 @@ class SDR:
         return self.__size
 
     @property
-    def dimensions(self) -> list[int]:
+    def dimensions(self) -> List[int]:
         """Return the dimensions of the SDR."""
         return self.__dimensions
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+    def clear(self) -> None:
+        """Invalidate cached representations without mutating underlying buffers."""
+
+        self._dense_valid = False
+        self._sparse_valid = False
+        self._coordinates_valid = False
+
     def do_callbacks(self) -> None:
         """Notify registered watchers that the SDR value has changed."""
 
@@ -112,11 +113,7 @@ class SDR:
 
         self._dense = [elem_dense(int(val)) for val in self._dense]
 
-        # inline cache invalidation (was clear())
-        self._dense_valid = False
-        self._sparse_valid = False
-        self._coordinates_valid = False
-
+        self.clear()
         self._dense_valid = True
         self.do_callbacks()
 
@@ -132,6 +129,7 @@ class SDR:
         ), "Sparse data must be sorted!"
         if self._sparse:
             assert int(self._sparse[-1]) < int(self.__size), "Sparse index out of bounds!"
+
         previous = None
         for idx in self._sparse:
             assert previous is None or int(idx) != int(
@@ -141,11 +139,7 @@ class SDR:
 
         self._sparse = [elem_sparse(int(val)) for val in self._sparse]
 
-        # inline cache invalidation (was clear())
-        self._dense_valid = False
-        self._sparse_valid = False
-        self._coordinates_valid = False
-
+        self.clear()
         self._sparse_valid = True
         self.do_callbacks()
 
@@ -160,6 +154,7 @@ class SDR:
         assert len(self._coordinates) == len(
             self.__dimensions
         ), "Coordinate data must match SDR dimensionality!"
+
         expected_length = len(self._coordinates[0]) if self._coordinates else 0
         for dim_index, coord_vec in enumerate(self._coordinates):
             assert (
@@ -169,30 +164,22 @@ class SDR:
             for idx in coord_vec:
                 assert int(idx) < limit, "Coordinate index out of bounds!"
 
-        # Convert to elem_sparse(int) IN PLACE to preserve the outer list identity.
-        for dim_index, coord_vec in enumerate(self._coordinates):
-            for j, idx in enumerate(coord_vec):
-                self._coordinates[dim_index][j] = elem_sparse(int(idx))
+        self._coordinates = [
+            [elem_sparse(int(idx)) for idx in coord_vec] for coord_vec in self._coordinates
+        ]
 
-        # inline cache invalidation (was clear())
-        self._dense_valid = False
-        self._sparse_valid = False
-        self._coordinates_valid = False
-
+        self.clear()
         self._coordinates_valid = True
         self.do_callbacks()
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
+
     def destroy(self) -> None:
         """Reset the SDR to an empty state and fire destroy callbacks."""
 
-        # inline cache invalidation (was clear())
-        self._dense_valid = False
-        self._sparse_valid = False
-        self._coordinates_valid = False
-
+        self.clear()
         self._dense.clear()
         self._sparse.clear()
         self._coordinates.clear()
@@ -209,7 +196,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Dimension helpers
     # ------------------------------------------------------------------
-    def get_dimensions(self) -> list[int]:
+    def get_dimensions(self) -> List[int]:
         """Return a copy of the SDR dimensionality."""
         return list(self.__dimensions)
 
@@ -229,37 +216,30 @@ class SDR:
         assert new_size == int(self.__size), "Total size must remain constant when reshaping SDR."
 
         self.__dimensions = new_dims
-
-        # only coordinates become invalid
         self._coordinates_valid = False
         self._coordinates = [[] for _ in self.__dimensions]
 
     # ------------------------------------------------------------------
-    # Basic data manipulation
+    # Protocols: Setters and Getters
     # ------------------------------------------------------------------
+
     def zero(self) -> None:
         """Clear all active bits, reset caches, and mark the dense buffer canonical."""
         self._dense = [elem_dense(0)] * int(self.__size)
         self._sparse = []
         self._coordinates = [[] for _ in self.__dimensions]
 
-        # inline cache invalidation (was clear())
-        self._dense_valid = False
-        self._sparse_valid = False
-        self._coordinates_valid = False
-
+        self.clear()
         self._dense_valid = True
         self.do_callbacks()
 
-    ## ------------------------------------------------------------------
-    # Protocol
-    ## ------------------------------------------------------------------
     def set_dense(self, dense: Iterable[int]) -> None:
         """Replace contents with a dense iterable after validating its length."""
         dense_list = list(dense)
         assert len(dense_list) == int(
             self.__size
         ), "Input dense array size does not match SDR size."
+
         temp = [elem_dense(int(val)) for val in dense_list]
         self._dense, temp = temp, self._dense
         self.set_dense_inplace()
@@ -275,10 +255,22 @@ class SDR:
             self._dense_valid = True
         return self._dense
 
+    def get_sparsity(self) -> float:
+        """Return the fraction of active bits relative to the configured size."""
+        return len(self.get_sparse()) / float(int(self.__size))
+
+    def set_sparsity(self, sparsity: float) -> None:
+        """Sets the sparsity of the SDR.
+
+        Args:
+            sparsity (float): The sparsity value to set.
+        """
+        self._sparsity = (
+            sparsity  # this will need to get changed change the active bits accordingly
+        )
+
     def set_sparse(self, sparse: Iterable[int]) -> None:
         """Replace the SDR contents with sparse indices and recompute caches."""
-
-        # Wrap set_sparse operation to provide contextual error messages.
         self._sparse = [elem_sparse(int(idx)) for idx in sparse]
         self.set_sparse_inplace()
 
@@ -306,34 +298,81 @@ class SDR:
             self._sparse_valid = True
         return self._sparse
 
+    def sdr_to_type(self, type: Any, is_sparse: bool) -> Any:
+        """Convert the SDR to a specific type, either dense or sparse."""
+        if isinstance(type, list):
+            if is_sparse:
+                return [elem_sparse(int(idx)) for idx in self.get_sparse()]
+            else:
+                return [elem_dense(int(val)) for val in self.get_dense()]
+        else:
+            raise NotImplementedError("Conversion to the specified type is not implemented.")
+
+    def set_sdr(self, other: "SDR") -> None:
+        """Copy shape and active bits from another SDR, reshaping if necessary."""
+        other_dims = other.get_dimensions()
+        if not self.__dimensions:
+            self.__dimensions = [int(dim) for dim in other_dims]
+            self.__size = prod(int(dim) for dim in self.__dimensions)
+        else:
+            self.reshape(other_dims)
+        self.set_sparse(int(idx) for idx in other.get_sparse())
+
+    def get_sdr(self) -> "SDR":
+        """Return a copy of this SDR instance."""
+        copy = SDR(self.__dimensions)
+        copy.set_sparse(int(idx) for idx in self.get_sparse())
+        return copy
+
+    # ------------------------------------------------------------------
+    # Metrics
+    # ------------------------------------------------------------------
+
+    def at_byte(self, coordinates: Sequence[int]) -> int:
+        """Return the value stored at the provided multidimensional coordinate.
+
+        Performs bounds checking, computes the flattened index, and returns
+        the stored dense byte without mutating caches.
+        """
+        assert len(coordinates) == len(
+            self.__dimensions
+        ), "Number of coordinates must match dimensionality."
+
+        flat_index = 0
+        stride = 1
+        for dim_size, coord in zip(reversed(self.__dimensions), reversed(coordinates)):
+            assert int(coord) < int(dim_size), "Coordinate out of bounds."
+            flat_index += int(coord) * stride
+            stride *= int(dim_size)
+        return self.get_dense()[flat_index]
+
     def set_coordinates(self, coordinates: Iterable[Iterable[int]]) -> None:
         """Replace the SDR contents with explicit coordinates per dimension."""
-        # Build a new structure and validate/convert in-place.
         self._coordinates = [
             [elem_sparse(int(idx)) for idx in coord_vec] for coord_vec in coordinates
         ]
         self.set_coordinates_inplace()
 
-    def set_sdr(self, other: "SDR") -> None:
-        """Copy shape and active bits from another SDR, reshaping if necessary."""
-        other_dims = other.get_dimensions()
-        if self.__dimensions != other_dims:
-            self.__dimensions = [int(dim) for dim in other_dims]
-            self.__size = prod(int(dim) for dim in self.__dimensions)
-            self._dense = [elem_dense(0)] * int(self.__size)
-            self._sparse = []
-            self._coordinates = [[] for _ in self.__dimensions]
+    def get_coordinates(self) -> sdr_coordinate_t:
+        """Return coordinate lists, deriving them from the sparse view when stale."""
+        if not self._coordinates_valid:
+            for coord in self._coordinates:
+                coord.clear()
 
-            # inline cache invalidation
-            self._dense_valid = False
-            self._sparse_valid = False
-            self._coordinates_valid = False
+            for index in self.get_sparse():
+                flat_index = int(index)
+                for dim in range(len(self.__dimensions) - 1, 0, -1):
+                    dim_size = int(self.__dimensions[dim])
+                    self._coordinates[dim].append(flat_index % dim_size)
+                    flat_index //= dim_size
+                self._coordinates[0].append(flat_index)
 
-        self.set_sparse(int(idx) for idx in other.get_sparse())
+            self._coordinates_valid = True
+        return self._coordinates
 
-    # ------------------------------------------------------------------
-    # Metrics
-    # ------------------------------------------------------------------
+    def get_sum(self) -> int:
+        """Return the number of active bits, delegating to the sparse representation."""
+        return len(self.get_sparse())
 
     def get_overlap(self, other: "SDR") -> int:
         """Compute the overlap between this SDR and another with matching dimensions.
@@ -355,27 +394,10 @@ class SDR:
         other_sparse = set(map(int, other.get_sparse()))
         return len(self_sparse & other_sparse)
 
-    def at_byte(self, coordinates: Sequence[int]) -> int:
-        """Return the value stored at the provided multidimensional coordinate.
-
-        Performs bounds checking, computes the flattened index, and returns
-        the stored dense byte without mutating caches.
-        """
-        assert len(coordinates) == len(
-            self.__dimensions
-        ), "Number of coordinates must match dimensionality."
-        flat_index = 0
-        stride = 1
-        for dim_size, coord in zip(reversed(self.__dimensions), reversed(coordinates)):
-            assert int(coord) < int(dim_size), "Coordinate out of bounds."
-            flat_index += int(coord) * stride
-            stride *= int(dim_size)
-        return self.get_dense()[flat_index]
-
     # ------------------------------------------------------------------
     # Boolean operations
     # ------------------------------------------------------------------
-    def intersection(self, sdrs: list["SDR"]) -> None:
+    def intersection(self, sdrs: List["SDR"]) -> None:
         """Compute the bitwise intersection of multiple SDRs and store it in-place.
 
         Args:
@@ -385,9 +407,8 @@ class SDR:
             AssertionError: If fewer than two SDRs are provided or if any SDR
             has incompatible dimensions.
         """
-
-        # Wrap intersection operation to provide contextual error messages.
         assert len(sdrs) >= 2, "Intersection requires at least two SDRs."
+
         inputs = list(sdrs)
         inplace = False
         i = 0
@@ -418,7 +439,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def _validate_concatenate_inputs(self, inputs: list["SDR"], axis_index: int) -> int:
+    def _validate_concatenate_inputs(self, inputs: List["SDR"], axis_index: int) -> int:
         """Validate concatenate inputs and return the combined size along the chosen axis."""
         concat_axis_size = 0
         for sdr in inputs:
@@ -434,7 +455,7 @@ class SDR:
                     ), "All non-axis dimensions must match for concatenate."
         return concat_axis_size
 
-    def set_union(self, sdrs: list["SDR"]) -> None:
+    def set_union(self, sdrs: List["SDR"]) -> None:
         """Compute the bitwise union of multiple SDRs and store it in-place.
 
         Args:
@@ -444,9 +465,8 @@ class SDR:
             AssertionError: If fewer than two SDRs are provided or if any SDR
             has incompatible dimensions.
         """
-
-        # Wrap union operation to provide contextual error messages.
         assert len(sdrs) >= 2, "Union requires at least two SDRs."
+
         inputs = list(sdrs)
         inplace = False
         i = 0
@@ -477,7 +497,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def concatenate(self, inputs: list["SDR"], axis: int = 0) -> None:
+    def concatenate(self, inputs: List["SDR"], axis: int = 0) -> None:
         """Concatenate SDRs along a chosen axis, writing the dense result into this instance.
 
         Args:
@@ -488,18 +508,19 @@ class SDR:
             AssertionError: If fewer than two inputs are provided, if the axis
             is invalid, or if input dimensions are incompatible with ``self``.
         """
-
-        # Wrap concatenate operation to provide contextual error messages.
         assert len(inputs) >= 2, "Not enough inputs to concatenate."
+
         axis_index = int(axis)
         assert 0 <= axis_index < len(self.__dimensions), "Axis out of bounds."
+
         concat_axis_size = self._validate_concatenate_inputs(inputs, axis_index)
+
         assert concat_axis_size == int(
             self.__dimensions[axis_index]
         ), "Concatenation axis dimensions do not sum to output size."
 
         buffers = [list(sdr.get_dense()) for sdr in inputs]
-        row_lengths: list[int] = []
+        row_lengths: List[int] = []
         for sdr in inputs:
             row = 1
             dims = sdr.get_dimensions()
@@ -591,44 +612,56 @@ class SDR:
             "SparseDistributedRepresentation::removeDestroyCallback, Invalid Handle!",
         )
         assert self.__destroy_callbacks[idx] is not None, (
-            "SparseDistributedRepresentation::removeDestroyCallback, Callback already removed!",
+            "SparseDistributedRepresentation::removeDestroyCallback, " "Callback already removed!",
         )
         self.__destroy_callbacks[idx] = None
 
     # ------------------------------------------------------------------
     # Randomised operations
     # ------------------------------------------------------------------
-    def randomize(self, sparsity: float, rng: random.Random | None = None) -> None:
+    def randomize(self, sparsity: float, rng: Optional[random.Random] = None) -> None:
         """Populate the SDR with random active bits drawn at the requested sparsity."""
         assert 0.0 <= sparsity <= 1.0, "Sparsity must be within [0, 1]."
+
         size = int(self.__size)
         nbits = max(0, min(size, int(round(size * float(sparsity)))))
         rng = rng or random.Random(0)
-        selected = sorted(rng.sample(range(size), nbits)) if nbits else []
+
+        if nbits:
+            selected = sorted(rng.sample(range(size), nbits))
+        else:
+            selected = []
+
         self._sparse = [elem_sparse(idx) for idx in selected]
         self.set_sparse_inplace()
 
-    def add_noise(self, fraction_noise: float, rng: random.Random | None = None) -> None:
+    def add_noise(self, fraction_noise: float, rng: Optional[random.Random] = None) -> None:
         """Stochastically move active bits while preserving the overall sparsity."""
         assert 0.0 <= fraction_noise <= 1.0, "Noise fraction must be within [0, 1]."
         assert (
             1.0 + fraction_noise
         ) * self.get_sparsity() <= 1.0, "Noise would exceed SDR capacity."
+
         num_move_bits = int(round(fraction_noise * int(self.get_sum())))
         if num_move_bits == 0:
             return
+
         rng = rng or random.Random()
+
         sparse_values = list(map(int, self.get_sparse()))
         assert len(sparse_values) >= num_move_bits, "Not enough active bits to turn off."
         turn_off = rng.sample(sparse_values, num_move_bits)
+
         dense = self.get_dense()
         off_population = [idx for idx in range(int(self.__size)) if int(dense[idx]) == 0]
         assert len(off_population) >= num_move_bits, "Not enough inactive bits to turn on."
         turn_on = rng.sample(off_population, num_move_bits)
+
         for idx in turn_on:
             dense[idx] = elem_dense(1)
         for idx in turn_off:
             dense[idx] = elem_dense(0)
+
         self.set_dense_inplace()
 
     def kill_cells(self, fraction: float, seed: int = 0) -> None:
@@ -638,12 +671,15 @@ class SDR:
         nkill = int(round(size * fraction))
         if nkill == 0:
             return
+
         rng = random.Random(int(seed))
         dense = self.get_dense()
         indices = list(range(size))
         to_kill = rng.sample(indices, nkill)
+
         for idx in to_kill:
             dense[idx] = elem_dense(0)
+
         self.set_dense(int(val) for val in dense)
 
     # ------------------------------------------------------------------
@@ -691,13 +727,7 @@ if __name__ == "__main__":
 
     sdr_cat.concatenate([sdr_two, sdr_one, sdr_three], axis=0)
     print("Union of SDR One, SDR Two, and SDR Three:", sdr_cat)
+
     sdr_sparse = SDR([32, 64])
     sdr_sparse.randomize(0.02)
-    print(SPARSE_SDR_LABEL, sdr_sparse)
-    sdr_sparse.randomize(0.02)
-    print(SPARSE_SDR_LABEL, sdr_sparse)
-    sdr_sparse.randomize(0.02)
-    print(SPARSE_SDR_LABEL, sdr_sparse)
-sdr_sparse.randomize(0.02)
-print(SPARSE_SDR_LABEL, sdr_sparse)
-print("Sparse SDR:", sdr_sparse)
+    print("Sparse SDR:", sdr_sparse)

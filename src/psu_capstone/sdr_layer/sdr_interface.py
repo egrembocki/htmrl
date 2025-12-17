@@ -9,20 +9,8 @@ from psu_capstone.sdr_layer.sdr import SDR
 class SDRInterface(Protocol):
     """Defines the interface for SDR layer components."""
 
-    def set_sdr(self, sdr: SDR) -> None:
-        """Sets the SDR data.
-
-        Args:
-            sdr (SDR): The SDR data to set.
-        """
-        ...
-
-    def get_sdr(self) -> SDR:
-        """Gets the SDR object.
-
-        Returns:
-            SDR: The SDR object.
-        """
+    def zero(self) -> None:
+        """Sets all bits in the SDR to 0."""
         ...
 
     def set_sparse(self, sparse: Iterable[int]) -> None:
@@ -73,7 +61,23 @@ class SDRInterface(Protocol):
         """
         ...
 
-    def sdr_to_type(self, target_type: Any, is_sparse: bool) -> Any:
+    def set_sdr(self, other: "SDR") -> None:
+        """Sets the SDR from another SDR.
+
+        Args:
+            other (SDR): The other SDR to copy from.
+        """
+        ...
+
+    def get_sdr(self) -> "SDR":
+        """Gets the SDR.
+
+        Returns:
+            SDR: The SDR instance.
+        """
+        ...
+
+    def sdr_to_type(self, type: Any, is_sparse: bool) -> Any:
         """Converts the SDR to a specific type.
 
         Returns:
