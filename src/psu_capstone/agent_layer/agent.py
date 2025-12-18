@@ -38,6 +38,7 @@ class Agent:
         self._sdr_size: int = 0
         self._cells_per_column: int = 0
         self._sparisty: float = 0.0
+        self._list[Any] = []
 
     def select_action(self, state: tuple):
         """Select an action based on the current state observation.
@@ -130,3 +131,11 @@ class Agent:
             interface: An object that defines how the agent interacts with the environment.
         """
         self._interface = interface
+
+    def set_list(self, lst: list[Any]) -> None:
+        """Set an internal list for the agent.
+
+        Args:
+            lst: A list of any type to be stored internally by the agent.
+        """
+        self._list = lst
