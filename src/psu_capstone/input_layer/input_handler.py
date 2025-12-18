@@ -429,6 +429,7 @@ class InputHandler:
 
         # Check for duplicate columns
         if self._data.columns.duplicated().any():
+            # logger.warning("DataFrame has duplicate column names.")
             raise ValueError("DataFrame has duplicate column names.")
 
         # Check for duplicate rows
@@ -436,6 +437,7 @@ class InputHandler:
             logger.warning("DataFrame has duplicate rows.")
 
         # Check for non-numeric columns
+        # This appears to think float64 is not numeric, there may be other data types that are numerical that will be marked as not.
         non_numeric = self._data.select_dtypes(exclude=["number"])
         if not non_numeric.empty:
             logger.info(f"Non-numeric columns detected: {non_numeric.columns.tolist()}")
@@ -467,9 +469,9 @@ class InputHandler:
             renamed = required_columns[:rename_count] + existing_cols[rename_count:]
             self._data.columns = renamed
             existing_cols = list(self._data.columns)
-
-        for column in required_columns[len(existing_cols) :]:
-            if column not in self._data.columns:
+        for i in range(len(existing_cols), len(required_columns)):
+            column = required_columns[i]
+            if column not in self._data:
                 self._data[column] = pd.NA
                 self._appended_required_columns.add(column)
 

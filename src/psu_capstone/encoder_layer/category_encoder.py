@@ -85,8 +85,8 @@ class CategoryEncoder(BaseEncoder[str]):
                 category=False,
                 active_bits=self._w,
                 sparsity=0.0,
-                size=0,
-                radius=1.0,
+                size=self._num_categories * self._w,
+                radius=0.0,
                 resolution=0.0,
             )
             self.encoder = ScalarEncoder(self.sp, dimensions=[self.sp.size])

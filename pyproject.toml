@@ -17,7 +17,8 @@ dependencies = [
  "pandas>=2.1",
  "openpyxl>=3.1.2",
  "mmh3>=3.0",
- "matplotlib>=3.7"
+ "matplotlib>=3.7",
+ "scikit-learn>=1.7.2",
 ]
 
 
@@ -40,17 +41,16 @@ package = true
 [tool.pytest.ini_options]
 # addopts = ["--cov-report=term-missing", "--cov-report=xml", "tests/"]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
-nonrecursedirs = "build"
+norecursedirs = ["build"]
 
-[tool.coverage]
 [tool.coverage.run]
 omit = [
   # omit anything in a .local directory anywhere
-  '*/.local/*',
-  '*/__init__.py',
-  'tests/*',
-  '*/tests/*',
-  '.venv/*',
+  "*/.local/*",
+  "*/__init__.py",
+  "tests/*",
+  "*/tests/*",
+  ".venv/*",
 ]
 
 [tool.coverage.report]
@@ -68,14 +68,14 @@ exclude_lines = [
 [tool.black]
 line-length = 100
 extend-exclude = '''
-/(
+(
   # Exclude template directories
   # Standard exclusions
-  | \.git
+  \.git
   | \.venv
   | build
   | dist
-)/
+)
 '''
 
 [tool.isort]

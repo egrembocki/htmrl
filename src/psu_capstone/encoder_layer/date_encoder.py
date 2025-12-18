@@ -220,7 +220,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if args.season_width != 0:
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=0,
+                    size=10,
                     active_bits=args.season_width,
                     sparsity=0.0,
                     radius=args.season_radius,
@@ -253,7 +253,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if args.day_of_week_width != 0:
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=0,
+                    size=10,
                     active_bits=args.day_of_week_width,
                     sparsity=0.0,
                     radius=args.day_of_week_radius,
@@ -287,7 +287,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if args.weekend_width != 0:
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=0,
+                    size=10,
                     active_bits=args.weekend_width,
                     sparsity=0.0,
                     radius=0.0,
@@ -345,7 +345,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=0,
+                    size=10,
                     active_bits=args.custom_width,
                     sparsity=0.0,
                     radius=0.0,
@@ -382,7 +382,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                     )
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=0,
+                    size=10,
                     active_bits=args.holiday_width,
                     sparsity=0.0,
                     radius=1.0,
@@ -415,7 +415,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if args.time_of_day_width != 0:
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=0,
+                    size=10,
                     active_bits=args.time_of_day_width,
                     sparsity=0.0,
                     radius=args.time_of_day_radius,
