@@ -81,6 +81,6 @@ class SDRInterface(Protocol):
         """Converts the SDR to a specific type.
 
         Returns:
-            T: The converted SDR type.
+            Any: The converted SDR type.
         """
         ...
