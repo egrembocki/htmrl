@@ -1,0 +1,139 @@
+Metadata-Version: 2.4
+Name: psu-capstone
+Version: 0.0.0
+Summary: PSU Capstone Project
+Author: PSU Capstone Team
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: <3.13,>=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: sympy>=1.11
+Requires-Dist: pandas>=2.1
+Requires-Dist: openpyxl>=3.1.2
+Requires-Dist: mmh3>=3.0
+Requires-Dist: matplotlib>=3.7
+
+# PSU Capstone Project
+
+## 1. Environment Setup: Conda & VM
+
+This project uses Conda environments for reproducibility. You can use a local machine, VM, or container.
+
+### a. Install Miniconda
+- Download Miniconda: https://docs.conda.io/en/latest/miniconda.html
+- Linux/MacOS: Follow site instructions, then run `conda init bash`
+- Windows: Use PowerShell
+  ```powershell
+  winget install -e --id Anaconda.Miniconda3
+  conda init powershell
+  ```
+- Restart your terminal and verify:
+  ```bash
+  conda --version
+  ```
+
+### b. Create & Activate Environment
+- From the project root:
+  ```bash
+  conda env create -f htmrlenv.yml
+  conda activate htmrl_env
+  ```
+  *(Replace `htmrl_env` with the name in your YAML if different)*
+
+### c. VM Setup
+- Provision a VM with your preferred OS (Linux recommended)
+- Install Miniconda as above
+- Clone this repo and follow the environment steps
+
+---
+
+## 2. Makefile: Installation & Usage
+
+### a. What is Make?
+Make automates development tasks using a `Makefile`.
+
+### b. Install Make
+- **Linux (Debian/Ubuntu):**
+  ```bash
+  sudo apt-get update
+  sudo apt-get install build-essential
+  ```
+- **MacOS:**
+  ```bash
+  xcode-select --install
+  ```
+- **Windows:**
+  - Recommended: [Install WSL](https://docs.microsoft.com/en-us/windows/wsl/install)
+  - Or, install [Git Bash](https://gitforwindows.org/) or [Chocolatey](https://chocolatey.org/):
+    ```powershell
+    choco install make
+    ```
+
+### c. Makefile Dependencies
+- `uv` (Python package manager):
+  ```bash
+  pip install uv
+  ```
+- `pre-commit`, `isort`, `black`, `flake8`, `pytest` (installed via `uv` or pip)
+
+---
+
+## 3. Using the Makefile
+
+From the project root, run:
+```bash
+make <target>
+```
+Common targets:
+- `make help`        # List all commands
+- `make install`     # Install package and pre-commit hooks
+- `make setup-dev`   # Install dev dependencies
+- `make format`      # Format code
+- `make lint`        # Lint code
+- `make test`        # Run tests
+- `make clean`       # Remove build/test artifacts
+- `make update`      # Update dependencies
+- `make pre-commit`  # Run pre-commit hooks
+
+---
+
+## 4. Troubleshooting
+
+| Issue                  | Cause                        | Fix                                                      |
+|------------------------|------------------------------|-----------------------------------------------------------|
+| `conda` not recognized | Shell not initialized        | `conda init <shell>` then open a new terminal             |
+| Make not found         | Not installed                | See install instructions above                            |
+| `uv` not found         | Not installed                | `pip install uv`                                         |
+| Pre-commit fails       | Missing dependencies         | Run `make install` and `make setup-dev`                   |
+| Python package errors  | Wrong env active             | `conda activate htmrl_env`                                |
+
+---
+
+## 5. Git Workflow: Commit, Hooks, Sync
+
+1. **Stage changes:**
+   ```bash
+   git add .
+   ```
+2. **Commit:**
+   ```bash
+   git commit -m "Your message"
+   ```
+   - If pre-commit hooks fail, fix issues, re-stage (`git add .`), and re-run `git commit`.
+3. **Sync with remote:**
+   ```bash
+   git pull --rebase   # Get latest changes
+   git push            # Push your commit
+   ```
+
+---
+
+## 6. Additional Notes
+- For more info on Makefile targets, run `make help`.
+- For environment issues, recreate with `conda env remove -n htmrl_env --all` then re-create.
+- For VM/container, ensure ports and file permissions are set as needed.
+
+---
+
+## License
+Add license info here if applicable.
