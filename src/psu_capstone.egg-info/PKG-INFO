@@ -1,49 +1,81 @@
 Metadata-Version: 2.4
 Name: psu-capstone
-Version: 0.0.0
+Version: 0.0.1
 Summary: PSU Capstone Project
 Author: PSU Capstone Team
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: OS Independent
-Requires-Python: <3.13,>=3.10
+Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: sympy>=1.11
 Requires-Dist: pandas>=2.1
 Requires-Dist: openpyxl>=3.1.2
 Requires-Dist: mmh3>=3.0
 Requires-Dist: matplotlib>=3.7
+Requires-Dist: scikit-learn>=1.7.2
 
 # PSU Capstone Project
 
-## 1. Environment Setup: Conda & VM
+## 1. Environment Setup: uv
 
-This project uses Conda environments for reproducibility. You can use a local machine, VM, or container.
+This project uses the uv package manager for reproducible Python environments.
 
-### a. Install Miniconda
-- Download Miniconda: https://docs.conda.io/en/latest/miniconda.html
-- Linux/MacOS: Follow site instructions, then run `conda init bash`
-- Windows: Use PowerShell
+### a. Install uv
+- Windows (PowerShell):
   ```powershell
-  winget install -e --id Anaconda.Miniconda3
-  conda init powershell
+  irm https://astral.sh/uv/install.ps1 | iex
   ```
-- Restart your terminal and verify:
+- Linux/MacOS:
   ```bash
-  conda --version
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+- Verify:
+  ```bash
+  uv --version
   ```
 
 ### b. Create & Activate Environment
 - From the project root:
   ```bash
-  conda env create -f htmrlenv.yml
-  conda activate htmrl_env
+  uv python install 3.12
+  uv python pin 3.12
+  uv sync --all-groups
   ```
-  *(Replace `htmrl_env` with the name in your YAML if different)*
+- uv manages the virtual environment automatically (in `.venv`); commands like `uv run` use it.
 
-### c. VM Setup
-- Provision a VM with your preferred OS (Linux recommended)
-- Install Miniconda as above
-- Clone this repo and follow the environment steps
+### c. Optional: Recreate Environment
+- If you need a fresh environment and already have `.venv`, you can recreate it in one of three ways:
+
+1) Using the Makefile (recommended):
+```bash
+make recreate-venv
+```
+- Removes `.venv`, installs/pins Python 3.12, and runs `uv sync --all-groups`.
+
+2) Manually (Unix/macOS):
+```bash
+rm -rf .venv
+uv python install 3.12
+uv python pin 3.12
+uv sync --all-groups
+```
+
+3) Manually (Windows PowerShell):
+```powershell
+Remove-Item -Recurse -Force .venv
+uv python install 3.12
+uv python pin 3.12
+uv sync --all-groups
+```
+
+Notes:
+- Use this when `.venv` points to a removed or incompatible Python, or dependency resolution is broken.
+- After recreation, run:
+```bash
+uv lock --upgrade
+uv sync --all-groups
+```
+to ensure dependencies are updated to the latest allowed versions.
 
 ---
 
@@ -63,18 +95,15 @@ Make automates development tasks using a `Makefile`.
   xcode-select --install
   ```
 - **Windows:**
-  - Recommended: [Install WSL](https://docs.microsoft.com/en-us/windows/wsl/install)
-  - Or, install [Git Bash](https://gitforwindows.org/) or [Chocolatey](https://chocolatey.org/):
+  - Recommended: WSL or Git Bash
+  - Or with Chocolatey:
     ```powershell
     choco install make
     ```
 
 ### c. Makefile Dependencies
-- `uv` (Python package manager):
-  ```bash
-  pip install uv
-  ```
-- `pre-commit`, `isort`, `black`, `flake8`, `pytest` (installed via `uv` or pip)
+- `uv` (installed above)
+- Tooling: `pre-commit`, `isort`, `black`, `flake8`, `pytest` (resolved by `uv sync`)
 
 ---
 
@@ -86,26 +115,27 @@ make <target>
 ```
 Common targets:
 - `make help`        # List all commands
-- `make install`     # Install package and pre-commit hooks
+- `make install`     # Create/refresh env, install hooks
 - `make setup-dev`   # Install dev dependencies
 - `make format`      # Format code
 - `make lint`        # Lint code
 - `make test`        # Run tests
 - `make clean`       # Remove build/test artifacts
-- `make update`      # Update dependencies
+- `make update`      # Update dependencies (uv lock --upgrade + uv sync)
 - `make pre-commit`  # Run pre-commit hooks
+- `make recreate-venv` # Force rebuild `.venv`
 
 ---
 
 ## 4. Troubleshooting
 
-| Issue                  | Cause                        | Fix                                                      |
-|------------------------|------------------------------|-----------------------------------------------------------|
-| `conda` not recognized | Shell not initialized        | `conda init <shell>` then open a new terminal             |
-| Make not found         | Not installed                | See install instructions above                            |
-| `uv` not found         | Not installed                | `pip install uv`                                         |
-| Pre-commit fails       | Missing dependencies         | Run `make install` and `make setup-dev`                   |
-| Python package errors  | Wrong env active             | `conda activate htmrl_env`                                |
+| Issue                      | Cause                              | Fix                                                     |
+|---------------------------|------------------------------------|---------------------------------------------------------|
+| `uv` not found            | uv not installed                   | Install uv (see Section 1a)                             |
+| Wrong Python version      | Env not pinned/installed           | `uv python install 3.12 && uv python pin 3.12`          |
+| Dependencies outdated     | Lockfile not upgraded              | `uv lock --upgrade && uv sync --all-groups`             |
+| Pre-commit fails          | Missing dependencies               | `make install`                                          |
+| Using wrong environment   | Stale `.venv` or external Python   | `make recreate-venv` or remove `.venv` and re-run uv steps |
 
 ---
 
@@ -122,16 +152,16 @@ Common targets:
    - If pre-commit hooks fail, fix issues, re-stage (`git add .`), and re-run `git commit`.
 3. **Sync with remote:**
    ```bash
-   git pull --rebase   # Get latest changes
-   git push            # Push your commit
+   git pull --rebase
+   git push
    ```
 
 ---
 
 ## 6. Additional Notes
 - For more info on Makefile targets, run `make help`.
-- For environment issues, recreate with `conda env remove -n htmrl_env --all` then re-create.
-- For VM/container, ensure ports and file permissions are set as needed.
+- `uv run` executes commands inside the managed virtual environment.
+- `.venv` is created automatically; avoid modifying it manually unless recreating.
 
 ---
 

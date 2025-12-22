@@ -80,7 +80,9 @@ class Agent:
         """
         self._memory = memory
 
-    def select_action(self, state: tuple):
+    # protocol methods
+
+    def select_action(self, state: tuple) -> Any:
         """Select an action based on the current state observation.
 
         This method processes the input state through the agent's HTM hierarchy
@@ -95,11 +97,11 @@ class Agent:
         """
         pass
 
-    def update_policy(self, state, action, reward, next_state):
+    def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
         """Update the agent's internal model and policy based on experience.
 
-        This method allows the agent to learn from the consequences of its actions
-        by updating its Spatial Pooler and Temporal Memory connections.
+        This method focuse on updating the MLP model policy based on the agent's
+        experience tuple (state, action, reward, next_state).
 
         Args:
             state: The state observed before taking the action.
@@ -109,6 +111,8 @@ class Agent:
         """
         pass
 
+    # END protocol methods
+
     def append_buffer(self, sdr: Any) -> None:
         """Load an SDR into the agent's buffer list.
 
@@ -116,6 +120,8 @@ class Agent:
             sdr: The SDR to be added to the buffer.
         """
         self._buffer_list.append(sdr)
+
+    # factory methods
 
     def create_pooler(
         self,

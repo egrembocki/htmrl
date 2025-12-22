@@ -1,6 +1,8 @@
 """Exposed interface for Agent layer components."""
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
+
+import numpy as np
 
 from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
 from psu_capstone.sdr_layer.sdr_interface import SDRInterface
@@ -8,9 +10,9 @@ from psu_capstone.sdr_layer.sdr_interface import SDRInterface
 
 @runtime_checkable
 class AgentInterface(Protocol):
-    """Defines the interface for agent layer components."""
+    """Defines the interface requiremnts to be an Agent in the HTM-RL system."""
 
-    def select_action(self, state: tuple) -> None:
+    def select_action(self, state: tuple) -> Any:
         """Processes incoming data for the agent.
 
         Args:
@@ -18,30 +20,13 @@ class AgentInterface(Protocol):
         """
         ...
 
-    def upate_policy(self) -> None:
-        """Updated MLP network policy based on experience."""
-        ...
-
-    def set_poolers(self, poolers: list) -> None:
-        """Sets the spatial poolers for the agent.
+    def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
+        """Update the agent's internal model and policy based on experience.
 
         Args:
-            poolers (list): List of spatial pooler instances.
-        """
-        ...
-
-    def set_memory(self, memory: list) -> None:
-        """Sets the temporal memory modules for the agent.
-
-        Args:
-            memory (list): List of temporal memory instances.
-        """
-        ...
-
-    def input_pooler(self, pooler: SpatialPooler, sdr: list[SDRInterface]) -> None:
-        """Inputs a spatial pooler into the agent.
-
-        Args:
-            pooler (SpatialPooler): The spatial pooler instance to input.
+            state: The previous state of the environment.
+            action: The action taken by the agent.
+            reward: The reward received after taking the action.
+            next_state: The new state of the environment after the action.
         """
         ...
