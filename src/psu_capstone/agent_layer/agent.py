@@ -5,9 +5,13 @@ Spatial Poolers and Temporal Memory components within the Hierarchical Temporal
 Memory (HTM) Reinforcement Learning framework.
 """
 
+from re import S
 from typing import Any
 
+from psu_capstone.agent_layer.htm.cell import Cell
+from psu_capstone.agent_layer.htm.column import Column
 from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
+from psu_capstone.agent_layer.htm.synapse import Synapse
 from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
 
 
@@ -37,8 +41,8 @@ class Agent:
 
         self._buffer_list: list[Any] = []  # place to store batched sdrs to send to poolers
         self._models: list[Any] = []  # place to store models for agent
-        self._interface: list[Any] = []  # place to store interface handlers
-        self._encoder_handler: list[Any] = []  # place to store encoder handlers
+        self._interfaces: list[Any] = []  # place to store interface handlers
+        self._encoder_handlers: list[Any] = []  # place to store encoder handlers
 
     @property
     def poolers(self) -> list[SpatialPooler]:
@@ -125,6 +129,8 @@ class Agent:
         This factory method simplifies the addition of new spatial pooling layers
         to the agent.
 
+        --TODO we need a proper factory pattern here --
+
         Args:
             input_space_size: The total size of the input bit space.
             column_count: The number of columns (outputs) in the spatial pooler.
@@ -139,11 +145,13 @@ class Agent:
         )
         self._poolers.append(pooler)
 
-    def create_memory(self, column_count: int, cells_per_column: int, seed: int) -> None:
+    def create_memory(self, column_count: int, cells_per_column: int) -> None:
         """Create a new Temporal Memory module and append it to the agent's memory.
 
         This factory method simplifies the addition of new temporal memory layers
         to the agent.
+
+        -- TODO we need a proper factory pattern here --
 
         Args:
             column_count: The number of columns in the temporal memory (should match
@@ -151,9 +159,15 @@ class Agent:
             cells_per_column: The number of cells per column for temporal context.
             seed: Random seed for reproducible initialization.
         """
-        memory = TemporalMemory(
-            column_count=column_count, cells_per_column=cells_per_column, seed=seed
-        )
+
+        synapse = Synapse(0, 0.21)  # placeholder synapse
+        columns = [
+            Column([synapse], (0, 0)) for _ in range(column_count)
+        ]  # placeholder for columns
+
+        # we could also add default temporal memory parameters inside the TemporalMemory class (a factory)
+        memory = TemporalMemory(columns=columns, cells_per_column=cells_per_column)
+
         self._memory.append(memory)
 
     def create_model(self, model_type: str, **kwargs) -> None:
@@ -194,4 +208,4 @@ class Agent:
 
         # append to self._encoders
 
-        self._encoders.append(None)  # Placeholder for actual encoder instance
+        self._encoder_handlers.append(None)  # Placeholder for actual encoder instance

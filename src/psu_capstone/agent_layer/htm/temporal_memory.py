@@ -27,7 +27,7 @@ Outputs:
 from __future__ import annotations
 
 import random
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from typing import Dict, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -72,7 +72,7 @@ class TemporalMemory:
         - Creates cells for each column.
         - Initializes per-timestep tracking dictionaries.
         """
-        self.columns: List[Column] = list(columns)
+        self.columns: list[Column] = list(columns)
         self.cells_per_column: int = cells_per_column
 
         # Attach cells to each column
@@ -160,7 +160,7 @@ class TemporalMemory:
                     if best_cell is None:
                         best_cell = column.cells[0]
                     best_segment = Segment()
-                    best_cell.segments.append(best_segment)
+                    best_cell._segments.append(best_segment)
                 if best_cell is not None:
                     winner_cells_t.add(best_cell)
                 learning_segments_t.add(best_segment)
@@ -185,7 +185,7 @@ class TemporalMemory:
         predictive_cells_t: Set[Cell] = set()
         for column in self.columns:
             for cell in column.cells:
-                for seg in cell.segments:
+                for seg in cell._segments:
                     if len(seg.active_synapses(active_cells_t)) >= SEGMENT_ACTIVATION_THRESHOLD:
                         predictive_cells_t.add(cell)
                         break
@@ -309,14 +309,14 @@ class TemporalMemory:
         best_match = -1
 
         for cell in column.cells:
-            if not cell.segments:
+            if not cell._segments:
                 # Prefer unused cell if no better match yet
                 if best_match == -1:
                     best_cell = cell
                     best_segment = None
                     best_match = 0
                 continue
-            for seg in cell.segments:
+            for seg in cell._segments:
                 match_count = len(seg.matching_synapses(prev_active_cells))
                 if match_count > best_match:
                     best_match = match_count
@@ -324,11 +324,11 @@ class TemporalMemory:
                     best_segment = seg
         return best_cell, best_segment
 
-    def _active_segments_of(self, cell: Cell, t: int) -> List[Segment]:
+    def _active_segments_of(self, cell: Cell, t: int) -> list[Segment]:
         """Return segments of a cell that are active at time t-1 with respect to active cells at t-1."""
         prev_active_cells = self.active_cells.get(t, set())
-        active_list: List[Segment] = []
-        for seg in cell.segments:
+        active_list: list[Segment] = []
+        for seg in cell._segments:
             if len(seg.active_synapses(prev_active_cells)) >= SEGMENT_ACTIVATION_THRESHOLD:
                 active_list.append(seg)
         return active_list
