@@ -24,9 +24,7 @@ from __future__ import annotations
 
 from typing import (
     Dict,
-    List,
     Sequence,
-    Tuple,
     Union,
 )
 
@@ -87,7 +85,7 @@ class SpatialPooler:
         self.column_count: int = column_count
         self.random_seed: int = random_seed
 
-        self.columns: List[Column] = self._initialize_region(
+        self.columns: list[Column] = self._initialize_region(
             input_space_size,
             column_count,
             initial_synapses_per_column,
@@ -95,8 +93,8 @@ class SpatialPooler:
         )
 
         # Multi-field metadata for dict inputs
-        self.field_ranges: Dict[str, Tuple[int, int]] = {}
-        self.field_order: List[str] = []
+        self.field_ranges: Dict[str, tuple[int, int]] = {}
+        self.field_order: list[str] = []
         self.column_field_map: Dict[Column, str | None] = {}
 
     def _initialize_region(
@@ -105,7 +103,7 @@ class SpatialPooler:
         column_count: int,
         initial_synapses_per_column: int,
         random_seed: int,
-    ) -> List[Column]:
+    ) -> list[Column]:
         """Initialize SP columns with positions and potential proximal synapses.
 
         Returns:
@@ -114,7 +112,7 @@ class SpatialPooler:
         Notes:
         - connected_synapses on each Column are derived from permanence thresholds.
         """
-        columns: List[Column] = []
+        columns: list[Column] = []
         grid_size = int(column_count**0.5)  # assume square grid
         rng = np.random.default_rng(random_seed)
 
@@ -152,7 +150,7 @@ class SpatialPooler:
         """
         if isinstance(input_vector, dict):
             start = 0
-            arrays: List[np.ndarray] = []
+            arrays: list[np.ndarray] = []
             self.field_ranges = {}
             self.field_order = []
             for name, arr in input_vector.items():
@@ -186,16 +184,16 @@ class SpatialPooler:
 
         return combined
 
-    def _columns_from_raw_input(self, combined: np.ndarray) -> List[Column]:
+    def _columns_from_raw_input(self, combined: np.ndarray) -> list[Column]:
         """Return columns that receive at least one active bit via a connected synapse.
 
         Parameters:
         - combined: Binary input vector.
 
         Returns:
-        - List[Column]: Columns with at least one connected synapse to an active input index.
+        - list[Column]: Columns with at least one connected synapse to an active input index.
         """
-        cols: List[Column] = []
+        cols: list[Column] = []
         active_indices = np.nonzero(combined > 0)[0]
         active_set = {int(i) for i in active_indices}
         for col in self.columns:
@@ -238,7 +236,7 @@ class SpatialPooler:
         self,
         input_vector: _input_composite,
         inhibition_radius: float,
-    ) -> tuple[np.ndarray, List[Column]]:
+    ) -> tuple[np.ndarray, list[Column]]:
         """Compute active columns given an input SDR.
 
         Process:
@@ -270,7 +268,7 @@ class SpatialPooler:
                 mask[idx] = 1
         return mask
 
-    def _inhibition(self, columns: Sequence[Column], inhibition_radius: float) -> List[Column]:
+    def _inhibition(self, columns: Sequence[Column], inhibition_radius: float) -> list[Column]:
         """Perform local competition to select active columns within neighborhoods.
 
         Rules:
@@ -278,9 +276,9 @@ class SpatialPooler:
         - It must meet/exceed the k-th best neighbor overlap (k=DESIRED_LOCAL_ACTIVITY).
 
         Returns:
-        - List[Column]: Winners after inhibition.
+        - list[Column]: Winners after inhibition.
         """
-        active_columns: List[Column] = []
+        active_columns: list[Column] = []
         for c in columns:
             neighbors = [
                 c2
@@ -294,7 +292,7 @@ class SpatialPooler:
         print(f"[SP] After inhibition, active columns: {[c.position for c in active_columns]}")
         return active_columns
 
-    def _euclidean_distance(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
+    def _euclidean_distance(self, pos1: tuple[int, int], pos2: tuple[int, int]) -> float:
         """Euclidean distance between two column positions."""
         return float(np.linalg.norm(np.array(pos1) - np.array(pos2)))
 
