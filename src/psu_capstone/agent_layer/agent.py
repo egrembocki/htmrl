@@ -114,7 +114,11 @@ class Agent:
         self._buffer_list.append(sdr)
 
     def create_pooler(
-        self, input_space_size: int, column_count: int, synapse_per_column: int, seed: int
+        self,
+        input_space_size: int,
+        column_count: int,
+        initial_synapses_per_column: int,
+        random_seed: int = 0,
     ) -> None:
         """Create a new Spatial Pooler and append it to the agent's poolers.
 
@@ -127,14 +131,12 @@ class Agent:
             synapse_per_column: The number of potential synapses per column.
             seed: Random seed for reproducible initialization.
         """
-
         pooler = SpatialPooler(
             input_space_size=input_space_size,
             column_count=column_count,
-            synapse_per_column=synapse_per_column,
-            seed=seed,
+            initial_synapses_per_column=initial_synapses_per_column,
+            random_seed=random_seed,
         )
-
         self._poolers.append(pooler)
 
     def create_memory(self, column_count: int, cells_per_column: int, seed: int) -> None:

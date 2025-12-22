@@ -3195,6 +3195,10 @@ class SemanticAnalyzer(
                 # namespace is incomplete.
                 self.mark_incomplete("*", i)
             for name, node in m.names.items():
+                if node.no_serialize:
+                    # This is either internal or generated symbol, skip it to avoid problems
+                    # like accidental name conflicts or invalid cross-references.
+                    continue
                 fullname = i_id + "." + name
                 self.set_future_import_flags(fullname)
                 # if '__all__' exists, all nodes not included have had module_public set to
@@ -4935,7 +4939,7 @@ class SemanticAnalyzer(
             )
             if analyzed is None:
                 # Type variables are special: we need to place them in the symbol table
-                # soon, even if upper bound is not ready yet. Otherwise avoiding
+                # soon, even if upper bound is not ready yet. Otherwise, avoiding
                 # a "deadlock" in this common pattern would be tricky:
                 #     T = TypeVar('T', bound=Custom[Any])
                 #     class Custom(Generic[T]):

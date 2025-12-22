@@ -26,7 +26,7 @@
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-@for %%i in ("/home/millscb/psu-capstone/.venv") do @set "VIRTUAL_ENV=%%~fi"
+@for %%i in ("/home/millscb/repos/psu-capstone/.venv") do @set "VIRTUAL_ENV=%%~fi"
 
 @set "VIRTUAL_ENV_PROMPT=psu-capstone"
 @if NOT DEFINED VIRTUAL_ENV_PROMPT (

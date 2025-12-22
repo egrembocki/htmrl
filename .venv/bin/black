@@ -1,4 +1,4 @@
-#!/home/millscb/psu-capstone/.venv/bin/python
+#!/home/millscb/repos/psu-capstone/.venv/bin/python
 # -*- coding: utf-8 -*-
 import sys
 from black import patched_main
