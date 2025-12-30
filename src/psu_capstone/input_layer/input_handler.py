@@ -16,6 +16,7 @@ from typing import Any, Callable, ClassVar
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.input_layer.input_interface import InputInterface
@@ -32,8 +33,7 @@ class InputHandler:
 
     * Any supported payload (Python iterables, numpy arrays, pandas objects, strings, files, etc.)
       is converted into a DataFrame.
-    * Missing values are filled, timestamps are guaranteed, and required columns are appended or
-      renamed as requested.
+    * Missing values are filled, and required columns are appended or renamed as requested.
     * Validation runs after every ingestion so consumers always receive structurally sound frames.
     """
 
