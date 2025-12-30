@@ -1,3 +1,4 @@
+import os
 import time
 import warnings
 
@@ -23,9 +24,10 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 def main():
     handler = InputHandler.get_instance()
 
-    excel_file_path = r"C:\Users\Josh\Downloads\rsi_data\sin_wave.csv"
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    DATA_PATH = os.path.join(PROJECT_ROOT, "data", "SinWave.xlsx")
 
-    input_data = handler.input_data(input_source=excel_file_path, required_columns=[])
+    input_data = handler.input_data(input_source=DATA_PATH, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
 
     print(input_data)
@@ -65,8 +67,8 @@ def main():
     predicted_columns_mask = tm.get_predictive_columns_mask()
     print(predicted_columns_mask)
     """
-
     # test on multiple steps
+    """
     num_t = 1000
     tm_outputs = []
     tm_prediction_masks = []
@@ -93,6 +95,7 @@ def main():
     print("Learning cells: ", learning_cells)
     for i, mask in enumerate(tm_prediction_masks):
         print(f"Prediction mask {i}: {mask}")
+    """
 
     # Tests the dict list of column and sdr.
 
