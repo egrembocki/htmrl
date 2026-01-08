@@ -16,7 +16,6 @@ from typing import Any, Callable, ClassVar
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
@@ -36,7 +35,8 @@ class InputHandler:
     * Validation runs after every ingestion so consumers always receive structurally sound frames.
     """
 
-    __instance: "InputHandler" = None
+    __instance: ClassVar[InputHandler | None] = None
+    __interface: ClassVar[Any]
 
     _DATAFRAME_READERS: ClassVar[dict[str, Callable[[str], pd.DataFrame]]] = {
         ".csv": pd.read_csv,
@@ -46,8 +46,6 @@ class InputHandler:
         ".parquet": pd.read_parquet,
     }
     _TEXT_EXTENSION: ClassVar[str] = ".txt"
-
-    __interface: Any
 
     def __new__(cls) -> "InputHandler":
         """Constructor -- Singleton pattern implementation."""
@@ -88,11 +86,11 @@ class InputHandler:
 
     @property
     def interface(self) -> Any:
-        return self.__interface
+        return type(self).__interface
 
     @interface.setter
     def interface(self, interface: Any) -> None:
-        self.__interface = interface
+        type(self).__interface = interface
 
     def input_data(self, input_source: Any, required_columns: list[str] = []) -> pd.DataFrame:
         """
