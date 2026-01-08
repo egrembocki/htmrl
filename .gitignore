@@ -158,10 +158,7 @@ env.bak/
 venv.bak/
 .vscode
 .requirements.txt
-#.flake8
-htmrlenv/
-htmrl_env/
-
+.flake8
 
 # Spyder project settings
 .spyderproject

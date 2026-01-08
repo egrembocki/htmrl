@@ -11,7 +11,7 @@ class EnvInterface(Protocol):
         """Resets the environment to its initial state."""
         ...
 
-    def step(self, action: Any) -> tuple[Any, float, bool, dict]:
+    def step(self, action: Any) -> None:
         """Takes a step in the environment using the provided action.
 
         Args:
@@ -27,6 +27,6 @@ class EnvInterface(Protocol):
         """Cleans up resources used by the environment."""
         ...
 
-    def observe(self) -> Any:
+    def observe(self) -> tuple[Any, Any, Any, Any]:
         """Returns the current observation from the environment."""
         ...
