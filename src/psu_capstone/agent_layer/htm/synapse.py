@@ -17,5 +17,6 @@ class Synapse:
 
 
 if __name__ == "__main__":
+
     syn = Synapse(0, 0.5)
     assert isinstance(syn, Synapse)
