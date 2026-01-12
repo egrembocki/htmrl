@@ -94,7 +94,9 @@ class InputHandler:
     def interface(self, interface: EncoderInterface) -> None:
         self.__interface = interface
 
-    def input_data(self, input_source: Any, required_columns: list[str] = []) -> pd.DataFrame:
+    def input_data(
+        self, input_source: Any, required_columns: list[str] | None = None
+    ) -> pd.DataFrame:
         """
         Ingest a payload, normalize it, optionally enforce column names, and validate the result.
 
@@ -462,6 +464,18 @@ class InputHandler:
         """
         if not required_columns:
             return
+
+        # Required column lists must be unique; duplicates would create invalid DataFrames.
+        if len(set(required_columns)) != len(required_columns):
+            seen: set[str] = set()
+            duplicates = [c for c in required_columns if (c in seen) or seen.add(c)]
+            raise ValueError(f"Duplicate entries in required_columns: {sorted(set(duplicates))}")
+
+        # When a required schema is provided, trim any surplus columns first.
+        # This prevents source files (e.g., Excel sheets) with extra/duplicate columns from
+        # leaking into the validated DataFrame.
+        if self._data.shape[1] > len(required_columns):
+            self._data = self._data.iloc[:, : len(required_columns)].copy()
 
         existing_cols = list(self._data.columns)
         rename_count = min(len(required_columns), len(existing_cols))
