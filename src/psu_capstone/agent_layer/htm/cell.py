@@ -61,7 +61,7 @@ class Cell:
         - segments: List of Segment objects owned by this cell.
         """
         # Filled by Temporal Memory: list of Segment objects
-        self.segments: list["Segment"] = []
+        self._segments: list["Segment"] = []
 
     def __repr__(self) -> str:
         """Represent the Cell by its unique identity for debugging/tracing."""

@@ -286,7 +286,7 @@ class TemporalMemory:
     def _active_segments_of(self, cell: Cell, t: int) -> list[Segment]:
         prev_active_cells = self.active_cells.get(t, set())
         active_list: list[Segment] = []
-        for seg in cell.segments:
+        for seg in cell._segments:
             if len(seg.active_synapses(prev_active_cells)) >= SEGMENT_ACTIVATION_THRESHOLD:
                 active_list.append(seg)
         return active_list

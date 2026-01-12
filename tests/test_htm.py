@@ -26,6 +26,8 @@ SEGMENT_LEARNING_THRESHOLD = 3  # For best matching segment selection (reserved)
 INITIAL_DISTAL_PERM = 0.21  # Initial permanence for new distal synapses
 NEW_SYNAPSE_MAX = 6  # New distal synapses to add on reinforcement
 
+# TODO use mock objects where appropriate as part of pytest fixtures
+
 
 class FakeSegment:
     """fake segment for testing"""
@@ -59,8 +61,8 @@ MIN_OVERLAP = constants.MIN_OVERLAP
 def test_cell_initialization():
     """Cell should be created with empty segment list."""
     c = cell.Cell()
-    assert isinstance(c.segments, list)
-    assert c.segments == []
+    assert isinstance(c._segments, list)
+    assert c._segments == []
 
 
 def test_cell_store_segments():
@@ -69,12 +71,14 @@ def test_cell_store_segments():
     s1 = FakeSegment()
     s2 = FakeSegment()
 
-    c.segments.append(s1)
-    c.segments.append(s2)
+    assert isinstance(c._segments, list)
 
-    assert len(c.segments) == 2
-    assert c.segments[0] is s1
-    assert c.segments[1] is s2
+    c._segments.append(s1)
+    c._segments.append(s2)
+
+    assert len(c._segments) == 2
+    assert c._segments[0] is s1
+    assert c._segments[1] is s2
 
 
 def test_cell_repr():

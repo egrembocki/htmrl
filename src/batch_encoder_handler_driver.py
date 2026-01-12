@@ -10,8 +10,8 @@ from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.sdr_layer.sdr import SDR
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
