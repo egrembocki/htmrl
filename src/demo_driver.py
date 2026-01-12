@@ -10,6 +10,7 @@ for demonstration and testing purposes, providing insight into how input data is
 """
 
 import os
+import sys
 from datetime import datetime
 
 import matplotlib
@@ -26,16 +27,15 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 
-matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
-
-
+# To force browser mode explicitly:
+#   PSU_CAPSTONE_MPL=web /home/millscb/repos/psu-capstone/.venv/bin/python src/demo_driver.py
 # Set the path to the Excel file relative to the project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
 
 
 def visualize_sdr_all_rows(
-    sdrs: list[SDR], title: str = "Composite SDR – Grid View", row_labels: list[str] = None
+    sdrs: list[SDR], title: str = "Composite SDR – Grid View", row_labels: list[str] | None = None
 ):
     """
     Visualize a list of SDRs (one per row) as individual 2D square/rectangular grids.
@@ -166,8 +166,8 @@ def main():
 
     scalar_encoder = ScalarEncoder(
         ScalarEncoderParameters(
-            minimum=0.0,
-            maximum=100.0,
+            minimum=0,
+            maximum=100,
             size=100,
             active_bits=10,  # sparisty of 10% for visualization
             clip_input=True,
@@ -335,4 +335,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()

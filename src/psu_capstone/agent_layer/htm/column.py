@@ -22,8 +22,6 @@ Key fields:
 # htm_core/column.py
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 
 from psu_capstone.agent_layer.htm.cell import Cell
@@ -48,7 +46,8 @@ class Column:
     """
 
     def __init__(self, potential_synapses: list[Synapse], position: tuple[int, int]) -> None:
-        """Construct an HTM Column with given proximal synapses and position."""
+        self.position: tuple[int, int] = position
+        self.potential_synapses: list[Synapse] = potential_synapses
 
         self.position: tuple[int, int] = position
         self.potential_synapses: list[Synapse] = potential_synapses
@@ -93,3 +92,8 @@ class Column:
             self.overlap = 0.0
 
         print(f"Column at position {self.position} has overlap: {self.overlap}")
+
+
+if __name__ == "__main__":
+    col = Column([], (0, 0))
+    assert isinstance(col, Column)

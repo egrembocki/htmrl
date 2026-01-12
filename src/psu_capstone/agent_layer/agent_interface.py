@@ -13,7 +13,7 @@ class AgentInterface(Protocol):
     """Defines the interface requiremnts to be an Agent in the HTM-RL system."""
 
     def select_action(self, state: tuple) -> Any:
-        """Processes incoming data for the agent.
+        """Select an action based on the current state.
 
         Args:
             state (tuple): The current state of the environment.

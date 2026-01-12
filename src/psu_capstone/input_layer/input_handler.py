@@ -31,12 +31,12 @@ class InputHandler:
 
     * Any supported payload (Python iterables, numpy arrays, pandas objects, strings, files, etc.)
       is converted into a DataFrame.
-    * Missing values are filled, timestamps are guaranteed, and required columns are appended or
-      renamed as requested.
+    * Missing values are filled, and required columns are appended or renamed as requested.
     * Validation runs after every ingestion so consumers always receive structurally sound frames.
     """
 
-    __instance: "InputHandler" = None
+    __instance: ClassVar[InputHandler | None] = None
+    __interface: ClassVar[Any]
 
     _DATAFRAME_READERS: ClassVar[dict[str, Callable[[str], pd.DataFrame]]] = {
         ".csv": pd.read_csv,
@@ -46,8 +46,6 @@ class InputHandler:
         ".parquet": pd.read_parquet,
     }
     _TEXT_EXTENSION: ClassVar[str] = ".txt"
-
-    __interface: Any
 
     def __new__(cls) -> "InputHandler":
         """Constructor -- Singleton pattern implementation."""
@@ -88,13 +86,15 @@ class InputHandler:
 
     @property
     def interface(self) -> Any:
-        return self.__interface
+        return type(self).__interface
 
     @interface.setter
     def interface(self, interface: Any) -> None:
-        self.__interface = interface
+        type(self).__interface = interface
 
-    def input_data(self, input_source: Any, required_columns: list[str] = []) -> pd.DataFrame:
+    def input_data(
+        self, input_source: Any, required_columns: list[str] | None = None
+    ) -> pd.DataFrame:
         """
         Ingest a payload, normalize it, optionally enforce column names, and validate the result.
 
@@ -476,6 +476,18 @@ class InputHandler:
         """
         if not required_columns:
             return
+
+        # Required column lists must be unique; duplicates would create invalid DataFrames.
+        if len(set(required_columns)) != len(required_columns):
+            seen: set[str] = set()
+            duplicates = [c for c in required_columns if (c in seen) or seen.add(c)]
+            raise ValueError(f"Duplicate entries in required_columns: {sorted(set(duplicates))}")
+
+        # When a required schema is provided, trim any surplus columns first.
+        # This prevents source files (e.g., Excel sheets) with extra/duplicate columns from
+        # leaking into the validated DataFrame.
+        if self._data.shape[1] > len(required_columns):
+            self._data = self._data.iloc[:, : len(required_columns)].copy()
 
         existing_cols = list(self._data.columns)
         rename_count = min(len(required_columns), len(existing_cols))
