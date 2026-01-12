@@ -3,7 +3,7 @@
 # htm_core/cell.py
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .segment import Segment
@@ -17,7 +17,7 @@ class Cell:
 
     def __init__(self) -> None:
         # Filled by Temporal Memory: list of Segment objects
-        self.segments: List["Segment"] = []
+        self.segments: list["Segment"] = []
 
     def __repr__(self) -> str:
         return f"Cell(id={id(self)})"
