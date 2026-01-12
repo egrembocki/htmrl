@@ -1,13 +1,11 @@
 # htm_core/column.py
 from __future__ import annotations
 
-from typing import List, Tuple
-
 import numpy as np
 
-from .cell import Cell
-from .constants import CONNECTED_PERM, MIN_OVERLAP
-from .synapse import Synapse
+from psu_capstone.agent_layer.htm.cell import Cell
+from psu_capstone.agent_layer.htm.constants import CONNECTED_PERM, MIN_OVERLAP
+from psu_capstone.agent_layer.htm.synapse import Synapse
 
 
 class Column:
@@ -16,9 +14,9 @@ class Column:
     Holds proximal synapses plus a list of cells for Temporal Memory.
     """
 
-    def __init__(self, potential_synapses: List[Synapse], position: Tuple[int, int]) -> None:
-        self.position: Tuple[int, int] = position
-        self.potential_synapses: List[Synapse] = potential_synapses
+    def __init__(self, potential_synapses: list[Synapse], position: tuple[int, int]) -> None:
+        self.position: tuple[int, int] = position
+        self.potential_synapses: list[Synapse] = potential_synapses
 
         # Spatial pooler stats
         self.boost: float = 1.0
@@ -27,7 +25,7 @@ class Column:
         self.min_duty_cycle: float = 0.01
 
         # Connected proximal synapses
-        self.connected_synapses: List[Synapse] = [
+        self.connected_synapses: list[Synapse] = [
             s for s in potential_synapses if s.permanence > CONNECTED_PERM
         ]
 
@@ -35,7 +33,7 @@ class Column:
         self.overlap: float = 0.0
 
         # Cells (populated externally by Temporal Memory)
-        self.cells: List[Cell] = []
+        self.cells: list[Cell] = []
 
     def compute_overlap(self, input_vector: np.ndarray) -> None:
         """Compute overlap with current binary input vector and apply boost."""
@@ -46,3 +44,8 @@ class Column:
             self.overlap = 0.0
 
         print(f"Column at position {self.position} has overlap: {self.overlap}")
+
+
+if __name__ == "__main__":
+    col = Column([], (0, 0))
+    assert isinstance(col, Column)

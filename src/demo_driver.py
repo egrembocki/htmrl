@@ -26,7 +26,7 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
 
-matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
+# matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
 
 
 # Set the path to the Excel file relative to the project root
@@ -35,7 +35,7 @@ DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
 
 
 def visualize_sdr_all_rows(
-    sdrs: list[SDR], title: str = "Composite SDR – Grid View", row_labels: list[str] = None
+    sdrs: list[SDR], title: str = "Composite SDR – Grid View", row_labels: list[str] | None = None
 ):
     """
     Visualize a list of SDRs (one per row) as individual 2D square/rectangular grids.

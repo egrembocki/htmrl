@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .segment import Segment
+    from psu_capstone.agent_layer.htm.segment import Segment
 
 
 class Cell:
@@ -21,3 +21,8 @@ class Cell:
 
     def __repr__(self) -> str:
         return f"Cell(id={id(self)})"
+
+
+if __name__ == "__main__":
+    cell = Cell()
+    assert isinstance(cell, Cell)

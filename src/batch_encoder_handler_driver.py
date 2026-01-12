@@ -25,7 +25,7 @@ def main():
     handler = InputHandler.get_instance()
 
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    DATA_PATH = os.path.join(PROJECT_ROOT, "data", "SinWave.xlsx")
+    DATA_PATH = os.path.join(PROJECT_ROOT, "data", "sin_wave.csv")
 
     input_data = handler.input_data(input_source=DATA_PATH, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
