@@ -21,10 +21,10 @@ Key HTM concepts relevant to this file:
 # htm_core/cell.py
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .segment import Segment
+    from psu_capstone.agent_layer.htm.segment import Segment
 
 
 class Cell:
@@ -61,8 +61,13 @@ class Cell:
         - segments: List of Segment objects owned by this cell.
         """
         # Filled by Temporal Memory: list of Segment objects
-        self._segments: List["Segment"] = []
+        self.segments: list["Segment"] = []
 
     def __repr__(self) -> str:
         """Represent the Cell by its unique identity for debugging/tracing."""
         return f"Cell(id={id(self)})"
+
+
+if __name__ == "__main__":
+    cell = Cell()
+    assert isinstance(cell, Cell)

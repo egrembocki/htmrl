@@ -22,22 +22,16 @@ Outputs:
 # htm_core/spatial_pooler.py
 from __future__ import annotations
 
-from typing import (
-    Dict,
-    Sequence,
-    Union,
-)
-
 import numpy as np
 
-from .column import Column
-from .constants import (
+from psu_capstone.agent_layer.htm.column import Column
+from psu_capstone.agent_layer.htm.constants import (
     CONNECTED_PERM,
     DESIRED_LOCAL_ACTIVITY,
     PERMANENCE_DEC,
     PERMANENCE_INC,
 )
-from .synapse import Synapse
+from psu_capstone.agent_layer.htm.synapse import Synapse
 
 
 class SpatialPooler:
@@ -54,13 +48,8 @@ class SpatialPooler:
     - inhibition_radius controls the neighborhood size for local competition.
     """
 
-    _input_field = Union[np.ndarray, Sequence[int]]
-    _input_composite = Union[
-        np.ndarray,
-        Sequence[int],
-        Sequence[_input_field],
-        Dict[str, _input_field],
-    ]
+    _input_field: np.ndarray | list[int]
+    _input_composite: np.ndarray | list[int] | list[np.ndarray] | dict[str, int]
 
     def __init__(
         self,
@@ -93,9 +82,9 @@ class SpatialPooler:
         )
 
         # Multi-field metadata for dict inputs
-        self.field_ranges: Dict[str, tuple[int, int]] = {}
+        self.field_ranges: dict[str, tuple[int, int]] = {}
         self.field_order: list[str] = []
-        self.column_field_map: Dict[Column, str | None] = {}
+        self.column_field_map: dict[Column, str | None] = {}
 
     def _initialize_region(
         self,
@@ -104,14 +93,6 @@ class SpatialPooler:
         initial_synapses_per_column: int,
         random_seed: int,
     ) -> list[Column]:
-        """Initialize SP columns with positions and potential proximal synapses.
-
-        Returns:
-        - List[Column]: The initialized columns.
-
-        Notes:
-        - connected_synapses on each Column are derived from permanence thresholds.
-        """
         columns: list[Column] = []
         grid_size = int(column_count**0.5)  # assume square grid
         rng = np.random.default_rng(random_seed)
@@ -134,20 +115,10 @@ class SpatialPooler:
 
     # ---------- Input combination & field metadata ----------
 
-    def combine_input_fields(self, input_vector: _input_composite) -> np.ndarray:
-        """Prepare / combine input fields into a single binary numpy array.
-
-        Supported forms:
-        - dict[str, array]: Concatenate arrays in field order, tracking ranges.
-        - sequence of arrays: Concatenate in provided order.
-        - single array: Use as-is.
-
-        Returns:
-        - np.ndarray: Combined 1D binary array of length input_space_size.
-
-        Raises:
-        - ValueError: If the combined length does not match input_space_size.
-        """
+    def combine_input_fields(
+        self, input_vector: np.ndarray | list[int] | list[np.ndarray] | dict[str, int]
+    ) -> np.ndarray:
+        """Prepare / combine input fields into a single binary numpy array."""
         if isinstance(input_vector, dict):
             start = 0
             arrays: list[np.ndarray] = []
@@ -185,14 +156,7 @@ class SpatialPooler:
         return combined
 
     def _columns_from_raw_input(self, combined: np.ndarray) -> list[Column]:
-        """Return columns that receive at least one active bit via a connected synapse.
-
-        Parameters:
-        - combined: Binary input vector.
-
-        Returns:
-        - list[Column]: Columns with at least one connected synapse to an active input index.
-        """
+        """Return columns that receive at least one active (1) bit via a connected synapse."""
         cols: list[Column] = []
         active_indices = np.nonzero(combined > 0)[0]
         active_set = {int(i) for i in active_indices}
@@ -212,7 +176,7 @@ class SpatialPooler:
             return
         inv_order = {name: i for i, name in enumerate(self.field_order)}
         for col in self.columns:
-            counts: Dict[str, int] = {}
+            counts: dict[str, int] = {}
             for syn in col.connected_synapses:
                 idx = syn.source_input
                 for name, (s, e) in self.field_ranges.items():
@@ -234,7 +198,7 @@ class SpatialPooler:
 
     def compute_active_columns(
         self,
-        input_vector: _input_composite,
+        input_vector: np.ndarray | list[int] | list[np.ndarray] | dict[str, int],
         inhibition_radius: float,
     ) -> tuple[np.ndarray, list[Column]]:
         """Compute active columns given an input SDR.
@@ -258,8 +222,7 @@ class SpatialPooler:
 
     # ---------- Helpers (belong with SP) ----------
 
-    def columns_to_binary(self, columns: Sequence[Column]) -> np.ndarray:
-        """Convert a list of Column objects into a binary mask aligned with self.columns."""
+    def columns_to_binary(self, columns: list[Column]) -> np.ndarray:
         mask = np.zeros(len(self.columns), dtype=int)
         col_index = {c: i for i, c in enumerate(self.columns)}
         for c in columns:
@@ -268,16 +231,7 @@ class SpatialPooler:
                 mask[idx] = 1
         return mask
 
-    def _inhibition(self, columns: Sequence[Column], inhibition_radius: float) -> list[Column]:
-        """Perform local competition to select active columns within neighborhoods.
-
-        Rules:
-        - A column must have positive overlap.
-        - It must meet/exceed the k-th best neighbor overlap (k=DESIRED_LOCAL_ACTIVITY).
-
-        Returns:
-        - list[Column]: Winners after inhibition.
-        """
+    def _inhibition(self, columns: list[Column], inhibition_radius: float) -> list[Column]:
         active_columns: list[Column] = []
         for c in columns:
             neighbors = [
@@ -293,11 +247,9 @@ class SpatialPooler:
         return active_columns
 
     def _euclidean_distance(self, pos1: tuple[int, int], pos2: tuple[int, int]) -> float:
-        """Euclidean distance between two column positions."""
         return float(np.linalg.norm(np.array(pos1) - np.array(pos2)))
 
-    def _kth_score(self, neighbors: Sequence[Column], k: int) -> float:
-        """Return the k-th highest overlap among neighbors (or last if k exceeds length)."""
+    def _kth_score(self, neighbors: list[Column], k: int) -> float:
         if not neighbors:
             return 0.0
         ordered = sorted(neighbors, key=lambda x: x.overlap, reverse=True)
@@ -309,18 +261,8 @@ class SpatialPooler:
 
     # ---------- Spatial learning ----------
 
-    def learning_phase(self, active_columns: Sequence[Column], input_vector: np.ndarray) -> None:
-        """Adapt proximal synapse permanence based on current input.
-
-        Rule:
-        - Increase permanence for synapses connected to active input bits.
-        - Decrease permanence otherwise.
-        - Recompute connected_synapses using CONNECTED_PERM.
-
-        Side effects:
-        - Updates synapse permanence and derived connected sets.
-        - Triggers average receptive field size computation for monitoring.
-        """
+    def learning_phase(self, active_columns: list[Column], input_vector: np.ndarray) -> None:
+        """Spatial Pooler permanence adaptation for currently active columns."""
         for c in active_columns:
             for s in c.potential_synapses:
                 if input_vector[s.source_input]:
@@ -348,3 +290,21 @@ class SpatialPooler:
                 total_receptive_field_size += receptive_field_size
                 count += 1
         return total_receptive_field_size / count if count > 0 else 0.0
+
+
+# smoke check
+
+if __name__ == "__main__":
+
+    sp = SpatialPooler(
+        input_space_size=100,
+        column_count=16,
+        initial_synapses_per_column=20,
+        random_seed=42,
+    )
+    input_sdr = np.zeros(100, dtype=int)
+    input_sdr[[1, 5, 20, 50, 70]] = 1
+    active_mask, active_cols = sp.compute_active_columns(input_sdr, inhibition_radius=2.0)
+    sp.learning_phase(active_cols, input_sdr)
+
+    print("Active columns mask:", active_mask)

@@ -15,18 +15,12 @@ from __future__ import annotations
 
 
 class Synapse:
-    """HTM proximal synapse with an input index and a permanence value.
+    """Proximal synapse (input space) used by Spatial Pooler only.
 
-    Usage:
-    - Owned by Columns to form the proximal receptive field.
-    - During SP compute, only synapses whose permanence > CONNECTED_PERM contribute
-      to overlap if their source input bit is active.
-    - During SP learning, permanence is incremented/decremented to reinforce correct
-      matches and discourage incorrect ones.
+    Arguments:
+        source_input: int -- index of input bit this synapse connects to in the input space
+        permanence: float -- initial permanence value
 
-    Attributes:
-    - source_input: Index into the input SDR this synapse monitors.
-    - permanence: Synaptic strength; compared to CONNECTED_PERM to determine connectivity.
     """
 
     def __init__(self, source_input: int, permanence: float) -> None:
@@ -39,3 +33,9 @@ class Synapse:
         """
         self.source_input: int = source_input
         self.permanence: float = permanence
+
+
+if __name__ == "__main__":
+
+    syn = Synapse(0, 0.5)
+    assert isinstance(syn, Synapse)

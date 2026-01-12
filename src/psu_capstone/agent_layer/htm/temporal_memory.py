@@ -27,21 +27,20 @@ Outputs:
 from __future__ import annotations
 
 import random
-from typing import Dict, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
-from .cell import Cell
-from .column import Column
-from .constants import (
+from psu_capstone.agent_layer.htm.cell import Cell
+from psu_capstone.agent_layer.htm.column import Column
+from psu_capstone.agent_layer.htm.constants import (
     INITIAL_DISTAL_PERM,
     NEW_SYNAPSE_MAX,
     PERMANENCE_DEC,
     PERMANENCE_INC,
     SEGMENT_ACTIVATION_THRESHOLD,
 )
-from .distal_synapse import DistalSynapse
-from .segment import Segment
+from psu_capstone.agent_layer.htm.distal_synapse import DistalSynapse
+from psu_capstone.agent_layer.htm.segment import Segment
 
 
 class TemporalMemory:
@@ -59,19 +58,9 @@ class TemporalMemory:
 
     def __init__(
         self,
-        columns: Sequence[Column],
+        columns: list[Column],
         cells_per_column: int,
     ) -> None:
-        """Initialize TM state and attach cells to columns.
-
-        Parameters:
-        - columns: Region columns (from SP) that TM will operate over.
-        - cells_per_column: Number of cells per column to represent contexts.
-
-        Behavior:
-        - Creates cells for each column.
-        - Initializes per-timestep tracking dictionaries.
-        """
         self.columns: list[Column] = list(columns)
         self.cells_per_column: int = cells_per_column
 
@@ -80,20 +69,20 @@ class TemporalMemory:
             c.cells = [Cell() for _ in range(cells_per_column)]
 
         # Time-indexed TM state
-        self.active_cells: Dict[int, Set[Cell]] = {}
-        self.winner_cells: Dict[int, Set[Cell]] = {}
-        self.predictive_cells: Dict[int, Set[Cell]] = {}
-        self.learning_segments: Dict[int, Set[Segment]] = {}
-        self.negative_segments: Dict[int, Set[Segment]] = {}
+        self.active_cells: dict[int, set[Cell]] = {}
+        self.winner_cells: dict[int, set[Cell]] = {}
+        self.predictive_cells: dict[int, set[Cell]] = {}
+        self.learning_segments: dict[int, set[Segment]] = {}
+        self.negative_segments: dict[int, set[Segment]] = {}
 
         self.current_t: int = 0
 
         # Optional column -> field mapping if the SP builds one
-        self.column_field_map: Dict[Column, str | None] = {}
+        self.column_field_map: dict[Column, str | None] = {}
 
     # ---------- Core step API ----------
 
-    def step(self, active_columns: Sequence[Column]) -> Dict[str, np.ndarray]:
+    def step(self, active_columns: list[Column]) -> dict[str, np.ndarray]:
         """Advance TM one time step given the active columns.
 
         Process:
@@ -125,22 +114,12 @@ class TemporalMemory:
 
     # ---------- Core TM logic ----------
 
-    def _compute_active_state(self, active_columns: Sequence[Column]) -> None:
-        """Compute which cells become active and select winner cells.
-
-        Rules:
-        - If any cell in a column was predictive at t-1, only those predictive cells become active and are winners.
-        - Otherwise, the column bursts (all cells active) and the best-matching cell becomes the winner.
-          If no segment matches, create a new segment on the chosen cell.
-
-        Side effects:
-        - Updates self.active_cells[t], self.winner_cells[t], and self.learning_segments[t].
-        """
+    def _compute_active_state(self, active_columns: list[Column]) -> None:
         t = self.current_t
         prev_predictive = self.predictive_cells.get(t - 1, set())
-        active_cells_t: Set[Cell] = set()
-        winner_cells_t: Set[Cell] = set()
-        learning_segments_t: Set[Segment] = set()
+        active_cells_t: set[Cell] = set()
+        winner_cells_t: set[Cell] = set()
+        learning_segments_t: set[Segment] = set()
 
         for column in active_columns:
             predictive_cells_prev = [cell for cell in column.cells if cell in prev_predictive]
@@ -182,7 +161,7 @@ class TemporalMemory:
         """
         t = self.current_t
         active_cells_t = self.active_cells.get(t, set())
-        predictive_cells_t: Set[Cell] = set()
+        predictive_cells_t: set[Cell] = set()
         for column in self.columns:
             for cell in column.cells:
                 for seg in cell._segments:
@@ -211,7 +190,7 @@ class TemporalMemory:
             for c in self.columns
             if any(cell in self.active_cells.get(t, set()) for cell in c.cells)
         }
-        negative_segments: Set[Segment] = set()
+        negative_segments: set[Segment] = set()
 
         # Identify segments that predicted but whose columns did not become active
         for column in self.columns:
@@ -237,12 +216,8 @@ class TemporalMemory:
 
     # ---------- Helpers (belong with TM) ----------
 
-    def cells_to_binary(self, cells: Set[Cell]) -> np.ndarray:
-        """Return a binary vector over all cells (flattened across columns).
-
-        Mapping:
-        - Index = column_index * cells_per_column + local_cell_index
-        """
+    def cells_to_binary(self, cells: set[Cell]) -> np.ndarray:
+        """Return binary vector over all cells (flattened across columns)."""
         total_cells = len(self.columns) * self.cells_per_column
         vec = np.zeros(total_cells, dtype=int)
         for col_idx, col in enumerate(self.columns):
@@ -252,15 +227,8 @@ class TemporalMemory:
                     vec[base + local_idx] = 1
         return vec
 
-    def get_predictive_columns_mask(self, t: Optional[int] = None) -> np.ndarray:
-        """Return a binary mask of columns that have at least one predictive cell at time t.
-
-        Parameters:
-        - t: If None, use the latest timestep; if -1, use previous; otherwise use provided index.
-
-        Returns:
-        - np.ndarray: Binary mask aligned with self.columns.
-        """
+    def get_predictive_columns_mask(self, t: int | None = None) -> np.ndarray:
+        """Return binary vector of predictive columns for time t."""
         if not self.predictive_cells:
             return np.zeros(len(self.columns), dtype=int)
         max_t = max(self.predictive_cells.keys())
@@ -293,19 +261,10 @@ class TemporalMemory:
 
     def _best_matching_cell(
         self, column: Column, prev_t: int
-    ) -> Tuple[Optional[Cell], Optional[Segment]]:
-        """Select the cell and segment with the best match to previous active cells.
-
-        Behavior:
-        - Prefer an unused cell if no segment matches.
-        - Otherwise, choose the segment with the highest count of matching synapses.
-
-        Returns:
-        - (best_cell, best_segment) where best_segment may be None if a new segment should be created.
-        """
+    ) -> tuple[Cell | None, Segment | None]:
         prev_active_cells = self.active_cells.get(prev_t, set())
-        best_cell: Optional[Cell] = None
-        best_segment: Optional[Segment] = None
+        best_cell: Cell | None = None
+        best_segment: Segment | None = None
         best_match = -1
 
         for cell in column.cells:
@@ -325,10 +284,9 @@ class TemporalMemory:
         return best_cell, best_segment
 
     def _active_segments_of(self, cell: Cell, t: int) -> list[Segment]:
-        """Return segments of a cell that are active at time t-1 with respect to active cells at t-1."""
         prev_active_cells = self.active_cells.get(t, set())
         active_list: list[Segment] = []
-        for seg in cell._segments:
+        for seg in cell.segments:
             if len(seg.active_synapses(prev_active_cells)) >= SEGMENT_ACTIVATION_THRESHOLD:
                 active_list.append(seg)
         return active_list
@@ -362,3 +320,42 @@ class TemporalMemory:
         """Apply negative learning to a segment: decrease permanence on all synapses."""
         for syn in segment.synapses:
             syn.permanence = max(0.0, syn.permanence - PERMANENCE_DEC)
+
+
+# smoke check
+
+if __name__ == "__main__":
+    from typing import Any, cast
+
+    from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
+
+    # Create a simple SP and TM
+    input_size = 20
+    num_columns = 10
+    cells_per_column = 4
+
+    sp = SpatialPooler(
+        input_space_size=input_size,
+        column_count=num_columns,
+        initial_synapses_per_column=int(0.5 * input_size),
+        random_seed=42,
+    )
+
+    tm = TemporalMemory(
+        columns=sp.columns,
+        cells_per_column=cells_per_column,
+    )
+
+    # Dummy input sequence
+    input_sequence = [np.random.randint(0, 2, size=input_size) for _ in range(5)]
+
+    for step_idx, input_vector in enumerate(input_sequence):
+        print(f"\n=== Step {step_idx} ===")
+        active_columns_mask, active_columns = sp.compute_active_columns(
+            input_vector, inhibition_radius=2.0
+        )
+
+        tm_output = tm.step(active_columns)
+        print(f"Active Cells: {tm_output['active_cells']}")
+        print(f"Predictive Cells: {tm_output['predictive_cells']}")
+        print(f"Learning Cells: {tm_output['learning_cells']}")

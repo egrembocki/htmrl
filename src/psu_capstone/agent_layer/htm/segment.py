@@ -18,13 +18,13 @@ Concepts:
 # htm_core/segment.py
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .cell import Cell
+    from psu_capstone.agent_layer.htm.cell import Cell
 
-from .constants import CONNECTED_PERM
-from .distal_synapse import DistalSynapse
+from psu_capstone.agent_layer.htm.constants import CONNECTED_PERM
+from psu_capstone.agent_layer.htm.distal_synapse import DistalSynapse
 
 
 class Segment:
@@ -40,42 +40,25 @@ class Segment:
       usually indicates a sequence-specific transition.
     """
 
-    def __init__(self, synapses: Optional[List[DistalSynapse]] = None) -> None:
-        """Initialize a segment with an optional list of distal synapses."""
-        self.synapses: List[DistalSynapse] = synapses if synapses is not None else []
+    def __init__(self, synapses: list[DistalSynapse] | None = None) -> None:
+        self.synapses: list[DistalSynapse] = synapses if synapses is not None else []
         self.sequence_segment: bool = False  # True if learned in predictive context
 
-    def active_synapses(self, active_cells: Set[Cell]) -> List[DistalSynapse]:
-        """Return connected synapses whose source cell is currently active.
-
-        Use case:
-        - During inference, a segment checks how many synapses are both connected
-          (permanence > CONNECTED_PERM) and have source cells active now. If
-          enough are active, the segment activates and makes the cell predictive.
-
-        Parameters:
-        - active_cells: Set of cells currently active at this timestep.
-
-        Returns:
-        - List of DistalSynapse meeting both activity and connectivity criteria.
-        """
+    def active_synapses(self, active_cells: set[Cell]) -> list[DistalSynapse]:
+        """Return connected synapses whose source cell is active."""
         return [
             syn
             for syn in self.synapses
             if syn.source_cell in active_cells and syn.permanence > CONNECTED_PERM
         ]
 
-    def matching_synapses(self, prev_active_cells: Set[Cell]) -> List[DistalSynapse]:
-        """Return synapses whose source cell was previously active.
-
-        Unlike active_synapses, this does not require permanence > CONNECTED_PERM.
-        It is often used during learning to decide where to grow/strengthen
-        synapses based on the prior timestep’s context.
-
-        Parameters:
-        - prev_active_cells: Set of cells that were active in the previous timestep.
-
-        Returns:
-        - List of DistalSynapse whose source cells match the previous activity.
-        """
+    def matching_synapses(self, prev_active_cells: set[Cell]) -> list[DistalSynapse]:
+        """Return synapses whose source cell was previously active (ignores permanence threshold)."""
         return [syn for syn in self.synapses if syn.source_cell in prev_active_cells]
+
+
+# smoke test
+
+if __name__ == "__main__":
+    seg = Segment()
+    assert isinstance(seg, Segment)
