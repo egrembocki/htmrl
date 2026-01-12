@@ -285,6 +285,7 @@ if __name__ == "__main__":
         active_columns_mask, active_columns = sp.compute_active_columns(
             input_vector, inhibition_radius=2.0
         )
+
         tm_output = tm.step(active_columns)
         print(f"Active Cells: {tm_output['active_cells']}")
         print(f"Predictive Cells: {tm_output['predictive_cells']}")

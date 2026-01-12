@@ -27,8 +27,6 @@ from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
 
 # matplotlib.use("TkAgg")  # Ensure Tk backend for window positioning
-
-
 # Set the path to the Excel file relative to the project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
@@ -166,8 +164,8 @@ def main():
 
     scalar_encoder = ScalarEncoder(
         ScalarEncoderParameters(
-            minimum=0.0,
-            maximum=100.0,
+            minimum=0,
+            maximum=100,
             size=100,
             active_bits=10,  # sparisty of 10% for visualization
             clip_input=True,

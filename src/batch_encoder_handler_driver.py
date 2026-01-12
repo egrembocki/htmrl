@@ -24,10 +24,10 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 def main():
     handler = InputHandler.get_instance()
 
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    DATA_PATH = os.path.join(PROJECT_ROOT, "data", "sin_wave.csv")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_path = os.path.join(project_root, "data", "sin_wave.csv")
 
-    input_data = handler.input_data(input_source=DATA_PATH, required_columns=[])
+    input_data = handler.input_data(input_source=data_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
 
     print(input_data)
