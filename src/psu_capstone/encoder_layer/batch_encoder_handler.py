@@ -8,7 +8,8 @@ from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.neighbors import NearestNeighbors
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -467,17 +468,12 @@ class BatchEncoderHandler:
             column_sdrs = input_data
 
         num_rows = len(next(iter(column_sdrs.values())))
-
-        # Pre-allocate the exact output size
         composite_sdrs: list[SDR] = [None] * num_rows
-
-        # Clamp the number of merge threads
         threads_per_rows = max(1, min(threads_per_rows, num_rows))
 
-        rowSDRs = [[column_sdrs[col][i] for col in input_data.columns] for i in range(num_rows)]
-        batches = np.array_split(rowSDRs, threads_per_rows)
+        rowsdrs = [[column_sdrs[col][i] for col in input_data.columns] for i in range(num_rows)]
+        batches = np.array_split(rowsdrs, threads_per_rows)
 
-        # Track worker threads
         workers: list[Thread] = []
         offset = 0
 
@@ -492,22 +488,30 @@ class BatchEncoderHandler:
 
         return composite_sdrs
 
-    def create_knn_composite_sdr(
-        self, input_data: pd.DataFrame, column_sdrs: dict[list[SDR]] | None, threads_per_column: int
-    ) -> Tuple[list[SDR], NearestNeighbors]:
-        """Takes in the dataframe returns a composite list of our sdrs as well as a kNN model to predict SDR values."""
-        """Build our dict of lists of sdrs to use for kNN"""
-        """this method is incomplete and will need to be discussed with the team."""
-        column_sdrs = self._build_dict_list_sdr(input_data, threads_per_column)
+    def sdrs_to_dense_matrix(self, sdrs):
+        return np.array([sdr.get_dense() for sdr in sdrs], dtype=np.uint8)
 
-        """Make the kNN model."""
-        knn = NearestNeighbors(5)
+    def build_knn_from_tm_predictions(
+        self, tm_prediction_masks, input_data, n_neighbors, weights, distance
+    ):
+        tm_prediction_masks_dense = [
+            np.asarray(mask, dtype=np.int8).ravel() for mask in tm_prediction_masks
+        ]
+        for pred in tm_prediction_masks_dense:
+            print(pred)
 
-        """Build the composite not that the model is finished."""
-        row_sdrs = self.build_composite_sdr(column_sdrs, threads_per_column)
+        x_full = np.vstack(tm_prediction_masks_dense)
+        num_samples = min(len(x_full), len(input_data) - 1)
 
-        """Return our composite SDRs and the model for them."""
-        return row_sdrs, knn
+        x = x_full[:num_samples]
+        y = input_data.iloc[list(range(1, 1 + num_samples)), 1].values.reshape(-1, 1)
+        for val in y:
+            print(val)
+
+        knn = KNeighborsRegressor(n_neighbors=n_neighbors, weights=weights, metric=distance)
+        knn.fit(x, y)
+
+        return knn
 
     def set_category_encoder_parameters(self, params: CategoryParameters):
         """
