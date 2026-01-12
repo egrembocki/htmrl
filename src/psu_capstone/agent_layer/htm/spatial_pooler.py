@@ -22,6 +22,8 @@ Outputs:
 # htm_core/spatial_pooler.py
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from psu_capstone.agent_layer.htm.column import Column
@@ -116,7 +118,16 @@ class SpatialPooler:
     # ---------- Input combination & field metadata ----------
 
     def combine_input_fields(
-        self, input_vector: np.ndarray | list[int] | list[np.ndarray] | dict[str, int]
+        self,
+        input_vector: (
+            np.ndarray
+            | list[int]
+            | list[list[Any]]
+            | list[np.ndarray]
+            | dict[str, int]
+            | dict[str, np.ndarray]
+            | dict[str, list[Any]]
+        ),
     ) -> np.ndarray:
         """Prepare / combine input fields into a single binary numpy array."""
         if isinstance(input_vector, dict):

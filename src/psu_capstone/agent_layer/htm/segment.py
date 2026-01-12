@@ -44,7 +44,7 @@ class Segment:
         self.synapses: list[DistalSynapse] = synapses if synapses is not None else []
         self.sequence_segment: bool = False  # True if learned in predictive context
 
-    def active_synapses(self, active_cells: set[Cell]) -> list[DistalSynapse]:
+    def active_synapses(self, active_cells: list[Cell]) -> list[DistalSynapse]:
         """Return connected synapses whose source cell is active."""
         return [
             syn
@@ -52,7 +52,7 @@ class Segment:
             if syn.source_cell in active_cells and syn.permanence > CONNECTED_PERM
         ]
 
-    def matching_synapses(self, prev_active_cells: set[Cell]) -> list[DistalSynapse]:
+    def matching_synapses(self, prev_active_cells: list[Cell]) -> list[DistalSynapse]:
         """Return synapses whose source cell was previously active (ignores permanence threshold)."""
         return [syn for syn in self.synapses if syn.source_cell in prev_active_cells]
 
