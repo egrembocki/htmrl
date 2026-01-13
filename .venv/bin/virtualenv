@@ -1,4 +1,4 @@
-#!/home/millscb/repos/psu-capstone/.venv/bin/python
+#!/mnt/c/Users/chris/repos/psu-capstone/.venv/bin/python
 # -*- coding: utf-8 -*-
 import sys
 from virtualenv.__main__ import run_with_catch
