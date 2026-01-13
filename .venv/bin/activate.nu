@@ -68,7 +68,7 @@ export-env {
         }
     }
 
-    let virtual_env = '/mnt/c/Users/chris/repos/psu-capstone/.venv'
+    let virtual_env = '/home/millscb/repos/psu-capstone/.venv'
     let bin = 'bin'
     let path_name = if (has-env 'Path') { 'Path' } else { 'PATH' }
     let venv_path = ([$virtual_env $bin] | path join)

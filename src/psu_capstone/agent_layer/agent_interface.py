@@ -2,8 +2,6 @@
 
 from typing import Any, Protocol, runtime_checkable
 
-import numpy as np
-
 from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
 from psu_capstone.sdr_layer.sdr_interface import SDRInterface
 

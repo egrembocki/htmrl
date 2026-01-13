@@ -5,8 +5,8 @@ Spatial Poolers and Temporal Memory components within the Hierarchical Temporal
 Memory (HTM) Reinforcement Learning framework.
 """
 
-from re import S
-from typing import Any
+import copy
+from typing import Any, cast
 
 from psu_capstone.agent_layer.htm.cell import Cell
 from psu_capstone.agent_layer.htm.column import Column
@@ -129,7 +129,7 @@ class Agent:
         column_count: int,
         initial_synapses_per_column: int,
         random_seed: int = 0,
-    ) -> None:
+    ) -> SpatialPooler:
         """Create a new Spatial Pooler and append it to the agent's poolers.
 
         This factory method simplifies the addition of new spatial pooling layers
@@ -151,7 +151,9 @@ class Agent:
         )
         self._poolers.append(pooler)
 
-    def create_memory(self, column_count: int, cells_per_column: int) -> None:
+        return pooler
+
+    def create_memory(self, column_count: int, cells_per_column: int) -> TemporalMemory:
         """Create a new Temporal Memory module and append it to the agent's memory.
 
         This factory method simplifies the addition of new temporal memory layers
@@ -175,6 +177,8 @@ class Agent:
         memory = TemporalMemory(columns=columns, cells_per_column=cells_per_column)
 
         self._memory.append(memory)
+
+        return memory
 
     def create_model(self, model_type: str, **kwargs) -> None:
         """Create a new model for the agent.

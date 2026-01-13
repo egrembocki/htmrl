@@ -5,14 +5,18 @@ Summary: PSU Capstone Project
 Author: PSU Capstone Team
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.10
+Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 Requires-Dist: sympy>=1.11
 Requires-Dist: pandas>=2.1
 Requires-Dist: openpyxl>=3.1.2
 Requires-Dist: mmh3>=3.0
 Requires-Dist: matplotlib>=3.7
-Requires-Dist: scikit-learn>=1.7.2
+Requires-Dist: scikit-learn>=1.8.0
+Requires-Dist: NumPy>=2.4.0
+Requires-Dist: SciPy>=1.10.0
+Requires-Dist: joblib>=1.3.0
+Requires-Dist: threadpoolctl>=3.2.0
 
 # PSU Capstone Project
 
