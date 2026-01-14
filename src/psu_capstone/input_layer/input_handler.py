@@ -17,7 +17,6 @@ from typing import Any, Callable, ClassVar
 import numpy as np
 import pandas as pd
 
-from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
 
@@ -32,12 +31,13 @@ class InputHandler:
 
     * Any supported payload (Python iterables, numpy arrays, pandas objects, strings, files, etc.)
       is converted into a DataFrame.
-    * Missing values are filled, timestamps are guaranteed, and required columns are appended or
-      renamed as requested.
+    * Missing values are filled, and required columns are appended or renamed as requested.
     * Validation runs after every ingestion so consumers always receive structurally sound frames.
     """
 
-    __instance = None
+    __instance: ClassVar[InputHandler | None] = None
+    __interface: ClassVar[Any]
+
     _DATAFRAME_READERS: ClassVar[dict[str, Callable[[str], pd.DataFrame]]] = {
         ".csv": pd.read_csv,
         ".xls": pd.read_excel,
@@ -46,8 +46,6 @@ class InputHandler:
         ".parquet": pd.read_parquet,
     }
     _TEXT_EXTENSION: ClassVar[str] = ".txt"
-
-    __interface: EncoderInterface
 
     def __new__(cls) -> "InputHandler":
         """Constructor -- Singleton pattern implementation."""
@@ -87,14 +85,16 @@ class InputHandler:
         return self._data
 
     @property
-    def interface(self) -> EncoderInterface:
-        return self.__interface
+    def interface(self) -> Any:
+        return type(self).__interface
 
     @interface.setter
-    def interface(self, interface: EncoderInterface) -> None:
-        self.__interface = interface
+    def interface(self, interface: Any) -> None:
+        type(self).__interface = interface
 
-    def input_data(self, input_source: Any, required_columns: list[str] = []) -> pd.DataFrame:
+    def input_data(
+        self, input_source: Any, required_columns: list[str] | None = None
+    ) -> pd.DataFrame:
         """
         Ingest a payload, normalize it, optionally enforce column names, and validate the result.
 
@@ -218,12 +218,26 @@ class InputHandler:
         Returns:
             pd.DataFrame: Normalized data with at least one timestamp column.
         """
-        logger.info("converting to sequence")
-        dataframe, is_nested = self._coerce_dataframe_for_sequence(data)
-        normalized_df, contains_date = self._normalize_dataframe_entries(dataframe)
 
-        if not contains_date:
-            normalized_df = self._prepend_timestamp_column(normalized_df)
+        logger.info("converting to sequence")
+
+        dataframe, is_nested = self._coerce_dataframe_for_sequence(data)
+        normalized_df, contains_sequential = self._normalize_dataframe_entries(dataframe)
+
+        if is_nested:
+            logger.info("Detected multi-column input from nested iterables.")
+
+        try:
+
+            if not contains_sequential:
+
+                logger.info("No temporal data detected; prepended timestamp column.")
+
+                raise ValueError("No temporal data detected in input.")
+
+        except Exception as e:
+
+            logger.error(f"Error normalizing DataFrame entries: {e}")
 
         return normalized_df
 
@@ -294,19 +308,19 @@ class InputHandler:
             Tuple[pd.DataFrame, bool]: The normalized DataFrame/Series and a boolean indicating
             presence of temporal data.
         """
-        contains_date = False
+        contains_sequential = self._validate_sequence(dataframe)
 
         def _normalize(value: Any) -> Any:
-            nonlocal contains_date
+            nonlocal contains_sequential
             normalized, is_date = self._normalize_datetime_entry(value)
-            contains_date = contains_date or is_date
+            contains_sequential = contains_sequential or is_date
             return normalized
 
         if isinstance(dataframe, pd.Series):
             normalized_df = dataframe.map(_normalize)
         else:
             normalized_df = dataframe.apply(_normalize)
-        return normalized_df, contains_date
+        return normalized_df, contains_sequential
 
     def _prepend_timestamp_column(self, dataframe: pd.DataFrame) -> pd.DataFrame:
         """
@@ -463,6 +477,18 @@ class InputHandler:
         if not required_columns:
             return
 
+        # Required column lists must be unique; duplicates would create invalid DataFrames.
+        if len(set(required_columns)) != len(required_columns):
+            seen: set[str] = set()
+            duplicates = [c for c in required_columns if (c in seen) or seen.add(c)]
+            raise ValueError(f"Duplicate entries in required_columns: {sorted(set(duplicates))}")
+
+        # When a required schema is provided, trim any surplus columns first.
+        # This prevents source files (e.g., Excel sheets) with extra/duplicate columns from
+        # leaking into the validated DataFrame.
+        if self._data.shape[1] > len(required_columns):
+            self._data = self._data.iloc[:, : len(required_columns)].copy()
+
         existing_cols = list(self._data.columns)
         rename_count = min(len(required_columns), len(existing_cols))
         if rename_count:
@@ -474,6 +500,23 @@ class InputHandler:
             if column not in self._data:
                 self._data[column] = pd.NA
                 self._appended_required_columns.add(column)
+
+    def _validate_sequence(self, data: Any) -> bool:
+        """
+        Validate that the input data can be treated as a sequence.
+
+        Args:
+            data: The input data to validate.
+        """
+        # New Algorithm to peek at data set and find a periodic sequence in it
+
+        logger.info("validating sequence...")
+
+        # Check if data is a sequence (list, tuple, pd.Series)
+        if not isinstance(data, (list, tuple, pd.Series)):
+            logger.warning("Input data is not a sequence.")
+            return False
+        return True
 
     def _run_sample_case(
         self, handler: "InputHandler", label: str, payload: Any, required: list[str] | None = None
@@ -501,18 +544,18 @@ if __name__ == "__main__":
     print("Interface conformance test passed.")
 
     sample_matrix = [
-        ("List input", [1, 2, 3], ["timestamp", "value"]),
-        ("Tuple input", ((1, 10), (2, 20)), ["timestamp", "first", "second"]),
-        ("Sequence input (range)", range(3), ["timestamp", "value"]),
-        ("NumPy ndarray input", np.array([[0.1, 0.2], [0.3, 0.4]]), ["timestamp", "x", "y"]),
-        ("Dict input", {"feat": [5, 6], "target": [7, 8]}, ["timestamp", "feat", "target"]),
+        ("List input", [1, 2, 3], ["value"]),
+        ("Tuple input", ((1, 10), (2, 20)), ["first", "second"]),
+        ("Sequence input (range)", range(3), ["value"]),
+        ("NumPy ndarray input", np.array([[0.1, 0.2], [0.3, 0.4]]), ["x", "y"]),
+        ("Dict input", {"feat": [5, 6], "target": [7, 8]}, ["feat", "target"]),
         ("String input", "2024-01-01T12:00:00", None),
         (
             "DataFrame input",
             pd.DataFrame({"feat": [9, 10], "target": [11, 12]}),
-            ["timestamp", "feat", "target"],
+            ["feat", "target"],
         ),
-        ("Series input", pd.Series([13, 14], name="value"), ["timestamp", "value"]),
+        ("Series input", pd.Series([13, 14], name="value"), ["value"]),
     ]
     for label, payload, required in sample_matrix:
         handler._run_sample_case(handler, label, payload, required)

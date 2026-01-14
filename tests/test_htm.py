@@ -1,6 +1,10 @@
+from typing import cast
+
 import numpy as np
 import pytest
+from matplotlib.pyplot import isinteractive
 
+# importing modules to test :: must use scope operator to get access to the class objects
 from psu_capstone.agent_layer.htm import (
     cell,
     column,
@@ -26,26 +30,36 @@ SEGMENT_LEARNING_THRESHOLD = 3  # For best matching segment selection (reserved)
 INITIAL_DISTAL_PERM = 0.21  # Initial permanence for new distal synapses
 NEW_SYNAPSE_MAX = 6  # New distal synapses to add on reinforcement
 
+# TODO use mock objects where appropriate as part of pytest fixtures
 
-class FakeSegment:
+
+class FakeSegment(segment.Segment):
     """fake segment for testing"""
 
-    pass
+    def __init__(self):
+        super().__init__()
+        self._field: int
+        self._value: float
 
 
-class FakeSynapse:
+class FakeSynapse(synapse.Synapse):
     """fake synapse for testing"""
 
-    def __init__(self, source_input, permanence):
+    def __init__(self, source_input: int, permanence: float):
+        super().__init__(source_input, permanence)
+
         self.source_input = source_input
         self.permanence = permanence
 
 
-class FakeCell:
+class FakeCell(cell.Cell):
     """fake cell for testing"""
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, id: int):
+        super().__init__()
+
+        self.id: int = id
+        self.test_attr: str = "initial"
 
 
 """Grabbing these from the constants file"""
@@ -59,8 +73,8 @@ MIN_OVERLAP = constants.MIN_OVERLAP
 def test_cell_initialization():
     """Cell should be created with empty segment list."""
     c = cell.Cell()
-    assert isinstance(c.segments, list)
-    assert c.segments == []
+    assert isinstance(c._segments, list)
+    assert c._segments == []
 
 
 def test_cell_store_segments():
@@ -69,12 +83,16 @@ def test_cell_store_segments():
     s1 = FakeSegment()
     s2 = FakeSegment()
 
-    c.segments.append(s1)
-    c.segments.append(s2)
+    assert isinstance(c._segments, list)
+    assert isinstance(s1, segment.Segment)
+    assert isinstance(s2, segment.Segment)
 
-    assert len(c.segments) == 2
-    assert c.segments[0] is s1
-    assert c.segments[1] is s2
+    c._segments.append(s1)
+    c._segments.append(s2)
+
+    assert len(c._segments) == 2
+    assert c._segments[0] is s1
+    assert c._segments[1] is s2
 
 
 def test_cell_repr():
@@ -198,12 +216,19 @@ def test_distal_synapse_negative_permanence():
 
 def test_distal_synapse_is_reference_not_copy():
     """Test reference vs copy"""
+
     c = FakeCell(id=5)
+    assert c.test_attr == "initial"
+    c.test_attr = "test"
+    assert c.test_attr == "test"
+    assert isinstance(c, cell.Cell)
+
     s = distal_synapse.DistalSynapse(source_cell=c, permanence=0.2)
+    assert isinstance(s, distal_synapse.DistalSynapse)
 
-    c.new_attr = "test"
+    assert s.source_cell is c
 
-    assert s.source_cell.new_attr == "test"
+    assert cast(FakeCell, s.source_cell).test_attr == "test"
 
 
 """Segment Tests"""
@@ -241,9 +266,10 @@ def test_active_synapse_return_connected_and_active():
 
     s = segment.Segment([s1, s2, s3])
 
-    active_cells = {fc1, fc3}
+    active_cells = [fc1, fc3]
 
-    result = s.active_synapses(active_cells)
+    result = s.active_synapses(cast(list[cell.Cell], active_cells))
+
     assert result == [s1, s3]
 
 
@@ -252,7 +278,7 @@ def test_active_synapses_empty_when_no_active_cells():
     s1 = distal_synapse.DistalSynapse(FakeCell(1), permanence=CONNECTED_PERM + 0.5)
     s = segment.Segment([s1])
 
-    result = s.active_synapses(active_cells=set())
+    result = s.active_synapses(active_cells=cast(list[cell.Cell], []))
     assert result == []
 
 
@@ -263,13 +289,13 @@ def test_active_synapses_empty_when_no_connected():
     active_cells = {FakeCell(1)}
 
     s = segment.Segment([s1])
-    assert s.active_synapses(active_cells) == []
+    assert s.active_synapses(cast(list[cell.Cell], active_cells)) == []
 
 
 def test_active_synapse_empty_on_empty_seg():
     """If the segment is empty, there should be no active synapse."""
     s = segment.Segment()
-    assert s.active_synapses({FakeCell(1)}) == []
+    assert s.active_synapses(cast(list[cell.Cell], [FakeCell(1)])) == []
 
 
 def test_matching_synapses_returns_all_with_active_source():
@@ -283,7 +309,7 @@ def test_matching_synapses_returns_all_with_active_source():
 
     s = segment.Segment([s1, s2, s3])
 
-    prev_active = {fc2, fc3}
+    prev_active = cast(list[cell.Cell], [fc2, fc3])
 
     result = s.matching_synapses(prev_active)
     assert result == [s2, s3]
@@ -298,14 +324,14 @@ def test_matching_synapses_empty_when_no_prev_match():
 
     s = segment.Segment([s1, s2])
 
-    prev_active = {FakeCell(155)}
+    prev_active = cast(list[cell.Cell], [FakeCell(155)])
     assert s.matching_synapses(prev_active) == []
 
 
 def test_matching_synapse_empty_on_empty_seg():
     """Test to make sure a blank segment should have no matching synapses."""
     s = segment.Segment()
-    assert s.matching_synapses({FakeCell(1)}) == []
+    assert s.matching_synapses(cast(list[cell.Cell], [FakeCell(1)])) == []
 
 
 def test_matching_synapse_ignores_permanence():
@@ -315,7 +341,7 @@ def test_matching_synapse_ignores_permanence():
 
     s = segment.Segment([s1])
 
-    prev_active = {fc1}
+    prev_active = cast(list[cell.Cell], [fc1])
 
     assert s.matching_synapses(prev_active) == [s1]
 
@@ -549,7 +575,7 @@ def test_tm_steap_predicted_column():
     seg = segment.Segment()
     syn = distal_synapse.DistalSynapse(cel, permanence=1)
     seg.synapses.append(syn)
-    cel.segments.append(seg)
+    cel._segments.append(seg)
 
     """make the cel active and predictive"""
     tm.active_cells[-1] = {cel}
@@ -572,7 +598,7 @@ def test_predictive_cells_threshold():
     """add segment to cell 2"""
     cel = col.cells[2]
     seg = segment.Segment()
-    cel.segments.append(seg)
+    cel._segments.append(seg)
 
     tm.active_cells[0] = set()
 
@@ -604,7 +630,7 @@ def test_predictive_cells_below_threshold():
     """add segment to cell 1"""
     cel = col.cells[1]
     seg = segment.Segment()
-    cel.segments.append(seg)
+    cel._segments.append(seg)
 
     """active on cell 0"""
     tm.active_cells[0] = {col.cells[0]}
@@ -629,7 +655,7 @@ def test_reinforce_segment_updates_permanence():
 
     """make cell 1 active"""
     seg = segment.Segment()
-    col.cells[0].segments.append(seg)
+    col.cells[0]._segments.append(seg)
     tm.active_cells[-1] = {col.cells[1]}
 
     """add two synapses, one is connected to active, one is to inactive"""
@@ -658,7 +684,7 @@ def test_reinforce_segment_grows_new_synapses():
     tm = temporal_memory.TemporalMemory([col], 5)
 
     seg = segment.Segment()
-    col.cells[0].segments.append(seg)
+    col.cells[0]._segments.append(seg)
     """active cells for 1, 2, 3, 4"""
     tm.active_cells[-1] = {col.cells[i] for i in range(1, 5)}
 
@@ -727,13 +753,13 @@ def test_best_matching_cell_finds_best_segment():
     """give cell1 a segment"""
     seg1 = segment.Segment()
     seg1.synapses.append(distal_synapse.DistalSynapse(col.cells[0], 1))
-    cell1.segments.append(seg1)
+    cell1._segments.append(seg1)
 
     """give cell2 two segments"""
     seg2 = segment.Segment()
     seg2.synapses.append(distal_synapse.DistalSynapse(col.cells[0], 1))
     seg2.synapses.append(distal_synapse.DistalSynapse(col.cells[1], 1))
-    cell2.segments.append(seg2)
+    cell2._segments.append(seg2)
 
     best_cell, best_seg = tm._best_matching_cell(col, prev_t=-1)
 

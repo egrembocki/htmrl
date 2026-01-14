@@ -29,7 +29,7 @@ from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, Categor
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.sdr_layer.sdr import SDR
 
 
 class EncoderHandler:
@@ -102,18 +102,13 @@ class EncoderHandler:
 
         scalartrue = False
 
-        # --- existing per-row logic, wrapped in a loop ---
+        # --- existing per-row logic, wrapped in a loop ---@SuperBat101
         for _, row in input_data.iterrows():
             sdrs: list[SDR] = []
 
             for col_name, value in row.items():
-                # everything below here is *your existing code* per column:
-                if (
-                    isinstance(value, float)
-                    or isinstance(value, int)
-                    or isinstance(value, np.floating)
-                    or isinstance(value, np.integer)
-                ):
+                # everything below here is *your existing code* per column: -- @SuperBat101
+                if isinstance(value, float) or isinstance(value, np.floating):
                     encoder = RandomDistributedScalarEncoder(
                         RDSEParameters(
                             active_bits=40,
