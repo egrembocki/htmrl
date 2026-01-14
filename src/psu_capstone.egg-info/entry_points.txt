@@ -1,0 +1,2 @@
+[console_scripts]
+psu-capstone = psu_capstone:main

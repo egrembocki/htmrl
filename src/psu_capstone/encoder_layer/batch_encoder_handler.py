@@ -4,7 +4,7 @@ import copy
 from datetime import datetime
 from multiprocessing import Manager, Process
 from threading import Thread
-from typing import List, Tuple
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, Categor
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.sdr_layer.sdr import SDR
 
 
 class RdseThread(Thread):
@@ -220,7 +220,7 @@ class CompositeBatchThread(Thread):
 
     """
 
-    def __init__(self, batch: list[list[SDR]], out: list[SDR], offset: int):
+    def __init__(self, batch: list[list[SDR]], out: list[SDR | None], offset: int):
         super().__init__()
         self._batch = batch
         self._out = out
@@ -315,7 +315,8 @@ class BatchEncoderHandler:
             custom_days=[],
             rdse_used=False,
         )
-        self._custom_encoding = dict[str, str]
+        self._custom_encoding: dict[str, str] = {}
+        assert input_data is not None, "Input data must be provided for initialization."
         category_list = input_data.columns.unique().tolist()
         self._category_params = CategoryParameters(w=3, category_list=category_list)
 
@@ -333,7 +334,7 @@ class BatchEncoderHandler:
 
     def _build_dict_list_sdr(
         self, input_data: pd.DataFrame, threads_per_column: int
-    ) -> dict[list[SDR]]:
+    ) -> dict[str, list[SDR]]:
         """
         Builds a dictionary mapping each column name to a list of SDRs.
         Each column in input_data will have a list of SDRs of length equal to the number of rows.
@@ -345,7 +346,7 @@ class BatchEncoderHandler:
             threads_per_column (int): The number of threads to use per column. The column is split
                 into this many batches for parallel processing.
         Returns:
-            dict[list[SDR]]: A dictionary where each key is a column name and the corresponding value
+            dict[str, list[SDR]]: A dictionary where each key is a column name and the corresponding value
                 is a list of SDR objects representing that column's data.
         """
         num_rows = len(input_data)
@@ -388,12 +389,14 @@ class BatchEncoderHandler:
 
         for col in input_data.columns:
             series = input_data[col].reset_index(drop=True)
-            batches = np.array_split(series, threads_per_column)
+            batches = np.array_split(series.to_numpy(), threads_per_column)
             scalartrue = False
             offset = 0
             for batch in batches:
                 if len(batch) == 0:
                     continue
+
+                batch_series = pd.Series(batch)
 
                 encoder_type = None
                 if self._custom_encoding is not None and col in self._custom_encoding:
@@ -416,23 +419,23 @@ class BatchEncoderHandler:
                 thread = None
                 if encoder_type == "rdse":
                     params = self._rdse_params
-                    thread = RdseThread(batch, params, column_sdrs[col], offset)
+                    thread = RdseThread(batch_series, params, column_sdrs[col], offset)
                 elif encoder_type == "scalar":
                     params = self._scalar_params
-                    thread = ScalarThread(batch, params, column_sdrs[col], offset)
+                    thread = ScalarThread(batch_series, params, column_sdrs[col], offset)
                 elif encoder_type == "category":
                     params = self._category_params
-                    thread = CategoryThread(batch, params, column_sdrs[col], offset)
+                    thread = CategoryThread(batch_series, params, column_sdrs[col], offset)
                 elif encoder_type == "date":
                     params = self._date_params
-                    thread = DateThread(batch, self._date_params, column_sdrs[col], offset)
+                    thread = DateThread(batch_series, self._date_params, column_sdrs[col], offset)
                 else:
                     print(f"Skipping column '{col}' (unknown encoder type '{encoder_type}')")
 
                 if thread is not None:
                     threads.append(thread)
                     thread.start()
-                    offset += len(batch)
+                    offset += len(batch_series)
 
         for t in threads:
             t.join()
@@ -469,39 +472,63 @@ class BatchEncoderHandler:
         num_rows = len(next(iter(column_sdrs.values())))
 
         # Pre-allocate the exact output size
-        composite_sdrs: list[SDR] = [None] * num_rows
+        composite_sdrs: list[SDR | None] = [None] * num_rows
 
         # Clamp the number of merge threads
         threads_per_rows = max(1, min(threads_per_rows, num_rows))
 
-        rowSDRs = [[column_sdrs[col][i] for col in input_data.columns] for i in range(num_rows)]
-        batches = np.array_split(rowSDRs, threads_per_rows)
+        cols = (
+            list(input_data.columns)
+            if isinstance(input_data, pd.DataFrame)
+            else list(column_sdrs.keys())
+        )
+
+        row_sdr_s: list[list[SDR]] = [
+            [column_sdrs[col][i] for col in cols] for i in range(num_rows)
+        ]
+
+        # Split rows into roughly equal contiguous batches (avoid np.array_split type issues).
+        batch_sizes = [num_rows // threads_per_rows] * threads_per_rows
+        for i in range(num_rows % threads_per_rows):
+            batch_sizes[i] += 1
+
+        batches: list[list[list[SDR]]] = []
+        start = 0
+        for size in batch_sizes:
+            end = start + size
+            if start != end:
+                batches.append(row_sdr_s[start:end])
+            start = end
 
         # Track worker threads
         workers: list[Thread] = []
         offset = 0
 
-        for batch in batches:
-            th = CompositeBatchThread(batch, composite_sdrs, offset)
+        for batch_list in batches:
+            th = CompositeBatchThread(batch_list, composite_sdrs, offset)
             workers.append(th)
             th.start()
-            offset += len(batch)
+            offset += len(batch_list)
 
         for th in workers:
             th.join()
 
-        return composite_sdrs
+        assert all(s is not None for s in composite_sdrs)
+        return cast(list[SDR], composite_sdrs)
 
     def create_knn_composite_sdr(
-        self, input_data: pd.DataFrame, column_sdrs: dict[list[SDR]] | None, threads_per_column: int
-    ) -> Tuple[list[SDR], NearestNeighbors]:
+        self,
+        input_data: pd.DataFrame,
+        column_sdrs: dict[str, list[SDR]] | None,
+        threads_per_column: int,
+    ) -> tuple[list[SDR], NearestNeighbors]:
         """Takes in the dataframe returns a composite list of our sdrs as well as a kNN model to predict SDR values."""
         """Build our dict of lists of sdrs to use for kNN"""
         """this method is incomplete and will need to be discussed with the team."""
         column_sdrs = self._build_dict_list_sdr(input_data, threads_per_column)
 
         """Make the kNN model."""
-        knn = NearestNeighbors(5)
+        knn = NearestNeighbors(n_neighbors=5, algorithm="auto", metric="hamming")
 
         """Build the composite not that the model is finished."""
         row_sdrs = self.build_composite_sdr(column_sdrs, threads_per_column)

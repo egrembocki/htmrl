@@ -1,12 +1,12 @@
 [project]
 name = "psu-capstone"
-version = "0.0.0"
+version = "0.0.1"
 authors = [
     { name = "PSU Capstone Team" },
 ]
 description = "PSU Capstone Project"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -41,17 +41,16 @@ package = true
 [tool.pytest.ini_options]
 # addopts = ["--cov-report=term-missing", "--cov-report=xml", "tests/"]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
-nonrecursedirs = "build"
+norecursedirs = ["build"]
 
-[tool.coverage]
 [tool.coverage.run]
 omit = [
   # omit anything in a .local directory anywhere
-  '*/.local/*',
-  '*/__init__.py',
-  'tests/*',
-  '*/tests/*',
-  '.venv/*',
+  "*/.local/*",
+  "*/__init__.py",
+  "tests/*",
+  "*/tests/*",
+  ".venv/*",
 ]
 
 [tool.coverage.report]
@@ -69,14 +68,14 @@ exclude_lines = [
 [tool.black]
 line-length = 100
 extend-exclude = '''
-/(
+(
   # Exclude template directories
   # Standard exclusions
-  | \.git
+  \.git
   | \.venv
   | build
   | dist
-)/
+)
 '''
 
 [tool.isort]

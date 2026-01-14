@@ -2,7 +2,8 @@
 
 import pytest
 
-from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.sdr_layer.sdr import SDR
+from psu_capstone.sdr_layer.sdr_interface import SDRInterface
 
 
 @pytest.fixture
@@ -291,3 +292,13 @@ def test_sdr_destroy():
     # Assert
     assert sdr.dimensions == []
     assert sdr.size == 0
+
+
+def test_sdr_interface_object(sdr_fixture: SDR):
+    """Test that SDR implements SDRInterface."""
+
+    # Arrange
+    sdr = sdr_fixture
+
+    # Assert
+    assert isinstance(sdr, SDRInterface)
