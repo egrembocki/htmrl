@@ -5,8 +5,7 @@ Spatial Poolers and Temporal Memory components within the Hierarchical Temporal
 Memory (HTM) Reinforcement Learning framework.
 """
 
-import copy
-from typing import Any, cast
+from typing import Any
 
 from psu_capstone.agent_layer.htm.cell import Cell
 from psu_capstone.agent_layer.htm.column import Column
