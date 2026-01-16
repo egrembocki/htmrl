@@ -30,3 +30,8 @@ class EnvInterface(Protocol):
     def observe(self) -> tuple[Any, Any, Any, Any]:
         """Returns the current observation from the environment."""
         ...
+
+    def reward(self, action: tuple) -> tuple:
+        """Calculate the reward back to the Agent"""
+
+        ...
