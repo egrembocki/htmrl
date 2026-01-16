@@ -27,7 +27,7 @@ class EnvInterface(Protocol):
         """Cleans up resources used by the environment."""
         ...
 
-    def observe(self) -> tuple[Any, Any, Any, Any]:
+    def observe(self) -> tuple:
         """Returns the current observation from the environment."""
         ...
 
