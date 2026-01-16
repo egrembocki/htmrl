@@ -218,3 +218,24 @@ class Agent:
         # append to self._encoders
 
         self._encoder_handlers.append(None)  # Placeholder for actual encoder instance
+
+    def create_interface(self, interface_type: str, **kwargs) -> Any:
+        """Create a new interface handler for the agent.
+
+        This method allows the agent to instantiate various interface handlers based on the specified type and parameters.
+
+        Args:
+            interface_type: A string indicating the type of interface to create.
+            **kwargs: Additional parameters required for interface initialization."""
+
+        pass
+
+    def pool_data(self, data: Any) -> Any:
+        """Process input data through the agent's spatial poolers.
+
+        This method takes raw input data, encodes it into an SDR format, and processes it through the spatial poolers to produce a sparse representation.
+
+        Args:
+            data: The raw input data to be processed."""
+
+        pass
