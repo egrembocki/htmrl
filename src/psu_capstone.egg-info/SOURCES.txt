@@ -31,7 +31,6 @@ src/psu_capstone/encoder_layer/encoder_interface.py
 src/psu_capstone/encoder_layer/rdse.py
 src/psu_capstone/encoder_layer/scalar_encoder.py
 src/psu_capstone/environment/env_interface.py
-src/psu_capstone/input_layer/demo.py
 src/psu_capstone/input_layer/input_handler.py
 src/psu_capstone/input_layer/input_interface.py
 src/psu_capstone/sdr_layer/sdr.py
