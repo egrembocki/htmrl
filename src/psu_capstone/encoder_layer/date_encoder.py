@@ -539,7 +539,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
 
                     self._timeofday_encoder = RandomDistributedScalarEncoder(rdse_params)
-
             else:
                 if scalar_params is None:
                     p = ScalarEncoderParameters(
