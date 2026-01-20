@@ -37,6 +37,8 @@ T = TypeVar("T")
 class BaseEncoder(ABC, Generic[T]):
     """Base class for all encoders"""
 
+    # class variables
+
     __interface: AgentInterface | None = None
 
     __buffered_data: pd.DataFrame | None = None
