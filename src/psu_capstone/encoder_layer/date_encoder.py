@@ -4,7 +4,7 @@ This module provides a DateEncoder class that encodes various temporal features
 (season, day of week, weekend, custom days, holiday, time of day) into a Sparse
 Distributed Representation (SDR) for use in Hierarchical Temporal Memory (HTM) systems.
 
-The encoder uses ScalarEncoder instances for each enabled feature, concatenating
+The encoder uses ScalarEncoder or RDSE instances for each enabled feature, concatenating
 their outputs into a single SDR. The configuration is controlled via the
 DateEncoderParameters dataclass.
 
