@@ -99,9 +99,10 @@ def main():
     knn = encoder.build_knn_from_tm_predictions(
         tm_prediction_masks, input_data, n_neighbors=1, weights="distance", distance="hamming"
     )
+    # try out the hot gym
     predictions = []
     actual_values = []
-    for t in range(num_t):
+    for t in range(100):
         idx = t % len(sdrs)
         sdr = sdrs[idx]
         dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
