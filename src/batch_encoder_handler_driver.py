@@ -11,8 +11,8 @@ from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.sdr_layer.sdr import SDR
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -114,7 +114,8 @@ def main():
 
         predictions.append(p)
         next_idx = (idx + 1) % len(sdrs)
-        actual_values.append(input_data.iloc[next_idx, 1])
+        target_col = input_data.columns[0]
+        actual_values.append(input_data.loc[input_data.index[next_idx], target_col])
 
     for pred, actual in zip(predictions, actual_values):
         print(f"Actual next step: {actual}, Prediction: {pred}")
