@@ -4,19 +4,20 @@ from typing import Any, cast
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.sdr_layer.sdr import SDR
 
 if __name__ == "__main__":
 
-    encoder = RandomDistributedScalarEncoder(RDSEParameters())
+    rdse_encoder = RandomDistributedScalarEncoder()
+    scalar_encoder = ScalarEncoder()
 
-    encoder.active_bits = 50
-    encoder.size = 2058
+    rdse_encoder.active_bits = 50
+    rdse_encoder.size = 2058
 
     value = 3.14
-    output_sdr = SDR([encoder.size])
-    encoder.encode(value, output_sdr)
-
+    output_sdr = SDR([rdse_encoder.size])
+    rdse_encoder.encode(value, output_sdr)
     # create a default DateEncoder
     date_encoder = DateEncoder()
 
