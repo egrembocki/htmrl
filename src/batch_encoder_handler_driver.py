@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
 from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
@@ -25,13 +26,18 @@ def main():
     handler = InputHandler.get_instance()
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(project_root, "data", "sin_wave.csv")
+    data_path = os.path.join(project_root, "data", "hot_gym_short.csv")
 
     input_data = handler.input_data(input_source=data_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
 
     print(input_data)
-
+    encoder = BatchEncoderHandler(input_data)
+    sdrs = encoder.build_composite_sdr(input_data, 8)
+    # for sdr in sdrs:
+    #    print(sdr.get_sparse())
+    # sdrs, knn = encoder.create_knn_composite_sdr(input_data, 8)
+    """
     # Composite sdr
     start_time = time.perf_counter()
     encoder = BatchEncoderHandler(input_data)
@@ -45,6 +51,7 @@ def main():
         print(f"Composite SDR index: {i}")
         print(f"Sparse indices: {sdr.get_sparse()}")
         print(f"Length of SDR: {len(sdr.get_dense())}\n")
+    """
     """
     # test on htm proposed flow
     sdr0 = sdrs[0]
@@ -68,34 +75,50 @@ def main():
     print(predicted_columns_mask)
     """
     # test on multiple steps
-    """
-    num_t = 1000
+    num_t = 1930
     tm_outputs = []
     tm_prediction_masks = []
     sdr0 = sdrs[0]
     size = len(sdr0.get_dense())
-    sp = SpatialPooler(size, 40, 100)
-    cells_per_column = 5
+    sp = SpatialPooler(size, 200, 200)
+    cells_per_column = 50
     tm = TemporalMemory(columns=sp.columns, cells_per_column=cells_per_column)
 
-    for t in range(num_t):
-        sdr = sdrs[t % len(sdrs)]
-        dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
+    tm_prediction_masks = [None] * len(sdrs)
 
+    for t in range(num_t):
+        idx = t % len(sdrs)
+        sdr = sdrs[idx]
+        dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
         mask, active_cols = sp.compute_active_columns([dense_input], inhibition_radius=10)
         tm_out = tm.step(active_cols)
         m = tm.get_predictive_columns_mask()
-
-        tm_prediction_masks.append(m)
+        tm_prediction_masks[idx] = m
         tm_outputs.append(tm_out)
 
-    active_cells = tm_out["active_cells"]
-    learning_cells = tm_out["learning_cells"]
-    print("Active cells: ", active_cells)
-    print("Learning cells: ", learning_cells)
-    for i, mask in enumerate(tm_prediction_masks):
-        print(f"Prediction mask {i}: {mask}")
-    """
+    knn = encoder.build_knn_from_tm_predictions(
+        tm_prediction_masks, input_data, n_neighbors=1, weights="distance", distance="hamming"
+    )
+    # try out the hot gym
+    predictions = []
+    actual_values = []
+    for t in range(193):
+        idx = t % len(sdrs)
+        sdr = sdrs[idx]
+        dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
+        mask, active_cols = sp.compute_active_columns([dense_input], inhibition_radius=10)
+
+        tm.step(active_cols)
+        m = tm.get_predictive_columns_mask()
+        p = knn.predict(m.reshape(1, -1))[0][0]
+
+        predictions.append(p)
+        next_idx = (idx + 1) % len(sdrs)
+        target_col = input_data.columns[1]
+        actual_values.append(input_data.loc[input_data.index[next_idx], target_col])
+
+    for pred, actual in zip(predictions, actual_values):
+        print(f"Actual next step: {actual}, Prediction: {pred}")
 
     # Tests the dict list of column and sdr.
 

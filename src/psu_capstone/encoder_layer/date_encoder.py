@@ -292,19 +292,16 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         # -------- Season --------
         if args.season_width != 0:
             if self._rdse_used:
-                if rdse_params is None:
-                    p = RDSEParameters(
-                        size=10,
-                        active_bits=args.season_width,
-                        sparsity=0.0,
-                        radius=args.season_radius,
-                        resolution=0.0,
-                        category=False,
-                        seed=42,
-                    )
-                    self._season_encoder = RandomDistributedScalarEncoder(p)
-                else:
-                    self._season_encoder = RandomDistributedScalarEncoder(rdse_params)
+                p = RDSEParameters(
+                    size=10,  # default made up
+                    active_bits=args.season_width,
+                    sparsity=0.0,
+                    radius=args.season_radius,
+                    resolution=0.0,
+                    category=False,
+                    seed=42,
+                )
+                self._season_encoder = RandomDistributedScalarEncoder(p)
             else:
 
                 if scalar_params is None:
