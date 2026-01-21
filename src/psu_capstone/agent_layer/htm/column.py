@@ -91,7 +91,7 @@ class Column:
         else:
             self.overlap = 0.0
 
-        print(f"Column at position {self.position} has overlap: {self.overlap}")
+        # print(f"Column at position {self.position} has overlap: {self.overlap}")
 
 
 if __name__ == "__main__":

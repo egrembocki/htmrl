@@ -220,7 +220,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if args.season_width != 0:
             if self._rdse_used:
                 p = RDSEParameters(
-                    size=10,
+                    size=10,  # default made up
                     active_bits=args.season_width,
                     sparsity=0.0,
                     radius=args.season_radius,
