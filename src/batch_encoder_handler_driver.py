@@ -26,7 +26,7 @@ def main():
     handler = InputHandler.get_instance()
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(project_root, "data", "test1.csv")
+    data_path = os.path.join(project_root, "data", "hot_gym_short.csv")
 
     input_data = handler.input_data(input_source=data_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
@@ -75,7 +75,7 @@ def main():
     print(predicted_columns_mask)
     """
     # test on multiple steps
-    num_t = 1000
+    num_t = 1930
     tm_outputs = []
     tm_prediction_masks = []
     sdr0 = sdrs[0]
@@ -102,7 +102,7 @@ def main():
     # try out the hot gym
     predictions = []
     actual_values = []
-    for t in range(100):
+    for t in range(193):
         idx = t % len(sdrs)
         sdr = sdrs[idx]
         dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
@@ -114,7 +114,7 @@ def main():
 
         predictions.append(p)
         next_idx = (idx + 1) % len(sdrs)
-        target_col = input_data.columns[0]
+        target_col = input_data.columns[1]
         actual_values.append(input_data.loc[input_data.index[next_idx], target_col])
 
     for pred, actual in zip(predictions, actual_values):

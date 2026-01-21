@@ -508,7 +508,7 @@ class BatchEncoderHandler:
 
         x = x_full[:num_samples]
 
-        target_col = input_data.columns[0]
+        target_col = input_data.columns[1]
 
         row_labels = [input_data.index[i] for i in range(1, 1 + num_samples)]
         y = input_data.loc[row_labels, target_col].to_numpy().reshape(-1, 1)
