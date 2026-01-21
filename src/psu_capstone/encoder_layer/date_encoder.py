@@ -217,30 +217,60 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         """Encoder for season (day of year)."""
         return self._season_encoder
 
+    @season_encoder.setter
+    def season_encoder(self, encoder: BaseEncoder) -> None:
+        """Set the encoder for season (day of year)."""
+        self._season_encoder = encoder
+
     @property
     def dayofweek_encoder(self) -> BaseEncoder | None:
         """Encoder for day of week."""
         return self._dayofweek_encoder
+
+    @dayofweek_encoder.setter
+    def dayofweek_encoder(self, encoder: BaseEncoder) -> None:
+        """Set the encoder for day of week."""
+        self._dayofweek_encoder = encoder
 
     @property
     def weekend_encoder(self) -> BaseEncoder | None:
         """Encoder for weekend flag."""
         return self._weekend_encoder
 
+    @weekend_encoder.setter
+    def weekend_encoder(self, encoder: BaseEncoder) -> None:
+        """Set the encoder for weekend flag."""
+        self._weekend_encoder = encoder
+
     @property
     def customdays_encoder(self) -> BaseEncoder | None:
         """Encoder for custom day groups."""
         return self._customdays_encoder
+
+    @customdays_encoder.setter
+    def customdays_encoder(self, encoder: BaseEncoder) -> None:
+        """Set the encoder for custom day groups."""
+        self._customdays_encoder = encoder
 
     @property
     def holiday_encoder(self) -> BaseEncoder | None:
         """Encoder for holidays."""
         return self._holiday_encoder
 
+    @holiday_encoder.setter
+    def holiday_encoder(self, encoder: BaseEncoder) -> None:
+        """Set the encoder for holidays."""
+        self._holiday_encoder = encoder
+
     @property
     def timeofday_encoder(self) -> BaseEncoder | None:
         """Encoder for time of day."""
         return self._timeofday_encoder
+
+    @timeofday_encoder.setter
+    def timeofday_encoder(self, encoder: BaseEncoder) -> None:
+        """Set the encoder for time of day."""
+        self._timeofday_encoder = encoder
 
     # ------------------------------------------------------------------ #
     # Initialization (mirrors C++ initialize())
