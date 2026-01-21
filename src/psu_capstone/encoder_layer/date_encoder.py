@@ -29,7 +29,6 @@ Usage:
 from __future__ import annotations
 
 import copy
-import enum
 import math
 import time
 from dataclasses import dataclass, field
@@ -89,52 +88,44 @@ class DateEncoderParameters:
          */
     """
 
-    # Season: day of year (0..366), default radius 91.5 days (~4 seasons)
-    season_width: int = 0
+    # Season: day of year (0..366)
+    season_width: int = 366
     """Number of active bits for season (day of year). how many bits to apply to season
-      /**
-        *  Member: season -  The portion of the year. Unit is day.  Default radius is
-        *                    91.5 days which gives 4 seasons per year.
-        */
-   """
+       Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
 
     season_radius: float = 91.5
-    """Radius for season encoding, in days (default ~4 seasons).
-    days per season
-    """
+    """Radius for season encoding, in days (default ~4 seasons) days per season."""
 
     # Day of week: Monday=0, Tuesday=1, ... (C++ maps from tm_wday)
-    day_of_week_width: int = 0
-    """Number of active bits for day of week, how many bits to apply to day of week.
-
-    """
+    day_of_week_width: int = 7
+    """Number of active bits for day of week, how many bits to apply to day of week."""
 
     day_of_week_radius: float = 1.0
     """Radius for day of week encoding, every day is a separate bucket."""
 
     # Weekend flag (0/1, Fri 6pm through Sun midnight)
-    weekend_width: int = 0
+    weekend_width: int = 1
     """Number of active bits for weekend flag."""
 
     # Holiday: boolean-ish with ramp, default dates = [[12, 25]] (month, day)
-    holiday_width: int = 0
+    holiday_width: int = 1
     """Number of active bits for holiday encoding."""
 
-    holiday_dates: list[list[int]] = field(default_factory=lambda: [[12, 25]])
+    holiday_dates: list[list[int]] = field(default_factory=lambda: [[12, 25], [1, 1], [7, 4]])
     """List of holidays as [month, day] or [year, month, day]."""
 
     # Time of day: 0..24 hours
-    time_of_day_width: int = 0
+    time_of_day_width: int = 24
     """Number of active bits for time of day."""
 
-    time_of_day_radius: float = 4.0
+    time_of_day_radius: float = 1.0
     """Radius for time of day encoding, in hours."""
 
     # Custom day groups (e.g. ["mon,wed,fri"])
-    custom_width: int = 0
+    custom_width: int = 5
     """Number of active bits for custom day groups."""
 
-    custom_days: list[str] = field(default_factory=list)
+    custom_days: list[str] = field(default_factory=lambda: ["mon,tue,wed,thu,fri"])
     """List of custom day group strings (e.g., ["mon,wed,fri"])."""
 
     rdse_used: bool = True
@@ -143,8 +134,8 @@ class DateEncoderParameters:
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]):
     """
-    Python port of the HTM DateEncoder, using the existing rdse + SDR.
-    Encodes up to 6 attributes of a timestamp into one SDR:
+    Python port of the HTM DateEncoder, using the existing scalar encoders with default parameters.
+    Encodes up to 6 attributes using six different encoders of a timestamp into one SDR:
 
       - season       (day-of-year)
       - dayOfWeek
@@ -152,6 +143,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
       - customDays
       - holiday
       - timeOfDay
+
+      rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
+      Current Test does not cover rdseUsed = True.
     """
 
     # !!enum!! type constants for indices
@@ -164,9 +158,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     def __init__(
         self,
-        date_params: DateEncoderParameters,
-        rdse_params: RDSEParameters | None = None,
-        scalar_params: ScalarEncoderParameters | None = None,
+        date_params: DateEncoderParameters = DateEncoderParameters(),
+        rdse_params: RDSEParameters | None = RDSEParameters(),
+        scalar_params: ScalarEncoderParameters | None = ScalarEncoderParameters(),
         dimensions: list[int] | None = None,
     ) -> None:
         """
@@ -180,13 +174,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             ValueError: If custom_days is specified but empty, or if no widths are provided.
         """
 
-        # nested parameters
-        self._rdse_params = copy.deepcopy(rdse_params)
-        self._scalar_params = copy.deepcopy(scalar_params)
+        # encoder parameters
+        self._rdse_params = copy.deepcopy(rdse_params) if rdse_params is not None else None
+        self._scalar_params = copy.deepcopy(scalar_params) if scalar_params is not None else None
         self._date_params = copy.deepcopy(date_params)
 
         # initialization
         """DateEncoderParameters: Configuration parameters for the encoder."""
+
         self._customDays: set[int] = set()
         """Set of integer day indices for custom days."""
         self._bucketMap: dict[int, int] = {}
@@ -199,22 +194,53 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         """Flag indicating if RDSE is used."""
 
         # Declare one encoder per feature
-        self._season_encoder = None
+        self._season_encoder: BaseEncoder | None = None
         """Encoder for season (day of year)."""
-        self._dayofweek_encoder = None
+        self._dayofweek_encoder: BaseEncoder | None = None
         """Encoder for day of week."""
-        self._weekend_encoder = None
+        self._weekend_encoder: BaseEncoder | None = None
         """Encoder for weekend flag."""
-        self._customdays_encoder = None
+        self._customdays_encoder: BaseEncoder | None = None
         """Encoder for custom day groups."""
-        self._holiday_encoder = None
+        self._holiday_encoder: BaseEncoder | None = None
         """Encoder for holidays."""
-        self._timeofday_encoder = None
+        self._timeofday_encoder: BaseEncoder | None = None
         """Encoder for time of day."""
 
         # call initialize
         self._initialize(self._date_params, self._rdse_params, self._scalar_params)
         super().__init__(dimensions, self._size)
+
+    # Properties
+    @property
+    def season_encoder(self) -> BaseEncoder | None:
+        """Encoder for season (day of year)."""
+        return self._season_encoder
+
+    @property
+    def dayofweek_encoder(self) -> BaseEncoder | None:
+        """Encoder for day of week."""
+        return self._dayofweek_encoder
+
+    @property
+    def weekend_encoder(self) -> BaseEncoder | None:
+        """Encoder for weekend flag."""
+        return self._weekend_encoder
+
+    @property
+    def customdays_encoder(self) -> BaseEncoder | None:
+        """Encoder for custom day groups."""
+        return self._customdays_encoder
+
+    @property
+    def holiday_encoder(self) -> BaseEncoder | None:
+        """Encoder for holidays."""
+        return self._holiday_encoder
+
+    @property
+    def timeofday_encoder(self) -> BaseEncoder | None:
+        """Encoder for time of day."""
+        return self._timeofday_encoder
 
     # ------------------------------------------------------------------ #
     # Initialization (mirrors C++ initialize())
@@ -223,8 +249,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def _initialize(
         self,
         date_params: DateEncoderParameters,
-        rdse_params: RDSEParameters | None = None,
-        scalar_params: ScalarEncoderParameters | None = None,
+        rdse_params: RDSEParameters | None,
+        scalar_params: ScalarEncoderParameters | None,
     ) -> None:
         """Configure encoders according to the supplied parameters."""
 
@@ -665,12 +691,15 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
 if __name__ == "__main__":
     params = DateEncoderParameters(
-        season_width=5,
-        day_of_week_width=2,
-        weekend_width=2,
-        holiday_width=2,
-        time_of_day_width=4,
-        time_of_day_radius=4.0,
+        season_width=10,
+        season_radius=91.5,
+        day_of_week_width=0,
+        day_of_week_radius=1.0,
+        weekend_width=0,
+        holiday_width=0,
+        holiday_dates=[[12, 25]],
+        time_of_day_width=0,
+        time_of_day_radius=1.0,
         custom_width=2,
         custom_days=["Monday", "Mon,Wed,Fri"],
         rdse_used=False,
@@ -681,3 +710,10 @@ if __name__ == "__main__":
     encoder.encode(sample_dt, output)
     print("Encoder output size:", encoder.size)
     print("Active indices:", output.get_sparse())
+
+    """Test the base DateEncoder with default parameters."""
+    date_encoder = DateEncoder()
+    base_output = SDR(dimensions=[date_encoder.size])
+    date_encoder.encode(sample_dt, base_output)
+    print("Base Encoder output size:", date_encoder.size)
+    print("Active indices:", base_output.get_sparse())

@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import List
 
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from psu_capstone.encoder_layer.rdse import RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
 from psu_capstone.sdr_layer.sdr import SDR
 
 
@@ -58,9 +60,10 @@ def do_date_value_cases(encoder: DateEncoder, cases: List[DateValueCase]) -> Non
 
 
 def test_season():
-    params = DateEncoderParameters(season_width=5, rdse_used=False)
-    encoder = DateEncoder(params, dimensions=[1, 5])
 
+    date_params = DateEncoderParameters(season_width=5, rdse_used=False)
+
+    encoder = DateEncoder(date_params, scalar_params=None, rdse_params=None, dimensions=[1, 5])
     cases = [
         # date/time                            bucket   expected output
         DateValueCase([2020, 1, 1, 0, 0], [0.0], [0, 1, 2, 3, 4]),  # New Year's Day, midnight
