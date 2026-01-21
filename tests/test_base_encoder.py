@@ -10,7 +10,7 @@ from psu_capstone.sdr_layer.sdr import SDR
 def base_encoder_instance() -> BaseEncoder:
     """Fixture to create a BaseEncoder instance for testing."""
 
-    # Arrange
+    # Arrange @mock
     class TestEncoder(BaseEncoder):
         def encode(self, input_value, output_sdr: SDR) -> None:
             """Dummy encode method for testing."""

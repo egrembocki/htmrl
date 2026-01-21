@@ -3,7 +3,7 @@ import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import List, override
+from typing import override
 
 import mmh3
 
@@ -24,39 +24,39 @@ from psu_capstone.sdr_layer.sdr import SDR
 @dataclass
 class RDSEParameters:
 
-    size: int
+    size: int = 2048
     """
     * Member "size" is the total number of bits in the encoded output SDR.
     """
-    active_bits: int
+    active_bits: int = 40
     """
     * Member "activeBits" is the number of true bits in the encoded output SDR.
     """
-    sparsity: float
+    sparsity: float = 0.0
     """
     * Member "sparsity" is the fraction of bits in the encoded output which this
     * encoder will activate. This is an alternative way to specify the member
     * "activeBits".
     """
-    radius: float
+    radius: float = 0.0
     """
     * Member "radius" Two inputs separated by more than the radius have
     * non-overlapping representations. Two inputs separated by less than the
     * radius will in general overlap in at least some of their bits. You can
     * think of this as the radius of the input.
     """
-    resolution: float
+    resolution: float = 1.0
     """
     * Member "resolution" Two inputs separated by greater than, or equal to the
     * resolution will in general have different representations.
     """
-    category: bool
+    category: bool = False
     """
     * Member "category" means that the inputs are enumerated categories.
     * If true then this encoder will only encode unsigned integers, and all
     * inputs will have unique / non-overlapping representations.
     """
-    seed: int
+    seed: int = 42
     """
     * Member "seed" forces different encoders to produce different outputs, even
     * if the inputs and all other parameters are the same.  Two encoders with the
@@ -81,7 +81,9 @@ class RDSEParameters:
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Random Distributed Scalar Encoder (RDSE) implementation."""
 
-    def __init__(self, parameters: RDSEParameters, dimensions: List[int] | None = None):
+    def __init__(
+        self, parameters: RDSEParameters = RDSEParameters(), dimensions: list[int] | None = None
+    ):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -99,6 +101,63 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     Encodes an input value into an SDR with a random distributed scalar encoder.
     We employ the murmur hashing.
     """
+
+    # Properties
+    @property
+    def size(self) -> int:
+        return self._size
+
+    @size.setter
+    def size(self, value: int) -> None:
+        self._size = value
+
+    @property
+    def active_bits(self) -> int:
+        return self._active_bits
+
+    @active_bits.setter
+    def active_bits(self, value: int) -> None:
+        self._active_bits = value
+
+    @property
+    def sparsity(self) -> float:
+        return self._sparsity
+
+    @sparsity.setter
+    def sparsity(self, value: float) -> None:
+        self._sparsity = value
+
+    @property
+    def radius(self) -> float:
+        return self._radius
+
+    @radius.setter
+    def radius(self, value: float) -> None:
+        self._radius = value
+
+    @property
+    def resolution(self) -> float:
+        return self._resolution
+
+    @resolution.setter
+    def resolution(self, value: float) -> None:
+        self._resolution = value
+
+    @property
+    def category(self) -> bool:
+        return self._category
+
+    @category.setter
+    def category(self, value: bool) -> None:
+        self._category = value
+
+    @property
+    def seed(self) -> int:
+        return self._seed
+
+    @seed.setter
+    def seed(self, value: int) -> None:
+        self._seed = value
 
     @override
     def encode(self, input_value: float, output_sdr: SDR) -> None:
@@ -191,7 +250,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 if __name__ == "__main__":
     # Tests
     params = RDSEParameters(
-        size=1000, active_bits=20, sparsity=0.0, radius=10, resolution=0, category=False, seed=1
+        size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e1 = RandomDistributedScalarEncoder(params)
     o1 = SDR([e1.size])
@@ -205,16 +264,17 @@ if __name__ == "__main__":
     print(o2.get_sparse())
 
     params2 = RDSEParameters(
-        size=1000, active_bits=20, sparsity=0.0, radius=10, resolution=0, category=False, seed=1
+        size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e3 = RandomDistributedScalarEncoder(params2)
     o3 = SDR([e3.size])
     e3.encode(10.0, o3)
     print(o3.get_sparse())
-    """encoder = RandomDistributedScalarEncoder(params)
+
+    encoder = RandomDistributedScalarEncoder()
     output = SDR([encoder.size])
     encoder.encode(10.0, output)
     print(output.get_sparse())
     output2 = SDR([encoder.size])
     encoder.encode(10.0, output2)
-    print(output2.get_sparse())"""
+    print(output2.get_sparse())
