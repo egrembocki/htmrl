@@ -141,7 +141,7 @@ class ScalarEncoder(BaseEncoder[int]):
     """
 
     @override
-    def encode(self, input_value: int, output_sdr: SDR) -> None:
+    def encode(self, input_value: int | float, output_sdr: SDR) -> None:
         assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
 
         if math.isnan(input_value):
@@ -150,7 +150,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
         elif self._clip_input:
             if self._periodic:
-                """TODO: implement modlus to inputs"""
+
                 input_value = input_value % self._maximum
                 # raise NotImplementedError("Periodic input clipping not implemented.")
             else:

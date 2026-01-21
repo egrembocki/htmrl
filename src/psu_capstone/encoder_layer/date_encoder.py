@@ -29,16 +29,14 @@ Usage:
 from __future__ import annotations
 
 import copy
+import enum
 import math
 import time
-from contextlib import redirect_stderr
 from dataclasses import dataclass, field
 from datetime import datetime
-from re import S
-from typing import Dict, List, override
+from typing import override
 
 import pandas as pd
-from sympy import rad
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -122,7 +120,7 @@ class DateEncoderParameters:
     holiday_width: int = 0
     """Number of active bits for holiday encoding."""
 
-    holiday_dates: List[List[int]] = field(default_factory=lambda: [[12, 25]])
+    holiday_dates: list[list[int]] = field(default_factory=lambda: [[12, 25]])
     """List of holidays as [month, day] or [year, month, day]."""
 
     # Time of day: 0..24 hours
@@ -136,7 +134,7 @@ class DateEncoderParameters:
     custom_width: int = 0
     """Number of active bits for custom day groups."""
 
-    custom_days: List[str] = field(default_factory=list)
+    custom_days: list[str] = field(default_factory=list)
     """List of custom day group strings (e.g., ["mon,wed,fri"])."""
 
     rdse_used: bool = True
@@ -145,7 +143,7 @@ class DateEncoderParameters:
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]):
     """
-    Python port of the HTM DateEncoder, using the existing ScalarEncoder + SDR.
+    Python port of the HTM DateEncoder, using the existing rdse + SDR.
     Encodes up to 6 attributes of a timestamp into one SDR:
 
       - season       (day-of-year)
@@ -156,12 +154,20 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
       - timeOfDay
     """
 
+    # !!enum!! type constants for indices
+    SEASON = 0
+    DAYOFWEEK = 1
+    WEEKEND = 2
+    CUSTOM = 3
+    HOLIDAY = 4
+    TIMEOFDAY = 5
+
     def __init__(
         self,
         date_params: DateEncoderParameters,
-        rdse_params: RDSEParameters,
-        scalar_params: ScalarEncoderParameters,
-        dimensions: List[int] | None = None,
+        rdse_params: RDSEParameters | None = None,
+        scalar_params: ScalarEncoderParameters | None = None,
+        dimensions: list[int] | None = None,
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.
@@ -174,14 +180,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             ValueError: If custom_days is specified but empty, or if no widths are provided.
         """
 
-        # constants
-        self._season = 4
-        self._day_of_week = 1
-        self._week_end = 1
-        self._custom = 3
-        self._holiday_encoder_idx = 4
-        self._time_of_day_idx = 5
-
         # nested parameters
         self._rdse_params = copy.deepcopy(rdse_params)
         self._scalar_params = copy.deepcopy(scalar_params)
@@ -191,9 +189,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         """DateEncoderParameters: Configuration parameters for the encoder."""
         self._customDays: set[int] = set()
         """Set of integer day indices for custom days."""
-        self._bucketMap: Dict[int, int] = {}
+        self._bucketMap: dict[int, int] = {}
         """Mapping from feature index to bucket position."""
-        self._buckets: List[float] = []
+        self._buckets: list[float] = []
         """List of bucket values for each feature."""
         self._size: int = 0
         """Total number of bits DateEncoder."""
@@ -218,55 +216,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._initialize(self._date_params, self._rdse_params, self._scalar_params)
         super().__init__(dimensions, self._size)
 
-    # getters -- setters
-    @property
-    def season(self) -> int:
-        return self._season
-
-    @season.setter
-    def season(self, value: int) -> None:
-        self._season = value
-
-    @property
-    def day_of_week(self) -> int:
-        return self._day_of_week
-
-    @day_of_week.setter
-    def day_of_week(self, value: int) -> None:
-        self._day_of_week = value
-
-    @property
-    def week_end(self) -> int:
-        return self._week_end
-
-    @week_end.setter
-    def week_end(self, value: int) -> None:
-        self._week_end = value
-
-    @property
-    def custom(self) -> int:
-        return self._custom
-
-    @custom.setter
-    def custom(self, value: int) -> None:
-        self._custom = value
-
-    @property
-    def holiday_encoder_idx(self) -> int:
-        return self._holiday_encoder_idx
-
-    @holiday_encoder_idx.setter
-    def holiday_encoder_idx(self, value: int) -> None:
-        self._holiday_encoder_idx = value
-
-    @property
-    def time_of_day(self) -> int:
-        return self._time_of_day_idx
-
-    @time_of_day.setter
-    def time_of_day(self, value: int) -> None:
-        self._time_of_day_idx = value
-
     # ------------------------------------------------------------------ #
     # Initialization (mirrors C++ initialize())
     # ------------------------------------------------------------------ #
@@ -274,10 +223,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def _initialize(
         self,
         date_params: DateEncoderParameters,
-        rdse_params: RDSEParameters | None,
-        scalar_params: ScalarEncoderParameters | None,
+        rdse_params: RDSEParameters | None = None,
+        scalar_params: ScalarEncoderParameters | None = None,
     ) -> None:
-        """Configure scalar encoders according to the supplied parameters."""
+        """Configure encoders according to the supplied parameters."""
 
         args = date_params
         size = 0
@@ -320,7 +269,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
                     self._season_encoder = ScalarEncoder(scalar_params)
 
-            self._bucketMap[self.season] = len(self._buckets)
+            self._bucketMap[self.SEASON] = len(self._buckets)
             self._buckets.append(0.0)
             size += self._season_encoder.size
 
@@ -363,7 +312,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
                     self._dayofweek_encoder = ScalarEncoder(scalar_params)
 
-            self._bucketMap[self.day_of_week] = len(self._buckets)
+            self._bucketMap[self.DAYOFWEEK] = len(self._buckets)
             self._buckets.append(0.0)
             size += self._dayofweek_encoder.size
 
@@ -403,7 +352,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
                     self._weekend_encoder = ScalarEncoder(scalar_params)
 
-            self._bucketMap[self.week_end] = len(self._buckets)
+            self._bucketMap[self.WEEKEND] = len(self._buckets)
             self._buckets.append(0.0)
             size += self._weekend_encoder.size
 
@@ -469,7 +418,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
                     self._customdays_encoder = ScalarEncoder(scalar_params)
 
-            self._bucketMap[self.custom] = len(self._buckets)
+            self._bucketMap[self.CUSTOM] = len(self._buckets)
             self._buckets.append(0.0)
             size += self._customdays_encoder.size
 
@@ -516,7 +465,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
                     self._holiday_encoder = ScalarEncoder(scalar_params)
 
-            self._bucketMap[self._holiday_encoder_idx] = len(self._buckets)
+            self._bucketMap[self.HOLIDAY] = len(self._buckets)
             self._buckets.append(0.0)
             size += self._holiday_encoder.size
 
@@ -557,7 +506,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 else:
                     self._timeofday_encoder = ScalarEncoder(scalar_params)
 
-            self._bucketMap[self._time_of_day_idx] = len(self._buckets)
+            self._bucketMap[self.TIMEOFDAY] = len(self._buckets)
             self._buckets.append(0.0)
             size += self._timeofday_encoder.size
 
@@ -592,7 +541,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             raise TypeError(f"Unsupported type for DateEncoder.encode: {type(input_value)}")
 
         # Collect per-attribute SDRs to later concatenate
-        sdrs: List[SDR] = []
+        sdrs: list[SDR] = []
 
         # --- Season: day of year (0-based) ---
         if self._season_encoder is not None:
@@ -601,7 +550,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             self._season_encoder.encode(day_of_year, s)
             # bucket index: floor(day / radius)
             bucket_idx = math.floor(day_of_year / self._season_encoder._radius)
-            self._buckets[self._bucketMap[self.season]] = float(bucket_idx)
+            self._buckets[self._bucketMap[self.SEASON]] = float(bucket_idx)
 
             sdrs.append(s)
 
@@ -616,7 +565,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             self._dayofweek_encoder.encode(day_of_week, s)
             radius = max(self._dayofweek_encoder._radius, 1e-9)
             bucket_val = day_of_week - math.fmod(day_of_week, radius)
-            self._buckets[self._bucketMap[self.day_of_week]] = bucket_val
+            self._buckets[self._bucketMap[self.DAYOFWEEK]] = bucket_val
 
             sdrs.append(s)
 
@@ -633,7 +582,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 val = 0.0
             s = SDR(dimensions=[self._weekend_encoder._size])
             self._weekend_encoder.encode(val, s)
-            self._buckets[self._bucketMap[self.week_end]] = val
+            self._buckets[self._bucketMap[self.WEEKEND]] = val
 
             sdrs.append(s)
 
@@ -643,7 +592,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             custom_val = 1.0 if t.tm_wday in self._customDays else 0.0
             s = SDR(dimensions=[self._customdays_encoder._size])
             self._customdays_encoder.encode(custom_val, s)
-            self._buckets[self._bucketMap[self.custom]] = custom_val
+            self._buckets[self._bucketMap[self.CUSTOM]] = custom_val
 
             sdrs.append(s)
 
@@ -671,7 +620,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             raise RuntimeError("DateEncoder misconfigured: no sub-encoders enabled.")
 
         # Concatenate SDRs into `output`
-        all_sparse: List[int] = []
+        all_sparse: list[int] = []
         offset = 0
         for s in sdrs:
             for idx in s.get_sparse():
@@ -686,7 +635,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         seconds_per_day = 86400.0
         input_ts = time.mktime(t)
 
-        for h in self._parameters.holiday_dates:
+        for h in self._date_params.holiday_dates:
             if len(h) == 3:
                 year, mon, day = h
             else:
@@ -716,17 +665,19 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
 if __name__ == "__main__":
     params = DateEncoderParameters(
-        season_width=10,
-        day_of_week_width=5,
-        weekend_width=3,
-        holiday_width=4,
-        time_of_day_width=6,
-        custom_width=3,
-        custom_days=["mon,wed,fri"],
+        season_width=5,
+        day_of_week_width=2,
+        weekend_width=2,
+        holiday_width=2,
+        time_of_day_width=4,
+        time_of_day_radius=4.0,
+        custom_width=2,
+        custom_days=["Monday", "Mon,Wed,Fri"],
         rdse_used=False,
     )
     encoder = DateEncoder(params)
     output = SDR(dimensions=[encoder._size])
-    encoder.encode(datetime.now(), output)
-    print("Output size:", output.size)
+    sample_dt = datetime(2019, 12, 11, 14, 45)
+    encoder.encode(sample_dt, output)
+    print("Encoder output size:", encoder.size)
     print("Active indices:", output.get_sparse())

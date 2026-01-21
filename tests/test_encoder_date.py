@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import List
 
@@ -46,7 +47,7 @@ def do_date_value_cases(encoder: DateEncoder, cases: List[DateValueCase]) -> Non
         ts = _to_timestamp(c.time)
 
         actual = SDR(dimensions=[encoder._size])
-        encoder.encode(ts, actual)
+        encoder.encode(time.localtime(ts), actual)
 
         assert encoder._buckets == c.bucket
 
@@ -58,7 +59,7 @@ def do_date_value_cases(encoder: DateEncoder, cases: List[DateValueCase]) -> Non
 
 def test_season():
     params = DateEncoderParameters(season_width=5, rdse_used=False)
-    encoder = DateEncoder(params, [1, 5])
+    encoder = DateEncoder(params, dimensions=[1, 5])
 
     cases = [
         # date/time                            bucket   expected output
@@ -78,7 +79,7 @@ def test_season():
 
 def test_day_of_week():
     params = DateEncoderParameters(day_of_week_width=2, rdse_used=False)
-    encoder = DateEncoder(params, [1, 2])
+    encoder = DateEncoder(params, dimensions=[1, 2])
 
     cases = [
         # date/time                           bucket   expected
@@ -99,7 +100,7 @@ def test_day_of_week():
 def test_weekend():
     # Weekend defined as Fri after noon until Sun midnight
     params = DateEncoderParameters(weekend_width=2, rdse_used=False)
-    encoder = DateEncoder(params, [1, 2])
+    encoder = DateEncoder(params, dimensions=[1, 2])
 
     cases = [
         # date/time                          bucket   expected
@@ -122,7 +123,7 @@ def test_holiday():
     params = DateEncoderParameters(
         holiday_width=4, holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]], rdse_used=False
     )
-    encoder = DateEncoder(params, [1, 4])
+    encoder = DateEncoder(params, dimensions=[1, 4])
 
     cases = [
         # date/time                           bucket    expected
@@ -145,7 +146,7 @@ def test_holiday():
 
 def test_time_of_day():
     params = DateEncoderParameters(time_of_day_width=4, time_of_day_radius=4.0, rdse_used=False)
-    encoder = DateEncoder(params, [1, 4])
+    encoder = DateEncoder(params, dimensions=[1, 4])
 
     cases = [
         # date/time                             bucket    expected
@@ -168,7 +169,7 @@ def test_custom_day():
     params = DateEncoderParameters(
         custom_width=2, custom_days=["Monday", "Mon, Wed, Fri"], rdse_used=False
     )
-    encoder = DateEncoder(params, [1, 2])
+    encoder = DateEncoder(params, dimensions=[1, 2])
 
     cases = [
         # date/time                          bucket   expected
@@ -200,7 +201,7 @@ def test_combined():
         time_of_day_radius=4.0,
         rdse_used=False,
     )
-    encoder = DateEncoder(params, [1, 17])
+    encoder = DateEncoder(params, dimensions=[1, 17])
 
     cases = [
         DateValueCase(
