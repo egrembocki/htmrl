@@ -89,7 +89,7 @@ class DateEncoderParameters:
     """
 
     # Season: day of year (0..366)
-    season_width: int = 0
+    season_width: int = 366
     """Number of active bits for season (day of year). how many bits to apply to season
        Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
 
@@ -97,32 +97,32 @@ class DateEncoderParameters:
     """Radius for season encoding, in days (default ~4 seasons) days per season."""
 
     # Day of week: Monday=0, Tuesday=1, ... (C++ maps from tm_wday)
-    day_of_week_width: int = 0
+    day_of_week_width: int = 7
     """Number of active bits for day of week, how many bits to apply to day of week."""
 
     day_of_week_radius: float = 1.0
     """Radius for day of week encoding, every day is a separate bucket."""
 
     # Weekend flag (0/1, Fri 6pm through Sun midnight)
-    weekend_width: int = 0
+    weekend_width: int = 1
     """Number of active bits for weekend flag."""
 
     # Holiday: boolean-ish with ramp, default dates = [[12, 25]] (month, day)
-    holiday_width: int = 0
+    holiday_width: int = 1
     """Number of active bits for holiday encoding."""
 
     holiday_dates: list[list[int]] = field(default_factory=lambda: [[12, 25]])
     """List of holidays as [month, day] or [year, month, day]."""
 
     # Time of day: 0..24 hours
-    time_of_day_width: int = 0
+    time_of_day_width: int = 24
     """Number of active bits for time of day."""
 
-    time_of_day_radius: float = 4.0
+    time_of_day_radius: float = 1.0
     """Radius for time of day encoding, in hours."""
 
     # Custom day groups (e.g. ["mon,wed,fri"])
-    custom_width: int = 0
+    custom_width: int = 5
     """Number of active bits for custom day groups."""
 
     custom_days: list[str] = field(default_factory=lambda: ["mon,tue,wed,thu,fri"])
