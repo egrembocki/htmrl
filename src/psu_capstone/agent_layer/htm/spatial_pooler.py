@@ -1,7 +1,28 @@
-"""Spatial Pooler: maps input SDRs to active columns."""
+"""HTM Spatial Pooler (SP): maps input SDRs to a stable set of active columns.
+
+Overview:
+- The SP connects columns to the input space via proximal synapses and selects a
+  sparse subset of columns (active columns) that best represent the current input,
+  maintaining sparsity and topological stability.
+- Columns compute overlap with the input (count of active connected synapses),
+  then local inhibition selects winners in neighborhoods based on desired activity.
+- Boosting and duty cycles promote fairness so under-represented columns become
+  more likely to win over time.
+
+Key flow:
+1) combine_input_fields: Normalize/concatenate multi-field inputs into a single binary vector.
+2) compute_overlap (per Column): Overlap = active connected synapses * boost (if above MIN_OVERLAP).
+3) _inhibition: Local competition picks winners using neighborhood overlap ranking.
+4) learning_phase: Adjust synapse permanence (Hebbian-like) and refresh connected_synapses.
+
+Outputs:
+- A binary mask of active columns and the list of active Column objects.
+"""
 
 # htm_core/spatial_pooler.py
 from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -16,7 +37,18 @@ from psu_capstone.agent_layer.htm.synapse import Synapse
 
 
 class SpatialPooler:
-    """Spatial Pooler: maps input SDRs to active columns."""
+    """Spatial Pooler: maps input SDRs to active columns.
+
+    Responsibilities:
+    - Initialize columns and their proximal synapses.
+    - Combine multi-field inputs into a single SDR.
+    - Compute per-column overlap and perform local inhibition to select winners.
+    - Adapt synapse permanence during learning to stabilize representations.
+
+    Notes:
+    - input_space_size must match the length of the combined input.
+    - inhibition_radius controls the neighborhood size for local competition.
+    """
 
     _input_field: np.ndarray | list[int]
     _input_composite: np.ndarray | list[int] | list[np.ndarray] | dict[str, int]
@@ -28,6 +60,18 @@ class SpatialPooler:
         initial_synapses_per_column: int,
         random_seed: int = 0,
     ) -> None:
+        """Create an SP region with columns and random proximal synapses.
+
+        Parameters:
+        - input_space_size: Size of the flattened input SDR after field combination.
+        - column_count: Total number of columns in the region (assumed square grid for positioning).
+        - initial_synapses_per_column: Number of potential proximal synapses per column.
+        - random_seed: Seed for deterministic initialization.
+
+        Behavior:
+        - Columns are positioned on a 2D grid.
+        - Potential synapses are randomly assigned to input indices with initial permanence.
+        """
         self.input_space_size: int = int(input_space_size)
         self.column_count: int = column_count
         self.random_seed: int = random_seed
@@ -74,7 +118,16 @@ class SpatialPooler:
     # ---------- Input combination & field metadata ----------
 
     def combine_input_fields(
-        self, input_vector: np.ndarray | list[int] | list[np.ndarray] | dict[str, int]
+        self,
+        input_vector: (
+            np.ndarray
+            | list[int]
+            | list[list[Any]]
+            | list[np.ndarray]
+            | dict[str, int]
+            | dict[str, np.ndarray]
+            | dict[str, list[Any]]
+        ),
     ) -> np.ndarray:
         """Prepare / combine input fields into a single binary numpy array."""
         if isinstance(input_vector, dict):
@@ -124,7 +177,12 @@ class SpatialPooler:
         return cols
 
     def _assign_column_fields(self) -> None:
-        """Assign each column a dominant field based on connected synapse source indices."""
+        """Assign each column a dominant field based on connected synapse source indices.
+
+        Purpose:
+        - For multi-field inputs, track which field primarily drives each column to
+          aid diagnostics or downstream processing.
+        """
         if not self.field_ranges:
             return
         inv_order = {name: i for i, name in enumerate(self.field_order)}
@@ -156,8 +214,14 @@ class SpatialPooler:
     ) -> tuple[np.ndarray, list[Column]]:
         """Compute active columns given an input SDR.
 
+        Process:
+        - Combine input fields into a single array.
+        - Ask each Column to compute its overlap.
+        - Apply local inhibition with the given radius to select winners.
+        - Return the binary mask and list of active columns.
+
         Returns:
-            (mask, active_columns_list)
+        - (mask, active_columns_list)
         """
         combined = self.combine_input_fields(input_vector)
         for c in self.columns:
@@ -223,6 +287,11 @@ class SpatialPooler:
         _ = self.average_receptive_field_size()
 
     def average_receptive_field_size(self) -> float:
+        """Compute average span of connected input indices across columns.
+
+        Returns:
+        - float: Average receptive field size among columns with at least one connected synapse.
+        """
         total_receptive_field_size = 0
         count = 0
         for c in self.columns:

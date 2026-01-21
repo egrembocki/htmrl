@@ -29,14 +29,14 @@ def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b,c\n1,2,3\n4,5,6\n")
-    required = ["timestamp", "a", "b", "c"]
+    required = ["a", "b", "c"]
 
     # Act
     df = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
     assert list(df.columns) == required
-    assert df.shape == (2, 4)
+    assert df.shape == (2, 3)
     assert df.loc[0, ["a", "b", "c"]].values.tolist() == [1, 2, 3]  # type: ignore
 
 
@@ -46,7 +46,7 @@ def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> N
     xlsx_path = temp_path / "sample.xlsx"
     df_in = pd.DataFrame({"a": [10, 20], "b": [30, 40]})
     df_in.to_excel(xlsx_path, index=False)
-    required = ["timestamp", "a", "b"]
+    required = ["a", "b"]
 
     # Act
     df = handler.input_data(str(xlsx_path), required_columns=required)
@@ -63,14 +63,14 @@ def test_load_input_data_excel_xls(temp_path: Path, handler: InputHandler) -> No
     xls_path = temp_path / "sample.xls"
     df_in = pd.DataFrame({"a": [1], "b": [2]})
     df_in.to_excel(xls_path, index=False)
-    required = ["timestamp", "a", "b"]
+    required = ["a", "b"]
 
     # Act
     df = handler.input_data(str(xls_path), required_columns=required)
 
     # Assert
     assert list(df.columns) == required
-    assert df.shape == (1, 3)
+    assert df.shape == (1, 2)
     assert df.loc[0, "a"] == 1
 
 
@@ -80,7 +80,7 @@ def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
     json_path = temp_path / "sample.json"
     df_in = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df_in.to_json(json_path, orient="records")
-    required = ["timestamp", "a", "b"]
+    required = ["a", "b"]
 
     # Act
     df = handler.input_data(str(json_path), required_columns=required)
@@ -101,11 +101,11 @@ def test_load_input_data_txt_returns_dataframe_of_lines(
     txt_path.write_text("".join(lines))
 
     # Act
-    df = handler.input_data(str(txt_path), required_columns=["timestamp", "value"])
+    df = handler.input_data(str(txt_path), required_columns=["value"])
 
     # Assert
-    assert list(df.columns) == ["timestamp", "value"]
-    assert df.shape == (len(lines), 2)
+    assert list(df.columns) == ["value"]
+    assert df.shape == (len(lines), 1)
     assert df["value"].tolist() == lines
 
 

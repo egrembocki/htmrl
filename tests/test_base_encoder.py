@@ -3,7 +3,7 @@
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.encoder_layer.sdr import SDR
+from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture

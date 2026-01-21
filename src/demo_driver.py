@@ -24,8 +24,8 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.encoder_layer.sdr import SDR
 from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.sdr_layer.sdr import SDR
 
 # To force browser mode explicitly:
 #   PSU_CAPSTONE_MPL=web /home/millscb/repos/psu-capstone/.venv/bin/python src/demo_driver.py

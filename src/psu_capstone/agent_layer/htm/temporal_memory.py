@@ -1,3 +1,28 @@
+"""HTM Temporal Memory (TM): learns and predicts temporal sequences over columns.
+
+Overview:
+- TM operates over the set of columns produced by the Spatial Pooler (SP).
+- Each column contains multiple cells to represent different temporal contexts.
+- Distal segments on cells aggregate synapses to previously active cells; when
+  enough synapses are active/connected, the segment activates and the cell becomes predictive.
+
+Core phases per timestep:
+1) Active state:
+   - If a column was correctly predicted, only its predictive cells become active.
+   - Otherwise, the column bursts (all its cells become active) and a winner cell is chosen.
+2) Predictive state:
+   - Segments evaluate active synapses against current active cells; cells with
+     sufficiently active segments become predictive for the next timestep.
+3) Learning:
+   - Reinforce segments associated with correct predictions and winning contexts:
+     increase permanence on synapses whose source cells were active, decrease otherwise;
+     grow new synapses to recently active cells (up to NEW_SYNAPSE_MAX).
+   - Punish segments that predicted incorrectly by decreasing permanence.
+
+Outputs:
+- Binary vectors over cells for active/predictive/learning (winner) states.
+"""
+
 # htm_core/temporal_memory.py
 from __future__ import annotations
 
@@ -19,7 +44,17 @@ from psu_capstone.agent_layer.htm.segment import Segment
 
 
 class TemporalMemory:
-    """Temporal Memory: learns transitions between column activations."""
+    """Temporal Memory: learns transitions between column activations.
+
+    Responsibilities:
+    - Maintain per-timestep sets of active, predictive, and winner cells.
+    - Compute active and predictive states from current inputs and learned segments.
+    - Update distal synapse permanence and grow new synapses to encode correct transitions.
+
+    Notes:
+    - cells_per_column controls sequence capacity; more cells allow richer contexts.
+    - Learning thresholds and permanence increments/decays govern stability/sensitivity.
+    """
 
     def __init__(
         self,
@@ -49,6 +84,11 @@ class TemporalMemory:
 
     def step(self, active_columns: list[Column]) -> dict[str, np.ndarray]:
         """Advance TM one time step given the active columns.
+
+        Process:
+        - Filter/validate active columns.
+        - Compute active state, predictive state, and perform learning.
+        - Return binary vectors for active, predictive, and winner (learning) cells.
 
         Returns:
             dict with binary vectors for active_cells, predictive_cells, learning_cells
@@ -99,7 +139,7 @@ class TemporalMemory:
                     if best_cell is None:
                         best_cell = column.cells[0]
                     best_segment = Segment()
-                    best_cell.segments.append(best_segment)
+                    best_cell._segments.append(best_segment)
                 if best_cell is not None:
                     winner_cells_t.add(best_cell)
                 learning_segments_t.add(best_segment)
@@ -110,12 +150,21 @@ class TemporalMemory:
         print(f"[TM] Active state at t={t}: {len(active_cells_t)} cells active.")
 
     def _compute_predictive_state(self) -> None:
+        """Determine cells that become predictive based on active segments.
+
+        Rule:
+        - A cell is predictive at t if any of its segments has at least
+          SEGMENT_ACTIVATION_THRESHOLD active synapses whose source cells are active at t.
+
+        Side effects:
+        - Updates self.predictive_cells[t].
+        """
         t = self.current_t
         active_cells_t = self.active_cells.get(t, set())
         predictive_cells_t: set[Cell] = set()
         for column in self.columns:
             for cell in column.cells:
-                for seg in cell.segments:
+                for seg in cell._segments:
                     if len(seg.active_synapses(active_cells_t)) >= SEGMENT_ACTIVATION_THRESHOLD:
                         predictive_cells_t.add(cell)
                         break
@@ -123,6 +172,17 @@ class TemporalMemory:
         print(f"[TM] Predictive state at t={t}: {len(predictive_cells_t)} cells predictive.")
 
     def _learn(self) -> None:
+        """Apply positive and negative learning to distal segments.
+
+        Steps:
+        - Identify negative segments: segments that were active at t-1 but whose columns did not become active at t.
+        - Reinforce learning segments: increase permanence for synapses whose source cells were active at t-1,
+          decrease permanence otherwise; grow new synapses to recently active cells.
+        - Punish negative segments: decrease permanence.
+
+        Side effects:
+        - Updates self.learning_segments[t], self.negative_segments[t], and synapse permanence.
+        """
         t = self.current_t
         prev_predictive = self.predictive_cells.get(t - 1, set())
         active_columns = {
@@ -189,7 +249,7 @@ class TemporalMemory:
         return mask
 
     def reset_state(self) -> None:
-        """Reset transient TM state; learned segments remain."""
+        """Reset transient TM state while preserving learned segments."""
         self.active_cells.clear()
         self.winner_cells.clear()
         self.predictive_cells.clear()
@@ -208,14 +268,14 @@ class TemporalMemory:
         best_match = -1
 
         for cell in column.cells:
-            if not cell.segments:
+            if not cell._segments:
                 # Prefer unused cell if no better match yet
                 if best_match == -1:
                     best_cell = cell
                     best_segment = None
                     best_match = 0
                 continue
-            for seg in cell.segments:
+            for seg in cell._segments:
                 match_count = len(seg.matching_synapses(prev_active_cells))
                 if match_count > best_match:
                     best_match = match_count
@@ -226,12 +286,20 @@ class TemporalMemory:
     def _active_segments_of(self, cell: Cell, t: int) -> list[Segment]:
         prev_active_cells = self.active_cells.get(t, set())
         active_list: list[Segment] = []
-        for seg in cell.segments:
+        for seg in cell._segments:
             if len(seg.active_synapses(prev_active_cells)) >= SEGMENT_ACTIVATION_THRESHOLD:
                 active_list.append(seg)
         return active_list
 
     def _reinforce_segment(self, segment: Segment) -> None:
+        """Apply positive learning to a segment: adjust permanence and grow new synapses.
+
+        Steps:
+        - Increase permanence of synapses whose source cells were active at t-1.
+        - Decrease permanence otherwise.
+        - Add up to NEW_SYNAPSE_MAX new synapses to previously active cells not yet connected.
+        - Mark the segment as a sequence_segment.
+        """
         t = self.current_t
         prev_active_cells = self.active_cells.get(t - 1, set())
         # Strengthen existing active synapses, weaken others
@@ -249,6 +317,7 @@ class TemporalMemory:
         segment.sequence_segment = True
 
     def _punish_segment(self, segment: Segment) -> None:
+        """Apply negative learning to a segment: decrease permanence on all synapses."""
         for syn in segment.synapses:
             syn.permanence = max(0.0, syn.permanence - PERMANENCE_DEC)
 
