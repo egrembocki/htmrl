@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 src/batch_encoder_handler_driver.py
+src/code_level_test.py
 src/demo_driver.py
 src/psu_capstone/__init__.py
 src/psu_capstone/log.py
@@ -28,6 +29,7 @@ src/psu_capstone/encoder_layer/category_encoder.py
 src/psu_capstone/encoder_layer/date_encoder.py
 src/psu_capstone/encoder_layer/encoder_handler.py
 src/psu_capstone/encoder_layer/encoder_interface.py
+src/psu_capstone/encoder_layer/fourier_encoder.py
 src/psu_capstone/encoder_layer/rdse.py
 src/psu_capstone/encoder_layer/scalar_encoder.py
 src/psu_capstone/environment/env_interface.py

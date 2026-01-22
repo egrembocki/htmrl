@@ -34,6 +34,11 @@ psu-capstone = "psu_capstone:main"
 [tool.uv]
 package = true
 
+[tool.uv.workspace]
+members = [
+    "try-scipy",
+]
+
 ###############
 #### Tests ####
 ###############
