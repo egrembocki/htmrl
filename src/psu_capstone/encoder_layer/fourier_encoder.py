@@ -82,6 +82,8 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
         """
 
+        input_data = self.trim(input_data)
+
         sample_size = len(input_data)
 
         if sample_size == 1:
@@ -104,6 +106,19 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
     def normalize(self, input: np.ndarray) -> np.ndarray:
 
         return np.ones(4)
+
+    def trim(self, input_data: np.ndarray) -> np.ndarray:
+        """Trim input array into a power of 2 size"""
+        sample_size = len(input_data)
+
+        if sample_size & (sample_size - 1) != 0:
+            target_size = 1 << (sample_size - 1).bit_length()
+            padding = target_size - sample_size
+            input_data = np.pad(input_data, (0, padding), mode="constant")
+
+            self._params.samples = target_size
+
+        return input_data
 
     @override
     def encode(self, input_value: np.ndarray, output_sdr: SDR) -> None:
