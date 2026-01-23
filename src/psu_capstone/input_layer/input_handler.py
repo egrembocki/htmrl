@@ -1,11 +1,4 @@
-"""InputHandler singleton to pass a Data object to the Encoder layer.
-Implemented as a singleton  layer handler for now, with methods to convert raw data to
-DataFrame, sequence, etc.
-
-input_data call paths:
-1. File path input -> _load_from_file -> _to_dataframe -> _raw_to_sequence -> (_apply_required_columns) -> _validate_data -> _data
-2. Non-file input -> _raw_to_sequence -> (_apply_required_columns) -> _validate_data -> _data
-"""
+"""InputHandler for HTM pipeline. Build a Singleton handler that normalizes varied payloads into Encoder-ready DataFrames."""
 
 from __future__ import annotations
 
@@ -22,21 +15,13 @@ from psu_capstone.log import logger
 
 
 class InputHandler:
-    """
-    Canonical entry point for shuttling arbitrary raw inputs into normalized pandas DataFrames.
-
-    The handler is implemented as a singleton so downstream layers can share a consistent view of
-    the most recently ingested dataset (`data`) and its normalized, timestamp-aware representation
-    (`sequence`). All public APIs make sure that:
-
-    * Any supported payload (Python iterables, numpy arrays, pandas objects, strings, files, etc.)
-      is converted into a DataFrame.
-    * Missing values are filled, and required columns are appended or renamed as requested.
-    * Validation runs after every ingestion so consumers always receive structurally sound frames.
-    """
+    """Build an input data manager."""
 
     __instance: ClassVar[InputHandler | None] = None
-    __interface: ClassVar[Any]
+    """Singleton instance"""
+
+    __interface: ClassVar[Any]  # may get removed in future updates -- sonarqube(python:S4487)
+    """Interface for future extension"""
 
     _DATAFRAME_READERS: ClassVar[dict[str, Callable[[str], pd.DataFrame]]] = {
         ".csv": pd.read_csv,
@@ -45,10 +30,13 @@ class InputHandler:
         ".json": pd.read_json,
         ".parquet": pd.read_parquet,
     }
+    """Mapping of file extensions to pandas DataFrame reader functions."""
+
     _TEXT_EXTENSION: ClassVar[str] = ".txt"
+    """File extension for text files."""
 
     def __new__(cls) -> "InputHandler":
-        """Constructor -- Singleton pattern implementation."""
+        """Constructor ::  Singleton pattern implementation."""
 
         if cls.__instance is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
@@ -56,21 +44,13 @@ class InputHandler:
         return cls.__instance
 
     def __init__(self, data: Any = None) -> None:
-        """
-        Initialize the singleton with an optional eager payload.
+        """Constructor :: called after new()."""
 
-        Args:
-            data: Optional raw payload to load immediately. Any supported type is accepted. When
-                  omitted, the handler starts empty and will populate itself on the next `input_data`invocation.
-        """
-
-        self._data: pd.DataFrame = (
-            self._raw_to_sequence(data) if data is not None else pd.DataFrame()
-        )
-        """The normalized input data."""
+        self._data: pd.DataFrame | np.ndarray
+        """The processed input data -> encoder-ready DataFrame."""
 
         self._appended_required_columns: set[str] = set()
-        """Set of required columns that were auto-appended with placeholder values."""
+        """Set of required columns."""
 
     @classmethod
     def get_instance(cls) -> "InputHandler":
@@ -81,8 +61,12 @@ class InputHandler:
         return cls.__instance
 
     @property
-    def data(self) -> pd.DataFrame:
+    def data(self) -> pd.DataFrame | np.ndarray:
         return self._data
+
+    @data.setter
+    def data(self, data: pd.DataFrame | np.ndarray) -> None:
+        self._data = data
 
     @property
     def interface(self) -> Any:
@@ -94,48 +78,30 @@ class InputHandler:
 
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
-    ) -> pd.DataFrame:
-        """
-        Ingest a payload, normalize it, optionally enforce column names, and validate the result.
-
-        The method covers both disk-based and in-memory inputs. When `input_source` is a string,
-        the handler first checks the filesystem; if a matching path exists it is loaded with the
-        appropriate pandas reader. Otherwise the string is treated as a literal payload (e.g.,
-        ISO timestamps). Non-string payloads are passed directly into the normalization pipeline.
-
-        Args:
-            input_source: Raw payload. Can be a path (str), iterable, numpy array, pandas object,
-                          etc.
-            required_columns: Optional ordered list of column names. Existing columns will berenamed in-place to match the
-            provided order; surplus names are
-            appended as placeholder columns filled with NA values.
-
-        Returns:
-            pd.DataFrame: A validated DataFrame that reflects both the normalized sequence and any
-            column requirements.
-
-        Raises:
-            FileNotFoundError: If a string path is supplied but does not exist.
-            TypeError: When the payload type cannot be coerced into a DataFrame.
-            ValueError: If validation fails (missing required columns, all-NaN columns, etc.).
-        """
+    ) -> pd.DataFrame | np.ndarray:
+        """Public :: exposed method to the user. Inputing data into the handler starts here"""
 
         self._appended_required_columns.clear()
 
-        # If input is a string, check if it is a file path
+        # Check if input is a file path
         if isinstance(input_source, os.PathLike):
             raise TypeError("Path-like objects must be converted to strings before ingestion.")
 
         if isinstance(input_source, str):
             file_extension = os.path.splitext(input_source)[1].lower()
             if os.path.exists(input_source):
+
+                # Load data from file :: raw_data -> normalized_frame
                 raw_data = self._load_from_file(input_source)
                 normalized_frame = self._raw_to_sequence(self._to_dataframe(raw_data))
+
                 self._data = normalized_frame
+
                 if required_columns:
                     self._apply_required_columns(required_columns)
                 self._validate_data(required_columns)
                 return self._data
+
             if file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION:
                 raise FileNotFoundError(f"No file found at {input_source}")
 
@@ -146,18 +112,28 @@ class InputHandler:
         self._validate_data(required_columns)
         return self._data
 
-    def _load_from_file(self, filepath: str) -> Any:
-        """Load data from a file with pandas based on file extension.
+    # return a np.ndarray from a pd.DataFrame
+    def to_numpy(self, data: pd.DataFrame | np.ndarray) -> np.ndarray:
+        """Convert a pandas DataFrame to a numpy ndarray.
 
         Args:
-            filepath (str): Path to the input file.
-
+            data (pd.DataFrame | np.ndarray): The input DataFrame or ndarray.
         Returns:
-            object: The loaded data as a DataFrame or other supported type.
-
-        Raises:
-            ValueError: If the filepath is invalid or unsupported.
+            np.ndarray: The converted numpy ndarray.
         """
+
+        validate_data = self._validate_data(dataframe=data)  # type: ignore
+        return (
+            data.to_numpy(
+                copy=False,
+                dtype=np.float64,
+            )
+            if isinstance(data, pd.DataFrame)
+            else data
+        )
+
+    def _load_from_file(self, filepath: str) -> Any:
+        """Read supported files via pandas readers or wrap text files in a DataFrame."""
 
         try:
 
@@ -177,17 +153,8 @@ class InputHandler:
             raise
 
     def _to_dataframe(self, data: Any) -> pd.DataFrame:
-        """Convert input data to a pandas DataFrame, supporting DataFrame, list, dict, bytearray, or numpy ndarray.
+        """Coerce supported containers to a DataFrame and back-fill missing numeric values."""
 
-        Args:
-            data (Any): The input data to convert.
-
-        Returns:
-            pd.DataFrame: The converted DataFrame.
-
-        Raises:
-            TypeError: If the input data type is unsupported.
-        """
         logger.info("converting data to dataframe")
 
         if isinstance(data, pd.DataFrame):
@@ -205,19 +172,7 @@ class InputHandler:
         return dataframe
 
     def _raw_to_sequence(self, data: Any) -> pd.DataFrame:
-        """
-        Convert arbitrary raw input into a timestamp-aware DataFrame.
-
-        This method handles shape detection, coerces nested iterables into multi-column DataFrames,
-        normalizes datetime-like values into ISO strings, and injects a dedicated `timestamp` column
-        when no temporal metadata is present.
-
-        Args:
-            data: Supported raw payload (see `input_data`).
-
-        Returns:
-            pd.DataFrame: Normalized data with at least one timestamp column.
-        """
+        """Turn raw payloads into sequence-friendly DataFrames while flagging temporal values."""
 
         logger.info("converting to sequence")
 
@@ -231,7 +186,9 @@ class InputHandler:
 
             if not contains_sequential:
 
-                logger.info("No temporal data detected; prepended timestamp column.")
+                logger.info(
+                    "No temporal data detected; deferring to downstream sequence detectors."
+                )
 
                 raise ValueError("No temporal data detected in input.")
 
@@ -242,14 +199,7 @@ class InputHandler:
         return normalized_df
 
     def _coerce_dataframe_for_sequence(self, data: Any) -> tuple[pd.DataFrame, bool]:
-        """
-        Coerce raw payloads into DataFrames while tracking whether the data was inherently
-        multi-dimensional.
-
-        Returns:
-            Tuple[pd.DataFrame, bool]: The coerced DataFrame and a flag indicating whether the
-            input provided multiple columns (either originally or due to nested iterables).
-        """
+        """Build a DataFrame from the payload and report whether it was multi-column."""
 
         if isinstance(data, pd.DataFrame):
             df = data
@@ -266,13 +216,8 @@ class InputHandler:
         return pd.DataFrame({"value": iterable}), False
 
     def _coerce_iterable_for_sequence(self, data: Any) -> tuple[list[Any], bool]:
-        """
-        Convert iterable-friendly inputs into plain Python lists so downstream DataFrame creation
-        behaves consistently.
+        """Standardize iterables into lists and detect nested structures."""
 
-        Supported types include pandas Series, numpy arrays, bytes/bytearrays, generic Sequences,
-        dictionaries (values only), and strings (wrapped in a single-element list).
-        """
         if isinstance(data, pd.Series):
             iterable = data.tolist()
         elif isinstance(data, np.ndarray):
@@ -300,14 +245,8 @@ class InputHandler:
         return iterable, is_nested
 
     def _normalize_dataframe_entries(self, dataframe: pd.DataFrame) -> tuple[pd.DataFrame, bool]:
-        """
-        Apply `_normalize_datetime_entry` element-wise across the DataFrame/Series and flag whether
-        any datetime-like content was discovered.
+        """Normalize each value and report whether datetime-like content was encountered."""
 
-        Returns:
-            Tuple[pd.DataFrame, bool]: The normalized DataFrame/Series and a boolean indicating
-            presence of temporal data.
-        """
         contains_sequential = self._validate_sequence(dataframe)
 
         def _normalize(value: Any) -> Any:
@@ -323,10 +262,8 @@ class InputHandler:
         return normalized_df, contains_sequential
 
     def _prepend_timestamp_column(self, dataframe: pd.DataFrame) -> pd.DataFrame:
-        """
-        Ensure the DataFrame has a leading timestamp column by inserting the current ISO timestamp
-        for every row. This complements datasets that lack inherent temporal metadata.
-        """
+        """Insert a leading timestamp column using the current time for each row."""
+
         timestamp_values = [datetime.datetime.now().isoformat() for _ in range(len(dataframe))]
         timestamp_series = pd.Series(
             timestamp_values,
@@ -339,15 +276,8 @@ class InputHandler:
         return dataframe
 
     def _normalize_datetime_entry(self, value: object) -> tuple[object, bool]:
-        """
-        Normalize datetime-like scalars into ISO-8601 strings while signaling detection to callers.
+        """Return ISO-8601 strings for date-like values and note if a conversion occurred."""
 
-        Args:
-            value: Scalar under inspection.
-
-        Returns:
-            Tuple[object, bool]: Possibly-transformed value and whether a datetime was detected.
-        """
         if isinstance(value, pd.Timestamp):
             return value.to_pydatetime().isoformat(), True
         elif isinstance(value, datetime.datetime):
@@ -365,13 +295,8 @@ class InputHandler:
             return value, False
 
     def _fill_missing_values(self, data: Any) -> None:
-        """
-        Impute missing values in-place for several container types.
+        """Apply lightweight mean imputation for numeric containers when practical."""
 
-        * DataFrames: numeric columns receive column means.
-        * Dicts of lists: numeric lists receive mean-substitution; non-numerics are left untouched.
-        * Flat lists: numeric series receive mean substitution analogous to DataFrame columns.
-        """
         logger.info("filling missing values...")
 
         if isinstance(data, pd.DataFrame):
@@ -402,21 +327,8 @@ class InputHandler:
             logger.info("no missing value handling for type: %s", type(data))
 
     def _validate_data(self, required_columns: list[str] | None = None) -> bool:
-        """
-        Run a battery of structural and semantic checks on the current DataFrame.
+        """Verify structure, NaN patterns, duplicates, and caller-specified schemas."""
 
-        Checks include emptiness, all-NaN columns (excluding freshly appended required columns),
-        duplicate columns/rows, mixed dtypes, and presence of caller-specified required columns.
-
-        Args:
-            required_columns: Optional list of columns that must exist post-normalization.
-
-        Returns:
-            bool: True when the frame passes all checks.
-
-        Raises:
-            ValueError: When any invariant is violated.
-        """
         logger.info("validating data...")
         # Check type
         if not isinstance(self._data, pd.DataFrame):
@@ -466,14 +378,8 @@ class InputHandler:
         return True
 
     def _apply_required_columns(self, required_columns: list[str] | None) -> None:
-        """
-        Rename existing columns to align with the requested order and append any missing names.
+        """Align columns to the requested order and append NA placeholders for missing names."""
 
-        The first `len(existing_cols)` entries in `required_columns` replace the current column
-        names, preserving positional intent. Surplus names are added as NA-filled columns and
-        tracked via `_appended_required_columns` so validation can treat them as intentional
-        placeholders.
-        """
         if not required_columns:
             return
 
@@ -502,12 +408,8 @@ class InputHandler:
                 self._appended_required_columns.add(column)
 
     def _validate_sequence(self, data: Any) -> bool:
-        """
-        Validate that the input data can be treated as a sequence.
+        """Placeholder sequence check that only ensures the payload is iterable."""
 
-        Args:
-            data: The input data to validate.
-        """
         # New Algorithm to peek at data set and find a periodic sequence in it
 
         logger.info("validating sequence...")
@@ -521,10 +423,8 @@ class InputHandler:
     def _run_sample_case(
         self, handler: "InputHandler", label: str, payload: Any, required: list[str] | None = None
     ) -> None:
-        """
-        Convenience harness used by the `__main__` smoke tests to repeatedly ingest payloads,
-        print their resulting DataFrames, dtypes, and shapes, and ensure no exceptions occur.
-        """
+        """Exercise the ingestion path for smoke tests and print quick diagnostics."""
+
         print(f"\n=== {label} ===")
         frame = handler.input_data(payload, required)
         print(frame)
