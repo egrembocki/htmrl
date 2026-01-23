@@ -10,7 +10,7 @@ from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.input_layer.improved_input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -25,7 +25,7 @@ def main():
     handler = InputHandler.get_instance()
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(project_root, "data", "sin_wave.csv")
+    data_path = os.path.join(project_root, "data", "easyData.xlsx")
 
     input_data = handler.input_data(input_source=data_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]

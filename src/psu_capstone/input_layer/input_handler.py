@@ -72,6 +72,9 @@ class InputHandler:
         self._appended_required_columns: set[str] = set()
         """Set of required columns that were auto-appended with placeholder values."""
 
+        self._required_columns_context: list[str] = []
+        """Most-recent required_columns list passed to input_data (used for timestamp behavior)"""
+
     @classmethod
     def get_instance(cls) -> "InputHandler":
         """Static access method to get the singleton instance."""
@@ -227,17 +230,17 @@ class InputHandler:
         if is_nested:
             logger.info("Detected multi-column input from nested iterables.")
 
-        try:
-
-            if not contains_sequential:
-
+        # If we did not detect temporal data, only inject a timestamp column when the caller
+        # explicitly requested one (required_columns includes "timestamp").
+        if not contains_sequential:
+            if (
+                isinstance(normalized_df, pd.DataFrame)
+                and "timestamp" in self._required_columns_context
+            ):
+                normalized_df = self._prepend_timestamp_column(normalized_df)
                 logger.info("No temporal data detected; prepended timestamp column.")
-
-                raise ValueError("No temporal data detected in input.")
-
-        except Exception as e:
-
-            logger.error(f"Error normalizing DataFrame entries: {e}")
+            else:
+                logger.info("No temporal data detected; continuing without timestamp column")
 
         return normalized_df
 
@@ -448,7 +451,7 @@ class InputHandler:
 
         # Check for duplicate rows
         if self._data.duplicated().any():
-            logger.warning("DataFrame has duplicate rows.")
+            logger.info("DataFrame has duplicate rows.")
 
         # Check for non-numeric columns
         # This appears to think float64 is not numeric, there may be other data types that are numerical that will be marked as not.
@@ -484,7 +487,7 @@ class InputHandler:
             raise ValueError(f"Duplicate entries in required_columns: {sorted(set(duplicates))}")
 
         # When a required schema is provided, trim any surplus columns first.
-        # This prevents source files (e.g., Excel sheets) with extra/duplicate columns from
+        # This prevents source files with extra/duplicate columns from
         # leaking into the validated DataFrame.
         if self._data.shape[1] > len(required_columns):
             self._data = self._data.iloc[:, : len(required_columns)].copy()
@@ -512,11 +515,13 @@ class InputHandler:
 
         logger.info("validating sequence...")
 
-        # Check if data is a sequence (list, tuple, pd.Series)
-        if not isinstance(data, (list, tuple, pd.Series)):
-            logger.warning("Input data is not a sequence.")
-            return False
-        return True
+        # Treat common containers as acceptable "sequence-like" inputs for our pipeline.
+        # A DataFrame is a valid sequence of rows, and numpy arrays are also iterable.
+        if isinstance(data, (pd.DataFrame, pd.Series, list, tuple, np.ndarray)):
+            return True
+
+        logger.warning("Input data is not a sequence.")
+        return False
 
     def _run_sample_case(
         self, handler: "InputHandler", label: str, payload: Any, required: list[str] | None = None
