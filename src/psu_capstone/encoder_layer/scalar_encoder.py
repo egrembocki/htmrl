@@ -15,7 +15,7 @@
 import copy
 import math
 from dataclasses import dataclass
-from typing import List, override
+from typing import override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.sdr_layer.sdr import SDR
@@ -24,18 +24,18 @@ from psu_capstone.sdr_layer.sdr import SDR
 @dataclass
 class ScalarEncoderParameters:
 
-    minimum: int
+    minimum: int = 0
     """Min and Max
      * Members "minimum" and "maximum" define the range of the input signal.
      * These endpoints are inclusive.
      */"""
-    maximum: int
+    maximum: int = 1000
     """Min and Max
      * Members "minimum" and "maximum" define the range of the input signal.
      * These endpoints are inclusive.
      */"""
 
-    clip_input: bool
+    clip_input: bool = False
     """Whether to clip inputs outside the min/max range.
        /**
      * Member "clipInput" determines whether to allow input values outside the
@@ -44,7 +44,7 @@ class ScalarEncoderParameters:
      * If false, inputs outside of the range will raise an error.
      */"""
 
-    periodic: bool
+    periodic: bool = False
     """Whether the encoder is periodic (circular) or not.
     /**
      * Member "periodic" controls what happens near the edges of the input
@@ -59,7 +59,7 @@ class ScalarEncoderParameters:
      */
     """
 
-    category: bool
+    category: bool = False
     """Whether the encoder is a category encoder.
     /**
      * Member "category" means that the inputs are enumerated categories.
@@ -67,24 +67,24 @@ class ScalarEncoderParameters:
      * inputs will have unique / non-overlapping representations.
      */
     """
-    active_bits: int
+    active_bits: int = 20
     """Number of active bits in the output SDR.
      * Member "activeBits" is the number of true bits in the encoded output SDR.
      * The output encodings will have a contiguous block of this many 1's.
     """
-    sparsity: float
+    sparsity: float = 0.0
     """Sparsity level -- % of active bits.
     * Member "sparsity" is an alternative way to specify the member "activeBits".
     * Sparsity requires that the size to also be specified.
     * Specify only one of: activeBits or sparsity.
     """
-    size: int
+    size: int = 1000
     """Total number of bits in the output SDR.
      /**
      * Member "size" is the total number of bits in the encoded output SDR.
      */
     """
-    radius: float
+    radius: float = 0.0
     """Approximate input range (width) covered by the active bits.
     /**
      * Member "radius" Two inputs separated by more than the radius have
@@ -93,7 +93,7 @@ class ScalarEncoderParameters:
      * think of this as the radius of the input.
      */
     """
-    resolution: float
+    resolution: float = 0.0
     """The smallest difference between two inputs that produces different outputs.
       /**
      * Member "resolution" Two inputs separated by greater than, or equal to the
@@ -115,7 +115,11 @@ class ScalarEncoder(BaseEncoder[int]):
      * $ python -m htm.examples.encoders.scalar_encoder --help
      */"""
 
-    def __init__(self, parameters: ScalarEncoderParameters, dimensions: List[int] | None = None):
+    def __init__(
+        self,
+        parameters: ScalarEncoderParameters = ScalarEncoderParameters(),
+        dimensions: list[int] | None = None,
+    ):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -141,7 +145,7 @@ class ScalarEncoder(BaseEncoder[int]):
     """
 
     @override
-    def encode(self, input_value: int, output_sdr: SDR) -> None:
+    def encode(self, input_value: int | float, output_sdr: SDR) -> None:
         assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
 
         if math.isnan(input_value):
@@ -150,7 +154,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
         elif self._clip_input:
             if self._periodic:
-                """TODO: implement modlus to inputs"""
+
                 input_value = input_value % self._maximum
                 # raise NotImplementedError("Periodic input clipping not implemented.")
             else:
@@ -293,23 +297,25 @@ class ScalarEncoder(BaseEncoder[int]):
 if __name__ == "__main__":
     # Example usage
     p = ScalarEncoderParameters(
-        minimum=10,
-        maximum=20,
+        minimum=0,
+        maximum=1000,
         clip_input=False,
         periodic=False,
         category=False,
-        active_bits=2,
+        active_bits=20,
         sparsity=0.0,
-        size=10,
+        size=1000,
         radius=0.0,
         resolution=0.0,
     )
 
-    encoder3 = ScalarEncoder(p, dimensions=[p.size])
+    encoder = ScalarEncoder(p)
     output = SDR(dimensions=[p.size])
-    encoder3.encode(10, output)
-    encoder3.encode(20, output)
-    print(output)
-    # encoder3.encode(9.9, output) ValueError
-    # encoder3.encode(20.1, output) ValueError
-    print(output)
+    encoder.encode(10, output)
+    encoder.encode(20, output)
+    print(output.get_sparse())
+
+    encoder_default = ScalarEncoder()
+    output_default = SDR(dimensions=[1000])
+    encoder_default.encode(10, output_default)
+    print(output_default.get_sparse())
