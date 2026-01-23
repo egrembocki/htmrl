@@ -82,7 +82,13 @@ class InputHandler:
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
     ) -> pd.DataFrame | np.ndarray:
-        """Public :: exposed method to the user. Inputing data into the handler starts here"""
+        """Public :: exposed method to the user. Inputing data into the handler starts here
+
+        raises:
+            TypeError: If input_source is a path-like object.
+            FileNotFoundError: If a file path is provided but the file does not exist.
+            ValueError: If data validation fails.
+        """
 
         self._appended_required_columns.clear()
 
