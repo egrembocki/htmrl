@@ -1,3 +1,14 @@
+"""
+@Nemunta - NuPic
+* Parameters for the RandomDistributedScalarEncoder (RDSE)
+*
+* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+* of them.
+*
+* Members "radius", "resolution", & "category" are mutually exclusive, specify
+* exactly one of them.
+"""
+
 import copy
 import math
 import random
@@ -9,16 +20,6 @@ import mmh3
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.sdr_layer.sdr import SDR
-
-"""
- * Parameters for the RandomDistributedScalarEncoder (RDSE)
- *
- * Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
- * of them.
- *
- * Members "radius", "resolution", & "category" are mutually exclusive, specify
- * exactly one of them.
-"""
 
 
 @dataclass
@@ -79,7 +80,7 @@ class RDSEParameters:
 
 
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
-    """Random Distributed Scalar Encoder (RDSE) implementation."""
+    """Build a Random Distributed Scalar Encoder."""
 
     def __init__(
         self, parameters: RDSEParameters = RDSEParameters(), dimensions: list[int] | None = None
@@ -96,11 +97,6 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._seed = self._parameters.seed
 
         super().__init__(dimensions, self._size)
-
-    """
-    Encodes an input value into an SDR with a random distributed scalar encoder.
-    We employ the murmur hashing.
-    """
 
     # Properties
     @property
@@ -161,6 +157,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @override
     def encode(self, input_value: float, output_sdr: SDR) -> None:
+        """
+            Encodes an input value into an SDR with a random distributed scalar encoder.
+            We employ the murmur hashing.
+
+        Args:
+            param input_value: The input value to encode.
+            param output_sdr: The output SDR to store the encoded value.
+
+        """
         assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
         if math.isnan(input_value):
             output_sdr.zero()
@@ -248,7 +253,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 if __name__ == "__main__":
-    # Tests
+    # unit Tests
     params = RDSEParameters(
         size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
     )
