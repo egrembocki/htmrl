@@ -44,7 +44,12 @@ class InputHandler:
         return cls.__instance
 
     def __init__(self, data: Any = None) -> None:
-        """Constructor :: called after new()."""
+        """Constructor :: called after new().
+
+        Args:
+            data (Any, optional): Initial data to load into the handler. Defaults to None.
+
+        """
 
         self._data: pd.DataFrame | np.ndarray
         """The processed input data -> encoder-ready DataFrame."""
@@ -131,7 +136,9 @@ class InputHandler:
             np.ndarray: The converted numpy ndarray.
         """
 
-        validate_data = self._validate_data(dataframe=data)  # type: ignore
+        validate_data = self._validate_data(data)  # type: ignore
+        if not validate_data:
+            raise ValueError("Data validation failed; cannot convert to numpy ndarray.")
         return (
             data.to_numpy(
                 copy=False,
@@ -333,7 +340,7 @@ class InputHandler:
         else:
             logger.info("no missing value handling for type: %s", type(data))
 
-    def _validate_data(self, required_columns: list[str] | None = None) -> bool:
+    def _validate_data(self, required_columns: list[str] = []) -> bool:
         """Verify structure, NaN patterns, duplicates, and caller-specified schemas."""
 
         logger.info("validating data...")
@@ -384,7 +391,7 @@ class InputHandler:
         logger.info("data has been validated")
         return True
 
-    def _apply_required_columns(self, required_columns: list[str] | None) -> None:
+    def _apply_required_columns(self, required_columns: list[str] = []) -> None:
         """Align columns to the requested order and append NA placeholders for missing names."""
 
         if not required_columns:
@@ -399,6 +406,7 @@ class InputHandler:
         # When a required schema is provided, trim any surplus columns first.
         # This prevents source files with extra/duplicate columns from
         # leaking into the validated DataFrame.
+
         if self._data.shape[1] > len(required_columns):
             self._data = self._data.iloc[:, : len(required_columns)].copy()
 

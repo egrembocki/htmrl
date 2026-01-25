@@ -220,6 +220,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @season_encoder.setter
     def season_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for season (day of year)."""
+
         self._season_encoder = encoder
 
     @property

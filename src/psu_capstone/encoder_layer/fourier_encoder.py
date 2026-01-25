@@ -17,13 +17,14 @@ from dataclasses import dataclass
 from typing import Any, cast, override
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 from scipy.fft import fft, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder
-from psu_capstone.input_layer.improved_input_handler import InputHandler
+from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
 
@@ -37,7 +38,7 @@ class FourierEncoderParameters:
     parameters:
         samples : total number of samples or bucket size -> N
         size : size of the encoder output SDR
-        start_time_ : start index of the time interval -> integral lower bound
+        start_time : start index of the time interval -> integral lower bound
         stop_time : stop index of the time interval -> integral upper bound
         interval_size : total number of buckets in the time interval -> N
         time_step_n : the curreent value of x at time n -> n
@@ -49,14 +50,17 @@ class FourierEncoderParameters:
     size: int = 2048
     """The size the encoder"""
 
-    start_time_: int = 0
+    start_time: int = 0
     """Start index of the time interval. -> Integral lower bound"""
 
     stop_time: int = 1
     """Stop index of the time interval. -> Integral upper bound"""
 
-    interval_size: int = 1024  # power of 2
-    """The total number of buckets in the time interval. Samples -> N"""
+    period_size: int = 1
+    """The total time period size in seconds."""
+
+    total_samples: int = 2048
+    """Total number of samples in the period -> N"""
 
     time_step_n: int = 0
     """The current value of x at time n. Which time step are we looking for -> n"""
@@ -70,34 +74,56 @@ class FourierEncoderParameters:
 
 
 class FourierEncoder(BaseEncoder[np.ndarray]):
-    """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component."""
+    """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component. Assume that time domain is in seconds.
+
+    Args:
+        parameters (FourierEncoderParameters, optional): Fourier encoder parameters. Defaults to FourierEncoderParameters().
+        dimensions (list[int], optional): List of dimensions for the encoder. Defaults to [].
+    """
 
     def __init__(
         self,
         parameters: FourierEncoderParameters = FourierEncoderParameters(),
         dimensions: list[int] = [],
     ):
-        """Initialize the encoder with optional Fourier parameters and SDR dimensions."""
+        """Initialize the encoder with optional Fourier parameters and encoder dimensions."""
 
         super().__init__(dimensions)
 
         self._params = copy.deepcopy(parameters)
         """Fourier encoder local copy of passed parameters."""
 
+        # Local copies of Parameters for easy access
         self._size = self._params.size
         """Size of the encoder."""
+
+        self._start_time = self._params.start_time
+        """Start time of the time interval."""
+        self._stop_time = self._params.stop_time
+        """Stop time of the time interval."""
+        self._period_size = self._params.period_size
+        """Total time period size in seconds."""
+        self._total_samples = self._params.total_samples
+        """Total number of samples in the period."""
+        self._time_step = self._period_size / self._total_samples
+        """Time step between samples."""
+
+        # might be wrong in some cases
+        self._frequency_resolution = 1.0 / self._period_size
+        """Frequency resolution in Hz."""
+
+        self._time_resolution = self._time_step
+        """Time resolution in seconds."""
+        self._time_step_n = self._params.time_step_n
+        """The current value of x at time n."""
+        self._phase = self._params.phase
+        """Phase shift of the signal in radians."""
+        self._freq_k = self._params.freq_k
+        """The current frequency step in the X_k sum."""
 
         # 2 pi f
         self._omega = 2 * np.pi * self._params.freq_k
         """Angular frequency."""
-
-        self._frequency_resolution: float = self._params.stop_time / self._params.interval_size
-        """Frequency resolution based on time interval and number of samples."""
-
-        self._time_resolution: float = (
-            self._params.stop_time - self._params.start_time_
-        ) / self._params.interval_size
-        """Time resolution based on time interval and number of samples."""
 
         self._bucket_idx: int = 0
         """Current bucket index to track frequency resolution buckets."""
@@ -112,7 +138,7 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
         self._fft_sdrs: list[SDR]
         """List to hold SDRs for each frequency component."""
 
-    def transform(self, time_data: np.ndarray | pd.DataFrame) -> np.ndarray:
+    def transform(self, time_data: np.ndarray) -> np.ndarray:
         """A recursive implementation of the 1D Cooley-Tukey FFT, the input should have a length of power of 2.
 
             O(n log n) time complexity.
@@ -132,7 +158,7 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
         total_samples = len(time_data)
 
-        if total_samples == 1 if isinstance(time_data, np.ndarray) else 0:
+        if total_samples <= 1:
             return cast(np.ndarray, time_data)
 
         else:
@@ -169,7 +195,13 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
             )
 
         elif isinstance(input_data, np.ndarray):
-            input_data = input_data.astype(float)
+            input_data = input_data.astype(float, copy=False)
+
+        else:
+            input_data = np.asarray(input_data, dtype=float)
+
+        # Always operate on a flattened 1D array so FFT math works correctly
+        input_data = np.asarray(input_data, dtype=float).reshape(-1)
 
         total_samples = len(input_data)
 
@@ -185,12 +217,8 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
                     f"  • Original samples: {total_samples}\n"
                     f"  • Target samples:   {target_size}\n"
                     f"  • Zero padding:     {padding}\n"
-                    f"  • Freq resolution:  {self._frequency_resolution:.6f} Hz\n"
-                    f"  • Time resolution:  {self._time_resolution:.6f} s\n"
                 )
             )
-
-            self._params.interval_size = target_size
 
         return copy.deepcopy(input_data)
 
@@ -237,12 +265,15 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
 if __name__ == "__main__":
 
-    from psu_capstone.utils import PROJECT_ROOT
+    # /home/millscb/repos/psu-capstone/data/test.csv
+
+    from psu_capstone.utils import DATA_PATH, PROJECT_ROOT
 
     ih = InputHandler()
 
-    ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv"))
+    df_sine = cast(pd.DataFrame, ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv")))
 
+    """
     sin_wave_60 = np.sin(
         60 * (2 * np.pi - 2) * np.linspace(0, 1, 1024, dtype=float, endpoint=False)
     )
@@ -250,32 +281,46 @@ if __name__ == "__main__":
     sin_wave_90 = np.sin(
         90 * (2 * np.pi - 3) * np.linspace(0, 1, 1024, dtype=float, endpoint=False)
     )
+    """
+    # sin_wave = df_sine.to_numpy(dtype=float, copy=False).flatten()
 
-    sin_wave = sin_wave_60 + sin_wave_90
-
-    # time step is time interval / number of samples
-    time_step = 1 / 1024
+    sample_rate = 5001
+    time_step = 1 / sample_rate
     t = np.arange(0, 1, time_step, dtype=float)
-    fourier_encoder = FourierEncoder()
+    f = 1
+    sin_wave = np.sin(2 * np.pi * f * t)
 
+    sin_wave = ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv"))
+    sin_wave = cast(pd.DataFrame, sin_wave).to_numpy(dtype=float, copy=False).flatten()
+
+    fourier_encoder = FourierEncoder()
     freq_data = fourier_encoder.transform(sin_wave)
 
+    sin_y = sin_wave
+
     plt.figure(figsize=(16, 8))
-    plt.plot(t, sin_wave, "r")  # Plot the sine wave, plot(x, y, 'r') means red line
+    plt.plot(t, sin_y, "r")  # Plot the sine wave, plot(x, y, 'r') means red line
     plt.title("Sine Wave in Time Domain")
     plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
     plt.grid()
     plt.show()
 
+    samples = len(freq_data)
+    samples_n = np.arange(samples)
+    period = samples / sample_rate
+    freq = samples_n / period
+
     # divide spectrum in half due to N/2 symmetry
     freq_data = freq_data[: len(freq_data) // 2]
     freq_data = fourier_encoder._normalize(freq_data)
+    freq = freq[: samples // 2]
 
     plt.figure(figsize=(16, 8))
-    plt.stem(np.abs(freq_data), linefmt="b-", markerfmt="bo", basefmt="r-")
+    plt.stem(freq, np.abs(freq_data), linefmt="b-", markerfmt="bo", basefmt="r-")
+    plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(len(freq_data) // 10))
     plt.title("FFT Magnitude Spectrum")
-    plt.xlabel("Frequency Bin")
+    plt.xlabel("Frequency (Hz)")
     plt.ylabel("Magnitude")
-    plt.grid()
+    plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
     plt.show()
