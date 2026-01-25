@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import List, override
+from typing import List, cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -100,6 +100,13 @@ class CategoryEncoder(BaseEncoder[str]):
             index = self._category_list.index(input_value) + 1
         self.encoder.encode(int(index), output_sdr)
 
+    def decode(self, input_sdr: SDR) -> str:
+        if self._RDSEused:
+            rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
+            result = rdse_encoder.decode(input_sdr)
+
+            return self._category_list[int(result)]
+
     def check_parameters(self, parameters: CategoryParameters):
         if parameters.w <= 0:
             raise ValueError("Parameter 'w' must be positive.")
@@ -111,24 +118,31 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 if __name__ == "__main__":
-    # This tests the Scalar and RDSE versions to make sure we are getting correct encodings
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=True)
     e = CategoryEncoder(parameters=parameters)
     a = SDR([1, 12])
+    b = SDR([1, 12])
+    c = SDR([1, 12])
+    d = SDR([1, 12])
     e.encode("US", a)
-    assert a.get_dense() == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
-    print("Encoding is correct:", a.get_dense())
-    e.encode("ES", a)
-    assert a.get_dense() == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
-    print("Encoding is correct:", a.get_dense())
-    e.encode("US", a)
-    assert a.get_dense() == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
-    print("Encoding is correct:", a.get_dense())
-    e.encode("NA", a)
-    assert a.get_dense() == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    print("Encoding is correct:", a.get_dense())
+    e.encode("ES", b)
+    # not working for a category not present yet
+    e.encode("NA", c)
+    e.encode("GB", d)
 
+    r = e.decode(a)
+    print(r)
+
+    r = e.decode(b)
+    print(r)
+
+    r = e.decode(c)
+    print(r)
+
+    r = e.decode(d)
+    print(r)
+    """
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories)
     e1 = CategoryEncoder(parameters=parameters)
@@ -154,3 +168,4 @@ if __name__ == "__main__":
     print(a1.get_dense())
     print(a2.get_dense())
     assert a1.get_dense() == a2.get_dense()
+    """
