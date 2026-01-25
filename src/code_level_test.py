@@ -18,6 +18,7 @@ if __name__ == "__main__":
     value = 3.14
     output_sdr = SDR([rdse_encoder.size])
     rdse_encoder.encode(value, output_sdr)
+
     # create a default DateEncoder
     date_encoder = DateEncoder()
 
