@@ -23,6 +23,7 @@ from scipy.fft import fft, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder
+from psu_capstone.input_layer.improved_input_handler import InputHandler
 from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
 
@@ -113,7 +114,10 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
     def transform(self, time_data: np.ndarray | pd.DataFrame) -> np.ndarray:
         """A recursive implementation of the 1D Cooley-Tukey FFT, the input should have a length of power of 2.
+
             O(n log n) time complexity.
+
+        Reference:
         https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
 
         Args:
@@ -233,8 +237,19 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
 if __name__ == "__main__":
 
-    sin_wave_60 = np.sin(60 * (2 * np.pi) * np.linspace(0, 1, 1024, dtype=float, endpoint=False))
-    sin_wave_90 = np.sin(90 * (2 * np.pi) * np.linspace(0, 1, 1024, dtype=float, endpoint=False))
+    from psu_capstone.utils import PROJECT_ROOT
+
+    ih = InputHandler()
+
+    ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv"))
+
+    sin_wave_60 = np.sin(
+        60 * (2 * np.pi - 2) * np.linspace(0, 1, 1024, dtype=float, endpoint=False)
+    )
+
+    sin_wave_90 = np.sin(
+        90 * (2 * np.pi - 3) * np.linspace(0, 1, 1024, dtype=float, endpoint=False)
+    )
 
     sin_wave = sin_wave_60 + sin_wave_90
 
