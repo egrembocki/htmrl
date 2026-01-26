@@ -98,6 +98,8 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._seed = self._parameters.seed
         self._sdrs_encoded: list[np.ndarray] = []
         self._input_values_encoded: list[float] = []
+        self.knn: KNeighborsRegressor
+        self.enc: bool = False
 
         super().__init__(dimensions, self._size)
 
@@ -164,16 +166,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._seed = value
 
     @override
-    def encode(self, input_value: float, output_sdr: SDR) -> None:
-        assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
-        if math.isnan(input_value):
-            output_sdr.zero()
-            return
+    def encode(self, input_value: float) -> list[int]:
+        # assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
+        # if math.isnan(input_value):
+        #    output_sdr.zero()
+        #    return
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
         # I am appendding every successful input_value to the local list for knn regressor use.
         self._input_values_encoded.append(input_value)
+        self.enc = True
 
         data = [0] * self.size
 
@@ -201,15 +204,25 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             data[bucket] = 1
         # add the density to the sdrs encoder list for knn regressor use
         self._sdrs_encoded.append(data)
-        output_sdr.set_dense(data)
+        # output_sdr.set_dense(data)
+        return data
 
-    def decode(self, input_sdr: SDR) -> float:
+    def make_knn(self):
         x = np.array(self._sdrs_encoded, dtype=np.uint8)
         y = np.array(self._input_values_encoded, dtype=np.float32)
         knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
         knn.fit(x, y)
+
+    def decode(self, input_sdr: SDR) -> float:
+        # x = np.array(self._sdrs_encoded, dtype=np.uint8)
+        # y = np.array(self._input_values_encoded, dtype=np.float32)
+        # knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
+        # knn.fit(x, y)
+        if self.enc:
+            self.makeKnn()
+            self.enc = False
         query = np.asarray(input_sdr.get_dense(), dtype=np.int8).reshape(1, -1)
-        result = knn.predict(query)
+        result = self.knn.predict(query)
         return result.item()
 
     # After encode we may need a check_parameters method since most of the encoders have this

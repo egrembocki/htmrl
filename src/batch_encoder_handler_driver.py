@@ -31,13 +31,14 @@ def main():
 
     input_data = handler.input_data(input_source=data_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
+
     encoder = RandomDistributedScalarEncoder()
-    output = SDR([encoder.size])
     values = pd.to_numeric(input_data["kw_energy_consumption"], errors="coerce").dropna().tolist()
     train_values, test_values = train_test_split(values, test_size=0.2, shuffle=False)
     for v in train_values:
-        encoder.encode(v, output)
+        encoder.encode(v)
 
+    """
     print("__value_____predicted___error")
     y_true = []
     y_pred = []
@@ -50,18 +51,20 @@ def main():
         y_pred.append(pred)
         error = pred - v
         print(f"{v:7.3f}   {pred:9.3f}   {error:+7.3f}")
-
+    """
+    """
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
     rmse = np.sqrt(np.mean((y_pred - y_true) ** 2))
     print("RMSE:", rmse)
 
-    # print(input_data)
-    # encoder = BatchEncoderHandler(input_data)
-    # sdrs = encoder.build_composite_sdr(input_data, 8)
-    # for sdr in sdrs:
-    #    print(sdr.get_sparse())
-    # sdrs, knn = encoder.create_knn_composite_sdr(input_data, 8)
+    print(input_data)
+    encoder = BatchEncoderHandler(input_data)
+    sdrs = encoder.build_composite_sdr(input_data, 8)
+    for sdr in sdrs:
+        print(sdr.get_sparse())
+    #sdrs, knn = encoder.create_knn_composite_sdr(input_data, 8)
+    """
     """
     # Composite sdr
     start_time = time.perf_counter()
@@ -79,10 +82,11 @@ def main():
     """
     """
     # test on htm proposed flow
-    sdr0 = sdrs[0]
-    dense_input = np.asarray(sdr0.get_dense(), dtype=np.int8)
+    sdrs = encoder._sdrs_encoded
+    sdr0 = encoder._sdrs_encoded[0]     #sdrs[0]
+    dense_input = np.asarray(sdr0, dtype=np.int8)
     input_vector = [dense_input]
-    size = len(sdr0.get_dense())
+    size = len(sdr0)
     sp = SpatialPooler(size, 40, 100)
     mask, active_cols = sp.compute_active_columns(input_vector, inhibition_radius=10)
     print(mask)
@@ -98,16 +102,15 @@ def main():
     #print("Learning cells: ", learning_cells)
     predicted_columns_mask = tm.get_predictive_columns_mask()
     print(predicted_columns_mask)
-    """
-    """
+
     # test on multiple steps
     num_t = 1930
     tm_outputs = []
     tm_prediction_masks = []
     sdr0 = sdrs[0]
-    size = len(sdr0.get_dense())
-    sp = SpatialPooler(size, 200, 200)
-    cells_per_column = 50
+    size = len(sdr0)
+    sp = SpatialPooler(size, 200, 50)
+    cells_per_column = 5
     tm = TemporalMemory(columns=sp.columns, cells_per_column=cells_per_column)
 
     tm_prediction_masks = [None] * len(sdrs)
@@ -115,7 +118,7 @@ def main():
     for t in range(num_t):
         idx = t % len(sdrs)
         sdr = sdrs[idx]
-        dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
+        dense_input = np.asarray(sdr, dtype=np.int8)
         mask, active_cols = sp.compute_active_columns([dense_input], inhibition_radius=10)
         tm_out = tm.step(active_cols)
         m = tm.get_predictive_columns_mask()
@@ -131,7 +134,7 @@ def main():
     for t in range(193):
         idx = t % len(sdrs)
         sdr = sdrs[idx]
-        dense_input = np.asarray(sdr.get_dense(), dtype=np.int8)
+        dense_input = np.asarray(sdr, dtype=np.int8)
         mask, active_cols = sp.compute_active_columns([dense_input], inhibition_radius=10)
 
         tm.step(active_cols)
@@ -145,9 +148,9 @@ def main():
 
     for pred, actual in zip(predictions, actual_values):
         print(f"Actual next step: {actual}, Prediction: {pred}")
-
-    # Tests the dict list of column and sdr.
     """
+    # Tests the dict list of column and sdr.
+
     """encoder = BatchEncoderHandler(input_data)
     start_time = time.perf_counter()
     sdrs = encoder._build_dict_list_sdr(input_data, threads_per_column=8)

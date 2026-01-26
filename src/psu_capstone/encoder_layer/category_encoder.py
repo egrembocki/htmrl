@@ -93,12 +93,13 @@ class CategoryEncoder(BaseEncoder[str]):
             self._dimensions = [self.sp.size]
 
     @override
-    def encode(self, input_value: str, output_sdr: SDR) -> None:
+    def encode(self, input_value: str) -> list[int]:
         if input_value not in self._category_list:
             index = 0
         else:
             index = self._category_list.index(input_value) + 1
-        self.encoder.encode(int(index), output_sdr)
+        a = self.encoder.encode(int(index))
+        return a
 
     def decode(self, input_sdr: SDR) -> str:
         if self._RDSEused:
