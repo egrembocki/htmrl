@@ -67,7 +67,7 @@ class ScalarEncoderParameters:
      * inputs will have unique / non-overlapping representations.
      */
     """
-    active_bits: int = 20
+    active_bits: int = 40
     """Number of active bits in the output SDR.
      * Member "activeBits" is the number of true bits in the encoded output SDR.
      * The output encodings will have a contiguous block of this many 1's.
@@ -78,7 +78,7 @@ class ScalarEncoderParameters:
     * Sparsity requires that the size to also be specified.
     * Specify only one of: activeBits or sparsity.
     """
-    size: int = 1000
+    size: int = 2048
     """Total number of bits in the output SDR.
      /**
      * Member "size" is the total number of bits in the encoded output SDR.

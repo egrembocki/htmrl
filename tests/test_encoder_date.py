@@ -66,15 +66,15 @@ def test_season():
         season_radius=91.5,
         day_of_week_active_bits=0,
         day_of_week_radius=1.0,
-        weekend_width=0,
-        holiday_width=0,
-        time_of_day_width=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
         time_of_day_radius=4.0,
-        custom_width=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
-    encoder = DateEncoder(date_params, scalar_params=None, rdse_params=None, dimensions=[1, 5])
+    encoder = DateEncoder(date_params)
     cases = [
         # date/time                            bucket   expected output
         DateValueCase([2020, 1, 1, 0, 0], [0.0], [0, 1, 2, 3, 4]),  # New Year's Day, midnight
@@ -96,15 +96,14 @@ def test_day_of_week():
         day_of_week_active_bits=2,
         day_of_week_radius=1.0,
         season_active_bits=0,
-        weekend_width=0,
-        holiday_width=0,
-        time_of_day_width=0,
-        custom_width=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
-    encoder = DateEncoder(date_params, rdse_params=None, scalar_params=None, dimensions=[1, 2])
-
+    encoder = DateEncoder(date_params, dimensions=[1, 2])
     cases = [
         # date/time                       bucket   expected
         DateValueCase([2020, 1, 1, 0, 0], [2.0], [4, 5]),  # Wed
@@ -124,20 +123,19 @@ def test_day_of_week():
 def test_weekend():
     # Weekend defined as Fri after noon until Sun midnight
     date_params = DateEncoderParameters(
-        weekend_width=2,
+        weekend_active_bits=2,
         season_active_bits=0,
         season_radius=91.5,
         day_of_week_active_bits=0,
         day_of_week_radius=1.0,
-        holiday_width=0,
-        time_of_day_width=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
         time_of_day_radius=4.0,
-        custom_width=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
-    encoder = DateEncoder(date_params, rdse_params=None, scalar_params=None, dimensions=[1, 2])
-
+    encoder = DateEncoder(date_params, dimensions=[1, 2])
     cases = [
         # date/time                          bucket   expected
         DateValueCase([2020, 1, 1, 0, 0], [0.0], [0, 1]),  # Wed
@@ -157,16 +155,16 @@ def test_weekend():
 
 def test_holiday():
     date_params = DateEncoderParameters(
-        holiday_width=4,
+        holiday_active_bits=4,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
         season_active_bits=0,
         season_radius=91.5,
         day_of_week_active_bits=0,
         day_of_week_radius=1.0,
-        weekend_width=0,
-        time_of_day_width=0,
+        weekend_active_bits=0,
+        time_of_day_active_bits=0,
         time_of_day_radius=4.0,
-        custom_width=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
     encoder = DateEncoder(date_params, dimensions=[1, 4])
@@ -192,15 +190,15 @@ def test_holiday():
 
 def test_time_of_day():
     date_params = DateEncoderParameters(
-        time_of_day_width=4,
+        time_of_day_active_bits=4,
         time_of_day_radius=4.0,
         season_active_bits=0,
         season_radius=91.5,
         day_of_week_active_bits=0,
         day_of_week_radius=1.0,
-        weekend_width=0,
-        holiday_width=0,
-        custom_width=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
     encoder = DateEncoder(date_params, dimensions=[1, 4])
@@ -224,20 +222,19 @@ def test_time_of_day():
 
 def test_custom_day():
     date_params = DateEncoderParameters(
-        custom_width=2,
+        custom_active_bits=2,
         custom_days=["Monday", "Mon, Wed, Fri"],
         season_active_bits=0,
         season_radius=91.5,
         day_of_week_active_bits=0,
         day_of_week_radius=1.0,
-        weekend_width=0,
-        holiday_width=0,
-        time_of_day_width=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
         time_of_day_radius=4.0,
         rdse_used=False,
     )
-    encoder = DateEncoder(date_params, rdse_params=None, scalar_params=None, dimensions=[1, 2])
-
+    encoder = DateEncoder(date_params, dimensions=[1, 2])
     cases = [
         # date/time                          bucket   expected
         DateValueCase([2020, 1, 1, 0, 0], [1.0], [2, 3]),  # Wed matches "Mon, Wed, Fri"
@@ -259,17 +256,16 @@ def test_combined():
     date_params = DateEncoderParameters(
         season_active_bits=5,
         day_of_week_active_bits=2,
-        weekend_width=2,
-        custom_width=2,
+        weekend_active_bits=2,
+        custom_active_bits=2,
         custom_days=["Monday", "Mon, Wed, Fri"],
-        holiday_width=2,
+        holiday_active_bits=2,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
-        time_of_day_width=4,
+        time_of_day_active_bits=4,
         time_of_day_radius=4.0,
         rdse_used=False,
     )
-    encoder = DateEncoder(date_params, rdse_params=None, scalar_params=None, dimensions=[1, 17])
-
+    encoder = DateEncoder(date_params, dimensions=[1, 17])
     cases = [
         DateValueCase(
             [2020, 1, 1, 0, 0],  # date/time

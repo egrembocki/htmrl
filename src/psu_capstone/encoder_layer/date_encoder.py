@@ -35,21 +35,43 @@ class DateEncoderParameters:
     Each field controls the encoding of a specific temporal feature.
     Set the corresponding width to a nonzero value to enable encoding for that feature.
 
-    Attributes:
-        season_width: Number of active bits for season (day of year).
-        season_radius: Radius for season encoding (days).
-        day_of_week_width: Number of active bits for day of week.
+    Atrtibutes:
+
+        season_size: Size of the season encoder (total bits).
+        season_active_bits: Number of active bits for season (day of year).
+        season_sparsity: Sparsity for season encoding (not used).
+        season_radius: Radius for season encoding, in days.
+        season_resolution: Resolution for season encoding (not used).
+        day_of_week_size: Size of the day of week encoder (total bits).
+        day_of_week_active_bits: Number of active bits for day of week.
+        day_of_week_sparsity: Sparsity for day of week encoding (not used).
         day_of_week_radius: Radius for day of week encoding.
-        weekend_width: Number of active bits for weekend flag.
-        holiday_width: Number of active bits for holiday encoding.
+        day_of_week_resolution: Resolution for day of week encoding (not used).
+        weekend_size: Size of the weekend encoder (total bits).
+        weekend_active_bits: Number of active bits for weekend flag.
+        weekend_sparsity: Sparsity for weekend encoding (not used).
+        weekend_radius: Radius for weekend encoding (not used).
+        weekend_resolution: Resolution for weekend encoding (not used).
+        holiday_size: Size of the holiday encoder (total bits).
+        holiday_active_bits: Number of active bits for holiday encoding.
+        holiday_sparsity: Sparsity for holiday encoding (not used).
+        holiday_radius: Radius for holiday encoding (not used).
+        holiday_resolution: Resolution for holiday encoding (not used).
         holiday_dates: List of holidays as [month, day] or [year, month, day].
-        time_of_day_width: Number of active bits for time of day.
-        time_of_day_radius: Radius for time of day encoding (hours).
-        custom_width: Number of active bits for custom day groups.
+        time_of_day_size: Size of the time of day encoder (total bits).
+        time_of_day_active_bits: Number of active bits for time of day.
+        time_of_day_sparsity: Sparsity for time of day encoding (not used).
+        time_of_day_radius: Radius for time of day encoding, in hours.
+        time_of_day_resolution: Resolution for time of day encoding (not used).
+        custom_size: Size of the custom days encoder (total bits).
+        custom_active_bits: Number of active bits for custom day groups.
+        custom_sparsity: Sparsity for custom days encoding (not used).
+        custom_radius: Radius for custom days encoding (not used).
+        custom_resolution: Resolution for custom days encoding (not used).
         custom_days: List of custom day group strings (e.g., ["mon,wed,fri"]).
+        rdse_used: Enable RDSE usage for date encoder.
 
-
-        /**
+      /** NuPic C++ DateEncoder class
          * The DateEncoderParameters structure is used to pass configuration parameters to
          * the DateEncoder. These Six (6) members define the total number of bits in the output.
          *     Members:  season, dayOfWeek, weekend, holiday, timeOfDay, customDays
@@ -359,7 +381,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             params = RDSEParameters(**rdse_params)
             encoder = RandomDistributedScalarEncoder(params)
         else:
-            params = ScalarEncoderParameters(**encoder_params)
+            scalar_params = encoder_params.copy()
+            if active_bits <= 0 and sparsity > 0.0:
+                scalar_params["sparsity"] = sparsity
+            if radius <= 0.0 and size_value <= 0 and resolution > 0.0:
+                scalar_params["resolution"] = resolution
+            if resolution <= 0.0 and size_value <= 0 and radius > 0.0:
+                scalar_params["radius"] = radius
+            params = ScalarEncoderParameters(**scalar_params)
             encoder = ScalarEncoder(params)
 
         self._bucketMap[feature_key] = len(self._buckets)
@@ -492,9 +521,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._size = size
 
     @override
-    def encode(
-        self, input_value: datetime | pd.Timestamp | time.struct_time | None, output_sdr: SDR
-    ) -> None:
+    def encode(self, input_value: datetime | pd.Timestamp | time.struct_time | None) -> list[int]:
         """
         Encode a timestamp-like value into `output` SDR.
 
@@ -503,9 +530,21 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
           - int/float     -> UNIX epoch seconds
           - datetime      -> datetime (naive treated as local)
           - struct_time   -> used directly
+
+          Args:
+                input_value: datetime, pd.Timestamp, struct_time, or None for current time.
+
+        Raises:
+                TypeError: If input_value is of unsupported type.
+
+        Returns:
+                List of active bit indices.
+
         """
-        if output_sdr.size != self._size:
-            raise ValueError(f"Output SDR size {output_sdr.size} != DateEncoder size {self._size}")
+
+        assert self._all_valid_encoders, "DateEncoder not properly initialized."
+
+        output_sdr = SDR(dimensions=[self._size])
 
         if input_value is None:
             t = time.localtime()
@@ -600,6 +639,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
         # Concatenate SDRs into `output`
         all_sparse: list[int] = []
+
         offset = 0
         for s in sdrs:
             for idx in s.get_sparse():
@@ -608,6 +648,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
         output_sdr.zero()
         output_sdr.set_sparse(all_sparse)
+
+        return output_sdr.get_sparse()
 
     def _holiday_value(self, t: time.struct_time) -> float:
         """Return the holiday ramp value for the provided timestamp."""
@@ -643,11 +685,58 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
 
 if __name__ == "__main__":
-    """Test the base DateEncoder with default parameters."""
 
-    sample_dt = datetime(2023, 12, 25, 15, 30, 0)
+    """
     date_encoder = DateEncoder()
-    base_output = SDR(dimensions=[date_encoder.size])
-    date_encoder.encode(sample_dt, base_output)
-    print("Base Encoder output size:", date_encoder.size)
-    print("Active indices:", base_output.get_sparse())
+
+    test_dates = [
+        datetime(2020, 1, 1, 0, 0),
+        datetime(2020, 6, 15, 12, 30),
+        datetime(2020, 12, 25, 18, 45),
+    ]
+
+    for dt in test_dates:
+        sdr_indices = date_encoder.encode(dt)
+        print(f"Date: {dt} -> SDR indices: {sdr_indices}")
+    """
+
+    date_params = DateEncoderParameters(season_active_bits=5, rdse_used=False)
+
+    date_encoder_custom = DateEncoder(date_params=date_params)
+
+    cases = [
+        # date/time                            bucket   expected output
+        [2020, 1, 1, 0, 0],
+        [0.0],
+        [0, 1, 2, 3, 4],  # New Year's Day, midnight
+        [2019, 12, 11, 14, 45],
+        [3.0],
+        [0, 1, 2, 3, 19],  # winter, Wed, afternoon
+        [2010, 11, 4, 14, 55],
+        [3.0],
+        [0, 1, 17, 18, 19],  # Nov 4, fall, Thu
+        [2019, 7, 4, 0, 0],
+        [2.0],
+        [10, 11, 12, 13, 14],  # July 4, summer, holiday
+        [2019, 4, 21, 0, 0],
+        [1.0],
+        [6, 7, 8, 9, 10],  # Easter
+        [2017, 4, 17, 0, 0],
+        [1.0],
+        [6, 7, 8, 9, 10],
+        [2017, 4, 17, 22, 59],
+        [1.0],
+        [6, 7, 8, 9, 10],
+        [1988, 5, 29, 20, 0],
+        [1.0],
+        [8, 9, 10, 11, 12],
+        [1988, 5, 27, 20, 0],
+        [1.0],
+        [8, 9, 10, 11, 12],
+    ]
+
+    for case in cases:
+        date_list, expected_buckets, expected_output = case
+        dt = datetime(date_list[0], date_list[1], date_list[2], date_list[3], date_list[4])
+        sdr_indices = date_encoder_custom.encode(dt)
+        print(f"Date: {dt} -> SDR indices: {sdr_indices}")
