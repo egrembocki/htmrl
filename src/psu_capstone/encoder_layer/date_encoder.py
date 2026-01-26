@@ -159,9 +159,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def __init__(
         self,
         date_params: DateEncoderParameters = DateEncoderParameters(),
-        rdse_params: RDSEParameters | None = RDSEParameters(),
-        scalar_params: ScalarEncoderParameters | None = ScalarEncoderParameters(),
-        dimensions: list[int] | None = None,
+        rdse_params: RDSEParameters = RDSEParameters(),
+        scalar_params: ScalarEncoderParameters = ScalarEncoderParameters(),
+        dimensions: list[int] = [],
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.
@@ -174,16 +174,13 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             ValueError: If custom_days is specified but empty, or if no widths are provided.
         """
 
-        # encoder parameters
-        self._rdse_params = copy.deepcopy(rdse_params) if rdse_params is not None else None
-        self._scalar_params = copy.deepcopy(scalar_params) if scalar_params is not None else None
+        # sub encoder parameters
+        self._rdse_params = copy.deepcopy(rdse_params)
+        self._scalar_params = copy.deepcopy(scalar_params)
         self._date_params = copy.deepcopy(date_params)
-
-        # initialization
-        """DateEncoderParameters: Configuration parameters for the encoder."""
-
         self._customDays: set[int] = set()
         """Set of integer day indices for custom days."""
+
         self._bucketMap: dict[int, int] = {}
         """Mapping from feature index to bucket position."""
         self._buckets: list[float] = []
@@ -194,17 +191,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         """Flag indicating if RDSE is used."""
 
         # Declare one encoder per feature
-        self._season_encoder: BaseEncoder | None = None
+        self._season_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for season (day of year)."""
-        self._dayofweek_encoder: BaseEncoder | None = None
+        self._dayofweek_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for day of week."""
-        self._weekend_encoder: BaseEncoder | None = None
+        self._weekend_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for weekend flag."""
-        self._customdays_encoder: BaseEncoder | None = None
+        self._customdays_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for custom day groups."""
-        self._holiday_encoder: BaseEncoder | None = None
+        self._holiday_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for holidays."""
-        self._timeofday_encoder: BaseEncoder | None = None
+        self._timeofday_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for time of day."""
 
         # call initialize
@@ -220,7 +217,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @season_encoder.setter
     def season_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for season (day of year)."""
-        self._season_encoder = encoder
+        self._season_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
 
     @property
     def dayofweek_encoder(self) -> BaseEncoder | None:
@@ -230,7 +227,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @dayofweek_encoder.setter
     def dayofweek_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for day of week."""
-        self._dayofweek_encoder = encoder
+        self._dayofweek_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
 
     @property
     def weekend_encoder(self) -> BaseEncoder | None:
@@ -240,7 +237,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @weekend_encoder.setter
     def weekend_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for weekend flag."""
-        self._weekend_encoder = encoder
+        self._weekend_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
 
     @property
     def customdays_encoder(self) -> BaseEncoder | None:
@@ -250,7 +247,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @customdays_encoder.setter
     def customdays_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for custom day groups."""
-        self._customdays_encoder = encoder
+        self._customdays_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
 
     @property
     def holiday_encoder(self) -> BaseEncoder | None:
@@ -260,7 +257,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @holiday_encoder.setter
     def holiday_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for holidays."""
-        self._holiday_encoder = encoder
+        self._holiday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
 
     @property
     def timeofday_encoder(self) -> BaseEncoder | None:
@@ -270,7 +267,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @timeofday_encoder.setter
     def timeofday_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for time of day."""
-        self._timeofday_encoder = encoder
+        self._timeofday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
 
     # ------------------------------------------------------------------ #
     # Initialization (mirrors C++ initialize())
@@ -279,8 +276,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def _initialize(
         self,
         date_params: DateEncoderParameters,
-        rdse_params: RDSEParameters | None,
-        scalar_params: ScalarEncoderParameters | None,
+        rdse_params: RDSEParameters,
+        scalar_params: ScalarEncoderParameters,
     ) -> None:
         """Configure encoders according to the supplied parameters."""
 
