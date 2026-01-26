@@ -77,9 +77,9 @@ def test_dataframe_composite():
     categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
-        season_width=0,
+        season_active_bits=0,
         season_radius=91.5,
-        day_of_week_width=7,
+        day_of_week_active_bits=7,
         day_of_week_radius=1.0,
         weekend_width=2,
         holiday_width=4,
@@ -151,9 +151,9 @@ def test_individual_column_sdrs():
     categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
-        season_width=0,
+        season_active_bits=0,
         season_radius=91.5,
-        day_of_week_width=7,
+        day_of_week_active_bits=7,
         day_of_week_radius=1.0,
         weekend_width=2,
         holiday_width=4,
@@ -206,9 +206,9 @@ def test_custom_encoding():
     categoryparams = CategoryParameters(3, unique_column_values, rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
-        season_width=0,
+        season_active_bits=0,
         season_radius=91.5,
-        day_of_week_width=7,
+        day_of_week_active_bits=7,
         day_of_week_radius=1.0,
         weekend_width=2,
         holiday_width=4,

@@ -38,14 +38,14 @@ class RDSEParameters:
     * encoder will activate. This is an alternative way to specify the member
     * "activeBits".
     """
-    radius: float = 0.0
+    radius: float = 1.0
     """
     * Member "radius" Two inputs separated by more than the radius have
     * non-overlapping representations. Two inputs separated by less than the
     * radius will in general overlap in at least some of their bits. You can
     * think of this as the radius of the input.
     """
-    resolution: float = 0.1
+    resolution: float = 0.0
     """
     * Member "resolution" Two inputs separated by greater than, or equal to the
     * resolution will in general have different representations.
@@ -103,147 +103,12 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     We employ the murmur hashing.
     """
 
-    # Properties
-    @property
-    def size(self) -> int:
-        return self._size
-
-    @size.setter
-    def size(self, value: int) -> None:
-        self._size = value
-        self._parameters.size = value
-
-    @property
-    def active_bits(self) -> int:
-        return self._active_bits
-
-    @active_bits.setter
-    def active_bits(self, value: int) -> None:
-        """Sets the number of active bits in the encoder."""
-
-        temp = self._active_bits
-
-        self._active_bits = value
-
-        try:
-            new_params = self.check_parameters(RDSEParameters(active_bits=self._active_bits))
-            self._parameters = new_params
-
-        except AssertionError as err:
-            print(f"ERROR : {self.__class__.__qualname__} :: {err}")
-            self._active_bits = temp
-
-    @property
-    def sparsity(self) -> float:
-        return self._sparsity
-
-    @sparsity.setter
-    def sparsity(self, value: float) -> None:
-        """Sets the sparsity of the encoder."""
-
-        temp = self._sparsity
-
-        self._sparsity = value
-
-        try:
-            new_params = self.check_parameters(
-                RDSEParameters(sparsity=self._sparsity, active_bits=0)
-            )
-            self._parameters = new_params
-
-        except AssertionError as err:
-            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
-            self._sparsity = temp
-
-    @property
-    def radius(self) -> float:
-        return self._radius
-
-    @radius.setter
-    def radius(self, value: float) -> None:
-        """Sets the radius of the encoder."""
-
-        temp = self._radius
-
-        self._radius = value
-
-        try:
-            new_params = self.check_parameters(RDSEParameters(radius=self._radius))
-            self._parameters = new_params
-
-        except AssertionError as err:
-            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
-            self._radius = temp
-
-    @property
-    def resolution(self) -> float:
-        return self._resolution
-
-    @resolution.setter
-    def resolution(self, value: float) -> None:
-        """Sets the resolution of the encoder."""
-
-        temp = self._resolution
-
-        self._resolution = value
-
-        try:
-
-            new_params = self.check_parameters(RDSEParameters(resolution=self._resolution))
-            self._parameters = new_params
-
-        except AssertionError as err:
-            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
-            self._resolution = temp
-
-    @property
-    def category(self) -> bool:
-        return self._category
-
-    @category.setter
-    def category(self, value: bool) -> None:
-        """Sets whether the encoder is a category encoder."""
-
-        temp = self._category
-
-        self._category = value
-
-        try:
-            new_params = self.check_parameters(
-                RDSEParameters(category=self._category, resolution=0.0, radius=0.0)
-            )
-            self._parameters = new_params
-
-        except AssertionError as err:
-            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
-            self._category = temp
-
-    @property
-    def seed(self) -> int:
-        return self._seed
-
-    @seed.setter
-    def seed(self, value: int) -> None:
-        """Sets the seed of the encoder."""
-
-        temp = self._seed
-
-        self._seed = value
-
-        try:
-            new_params = self.check_parameters(RDSEParameters(seed=self._seed))
-            self._parameters = new_params
-
-        except AssertionError as err:
-            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
-            self._seed = temp
-
     @override
-    def encode(self, input_value: float, output_sdr: SDR) -> None:
+    def encode(self, input_value: float, output_sdr: SDR) -> list[int]:
         assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
         if math.isnan(input_value):
             output_sdr.zero()
-            return
+            return []
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
@@ -274,6 +139,8 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             data[bucket] = 1
 
         output_sdr.set_dense(data)
+
+        return data
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: RDSEParameters):
