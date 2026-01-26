@@ -144,6 +144,25 @@ class ScalarEncoder(BaseEncoder[int]):
         an SDR that has the encoding of the input value.
     """
 
+    @property
+    def size(self) -> int:
+        return self._size
+
+    @size.setter
+    def size(self, value: int) -> None:
+
+        self._size = value
+
+        try:
+            new_params = self.check_parameters(
+                ScalarEncoderParameters(size=self._size, radius=0.0, category=False, resolution=0.0)
+            )
+            self._parameters = new_params
+
+        except AssertionError as err:
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._size = self._parameters.size
+
     @override
     def encode(self, input_value: int | float, output_sdr: SDR) -> None:
         assert output_sdr.size == self.size, "Output SDR size does not match encoder size."

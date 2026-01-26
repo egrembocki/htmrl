@@ -45,7 +45,7 @@ class RDSEParameters:
     * radius will in general overlap in at least some of their bits. You can
     * think of this as the radius of the input.
     """
-    resolution: float = 1.0
+    resolution: float = 0.1
     """
     * Member "resolution" Two inputs separated by greater than, or equal to the
     * resolution will in general have different representations.
@@ -75,6 +75,7 @@ class RDSEParameters:
  * This encoder does not need to know the minimum and maximum of the input
  * range.  It does not assign an input->output mapping at construction.  Instead
  * the encoding is determined at runtime.
+
 """
 
 
@@ -110,6 +111,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     @size.setter
     def size(self, value: int) -> None:
         self._size = value
+        self._parameters.size = value
 
     @property
     def active_bits(self) -> int:
@@ -119,15 +121,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     def active_bits(self, value: int) -> None:
         """Sets the number of active bits in the encoder."""
 
-        self._parameters.active_bits = value
+        temp = self._active_bits
+
+        self._active_bits = value
 
         try:
-
-            params = self.check_parameters(self._parameters)
-            self._active_bits = params.active_bits
+            new_params = self.check_parameters(RDSEParameters(active_bits=self._active_bits))
+            self._parameters = new_params
 
         except AssertionError as err:
-            print(f"ERROR : {err}")
+            print(f"ERROR : {self.__class__.__qualname__} :: {err}")
+            self._active_bits = temp
 
     @property
     def sparsity(self) -> float:
@@ -137,12 +141,19 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     def sparsity(self, value: float) -> None:
         """Sets the sparsity of the encoder."""
 
-        self._parameters.sparsity = value
+        temp = self._sparsity
+
+        self._sparsity = value
+
         try:
-            params = self.check_parameters(self._parameters)
-            self._sparsity = params.sparsity
+            new_params = self.check_parameters(
+                RDSEParameters(sparsity=self._sparsity, active_bits=0)
+            )
+            self._parameters = new_params
+
         except AssertionError as err:
-            print(f"ERROR : {err}")
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._sparsity = temp
 
     @property
     def radius(self) -> float:
@@ -151,12 +162,18 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     @radius.setter
     def radius(self, value: float) -> None:
         """Sets the radius of the encoder."""
-        self._parameters.radius = value
+
+        temp = self._radius
+
+        self._radius = value
+
         try:
-            params = self.check_parameters(self._parameters)
-            self._radius = params.radius
+            new_params = self.check_parameters(RDSEParameters(radius=self._radius))
+            self._parameters = new_params
+
         except AssertionError as err:
-            print(f"ERROR : {err}")
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._radius = temp
 
     @property
     def resolution(self) -> float:
@@ -166,13 +183,18 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     def resolution(self, value: float) -> None:
         """Sets the resolution of the encoder."""
 
-        self._parameters.resolution = value
+        temp = self._resolution
+
+        self._resolution = value
 
         try:
-            params = self.check_parameters(self._parameters)
-            self._resolution = params.resolution
+
+            new_params = self.check_parameters(RDSEParameters(resolution=self._resolution))
+            self._parameters = new_params
+
         except AssertionError as err:
-            print(f"ERROR : {err}")
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._resolution = temp
 
     @property
     def category(self) -> bool:
@@ -182,13 +204,19 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     def category(self, value: bool) -> None:
         """Sets whether the encoder is a category encoder."""
 
-        self._parameters.category = value
+        temp = self._category
+
+        self._category = value
 
         try:
-            params = self.check_parameters(self._parameters)
-            self._category = params.category
+            new_params = self.check_parameters(
+                RDSEParameters(category=self._category, resolution=0.0, radius=0.0)
+            )
+            self._parameters = new_params
+
         except AssertionError as err:
-            print(f"ERROR : {err}")
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._category = temp
 
     @property
     def seed(self) -> int:
@@ -198,13 +226,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     def seed(self, value: int) -> None:
         """Sets the seed of the encoder."""
 
-        self._parameters.seed = value
+        temp = self._seed
+
+        self._seed = value
 
         try:
-            params = self.check_parameters(self._parameters)
-            self._seed = params.seed
+            new_params = self.check_parameters(RDSEParameters(seed=self._seed))
+            self._parameters = new_params
+
         except AssertionError as err:
-            print(f"ERROR : {err}")
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._seed = temp
 
     @override
     def encode(self, input_value: float, output_sdr: SDR) -> None:
@@ -217,7 +249,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
                 raise ValueError("Input to category encoder must be an unsigned integer")
 
         data = [0] * self.size
-
+        assert self._resolution > 0.0, "Resolution must be greater than 0."
         index = int(input_value / self._resolution)
 
         for offset in range(self._active_bits):
@@ -259,9 +291,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         assert parameters.size > 0
 
         num_active_args = 0
+
+        # sparisty XOR active bits
+        # Check active bits / sparsity mutual exclusivity
+
         if parameters.active_bits > 0:
             num_active_args += 1
-        if parameters.sparsity > 0:
+        if parameters.sparsity > 0.0:
             num_active_args += 1
 
         assert num_active_args != 0, "Missing argument, need one of: 'activeBits' or 'sparsity'."
@@ -269,12 +305,14 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             num_active_args == 1
         ), "Too many arguments, choose only one of: 'activeBits' or 'sparsity'."
 
+        # radius XOR resolution XOR category
+        # Check radius / resolution / category mutual exclusivity
         num_resolution_args = 0
-        if parameters.radius > 0:
+        if parameters.radius > 0.0:
             num_resolution_args += 1
         if parameters.category:
             num_resolution_args += 1
-        if parameters.resolution > 0:
+        if parameters.resolution > 0.0:
             num_resolution_args += 1
 
         assert (
@@ -284,25 +322,46 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             num_resolution_args == 1
         ), "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
 
-        args = parameters
+        # Fill in missing active bits / sparsity
 
-        if args.sparsity > 0:
-            assert 0 <= args.sparsity <= 1
-            args.active_bits = int(round(args.size * args.sparsity))
-            assert args.active_bits > 0
+        if parameters.sparsity > 0 and parameters.active_bits == 0:
+            assert 0 <= parameters.sparsity <= 1
+            parameters.active_bits = int(round(parameters.size * parameters.sparsity))
+            assert parameters.active_bits > 0
+            assert parameters.sparsity > 0.0
 
-        if args.category:
-            args.radius = 1
+        # category XOR radius XOR resolution
+        # Fill in missing radius / resolution / category
+        if parameters.category and parameters.radius <= 0.0 and parameters.resolution <= 0.0:
+            parameters.radius = 1.0
 
-        if args.radius > 0:
-            args.resolution = args.radius / args.active_bits
-        elif args.resolution > 0:
-            args.radius = args.active_bits * args.resolution
+            assert parameters.radius > 0.0
+            assert parameters.resolution <= 0.0
+            assert parameters.category
 
-        while args.seed == 0:
-            args.seed = random.getrandbits(32)
+        if parameters.radius > 0.0 and parameters.resolution <= 0.0 and not parameters.category:
+            assert parameters.active_bits > 0
+            parameters.resolution = parameters.radius / parameters.active_bits
+            parameters.category = False
 
-        return args
+            assert parameters.resolution > 0.0
+            assert not parameters.category
+            assert parameters.radius > 0.0
+
+        if parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
+            assert parameters.active_bits > 0
+            parameters.radius = float(parameters.active_bits) * parameters.resolution
+            parameters.category = False
+
+            assert parameters.radius > 0.0
+            assert not parameters.category
+            assert parameters.resolution > 0.0
+
+        # Handle seed == 0 case
+        while parameters.seed == 0:
+            parameters.seed = random.getrandbits(32)
+
+        return parameters
 
 
 if __name__ == "__main__":

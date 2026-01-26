@@ -133,12 +133,12 @@ class DateEncoderParameters:
 
     rdse_sizes: dict[str, int] = field(
         default_factory=lambda: {
-            "season": 0,
-            "dayOfWeek": 0,
-            "weekend": 0,
-            "customDays": 0,
-            "holiday": 0,
-            "timeOfDay": 0,
+            "season": 10,
+            "dayOfWeek": 10,
+            "weekend": 10,
+            "customDays": 10,
+            "holiday": 10,
+            "timeOfDay": 10,
         }
     )
 
@@ -233,9 +233,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     # Properties
     @property
-    def season_encoder(self) -> BaseEncoder | None:
+    def season_encoder(self) -> BaseEncoder:
         """Encoder for season (day of year)."""
-        return self._season_encoder
+        if self._season_encoder is None:
+            raise RuntimeError("Season encoder is disabled (width set to 0).")
+        return cast(RandomDistributedScalarEncoder | ScalarEncoder, self._season_encoder)
 
     @season_encoder.setter
     def season_encoder(self, encoder: BaseEncoder) -> None:
@@ -244,9 +246,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._rdse_sizes["season"] = self._season_encoder.size
 
     @property
-    def dayofweek_encoder(self) -> BaseEncoder | None:
+    def dayofweek_encoder(self) -> BaseEncoder:
         """Encoder for day of week."""
-        return self._dayofweek_encoder
+        if self._dayofweek_encoder is None:
+            raise RuntimeError("Day-of-week encoder is disabled (width set to 0).")
+        return cast(RandomDistributedScalarEncoder | ScalarEncoder, self._dayofweek_encoder)
 
     @dayofweek_encoder.setter
     def dayofweek_encoder(self, encoder: BaseEncoder) -> None:
@@ -255,9 +259,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
 
     @property
-    def weekend_encoder(self) -> BaseEncoder | None:
+    def weekend_encoder(self) -> BaseEncoder:
         """Encoder for weekend flag."""
-        return self._weekend_encoder
+        if self._weekend_encoder is None:
+            raise RuntimeError("Weekend encoder is disabled (width set to 0).")
+        return cast(RandomDistributedScalarEncoder | ScalarEncoder, self._weekend_encoder)
 
     @weekend_encoder.setter
     def weekend_encoder(self, encoder: BaseEncoder) -> None:
@@ -266,9 +272,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._rdse_sizes["weekend"] = self._weekend_encoder.size
 
     @property
-    def customdays_encoder(self) -> BaseEncoder | None:
+    def customdays_encoder(self) -> BaseEncoder:
         """Encoder for custom day groups."""
-        return self._customdays_encoder
+        if self._customdays_encoder is None:
+            raise RuntimeError("Custom-days encoder is disabled (width set to 0).")
+        return cast(RandomDistributedScalarEncoder | ScalarEncoder, self._customdays_encoder)
 
     @customdays_encoder.setter
     def customdays_encoder(self, encoder: BaseEncoder) -> None:
@@ -277,9 +285,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._rdse_sizes["customDays"] = self._customdays_encoder.size
 
     @property
-    def holiday_encoder(self) -> BaseEncoder | None:
+    def holiday_encoder(self) -> BaseEncoder:
         """Encoder for holidays."""
-        return self._holiday_encoder
+        if self._holiday_encoder is None:
+            raise RuntimeError("Holiday encoder is disabled (width set to 0).")
+        return cast(RandomDistributedScalarEncoder | ScalarEncoder, self._holiday_encoder)
 
     @holiday_encoder.setter
     def holiday_encoder(self, encoder: BaseEncoder) -> None:
@@ -288,9 +298,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._rdse_sizes["holiday"] = self._holiday_encoder.size
 
     @property
-    def timeofday_encoder(self) -> BaseEncoder | None:
+    def timeofday_encoder(self) -> BaseEncoder:
         """Encoder for time of day."""
-        return self._timeofday_encoder
+        if self._timeofday_encoder is None:
+            raise RuntimeError("Time-of-day encoder is disabled (width set to 0).")
+        return cast(RandomDistributedScalarEncoder | ScalarEncoder, self._timeofday_encoder)
 
     @timeofday_encoder.setter
     def timeofday_encoder(self, encoder: BaseEncoder) -> None:
@@ -298,10 +310,171 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._timeofday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
 
+    # dictionary getter/setter -> trigger size updates
+    @property
+    def rdse_sizes(self) -> dict[str, int]:
+        """Get the RDSE sizes for each feature encoder."""
+        return self._rdse_sizes
+
+    @rdse_sizes.setter
+    def rdse_sizes(self, sizes: dict[str, int]) -> None:
+        """Dictionary setter of RDSE sizes for each feature encoder."""
+
+        print(f"DEBUG :: Called :: Setting RDSE sizes: {sizes}")
+
+        if len(sizes) != 6:
+            raise ValueError("rdse_sizes dictionary must contain 6 entries.")
+        if not all(
+            key in sizes
+            for key in ["season", "dayOfWeek", "weekend", "customDays", "holiday", "timeOfDay"]
+        ):
+            raise ValueError(
+                "rdse_sizes dictionary must contain keys: season, dayOfWeek, weekend, customDays, holiday, timeOfDay."
+            )
+
+        if not all(isinstance(size, int) and size > 0 for size in sizes.values()):
+            raise ValueError("All RDSE sizes must be positive integers.")
+
+        # handle uninitialized encoders
+        if (
+            self._season_encoder is None
+            or self._dayofweek_encoder is None
+            or self._weekend_encoder is None
+            or self._customdays_encoder is None
+            or self._holiday_encoder is None
+            or self._timeofday_encoder is None
+        ):
+            raise RuntimeError("All encoders must be initialized before setting RDSE sizes.")
+
+        self._season_encoder.size = (
+            sizes["season"] if sizes["season"] > 0 else self._season_encoder.size
+        )
+        self._dayofweek_encoder.size = (
+            sizes["dayOfWeek"] if sizes["dayOfWeek"] > 0 else self._dayofweek_encoder.size
+        )
+        self._weekend_encoder.size = (
+            sizes["weekend"] if sizes["weekend"] > 0 else self._weekend_encoder.size
+        )
+        self._customdays_encoder.size = (
+            sizes["customDays"] if sizes["customDays"] > 0 else self._customdays_encoder.size
+        )
+        self._holiday_encoder.size = (
+            sizes["holiday"] if sizes["holiday"] > 0 else self._holiday_encoder.size
+        )
+        self._timeofday_encoder.size = (
+            sizes["timeOfDay"] if sizes["timeOfDay"] > 0 else self._timeofday_encoder.size
+        )
+
+        self._rdse_sizes["season"] = self._season_encoder.size
+        self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
+        self._rdse_sizes["weekend"] = self._weekend_encoder.size
+        self._rdse_sizes["customDays"] = self._customdays_encoder.size
+        self._rdse_sizes["holiday"] = self._holiday_encoder.size
+        self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
+
+        self.size = sum(self.rdse_sizes.values())
+
+    # season encoder - 0
+    @property
+    def rdse_season_size(self) -> int:
+        """Get the RDSE size for the season encoder."""
+        return self._rdse_sizes["season"]
+
+    @rdse_season_size.setter
+    def rdse_season_size(self, size: int) -> None:
+        """Set the RDSE size for the season encoder."""
+
+        if self._season_encoder is None:
+            raise RuntimeError("Season encoder is not initialized.")
+
+        self.rdse_sizes = {
+            "season": size,
+            "dayOfWeek": self._rdse_sizes["dayOfWeek"],
+            "weekend": self._rdse_sizes["weekend"],
+            "customDays": self._rdse_sizes["customDays"],
+            "holiday": self._rdse_sizes["holiday"],
+            "timeOfDay": self._rdse_sizes["timeOfDay"],
+        }
+
+    # dayofweek encoder - 1
+    @property
+    def rdse_dayofweek_size(self) -> int:
+        """Get the RDSE size for the day of week encoder."""
+        return self._rdse_sizes["dayOfWeek"]
+
+    @rdse_dayofweek_size.setter
+    def rdse_dayofweek_size(self, size: int) -> None:
+        if self._dayofweek_encoder is None:
+            raise RuntimeError("Day-of-week encoder is not initialized.")
+
+        self._rdse_sizes["dayOfWeek"] = size
+        self._dayofweek_encoder.size = size
+        self.size = sum(self._rdse_sizes.values())
+
+    # weekend encoder - 2
+    @property
+    def rdse_weekend_size(self) -> int:
+        """Get the RDSE size for the weekend encoder."""
+        return self._rdse_sizes["weekend"]
+
+    @rdse_weekend_size.setter
+    def rdse_weekend_size(self, size: int) -> None:
+        if self._weekend_encoder is None:
+            raise RuntimeError("Weekend encoder is not initialized.")
+
+        self._rdse_sizes["weekend"] = size
+        self._weekend_encoder.size = size
+        self.size = sum(self._rdse_sizes.values())
+
+    # customdays encoder - 3
+
+    @property
+    def rdse_customdays_size(self) -> int:
+        """Get the RDSE size for the custom days encoder."""
+        return self._rdse_sizes["customDays"]
+
+    @rdse_customdays_size.setter
+    def rdse_customdays_size(self, size: int) -> None:
+        if self._customdays_encoder is None:
+            raise RuntimeError("Custom-days encoder is not initialized.")
+
+        self._rdse_sizes["customDays"] = size
+        self._customdays_encoder.size = size
+        self.size = sum(self._rdse_sizes.values())
+
+    # holiday encoder - 4
+    @property
+    def rdse_holiday_size(self) -> int:
+        """Get the RDSE size for the holiday encoder."""
+        return self._rdse_sizes["holiday"]
+
+    @rdse_holiday_size.setter
+    def rdse_holiday_size(self, size: int) -> None:
+        if self._holiday_encoder is None:
+            raise RuntimeError("Holiday encoder is not initialized.")
+
+        self._rdse_sizes["holiday"] = size
+        self._holiday_encoder.size = size
+        self.size = sum(self._rdse_sizes.values())
+
+    # timeofday encoder - 5
+    @property
+    def rdse_timeofday_size(self) -> int:
+        """Get the RDSE size for the time of day encoder."""
+        return self._rdse_sizes["timeOfDay"]
+
+    @rdse_timeofday_size.setter
+    def rdse_timeofday_size(self, size: int) -> None:
+        if self._timeofday_encoder is None:
+            raise RuntimeError("Time-of-day encoder is not initialized.")
+
+        self._rdse_sizes["timeOfDay"] = size
+        self._timeofday_encoder.size = size
+        self.size = sum(self._rdse_sizes.values())
+
     # ------------------------------------------------------------------ #
     # Initialization (mirrors C++ initialize())
     # ------------------------------------------------------------------ #
-
     def _initialize(
         self,
         date_params: DateEncoderParameters,
@@ -647,7 +820,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         sdrs: list[SDR] = []
 
         # --- Season: day of year (0-based) ---
-        if self._season_encoder is not None:
+        if isinstance(self._season_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             day_of_year = float(t.tm_yday - 1)  # tm_yday is 1..366
             s = SDR(dimensions=[self._season_encoder._size])
             self._season_encoder.encode(day_of_year, s)
@@ -658,7 +831,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             sdrs.append(s)
 
         # --- Day of week (Monday=0..Sunday=6, same as header comment) ---
-        if self._dayofweek_encoder is not None:
+        if isinstance(self._dayofweek_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             # C++: dayOfWeek = (tm_wday + 6) % 7, with tm_wday 0=Sun..6=Sat
             # Python tm_wday: 0=Mon..6=Sun
             # So emulate C++ tm_wday first:
@@ -677,7 +850,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             c_tm_wday = (t.tm_wday + 1) % 7
 
         # --- Weekend flag (Fri 18:00 .. Sun 23:59) ---
-        if self._weekend_encoder is not None:
+        if isinstance(self._weekend_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             # C++ logic uses C tm_wday (0=Sun..6=Sat)
             if c_tm_wday == 0 or c_tm_wday == 6 or (c_tm_wday == 5 and t.tm_hour > 18):
                 val = 1.0
@@ -690,7 +863,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             sdrs.append(s)
 
         # --- Custom days ---
-        if self._customdays_encoder is not None:
+        if isinstance(self._customdays_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             # customDays_ holds Python tm_wday (0=Mon..6=Sun)
             custom_val = 1.0 if t.tm_wday in self._customDays else 0.0
             s = SDR(dimensions=[self._customdays_encoder._size])
@@ -700,7 +873,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             sdrs.append(s)
 
         # --- Holiday ramp ---
-        if self._holiday_encoder is not None:
+        if isinstance(self._holiday_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             val = self._holiday_value(t)
             s = SDR(dimensions=[self._holiday_encoder._size])
             self._holiday_encoder.encode(val, s)
@@ -709,7 +882,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             sdrs.append(s)
 
         # --- Time of day ---
-        if self._timeofday_encoder is not None:
+        if isinstance(self._timeofday_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             tod = t.tm_hour + t.tm_min / 60.0 + t.tm_sec / 3600.0
             s = SDR(dimensions=[self._timeofday_encoder._size])
             self._timeofday_encoder.encode(tod, s)
