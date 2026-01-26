@@ -74,9 +74,9 @@ if __name__ == "__main__":
     print(f"Encoded SDR for {test_date}: {output_sdr.get_sparse()}")
 
     # Change individual encoder sizes
-    date_encoder.season_encoder.size = 20
+    date_encoder.season_size = 20
 
-    print(f"Season Encoder Size 20 :: {date_encoder.rdse_sizes['season']}")
+    print(f"Season Encoder Size 20 :: {date_encoder.season_encoder.size}")
 
     output_sdr.size = date_encoder.size  # Update SDR size after changing encoder sizes
 

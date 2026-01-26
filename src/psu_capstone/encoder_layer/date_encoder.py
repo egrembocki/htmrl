@@ -40,6 +40,7 @@ import pandas as pd
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
 
 
@@ -242,8 +243,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @season_encoder.setter
     def season_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for season (day of year)."""
+
+        old_size = self._season_encoder.size if self._season_encoder else 0
+
         self._season_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["season"] = self._season_encoder.size
+
+        diff = self._rdse_sizes["season"] - old_size
+        self._size += diff
 
     @property
     def dayofweek_encoder(self) -> BaseEncoder:
@@ -255,8 +262,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @dayofweek_encoder.setter
     def dayofweek_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for day of week."""
+
+        old_size = self._dayofweek_encoder.size if self._dayofweek_encoder else 0
+
         self._dayofweek_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
+
+        diff = self._rdse_sizes["dayOfWeek"] - old_size
+        self._size += diff
 
     @property
     def weekend_encoder(self) -> BaseEncoder:
@@ -268,8 +281,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @weekend_encoder.setter
     def weekend_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for weekend flag."""
+
+        old_size = self._weekend_encoder.size if self._weekend_encoder else 0
+
         self._weekend_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["weekend"] = self._weekend_encoder.size
+
+        diff = self._rdse_sizes["weekend"] - old_size
+        self._size += diff
 
     @property
     def customdays_encoder(self) -> BaseEncoder:
@@ -281,8 +300,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @customdays_encoder.setter
     def customdays_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for custom day groups."""
+
+        old_size = self._customdays_encoder.size if self._customdays_encoder else 0
+
         self._customdays_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["customDays"] = self._customdays_encoder.size
+
+        diff = self._rdse_sizes["customDays"] - old_size
+        self._size += diff
 
     @property
     def holiday_encoder(self) -> BaseEncoder:
@@ -294,8 +319,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @holiday_encoder.setter
     def holiday_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for holidays."""
+
+        old_size = self._holiday_encoder.size if self._holiday_encoder else 0
+
         self._holiday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["holiday"] = self._holiday_encoder.size
+
+        diff = self._rdse_sizes["holiday"] - old_size
+        self._size += diff
 
     @property
     def timeofday_encoder(self) -> BaseEncoder:
@@ -307,10 +338,16 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     @timeofday_encoder.setter
     def timeofday_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for time of day."""
+
+        old_size = self._timeofday_encoder.size if self._timeofday_encoder else 0
+
         self._timeofday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
         self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
 
-    # dictionary getter/setter -> trigger size updates
+        diff = self._rdse_sizes["timeOfDay"] - old_size
+        self._size += diff
+
+    # dictionary getter/setter
     @property
     def rdse_sizes(self) -> dict[str, int]:
         """Get the RDSE sizes for each feature encoder."""
@@ -320,10 +357,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def rdse_sizes(self, sizes: dict[str, int]) -> None:
         """Dictionary setter of RDSE sizes for each feature encoder."""
 
-        print(f"DEBUG :: Called :: Setting RDSE sizes: {sizes}")
+        print(f"DEBUG :: Dictionary Setter Called :: Setting RDSE sizes: {sizes}")
 
-        if len(sizes) != 6:
-            raise ValueError("rdse_sizes dictionary must contain 6 entries.")
         if not all(
             key in sizes
             for key in ["season", "dayOfWeek", "weekend", "customDays", "holiday", "timeOfDay"]
@@ -331,9 +366,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             raise ValueError(
                 "rdse_sizes dictionary must contain keys: season, dayOfWeek, weekend, customDays, holiday, timeOfDay."
             )
-
-        if not all(isinstance(size, int) and size > 0 for size in sizes.values()):
-            raise ValueError("All RDSE sizes must be positive integers.")
 
         # handle uninitialized encoders
         if (
@@ -365,6 +397,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             sizes["timeOfDay"] if sizes["timeOfDay"] > 0 else self._timeofday_encoder.size
         )
 
+        # update the dictionary
         self._rdse_sizes["season"] = self._season_encoder.size
         self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
         self._rdse_sizes["weekend"] = self._weekend_encoder.size
@@ -376,34 +409,37 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     # season encoder - 0
     @property
-    def rdse_season_size(self) -> int:
+    def season_size(self) -> int:
         """Get the RDSE size for the season encoder."""
+        assert self._season_encoder is not None, "Season encoder is not initialized."
+        assert "season" in self._rdse_sizes, "RDSE sizes do not contain 'season' key."
+        assert (
+            self._season_encoder.size == self._rdse_sizes["season"]
+        ), "Season encoder size does not match RDSE sizes dictionary."
         return self._rdse_sizes["season"]
 
-    @rdse_season_size.setter
-    def rdse_season_size(self, size: int) -> None:
+    @season_size.setter
+    def season_size(self, size: int) -> None:
         """Set the RDSE size for the season encoder."""
 
         if self._season_encoder is None:
             raise RuntimeError("Season encoder is not initialized.")
 
-        self.rdse_sizes = {
-            "season": size,
-            "dayOfWeek": self._rdse_sizes["dayOfWeek"],
-            "weekend": self._rdse_sizes["weekend"],
-            "customDays": self._rdse_sizes["customDays"],
-            "holiday": self._rdse_sizes["holiday"],
-            "timeOfDay": self._rdse_sizes["timeOfDay"],
-        }
+        self._rdse_sizes["season"] = size
 
     # dayofweek encoder - 1
     @property
-    def rdse_dayofweek_size(self) -> int:
+    def dayofweek_size(self) -> int:
         """Get the RDSE size for the day of week encoder."""
+        assert self._dayofweek_encoder is not None, "Day-of-week encoder is not initialized."
+        assert "dayOfWeek" in self._rdse_sizes, "RDSE sizes do not contain 'dayOfWeek' key."
+        assert (
+            self._dayofweek_encoder.size == self._rdse_sizes["dayOfWeek"]
+        ), "Day-of-week encoder size does not match RDSE sizes dictionary."
         return self._rdse_sizes["dayOfWeek"]
 
-    @rdse_dayofweek_size.setter
-    def rdse_dayofweek_size(self, size: int) -> None:
+    @dayofweek_size.setter
+    def dayofweek_size(self, size: int) -> None:
         if self._dayofweek_encoder is None:
             raise RuntimeError("Day-of-week encoder is not initialized.")
 
@@ -413,12 +449,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     # weekend encoder - 2
     @property
-    def rdse_weekend_size(self) -> int:
+    def weekend_size(self) -> int:
         """Get the RDSE size for the weekend encoder."""
+        assert self._weekend_encoder is not None, "Weekend encoder is not initialized."
+        assert "weekend" in self._rdse_sizes, "RDSE sizes do not contain 'weekend' key."
+        assert (
+            self._weekend_encoder.size == self._rdse_sizes["weekend"]
+        ), "Weekend encoder size does not match RDSE sizes dictionary."
         return self._rdse_sizes["weekend"]
 
-    @rdse_weekend_size.setter
-    def rdse_weekend_size(self, size: int) -> None:
+    @weekend_size.setter
+    def weekend_size(self, size: int) -> None:
         if self._weekend_encoder is None:
             raise RuntimeError("Weekend encoder is not initialized.")
 
@@ -429,12 +470,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     # customdays encoder - 3
 
     @property
-    def rdse_customdays_size(self) -> int:
+    def customdays_size(self) -> int:
         """Get the RDSE size for the custom days encoder."""
+        assert self._customdays_encoder is not None, "Custom-days encoder is not initialized."
+        assert "customDays" in self._rdse_sizes, "RDSE sizes do not contain 'customDays' key."
+        assert (
+            self._customdays_encoder.size == self._rdse_sizes["customDays"]
+        ), "Custom-days encoder size does not match RDSE sizes dictionary."
         return self._rdse_sizes["customDays"]
 
-    @rdse_customdays_size.setter
-    def rdse_customdays_size(self, size: int) -> None:
+    @customdays_size.setter
+    def customdays_size(self, size: int) -> None:
         if self._customdays_encoder is None:
             raise RuntimeError("Custom-days encoder is not initialized.")
 
@@ -444,12 +490,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     # holiday encoder - 4
     @property
-    def rdse_holiday_size(self) -> int:
+    def holiday_size(self) -> int:
         """Get the RDSE size for the holiday encoder."""
+        assert self._holiday_encoder is not None, "Holiday encoder is not initialized."
+        assert "holiday" in self._rdse_sizes, "RDSE sizes do not contain 'holiday' key."
+        assert (
+            self._holiday_encoder.size == self._rdse_sizes["holiday"]
+        ), "Holiday encoder size does not match RDSE sizes dictionary."
         return self._rdse_sizes["holiday"]
 
-    @rdse_holiday_size.setter
-    def rdse_holiday_size(self, size: int) -> None:
+    @holiday_size.setter
+    def holiday_size(self, size: int) -> None:
         if self._holiday_encoder is None:
             raise RuntimeError("Holiday encoder is not initialized.")
 
@@ -459,12 +510,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     # timeofday encoder - 5
     @property
-    def rdse_timeofday_size(self) -> int:
+    def timeofday_size(self) -> int:
         """Get the RDSE size for the time of day encoder."""
+        assert self._timeofday_encoder is not None, "Time-of-day encoder is not initialized."
+        assert "timeOfDay" in self._rdse_sizes, "RDSE sizes do not contain 'timeOfDay' key."
+        assert (
+            self._timeofday_encoder.size == self._rdse_sizes["timeOfDay"]
+        ), "Time-of-day encoder size does not match RDSE sizes dictionary."
         return self._rdse_sizes["timeOfDay"]
 
-    @rdse_timeofday_size.setter
-    def rdse_timeofday_size(self, size: int) -> None:
+    @timeofday_size.setter
+    def timeofday_size(self, size: int) -> None:
         if self._timeofday_encoder is None:
             raise RuntimeError("Time-of-day encoder is not initialized.")
 
