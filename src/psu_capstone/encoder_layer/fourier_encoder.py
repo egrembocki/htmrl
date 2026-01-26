@@ -284,14 +284,16 @@ if __name__ == "__main__":
     """
     # sin_wave = df_sine.to_numpy(dtype=float, copy=False).flatten()
 
-    sample_rate = 5001
+    sample_rate = 2048
     time_step = 1 / sample_rate
     t = np.arange(0, 1, time_step, dtype=float)
-    f = 1
+    f = 100
     sin_wave = np.sin(2 * np.pi * f * t)
+    sin_wave += 2 * np.sin(2 * np.pi * 200 * t)
+    sin_wave += np.sin(2 * np.pi * 300 * t)
 
-    sin_wave = ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv"))
-    sin_wave = cast(pd.DataFrame, sin_wave).to_numpy(dtype=float, copy=False).flatten()
+    # sin_wave = ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv"))
+    # sin_wave = cast(pd.DataFrame, sin_wave).to_numpy(dtype=float, copy=False).flatten()
 
     fourier_encoder = FourierEncoder()
     freq_data = fourier_encoder.transform(sin_wave)
