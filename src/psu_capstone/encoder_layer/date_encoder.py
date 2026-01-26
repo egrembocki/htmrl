@@ -33,7 +33,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import override
+from typing import cast, override
 
 import pandas as pd
 

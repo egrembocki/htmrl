@@ -117,7 +117,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @active_bits.setter
     def active_bits(self, value: int) -> None:
-        self._active_bits = value
+        """Sets the number of active bits in the encoder."""
+
+        self._parameters.active_bits = value
+
+        try:
+
+            params = self.check_parameters(self._parameters)
+            self._active_bits = params.active_bits
+
+        except AssertionError as err:
+            print(f"ERROR : {err}")
 
     @property
     def sparsity(self) -> float:
@@ -125,7 +135,14 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @sparsity.setter
     def sparsity(self, value: float) -> None:
-        self._sparsity = value
+        """Sets the sparsity of the encoder."""
+
+        self._parameters.sparsity = value
+        try:
+            params = self.check_parameters(self._parameters)
+            self._sparsity = params.sparsity
+        except AssertionError as err:
+            print(f"ERROR : {err}")
 
     @property
     def radius(self) -> float:
@@ -133,7 +150,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @radius.setter
     def radius(self, value: float) -> None:
-        self._radius = value
+        """Sets the radius of the encoder."""
+        self._parameters.radius = value
+        try:
+            params = self.check_parameters(self._parameters)
+            self._radius = params.radius
+        except AssertionError as err:
+            print(f"ERROR : {err}")
 
     @property
     def resolution(self) -> float:
@@ -141,7 +164,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @resolution.setter
     def resolution(self, value: float) -> None:
-        self._resolution = value
+        """Sets the resolution of the encoder."""
+
+        self._parameters.resolution = value
+
+        try:
+            params = self.check_parameters(self._parameters)
+            self._resolution = params.resolution
+        except AssertionError as err:
+            print(f"ERROR : {err}")
 
     @property
     def category(self) -> bool:
@@ -149,7 +180,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @category.setter
     def category(self, value: bool) -> None:
-        self._category = value
+        """Sets whether the encoder is a category encoder."""
+
+        self._parameters.category = value
+
+        try:
+            params = self.check_parameters(self._parameters)
+            self._category = params.category
+        except AssertionError as err:
+            print(f"ERROR : {err}")
 
     @property
     def seed(self) -> int:
@@ -157,7 +196,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @seed.setter
     def seed(self, value: int) -> None:
-        self._seed = value
+        """Sets the seed of the encoder."""
+
+        self._parameters.seed = value
+
+        try:
+            params = self.check_parameters(self._parameters)
+            self._seed = params.seed
+        except AssertionError as err:
+            print(f"ERROR : {err}")
 
     @override
     def encode(self, input_value: float, output_sdr: SDR) -> None:
@@ -198,6 +245,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: RDSEParameters):
+        """Method to check mutually exclusive parameters and fill in missing values.
+
+        Args:
+            parameters (RDSEParameters): The parameters to check and fill in.
+        Returns:
+            RDSEParameters: The checked and filled in parameters.
+        Raises:
+            AssertionError: If the parameters are invalid.
+
+        """
+
         assert parameters.size > 0
 
         num_active_args = 0
