@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import override
 
 import mmh3
+import numpy as np
+from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.sdr_layer.sdr import SDR
@@ -95,6 +97,10 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._resolution = self._parameters.resolution
         self._category = self._parameters.category
         self._seed = self._parameters.seed
+        self._sdrs_encoded: list[np.ndarray] = []
+        self._input_values_encoded: list[float] = []
+        self.knn: KNeighborsRegressor
+        self.enc: bool = False
 
         super().__init__(dimensions, self._size)
 
@@ -104,14 +110,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """
 
     @override
-    def encode(self, input_value: float, output_sdr: SDR) -> list[int]:
-        assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
-        if math.isnan(input_value):
-            output_sdr.zero()
-            return []
+    def encode(self, input_value: float) -> list[int]:
+        # assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
+        # if math.isnan(input_value):
+        #    output_sdr.zero()
+        #    return
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
+        # I am appendding every successful input_value to the local list for knn regressor use.
+        self._input_values_encoded.append(input_value)
+        self.enc = True
 
         data = [0] * self.size
         assert self._resolution > 0.0, "Resolution must be greater than 0."
@@ -137,10 +146,28 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
                 they're handled.
             """
             data[bucket] = 1
-
-        output_sdr.set_dense(data)
-
+        # add the density to the sdrs encoder list for knn regressor use
+        self._sdrs_encoded.append(data)
+        # output_sdr.set_dense(data)
         return data
+
+    def make_knn(self):
+        x = np.array(self._sdrs_encoded, dtype=np.uint8)
+        y = np.array(self._input_values_encoded, dtype=np.float32)
+        knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
+        knn.fit(x, y)
+
+    def decode(self, input_sdr: SDR) -> float:
+        # x = np.array(self._sdrs_encoded, dtype=np.uint8)
+        # y = np.array(self._input_values_encoded, dtype=np.float32)
+        # knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
+        # knn.fit(x, y)
+        if self.enc:
+            self.makeKnn()
+            self.enc = False
+        query = np.asarray(input_sdr.get_dense(), dtype=np.int8).reshape(1, -1)
+        result = self.knn.predict(query)
+        return result.item()
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: RDSEParameters):
@@ -233,19 +260,21 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 if __name__ == "__main__":
     # Tests
+    """
     params = RDSEParameters(
         size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e1 = RandomDistributedScalarEncoder(params)
     o1 = SDR([e1.size])
     e1.encode(10.0, o1)
-    print(o1.get_sparse())
+    print("Encoded 10.0 \n")
+    print("Decode prediction is: \n")
 
     e2 = RandomDistributedScalarEncoder(params)
 
     o2 = SDR([e2.size])
-    e2.encode(10.0, o2)
-    print(o2.get_sparse())
+    e2.encode(1.0, o2)
+    print("Sparse is: \n")
 
     params2 = RDSEParameters(
         size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
@@ -253,12 +282,36 @@ if __name__ == "__main__":
     e3 = RandomDistributedScalarEncoder(params2)
     o3 = SDR([e3.size])
     e3.encode(10.0, o3)
-    print(o3.get_sparse())
+    print("Sparse is: \n")
 
     encoder = RandomDistributedScalarEncoder()
     output = SDR([encoder.size])
     encoder.encode(10.0, output)
-    print(output.get_sparse())
+    print("Sparse is: \n")
     output2 = SDR([encoder.size])
     encoder.encode(10.0, output2)
-    print(output2.get_sparse())
+    print("Sparse is: \n")
+
+    encoder = RandomDistributedScalarEncoder()
+    output = SDR([encoder.size])
+
+    train_values = [random.uniform(0.0, 100.0) for _ in range(200)]
+    for v in train_values:
+        encoder.encode(v, output)
+    test_values = [random.uniform(0.0, 100.0) for _ in range(20)]
+    print("__value_____predicted___error")
+    y_true = []
+    y_pred = []
+    for v in test_values:
+        encoder.encode(v, output)
+        pred = encoder.decode(output)
+        y_true.append(v)
+        y_pred.append(pred)
+        error = pred - v
+        print(f"{v:7.3f}   {pred:9.3f}   {error:+7.3f}")
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    rmse = np.sqrt(np.mean((y_pred - y_true) ** 2))
+    print("RMSE:", rmse)
+    """

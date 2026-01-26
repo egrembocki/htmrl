@@ -164,14 +164,14 @@ class ScalarEncoder(BaseEncoder[int]):
             self._size = self._parameters.size
 
     @override
-    def encode(self, input_value: int | float, output_sdr: SDR) -> None:
-        assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
+    def encode(self, input_value: int | float) -> list[int]:
+        # assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
 
-        if math.isnan(input_value):
-            output_sdr.zero()
-            return
+        # if math.isnan(input_value):
+        #    output_sdr.zero()
+        #    return
 
-        elif self._clip_input:
+        if self._clip_input:
             if self._periodic:
 
                 input_value = input_value % self._maximum
@@ -196,19 +196,23 @@ class ScalarEncoder(BaseEncoder[int]):
           // this by pushing the endpoint (and everything which rounds to it) onto the
           // last bit in the SDR.
         """
-        if not self._periodic:
-            start = min(start, output_sdr.size - self._active_bits)
+        s = SDR([1, self.size])
 
-        sparse = output_sdr.get_sparse()
+        if not self._periodic:
+            start = min(start, self.size - self._active_bits)
+
+        sparse = s.get_sparse()
         sparse[:] = range(start, start + self._active_bits)
 
         if self._periodic:
             for i, bit in enumerate(sparse):
-                if bit >= output_sdr.size:
-                    sparse[i] = bit - output_sdr.size
+                if bit >= self.size:
+                    sparse[i] = bit - self.size.size
             sparse.sort()
 
-        output_sdr.set_sparse(sparse)
+        s.set_sparse(sparse)
+        result = s.get_dense()
+        return result
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: ScalarEncoderParameters):
