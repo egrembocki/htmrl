@@ -131,6 +131,27 @@ class DateEncoderParameters:
     rdse_used: bool = True
     """Enable RDSE usage for date encoder."""
 
+    rdse_sizes: dict[str, int] = field(
+        default_factory=lambda: {
+            "season": 0,
+            "dayOfWeek": 0,
+            "weekend": 0,
+            "customDays": 0,
+            "holiday": 0,
+            "timeOfDay": 0,
+        }
+    )
+
+    """    Dictionary of RDSE sizes for each feature encoder.
+        0: season
+        1: dayOfWeek
+        2: weekend
+        3: customDays
+        4: holiday
+        5: timeOfDay
+
+    """
+
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]):
     """
@@ -187,8 +208,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         """List of bucket values for each feature."""
         self._size: int = 0
         """Total number of bits DateEncoder."""
-        self._rdse_used = date_params.rdse_used
+        self._rdse_used: bool = date_params.rdse_used
         """Flag indicating if RDSE is used."""
+        self._rdse_sizes: dict[str, int] = date_params.rdse_sizes
+        """Dictionary of RDSE sizes for each feature encoder."""
 
         # Declare one encoder per feature
         self._season_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
@@ -218,6 +241,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def season_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for season (day of year)."""
         self._season_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
+        self._rdse_sizes["season"] = self._season_encoder.size
 
     @property
     def dayofweek_encoder(self) -> BaseEncoder | None:
@@ -228,6 +252,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def dayofweek_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for day of week."""
         self._dayofweek_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
+        self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
 
     @property
     def weekend_encoder(self) -> BaseEncoder | None:
@@ -238,6 +263,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def weekend_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for weekend flag."""
         self._weekend_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
+        self._rdse_sizes["weekend"] = self._weekend_encoder.size
 
     @property
     def customdays_encoder(self) -> BaseEncoder | None:
@@ -248,6 +274,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def customdays_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for custom day groups."""
         self._customdays_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
+        self._rdse_sizes["customDays"] = self._customdays_encoder.size
 
     @property
     def holiday_encoder(self) -> BaseEncoder | None:
@@ -258,6 +285,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def holiday_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for holidays."""
         self._holiday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
+        self._rdse_sizes["holiday"] = self._holiday_encoder.size
 
     @property
     def timeofday_encoder(self) -> BaseEncoder | None:
@@ -268,6 +296,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def timeofday_encoder(self, encoder: BaseEncoder) -> None:
         """Set the encoder for time of day."""
         self._timeofday_encoder = cast(RandomDistributedScalarEncoder | ScalarEncoder, encoder)
+        self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
 
     # ------------------------------------------------------------------ #
     # Initialization (mirrors C++ initialize())
@@ -289,16 +318,21 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         # -------- Season --------
         if args.season_width != 0:
             if self._rdse_used:
-                p = RDSEParameters(
-                    size=10,  # default made up
-                    active_bits=args.season_width,
-                    sparsity=0.0,
-                    radius=args.season_radius,
-                    resolution=0.0,
-                    category=False,
-                    seed=42,
-                )
-                self._season_encoder = RandomDistributedScalarEncoder(p)
+                if rdse_params is None:
+                    p = RDSEParameters(
+                        size=10,  # default made up
+                        active_bits=args.season_width,
+                        sparsity=0.0,
+                        radius=args.season_radius,
+                        resolution=0.0,
+                        category=False,
+                        seed=42,
+                    )
+                    self._season_encoder = RandomDistributedScalarEncoder(p)
+                    self._rdse_sizes["season"] = self._season_encoder.size
+                else:
+                    self._season_encoder = RandomDistributedScalarEncoder(rdse_params)
+                    self._rdse_sizes["season"] = self._season_encoder.size
             else:
 
                 if scalar_params is None:
@@ -316,8 +350,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         resolution=0.0,
                     )
                     self._season_encoder = ScalarEncoder(p)
+                    self._rdse_sizes["season"] = self._season_encoder.size
                 else:
                     self._season_encoder = ScalarEncoder(scalar_params)
+                    self._rdse_sizes["season"] = self._season_encoder.size
 
             self._bucketMap[self.SEASON] = len(self._buckets)
             self._buckets.append(0.0)
@@ -326,7 +362,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         # -------- Day of week --------
         if args.day_of_week_width != 0:
             if self._rdse_used:
-                if rdse_params is None:
+                if rdse_params is None:  # did not pass custom rdse params
                     p = RDSEParameters(
                         size=10,
                         active_bits=args.day_of_week_width,
@@ -337,14 +373,15 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         seed=43,
                     )
                     self._dayofweek_encoder = RandomDistributedScalarEncoder(p)
-
+                    self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
                 else:
 
                     self._dayofweek_encoder = RandomDistributedScalarEncoder(rdse_params)
+                    self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
 
             else:
 
-                if scalar_params is None:
+                if scalar_params is None:  # did not pass custom scalar params
 
                     p = ScalarEncoderParameters(
                         minimum=0,
@@ -359,8 +396,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         resolution=0.0,
                     )
                     self._dayofweek_encoder = ScalarEncoder(p)
+                    self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
                 else:
                     self._dayofweek_encoder = ScalarEncoder(scalar_params)
+                    self._rdse_sizes["dayOfWeek"] = self._dayofweek_encoder.size
 
             self._bucketMap[self.DAYOFWEEK] = len(self._buckets)
             self._buckets.append(0.0)
@@ -369,7 +408,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         # -------- Weekend --------
         if args.weekend_width != 0:
             if self._rdse_used:
-                if rdse_params is None:
+                if rdse_params is None:  # did not pass custom rdse params
                     p = RDSEParameters(
                         size=10,
                         active_bits=args.weekend_width,
@@ -380,11 +419,13 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         seed=44,
                     )
                     self._weekend_encoder = RandomDistributedScalarEncoder(p)
+                    self._rdse_sizes["weekend"] = self._weekend_encoder.size
                 else:
                     self._weekend_encoder = RandomDistributedScalarEncoder(rdse_params)
+                    self._rdse_sizes["weekend"] = self._weekend_encoder.size
 
             else:
-                if scalar_params is None:
+                if scalar_params is None:  # did not pass custom scalar params
 
                     p = ScalarEncoderParameters(
                         minimum=0,
@@ -399,8 +440,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         resolution=0.0,
                     )
                     self._weekend_encoder = ScalarEncoder(p)
+                    self._rdse_sizes["weekend"] = self._weekend_encoder.size
                 else:
                     self._weekend_encoder = ScalarEncoder(scalar_params)
+                    self._rdse_sizes["weekend"] = self._weekend_encoder.size
 
             self._bucketMap[self.WEEKEND] = len(self._buckets)
             self._buckets.append(0.0)
@@ -435,7 +478,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                     self._customDays.add(daymap[key])
 
             if self._rdse_used:
-                if rdse_params is None:
+                if rdse_params is None:  # did not pass custom rdse params
                     p = RDSEParameters(
                         size=10,
                         active_bits=args.custom_width,
@@ -446,11 +489,12 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         seed=45,
                     )
                     self._customdays_encoder = RandomDistributedScalarEncoder(p)
+                    self._rdse_sizes["customDays"] = self._customdays_encoder.size
                 else:
                     self._customdays_encoder = RandomDistributedScalarEncoder(rdse_params)
-
+                    self._rdse_sizes["customDays"] = self._customdays_encoder.size
             else:
-                if scalar_params is None:
+                if scalar_params is None:  # did not pass custom scalar params
 
                     p = ScalarEncoderParameters(
                         minimum=0,
@@ -465,8 +509,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         resolution=0.0,
                     )
                     self._customdays_encoder = ScalarEncoder(p)
+                    self._rdse_sizes["customDays"] = self._customdays_encoder.size
                 else:
                     self._customdays_encoder = ScalarEncoder(scalar_params)
+                    self._rdse_sizes["customDays"] = self._customdays_encoder.size
 
             self._bucketMap[self.CUSTOM] = len(self._buckets)
             self._buckets.append(0.0)
@@ -480,7 +526,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         "DateEncoder: holiday_dates entries must be [mon,day] or [year,mon,day]."
                     )
             if self._rdse_used:
-                if rdse_params is None:
+                if rdse_params is None:  # did not pass custom rdse params
 
                     p = RDSEParameters(
                         size=10,
@@ -492,11 +538,12 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         seed=46,
                     )
                     self._holiday_encoder = RandomDistributedScalarEncoder(p)
+                    self._rdse_sizes["holiday"] = self._holiday_encoder.size
                 else:
                     self._holiday_encoder = RandomDistributedScalarEncoder(rdse_params)
-
+                    self._rdse_sizes["holiday"] = self._holiday_encoder.size
             else:
-                if scalar_params is None:
+                if scalar_params is None:  # did not pass custom scalar params
 
                     p = ScalarEncoderParameters(
                         minimum=0,
@@ -512,8 +559,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                     )
 
                     self._holiday_encoder = ScalarEncoder(p)
+                    self._rdse_sizes["holiday"] = self._holiday_encoder.size
                 else:
                     self._holiday_encoder = ScalarEncoder(scalar_params)
+                    self._rdse_sizes["holiday"] = self._holiday_encoder.size
 
             self._bucketMap[self.HOLIDAY] = len(self._buckets)
             self._buckets.append(0.0)
@@ -522,7 +571,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         # -------- Time of day --------
         if args.time_of_day_width != 0:
             if self._rdse_used:
-                if rdse_params is None:
+                if rdse_params is None:  # did not pass custom rdse params
 
                     p = RDSEParameters(
                         size=10,
@@ -534,12 +583,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         seed=47,
                     )
                     self._timeofday_encoder = RandomDistributedScalarEncoder(p)
+                    self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
 
                 else:
 
                     self._timeofday_encoder = RandomDistributedScalarEncoder(rdse_params)
+                    self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
             else:
-                if scalar_params is None:
+                if scalar_params is None:  # did not pass custom scalar params
                     p = ScalarEncoderParameters(
                         minimum=0,
                         maximum=24,
@@ -553,8 +604,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                         resolution=0.0,
                     )
                     self._timeofday_encoder = ScalarEncoder(p)
+                    self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
                 else:
                     self._timeofday_encoder = ScalarEncoder(scalar_params)
+                    self._rdse_sizes["timeOfDay"] = self._timeofday_encoder.size
 
             self._bucketMap[self.TIMEOFDAY] = len(self._buckets)
             self._buckets.append(0.0)
