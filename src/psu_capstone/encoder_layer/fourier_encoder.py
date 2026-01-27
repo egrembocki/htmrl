@@ -258,7 +258,7 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
         sdr_list = []
 
-        x_k = self.transform(input_value)
+        x_k = fft(input_value)
 
         magnitude = np.max(y)
 
@@ -293,7 +293,7 @@ if __name__ == "__main__":
 
     # /home/millscb/repos/psu-capstone/data/test.csv
 
-    from psu_capstone.utils import DATA_PATH, PROJECT_ROOT
+    from utils import DATA_PATH, PROJECT_ROOT
 
     ih = InputHandler()
 
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     hot_gym = hot_gym.to_numpy(dtype=float, copy=False).flatten()
 
     fourier_encoder = FourierEncoder()
-    freq_data = fourier_encoder.transform(hot_gym)
+    # freq_data = fourier_encoder.transform(hot_gym)
     gym_fft = cast(np.ndarray, fft(hot_gym))
 
     freq_data = gym_fft
@@ -349,4 +349,4 @@ if __name__ == "__main__":
     plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
     plt.show()
 
-    sdrs = fourier_encoder.encode(freq_data)
+    sdrs = fourier_encoder.encode(hot_gym)

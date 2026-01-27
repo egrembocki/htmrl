@@ -5,6 +5,9 @@ from ctypes import Structure as Struct
 from ctypes import c_bool, c_float, c_int
 from math import isclose
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(PROJECT_ROOT, "data")
+
 
 class Parameters(Struct):
     """Structure to hold parameters for all encoders, with default values."""
@@ -89,6 +92,8 @@ def smoke_check():
     assert isclose(params.scalar_minimum, 0.0)
     assert params.rdse_seed == 42
     assert params.day_of_week_width == 3
+
+    print(PROJECT_ROOT + DATA_PATH)
     print("Smoke check passed.")
 
 
