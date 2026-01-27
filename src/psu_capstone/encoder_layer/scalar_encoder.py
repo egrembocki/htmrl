@@ -228,6 +228,7 @@ class ScalarEncoder(BaseEncoder[int]):
         assert parameters.minimum <= parameters.maximum
         num_active_args = sum([parameters.active_bits > 0, parameters.sparsity > 0])
         assert num_active_args != 0, "Missing argument, need one of: 'active_bits', 'sparsity'."
+
         # print(str(parameters.sparsity))
         # print(str(parameters.active_bits))
         assert (
@@ -237,7 +238,6 @@ class ScalarEncoder(BaseEncoder[int]):
         )
         num_size_args = sum(
             [
-                parameters.size > 0,
                 parameters.radius > 0,
                 parameters.category,
                 parameters.resolution > 0,
@@ -245,9 +245,9 @@ class ScalarEncoder(BaseEncoder[int]):
         )
         assert (
             num_size_args != 0
-        ), "Missing argument, need one of: 'size', 'radius', 'resolution', 'category'."
+        ), "Missing argument, need one of: 'radius', 'resolution', 'category'."
         assert num_size_args == 1, (
-            "Too many arguments specified: 'size', 'radius', 'resolution', 'category'. Choose only one of them."
+            "Too many arguments specified: 'radius', 'resolution', 'category'. Choose only one of them."
             + str(num_size_args)
             + "     "
             + str(parameters.size)

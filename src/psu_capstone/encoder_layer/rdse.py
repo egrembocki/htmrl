@@ -82,7 +82,7 @@ class RDSEParameters:
 
 
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
-    """Random Distributed Scalar Encoder (RDSE) implementation."""
+    """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
 
     def __init__(
         self, parameters: RDSEParameters = RDSEParameters(), dimensions: list[int] | None = None
@@ -100,29 +100,32 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._sdrs_encoded: list[np.ndarray] = []
         self._input_values_encoded: list[float] = []
         self.knn: KNeighborsRegressor
-        self.enc: bool = False
+        self.encoding: bool = False
 
         super().__init__(dimensions, self._size)
 
-    """
-    Encodes an input value into an SDR with a random distributed scalar encoder.
-    We employ the murmur hashing.
-    """
-
     @override
     def encode(self, input_value: float) -> list[int]:
-        # assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
-        # if math.isnan(input_value):
-        #    output_sdr.zero()
-        #    return
+        """Encode the input value into an dense SDR.
+
+        Args:
+            input_value (float): The input value to encode.
+        Returns:
+            list[int]: The dense SDR representation as a list of integers (0s and 1s).
+        Raises:
+            ValueError: If the input value is invalid for category encoding.
+
+        """
+
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
+
         # I am appendding every successful input_value to the local list for knn regressor use.
         self._input_values_encoded.append(input_value)
-        self.enc = True
+        self.encoding = True
 
-        data = [0] * self.size
+        sdr_output = [0] * self.size  # pad zeros into a dense list
         assert self._resolution > 0.0, "Resolution must be greater than 0."
         index = int(input_value / self._resolution)
 
@@ -145,26 +148,32 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
                 deviations in the sparsity or semantic similarity, depending on how
                 they're handled.
             """
-            data[bucket] = 1
+            sdr_output[bucket] = 1  # dense
+
         # add the density to the sdrs encoder list for knn regressor use
-        self._sdrs_encoded.append(data)
+
+        data_array = np.array(sdr_output, dtype=np.uint8)
+
+        self._sdrs_encoded.append(data_array)
+
         # output_sdr.set_dense(data)
-        return data
+        return sdr_output
 
     def make_knn(self):
         x = np.array(self._sdrs_encoded, dtype=np.uint8)
         y = np.array(self._input_values_encoded, dtype=np.float32)
         knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
         knn.fit(x, y)
+        self.knn = knn
 
     def decode(self, input_sdr: SDR) -> float:
         # x = np.array(self._sdrs_encoded, dtype=np.uint8)
         # y = np.array(self._input_values_encoded, dtype=np.float32)
         # knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
         # knn.fit(x, y)
-        if self.enc:
+        if self.encoding:
             self.makeKnn()
-            self.enc = False
+            self.encoding = False
         query = np.asarray(input_sdr.get_dense(), dtype=np.int8).reshape(1, -1)
         result = self.knn.predict(query)
         return result.item()

@@ -1,322 +1,419 @@
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass
-from typing import List
+from datetime import datetime
+
+import pytest
 
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
+from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
 
 
-@dataclass
-class DateValueCase:
-    time: List[int]
-    bucket: List[float]
-    excepted_output: List[int]
+@pytest.fixture
+def date_encoder_instance() -> DateEncoder:
+    """Fixture to create a DateEncoder instance for testing."""
 
-
-def _to_timestamp(parts: List[int]) -> float:
-    """
-    Mirror C++ DateEncoder::mktime(y, m, d, h, min, s) using your static helper.
-
-    parts is [y, m, d, h, min] or [y, m, d, h, min, s].
-    """
-    if len(parts) == 5:
-        year, mon, day, hr, minute = parts
-        sec = 0
-    elif len(parts) == 6:
-        year, mon, day, hr, minute, sec = parts
-    else:
-        raise ValueError(f"Invalid time spec: {parts}")
-
-    return DateEncoder.mktime(year, mon, day, hr, minute, sec)
-
-
-def do_date_value_cases(encoder: DateEncoder, cases: List[DateValueCase]) -> None:
-    """
-    Port of the C++ helper doDateValueCases.
-    For each case:
-      - build expected SDR from expected_output
-      - encode the given time
-      - assert buckets and SDR match expectations
-    """
-    for c in cases:
-        expected = SDR(dimensions=[encoder._size])
-        expected.set_sparse(sorted(c.excepted_output))
-
-        ts = _to_timestamp(c.time)
-
-        actual = SDR(dimensions=[encoder._size])
-        encoder.encode(time.localtime(ts), actual)
-
-        assert encoder._buckets == c.bucket
-
-        assert actual == expected
-
-        expected.destroy()
-        actual.destroy()
+    return DateEncoder()
 
 
 def test_season():
 
+    # Arrange
     date_params = DateEncoderParameters(
-        season_active_bits=5,
+        season_size=366,
+        season_active_bits=4,
+        season_sparsity=0.0,
         season_radius=91.5,
-        day_of_week_active_bits=0,
-        day_of_week_radius=1.0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        time_of_day_radius=4.0,
-        custom_active_bits=0,
+        season_resolution=0.0,
+        day_of_week_size=0,
+        weekend_size=0,
+        holiday_size=0,
+        time_of_day_size=0,
+        custom_size=0,
         rdse_used=False,
     )
 
-    encoder = DateEncoder(date_params)
-    cases = [
-        # date/time                            bucket   expected output
-        DateValueCase([2020, 1, 1, 0, 0], [0.0], [0, 1, 2, 3, 4]),  # New Year's Day, midnight
-        DateValueCase([2019, 12, 11, 14, 45], [3.0], [0, 1, 2, 3, 19]),  # winter, Wed, afternoon
-        DateValueCase([2010, 11, 4, 14, 55], [3.0], [0, 1, 17, 18, 19]),  # Nov 4, fall, Thu
-        DateValueCase([2019, 7, 4, 0, 0], [2.0], [10, 11, 12, 13, 14]),  # July 4, summer, holiday
-        DateValueCase([2019, 4, 21, 0, 0], [1.0], [6, 7, 8, 9, 10]),  # Easter
-        DateValueCase([2017, 4, 17, 0, 0], [1.0], [6, 7, 8, 9, 10]),
-        DateValueCase([2017, 4, 17, 22, 59], [1.0], [6, 7, 8, 9, 10]),
-        DateValueCase([1988, 5, 29, 20, 0], [1.0], [8, 9, 10, 11, 12]),
-        DateValueCase([1988, 5, 27, 20, 0], [1.0], [8, 9, 10, 11, 12]),
+    date_encoder = DateEncoder(date_params)
+
+    test_case = [
+        [2020, 1, 1, 0, 0],
+        [2019, 12, 11, 14, 45],
+        [2010, 11, 4, 14, 55],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 0, 0],
+        [2017, 4, 17, 0, 0],
+        [2017, 4, 17, 22, 59],
+        [1988, 5, 29, 20, 0],
+        [1988, 5, 27, 20, 0],
     ]
 
-    do_date_value_cases(encoder, cases)
+    actual_encoding = []
+
+    expected_encoding = [
+        [0, 1, 2, 3],
+        [125, 126, 127, 128],
+        [111, 112, 113, 114],
+        [67, 68, 69, 70],
+        [40, 41, 42, 43],
+        [38, 39, 40, 41],
+        [38, 39, 40, 41],
+        [54, 55, 56, 57],
+        [53, 54, 55, 56],
+    ]
+
+    # Act
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    # Assert
+    assert actual_encoding == expected_encoding, "DateEncoder season test failed!"
 
 
 def test_day_of_week():
+
+    # Arrange
     date_params = DateEncoderParameters(
+        season_size=0,
+        day_of_week_size=2048,
         day_of_week_active_bits=2,
-        day_of_week_radius=1.0,
-        season_active_bits=0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        custom_active_bits=0,
+        day_of_week_radius=292.57,
+        day_of_week_resolution=0.0,
+        day_of_week_sparsity=0.0,
+        weekend_size=0,
+        holiday_size=0,
+        time_of_day_size=0,
+        custom_size=0,
         rdse_used=False,
     )
 
-    encoder = DateEncoder(date_params, dimensions=[1, 2])
-    cases = [
-        # date/time                       bucket   expected
-        DateValueCase([2020, 1, 1, 0, 0], [2.0], [4, 5]),  # Wed
-        DateValueCase([2019, 12, 11, 14, 45], [2.0], [4, 5]),  # Wed
-        DateValueCase([2010, 11, 4, 14, 55], [3.0], [6, 7]),  # Thu
-        DateValueCase([2019, 7, 4, 0, 0], [3.0], [6, 7]),  # Thu
-        DateValueCase([2019, 4, 21, 0, 0], [6.0], [12, 13]),  # Sun
-        DateValueCase([2017, 4, 17, 0, 0], [0.0], [0, 1]),  # Mon
-        DateValueCase([2017, 4, 17, 22, 59], [0.0], [0, 1]),  # Mon
-        DateValueCase([1988, 5, 29, 20, 0], [6.0], [12, 13]),  # Sun
-        DateValueCase([1988, 5, 27, 20, 0], [4.0], [8, 9]),  # Fri
-    ]
+    date_encoder = DateEncoder(date_params)
 
-    do_date_value_cases(encoder, cases)
+    actual_encoding = []
+
+    test_case = [
+        [2020, 1, 1, 0, 0],
+        [2019, 12, 11, 14, 45],
+        [2010, 11, 4, 14, 55],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 0, 0],
+        [2017, 4, 17, 0, 0],
+        [2017, 4, 17, 22, 59],
+        [1988, 5, 29, 20, 0],
+        [1988, 5, 27, 20, 0],
+    ]
+    expected_encoding = [[4, 5], [4, 5], [6, 7], [6, 7], [12, 13], [0, 1], [0, 1], [12, 13], [8, 9]]
+
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    assert actual_encoding == expected_encoding, "DateEncoder day_of_week test failed!"
 
 
 def test_weekend():
     # Weekend defined as Fri after noon until Sun midnight
     date_params = DateEncoderParameters(
+        weekend_size=2048,
         weekend_active_bits=2,
-        season_active_bits=0,
-        season_radius=91.5,
-        day_of_week_active_bits=0,
-        day_of_week_radius=1.0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        time_of_day_radius=4.0,
-        custom_active_bits=0,
+        weekend_radius=39.38,
+        weekend_resolution=0.0,
+        weekend_sparsity=0.0,
+        season_size=0,
+        day_of_week_size=0,
+        holiday_size=0,
+        time_of_day_size=0,
+        custom_size=0,
         rdse_used=False,
     )
 
-    encoder = DateEncoder(date_params, dimensions=[1, 2])
-    cases = [
-        # date/time                          bucket   expected
-        DateValueCase([2020, 1, 1, 0, 0], [0.0], [0, 1]),  # Wed
-        DateValueCase([2019, 12, 11, 14, 45], [0.0], [0, 1]),  # Wed
-        DateValueCase([2010, 11, 4, 14, 55], [0.0], [0, 1]),  # Thu
-        DateValueCase([2019, 7, 4, 0, 0], [0.0], [0, 1]),  # Thu
-        DateValueCase([2019, 4, 21, 0, 0], [1.0], [2, 3]),  # Sun (weekend)
-        DateValueCase([2017, 4, 17, 0, 0], [0.0], [0, 1]),  # Mon
-        DateValueCase([2017, 4, 17, 22, 59], [0.0], [0, 1]),  # Mon
-        DateValueCase([1988, 5, 29, 20, 0], [1.0], [2, 3]),  # Sun evening
-        DateValueCase([1988, 5, 27, 11, 0], [0.0], [0, 1]),  # Fri morning
-        DateValueCase([1988, 5, 27, 20, 0], [1.0], [2, 3]),  # Fri evening
+    date_encoder = DateEncoder(date_params)
+
+    actual_encoding = []
+
+    test_case = [
+        [2020, 1, 1, 0, 0],
+        [2019, 12, 11, 14, 45],
+        [2010, 11, 4, 14, 55],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 0, 0],
+        [2017, 4, 17, 0, 0],
+        [2017, 4, 17, 22, 59],
+        [1988, 5, 29, 20, 0],
+        [1988, 5, 27, 11, 0],
+        [1988, 5, 27, 20, 0],
     ]
 
-    do_date_value_cases(encoder, cases)
+    expected_encoding = [
+        [0, 1],
+        [0, 1],
+        [0, 1],
+        [0, 1],
+        [2, 3],
+        [0, 1],
+        [0, 1],
+        [2, 3],
+        [0, 1],
+        [2, 3],
+    ]
+
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    assert actual_encoding == expected_encoding, "DateEncoder weekend test failed!"
 
 
 def test_holiday():
     date_params = DateEncoderParameters(
+        holiday_size=2048,
         holiday_active_bits=4,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
-        season_active_bits=0,
-        season_radius=91.5,
-        day_of_week_active_bits=0,
-        day_of_week_radius=1.0,
-        weekend_active_bits=0,
-        time_of_day_active_bits=0,
-        time_of_day_radius=4.0,
-        custom_active_bits=0,
+        holiday_radius=186.18,
+        holiday_resolution=0.0,
+        holiday_sparsity=0.0,
+        season_size=0,
+        day_of_week_size=0,
+        weekend_size=0,
+        time_of_day_size=0,
+        custom_size=0,
         rdse_used=False,
     )
-    encoder = DateEncoder(date_params, dimensions=[1, 4])
+    date_encoder = DateEncoder(date_params)
 
-    cases = [
-        # date/time                           bucket    expected
-        DateValueCase([2019, 12, 31, 0, 0], [0.0], [0, 1, 2, 3]),  # off - 24 hrs before
-        DateValueCase([2019, 12, 31, 12, 0], [0.0], [2, 3, 4, 5]),  # 50% ramp before
-        DateValueCase([2020, 1, 1, 0, 0], [1.0], [4, 5, 6, 7]),  # on
-        DateValueCase([2020, 1, 1, 12, 0], [1.0], [4, 5, 6, 7]),
-        DateValueCase([2020, 1, 1, 23, 59], [1.0], [4, 5, 6, 7]),
-        DateValueCase([2020, 1, 2, 12, 0], [1.0], [0, 1, 6, 7]),  # ramp after
-        DateValueCase([2020, 1, 3, 0, 0], [0.0], [0, 1, 2, 3]),  # off
-        DateValueCase([2019, 12, 11, 14, 45], [0.0], [0, 1, 2, 3]),  # ordinary day
-        DateValueCase([2010, 11, 4, 14, 55], [0.0], [0, 1, 2, 3]),
-        DateValueCase([2019, 7, 4, 0, 0], [1.0], [4, 5, 6, 7]),  # holiday
-        DateValueCase([2019, 4, 21, 0, 0], [1.0], [4, 5, 6, 7]),  # Easter
-        DateValueCase([2017, 4, 17, 0, 0], [0.0], [0, 1, 2, 3]),
+    actual_encoding = []
+
+    test_case = [
+        [2019, 12, 31, 0, 0],
+        [2019, 12, 31, 12, 00],
+        [2020, 1, 1, 0, 0],
+        [2020, 1, 1, 12, 0],
+        [2020, 1, 1, 23, 59],
+        [2020, 1, 2, 12, 0],
+        [2020, 1, 3, 0, 0],
+        [2019, 12, 11, 14, 4],
+        [2010, 1, 3, 0, 0],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 0, 0],
+        [2019, 4, 17, 0, 0],
     ]
 
-    do_date_value_cases(encoder, cases)
+    expected_encoding = [
+        [0, 1, 2, 3],
+        [1, 2, 3, 4],
+        [2, 3, 4, 5],
+        [2, 3, 4, 5],
+        [2, 3, 4, 5],
+        [3, 4, 5, 6],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3],
+        [2, 3, 4, 5],
+        [2, 3, 4, 5],
+        [0, 1, 2, 3],
+    ]
+
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    assert actual_encoding == expected_encoding, "DateEncoder holiday test failed!"
 
 
 def test_time_of_day():
     date_params = DateEncoderParameters(
+        time_of_day_size=1024,
         time_of_day_active_bits=4,
-        time_of_day_radius=4.0,
-        season_active_bits=0,
-        season_radius=91.5,
-        day_of_week_active_bits=0,
-        day_of_week_radius=1.0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        custom_active_bits=0,
+        time_of_day_radius=42.67,
+        time_of_day_resolution=0.0,
+        time_of_day_sparsity=0.0,
+        season_size=0,
+        day_of_week_size=0,
+        weekend_size=0,
+        holiday_size=0,
+        custom_size=0,
         rdse_used=False,
     )
-    encoder = DateEncoder(date_params, dimensions=[1, 4])
 
-    cases = [
-        # date/time                             bucket    expected
-        DateValueCase([2020, 1, 1, 0, 0], [0.0], [0, 1, 2, 3]),  # 0:00
-        DateValueCase([2019, 12, 11, 14, 45], [12.0], [15, 16, 17, 18]),  # ~14.75 → bucket 12
-        DateValueCase([2010, 11, 4, 14, 55], [12.0], [15, 16, 17, 18]),
-        DateValueCase([2019, 7, 4, 0, 0], [0.0], [0, 1, 2, 3]),
-        DateValueCase([2019, 4, 21, 12, 0], [12.0], [12, 13, 14, 15]),
-        DateValueCase([2017, 4, 17, 1, 0], [0.0], [1, 2, 3, 4]),  # 1:00
-        DateValueCase([2017, 4, 17, 22, 59], [20.0], [0, 1, 2, 23]),  # ~22.98 → bucket 20
-        DateValueCase([1988, 5, 29, 20, 0], [20.0], [20, 21, 22, 23]),
-        DateValueCase([1988, 5, 27, 11, 0], [8.0], [11, 12, 13, 14]),
-        DateValueCase([1988, 5, 27, 20, 0], [20.0], [20, 21, 22, 23]),
+    date_encoder = DateEncoder(date_params)
+
+    actual_encoding = []
+
+    test_case = [
+        [2020, 1, 1, 0, 0],
+        [2019, 12, 11, 14, 45],
+        [2010, 11, 4, 14, 55],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 12, 0],
+        [2017, 4, 17, 1, 0],
+        [2017, 4, 17, 22, 59],
+        [1988, 5, 29, 20, 0],
+        [1988, 5, 27, 11, 0],
+        [1988, 5, 27, 20, 0],
     ]
 
-    do_date_value_cases(encoder, cases)
+    expected_encoding = [
+        [0, 1, 2, 3],
+        [15, 16, 17, 18],
+        [15, 16, 17, 18],
+        [0, 1, 2, 3],
+        [12, 13, 14, 15],
+        [1, 2, 3, 4],
+        [23, 24, 25, 26],
+        [20, 21, 22, 23],
+        [11, 12, 13, 14],
+        [20, 21, 22, 23],
+    ]
+
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    assert actual_encoding == expected_encoding, "DateEncoder time_of_day test failed!"
 
 
 def test_custom_day():
     date_params = DateEncoderParameters(
+        custom_size=2048,
         custom_active_bits=2,
+        custom_radius=730.0,
+        custom_resolution=0.0,
+        custom_sparsity=0.0,
         custom_days=["Monday", "Mon, Wed, Fri"],
-        season_active_bits=0,
-        season_radius=91.5,
-        day_of_week_active_bits=0,
-        day_of_week_radius=1.0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        time_of_day_radius=4.0,
+        season_size=0,
+        day_of_week_size=0,
+        weekend_size=0,
+        holiday_size=0,
+        time_of_day_size=0,
         rdse_used=False,
     )
-    encoder = DateEncoder(date_params, dimensions=[1, 2])
-    cases = [
-        # date/time                          bucket   expected
-        DateValueCase([2020, 1, 1, 0, 0], [1.0], [2, 3]),  # Wed matches "Mon, Wed, Fri"
-        DateValueCase([2019, 12, 11, 14, 45], [1.0], [2, 3]),  # Wed
-        DateValueCase([2010, 11, 4, 14, 55], [0.0], [0, 1]),  # Thu
-        DateValueCase([2019, 7, 4, 0, 0], [0.0], [0, 1]),  # Thu
-        DateValueCase([2019, 4, 21, 0, 0], [0.0], [0, 1]),  # Sun
-        DateValueCase([2017, 4, 17, 0, 0], [1.0], [2, 3]),  # Mon
-        DateValueCase([2017, 4, 17, 22, 59], [1.0], [2, 3]),  # Mon
-        DateValueCase([1988, 5, 29, 20, 0], [0.0], [0, 1]),  # Sun
-        DateValueCase([1988, 5, 27, 11, 0], [1.0], [2, 3]),  # Fri
-        DateValueCase([1988, 5, 27, 20, 0], [1.0], [2, 3]),  # Fri
+
+    date_encoder = DateEncoder(date_params)
+
+    actual_encoding = []
+
+    test_case = [
+        [2020, 1, 1, 0, 0],
+        [2019, 12, 11, 14, 45],
+        [2010, 11, 4, 14, 55],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 0, 0],
+        [2017, 4, 17, 0, 0],
+        [2017, 4, 17, 22, 59],
+        [1988, 5, 29, 20, 0],
+        [1988, 5, 27, 11, 0],
+        [1988, 5, 27, 20, 0],
     ]
 
-    do_date_value_cases(encoder, cases)
+    expected_encoding = [
+        [2, 3],
+        [2, 3],
+        [0, 1],
+        [0, 1],
+        [0, 1],
+        [2, 3],
+        [2, 3],
+        [0, 1],
+        [2, 3],
+        [2, 3],
+    ]
+
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    assert actual_encoding == expected_encoding, "DateEncoder custom_day test failed!"
 
 
-def test_combined():
+def test_all_combined():
     date_params = DateEncoderParameters(
-        season_active_bits=5,
+        season_size=100,
+        season_active_bits=2,
+        season_sparsity=0.0,
+        season_radius=25.0,
+        season_resolution=0.0,
+        day_of_week_size=100,
         day_of_week_active_bits=2,
+        day_of_week_radius=14.28,
+        day_of_week_resolution=0.0,
+        day_of_week_sparsity=0.0,
+        weekend_size=100,
         weekend_active_bits=2,
-        custom_active_bits=2,
-        custom_days=["Monday", "Mon, Wed, Fri"],
+        weekend_radius=1.92,
+        weekend_resolution=0.0,
+        weekend_sparsity=0.0,
+        holiday_size=100,
         holiday_active_bits=2,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
-        time_of_day_active_bits=4,
-        time_of_day_radius=4.0,
+        holiday_radius=9.09,
+        holiday_resolution=0.0,
+        holiday_sparsity=0.0,
+        time_of_day_size=100,
+        time_of_day_active_bits=2,
+        time_of_day_radius=0.0278,
+        time_of_day_resolution=0.0,
+        time_of_day_sparsity=0.0,
+        custom_size=100,
+        custom_active_bits=2,
+        custom_radius=25.0,
+        custom_resolution=0.0,
+        custom_sparsity=0.0,
+        custom_days=["Monday", "Mon, Wed, Fri"],
         rdse_used=False,
     )
-    encoder = DateEncoder(date_params, dimensions=[1, 17])
-    cases = [
-        DateValueCase(
-            [2020, 1, 1, 0, 0],  # date/time
-            [0, 2, 0, 1, 1, 0],  # buckets
-            [0, 1, 2, 3, 4, 24, 25, 34, 35, 40, 41, 44, 45, 46, 47, 48, 49],  # expected
-        ),
-        DateValueCase(
-            [2019, 12, 11, 14, 45],
-            [3, 2, 0, 1, 0, 12],
-            [0, 1, 2, 3, 19, 24, 25, 34, 35, 40, 41, 42, 43, 61, 62, 63, 64],
-        ),
-        DateValueCase(
-            [2010, 11, 4, 14, 55],
-            [3, 3, 0, 0, 0, 12],
-            [0, 1, 17, 18, 19, 26, 27, 34, 35, 38, 39, 42, 43, 61, 62, 63, 64],
-        ),
-        DateValueCase(
-            [2019, 7, 4, 0, 0],
-            [2, 3, 0, 0, 1, 0],
-            [10, 11, 12, 13, 14, 26, 27, 34, 35, 38, 39, 44, 45, 46, 47, 48, 49],
-        ),
-        DateValueCase(
-            [2019, 4, 21, 0, 0],
-            [1, 6, 1, 0, 1, 0],
-            [6, 7, 8, 9, 10, 32, 33, 36, 37, 38, 39, 44, 45, 46, 47, 48, 49],
-        ),
-        DateValueCase(
-            [2017, 4, 17, 0, 0],
-            [1, 0, 0, 1, 0, 0],
-            [6, 7, 8, 9, 10, 20, 21, 34, 35, 40, 41, 42, 43, 46, 47, 48, 49],
-        ),
-        DateValueCase(
-            [2017, 4, 17, 22, 59],
-            [1, 0, 0, 1, 0, 20],
-            [6, 7, 8, 9, 10, 20, 21, 34, 35, 40, 41, 42, 43, 46, 47, 48, 69],
-        ),
-        DateValueCase(
-            [1988, 5, 29, 20, 0],
-            [1, 6, 1, 0, 0, 20],
-            [8, 9, 10, 11, 12, 32, 33, 36, 37, 38, 39, 42, 43, 66, 67, 68, 69],
-        ),
-        DateValueCase(
-            [1988, 5, 27, 11, 0],
-            [1, 4, 0, 1, 0, 8],
-            [8, 9, 10, 11, 12, 28, 29, 34, 35, 40, 41, 42, 43, 57, 58, 59, 60],
-        ),
-        DateValueCase(
-            [1988, 5, 27, 20, 0],
-            [1, 4, 1, 1, 0, 20],
-            [8, 9, 10, 11, 12, 28, 29, 36, 37, 40, 41, 42, 43, 66, 67, 68, 69],
-        ),
+
+    date_encoder = DateEncoder(date_params)
+
+    test_case = [
+        [2020, 1, 1, 0, 0],
+        [2019, 12, 11, 14, 45],
+        [2010, 11, 4, 14, 55],
+        [2019, 7, 4, 0, 0],
+        [2019, 4, 21, 0, 0],
+        [2017, 4, 17, 0, 0],
+        [2017, 4, 17, 22, 59],
+        [1988, 5, 29, 20, 0],
+        [1988, 5, 27, 20, 0],
+        [1988, 5, 27, 11, 0],
     ]
 
-    do_date_value_cases(encoder, cases)
+    actual_encoding = []
+
+    expected_encoding = [
+        [0, 1, 100, 101, 200, 201, 300, 301, 400, 401, 500, 501],
+        [34, 35, 100, 101, 200, 201, 300, 301, 400, 401, 501, 502],
+        [30, 31, 100, 101, 200, 201, 300, 301, 400, 401, 501, 502],
+        [18, 19, 100, 101, 200, 201, 300, 301, 400, 401, 500, 501],
+        [11, 12, 101, 102, 200, 201, 300, 301, 400, 401, 500, 501],
+        [10, 11, 100, 101, 200, 201, 300, 301, 400, 401, 500, 501],
+        [10, 11, 100, 101, 200, 201, 300, 301, 400, 401, 502, 503],
+        [15, 16, 101, 102, 200, 201, 300, 301, 400, 401, 502, 503],
+        [14, 15, 100, 101, 200, 201, 300, 301, 400, 401, 502, 503],
+        [14, 15, 100, 101, 200, 201, 300, 301, 400, 401, 501, 502],
+    ]
+
+    # Act
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+        logger.info(f"Date: {dt} -> Encoding: {encoding}")
+
+    # Assert
+    assert (
+        actual_encoding == expected_encoding
+    ), "DateEncoder season_day_of_week_combined test failed!"
