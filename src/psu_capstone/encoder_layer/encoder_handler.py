@@ -153,9 +153,9 @@ class EncoderHandler:
                 elif isinstance(value, pd.Timestamp) or isinstance(value, datetime):
                     encoder = DateEncoder(
                         DateEncoderParameters(
-                            season_width=0,
+                            season_active_bits=0,
                             season_radius=91.5,
-                            day_of_week_width=7,
+                            day_of_week_active_bits=7,
                             day_of_week_radius=1.0,
                             weekend_width=2,
                             holiday_width=4,

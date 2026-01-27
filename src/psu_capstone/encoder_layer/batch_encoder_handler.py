@@ -303,16 +303,16 @@ class BatchEncoderHandler:
             resolution=0.0,
         )
         self._date_params = DateEncoderParameters(
-            season_width=0,
+            season_active_bits=0,
             season_radius=91.5,
-            day_of_week_width=7,
+            day_of_week_active_bits=7,
             day_of_week_radius=1.0,
-            weekend_width=2,
-            holiday_width=4,
+            weekend_active_bits=2,
+            holiday_active_bits=4,
             holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
-            time_of_day_width=24,
+            time_of_day_active_bits=24,
             time_of_day_radius=1.0,
-            custom_width=0,
+            custom_active_bits=0,
             custom_days=[],
             rdse_used=False,
         )
