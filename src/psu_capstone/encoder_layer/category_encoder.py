@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import cast, override
+from typing import List, cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
