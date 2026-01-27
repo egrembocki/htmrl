@@ -11,6 +11,8 @@ https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fa
 
 """
 
+from __future__ import annotations
+
 import copy
 import os
 from dataclasses import dataclass, field
@@ -38,45 +40,49 @@ class FourierEncoderParameters:
     parameters:
         samples : total number of samples or bucket size -> N
         size : size of the encoder output SDR
-        start_time : start index of the time interval -> integral lower bound
-        stop_time : stop index of the time interval -> integral upper bound
+        start_time : start time of the time interval -> integral lower bound
+        stop_time : stop time of the time interval -> integral upper bound
         interval_size : total number of buckets in the time interval -> N
         time_step_n : the curreent value of x at time n -> n
-        freq_k : the current frequency step in the X_k sum -> k
+
 
 
     """
 
-    frequency_list: list[float] = field(default_factory=lambda: [])
+    # encoder params
+    frequency_ranges: list[list[int]] = field(default_factory=lambda: [])
     """List of frequencies to find."""
 
-    magnitude_list: list[float] = field(default_factory=lambda: [])
+    magnitude_peaks: list[list[int]] = field(default_factory=lambda: [])
     """List of magnitudes corresponding to each frequency."""
 
-    size: int = 190
+    size: int = 2048
     """The size the encoder"""
 
-    start_time: int = 0
-    """Start index of the time interval. -> Integral lower bound"""
+    active_bits_in_ranges: list[int] = field(default_factory=lambda: [])
+    """The number of active bits per frequency range in the encoder output SDR."""
 
-    stop_time: int = 1
-    """Stop index of the time interval. -> Integral upper bound"""
+    resolutions_in_ranges: list[float] = field(default_factory=lambda: [])
+    """The resolution per frequency range in the encoder output SDR."""
 
-    period_size: int = 1
-    """The total time period size in seconds."""
+    seed: int = 42
+    """Random seed for reproducibility."""
 
-    total_samples: int = 190
-    """Total number of samples in the period -> N"""
+    #  time domain params
+    start_time: float = 0.0
+    """Start time of the time interval."""
 
-    time_step_n: int = 0
-    """The current value of x at time n. Which time step are we looking for -> n"""
+    stop_time: float = 1.0
+    """Stop time of the time interval."""
 
-    phase: float = 0.0
-    """Phase shift of the signal in radians."""
+    period_size: float = 1.0
+    """Total time period size in seconds."""
 
-    # TODO: do we want to track freq lower than 1Hz?
-    freq_k: int = 10
-    """The current frequency step in the X_k sum. Which frequency are we looking for in Hz"""
+    total_samples: int = 256
+    """Total number of samples in the period."""
+
+    time_step_n: float = 0.0
+    """The current value of x at time n."""
 
 
 class FourierEncoder(BaseEncoder[np.ndarray]):
@@ -122,14 +128,6 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
         """Time resolution in seconds."""
         self._time_step_n = self._params.time_step_n
         """The current value of x at time n."""
-        self._phase = self._params.phase
-        """Phase shift of the signal in radians."""
-        self._freq_k = self._params.freq_k
-        """The current frequency step in the X_k sum."""
-
-        # 2 pi f
-        self._omega = 2 * np.pi * self._params.freq_k
-        """Angular frequency."""
 
         self._bucket_idx: int = 0
         """Current bucket index to track frequency resolution buckets."""
@@ -137,9 +135,11 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
         self._buckets: list[int] = []
         """List to hold frequencies in each bucket."""
 
-        # TODO: make sure we are still capturing the frequency components correctly in terms of the original signal
         self._rdse = RandomDistributedScalarEncoder()
         """RDSE encoder for encoding each frequency component."""
+
+        self._fft_encoder = FourierEncoder()
+        """FFT encoder instance for transforming time data."""
 
         self._fft_sdrs: list[SDR]
         """List to hold SDRs for each frequency component."""
@@ -260,13 +260,14 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
 
         x_k = fft(input_value)
 
-        magnitude = np.max(y)
-
-        magnitude_re = self._rdse.encode(magnitude)
+        print(x_k)
 
         for x in x_k:
 
-            freq_magnitude = np.abs(x)
+            # `x` is a scalar complex FFT bin; take its magnitude as a real scalar value.
+            freq_magnitude = float(np.abs(x))
+
+            freq_mag_sdr = self._rdse.encode(freq_magnitude)
 
             freq_mag_sdr = self._rdse.encode(freq_magnitude)
 
