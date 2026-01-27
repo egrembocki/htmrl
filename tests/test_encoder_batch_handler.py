@@ -150,20 +150,7 @@ def test_individual_column_sdrs():
     handler.set_rdse_encoder_parameters(params=rdseparams)
     categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
-    dateparams = DateEncoderParameters(
-        season_active_bits=0,
-        season_radius=91.5,
-        day_of_week_active_bits=7,
-        day_of_week_radius=1.0,
-        weekend_width=2,
-        holiday_width=4,
-        holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
-        time_of_day_width=24,
-        time_of_day_radius=1.0,
-        custom_width=0,
-        custom_days=[],
-        rdse_used=False,
-    )
+    dateparams = DateEncoderParameters()
     handler.set_date_encoder_parameters(params=dateparams)
 
     dictionary_sdrs = handler._build_dict_list_sdr(df1, 4)

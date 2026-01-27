@@ -5,9 +5,6 @@ from ctypes import Structure as Struct
 from ctypes import c_bool, c_float, c_int
 from math import isclose
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "test.csv")
-
 
 class Parameters(Struct):
     """Structure to hold parameters for all encoders, with default values."""

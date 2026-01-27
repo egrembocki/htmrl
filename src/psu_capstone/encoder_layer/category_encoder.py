@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import List, cast, override
+from typing import cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -18,7 +18,7 @@ class CategoryParameters:
     The w is the width in bits per category. So, if you have 5 categories and w=3
     we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
     """
-    category_list: List[str]
+    category_list: list[str]
     """
     List of categories to use.
     """
@@ -48,7 +48,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: CategoryParameters, dimensions: List[int] | None = None):
+    def __init__(self, parameters: CategoryParameters, dimensions: list[int] | None = None):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
@@ -86,7 +86,7 @@ class CategoryEncoder(BaseEncoder[str]):
                 active_bits=self._w,
                 sparsity=0.0,
                 size=self._num_categories * self._w,
-                radius=0.0,
+                radius=1.0,
                 resolution=0.0,
             )
             self.encoder = ScalarEncoder(self.sp, dimensions=[self.sp.size])
@@ -122,16 +122,12 @@ if __name__ == "__main__":
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=True)
     e = CategoryEncoder(parameters=parameters)
-    a = SDR([1, 12])
-    b = SDR([1, 12])
-    c = SDR([1, 12])
-    d = SDR([1, 12])
-    e.encode("US", a)
-    e.encode("ES", b)
-    # not working for a category not present yet
-    e.encode("NA", c)
-    e.encode("GB", d)
 
+    a = e.encode("US")
+    b = e.encode("ES")
+    # not working for a category not present yet
+    c = e.encode("NA")
+    d = e.encode("GB")
     r = e.decode(a)
     print(r)
 
