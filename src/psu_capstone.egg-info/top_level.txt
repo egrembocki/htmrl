@@ -2,3 +2,4 @@ batch_encoder_handler_driver
 code_level_test
 demo_driver
 psu_capstone
+utils
