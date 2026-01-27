@@ -1,5 +1,6 @@
 """Test suite for the RDSE."""
 
+import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -144,3 +145,60 @@ def test_2048_bits_40_active_bits():
     print(s.get_sparse)
     """Make sure the density is 2048."""
     assert len(s.get_dense()) == 2048
+
+
+def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
+    """
+    Helper method to find the differences with the first != second and then count the nonzero
+    as that is how many different bits there are. So if first was 1001 and second was 1010 the
+    first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
+    distance of 2 since 2 of the bits are different.
+    """
+    return np.count_nonzero(first != second)
+
+
+def test_locality_checking_mmh3():
+    """
+    This test compares the mean hamming distances between consecutive encoded values like 1 compared to 2 all
+    of the way up to 1000. Then we take the mean of these hamming distances. On top of that it compares 1 through 500
+    of encoded values to 9000 through 10000. We then compare these hamming distances. The thought is that the values
+    right next to each other should have less bit differences than ones far away.
+    """
+    params = RDSEParameters(
+        size=2048,
+        active_bits=40,
+        resolution=1.0,
+        radius=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+
+    encodings_first = {}
+    encodings_second = {}
+
+    for v in range(1, 1001):
+        encodings_first[v] = np.array(encoder.encode(float(v)), dtype=np.uint8)
+
+    for v in range(9000, 10001):
+        encodings_second[v] = np.array(encoder.encode(float(v)), dtype=np.uint8)
+
+    consecutive_distances = []
+    for v in range(1, 1000):
+        d = hamming_distance_helper(encodings_first[v], encodings_first[v + 1])
+        consecutive_distances.append(d)
+
+    mean_consecutive = np.mean(consecutive_distances)
+
+    far_distances = []
+
+    for v in range(1, 1001):
+        d = hamming_distance_helper(encodings_first[v], encodings_second[v + 8999])
+        far_distances.append(d)
+
+    mean_far = np.mean(far_distances)
+    print("\n")
+    print("Consecutive distances mean: ", mean_consecutive)
+    print("Far distances mean: ", mean_far)
+
+    assert mean_consecutive < mean_far
