@@ -13,7 +13,7 @@ https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fa
 
 import copy
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, cast, override
 
 import matplotlib.pyplot as plt
@@ -47,7 +47,13 @@ class FourierEncoderParameters:
 
     """
 
-    size: int = 2048
+    frequency_list: list[float] = field(default_factory=lambda: [])
+    """List of frequencies to find."""
+
+    magnitude_list: list[float] = field(default_factory=lambda: [])
+    """List of magnitudes corresponding to each frequency."""
+
+    size: int = 190
     """The size the encoder"""
 
     start_time: int = 0
@@ -59,7 +65,7 @@ class FourierEncoderParameters:
     period_size: int = 1
     """The total time period size in seconds."""
 
-    total_samples: int = 2048
+    total_samples: int = 190
     """Total number of samples in the period -> N"""
 
     time_step_n: int = 0
@@ -172,6 +178,7 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
                     t_even + omega[int(total_samples / 2) :] * t_odd,
                 ]
             )
+
             return freq_data
 
     def _normalize(self, input: np.ndarray) -> np.ndarray:
@@ -241,7 +248,7 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
         return self._fft_sdrs
 
     @override
-    def encode(self, input_value: np.ndarray, output_sdr: SDR) -> None:
+    def encode(self, input_value: np.ndarray) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
 
         Args:
@@ -249,18 +256,37 @@ class FourierEncoder(BaseEncoder[np.ndarray]):
             output_sdr (SDR): The SDR object to populate with the encoded data.
         """
 
-        sdr_list: list[SDR] = []
+        sdr_list = []
 
         x_k = self.transform(input_value)
 
-        # x_k = fft(input_value)
+        magnitude = np.max(y)
+
+        magnitude_re = self._rdse.encode(magnitude)
 
         for x in x_k:
-            self._rdse.encode(x, output_sdr)
 
-            sdr_list.append(output_sdr)
+            freq_magnitude = np.abs(x)
+
+            freq_mag_sdr = self._rdse.encode(freq_magnitude)
+
+            sdr_list.append(freq_mag_sdr)
+
+            freq_sdr = self._rdse.encode(x)
+
+            sdr_list.append(freq_sdr)
 
         self._fft_sdrs = sdr_list
+
+        sdr_wrap = SDR([self._size])
+
+        sdr_wrap.set_dense(sdr_list)
+
+        sdr_sparse = sdr_wrap.get_sparse()
+
+        print(f"FFT Encoder produced {sdr_sparse}.")
+
+        return sdr_list
 
 
 if __name__ == "__main__":
@@ -271,37 +297,33 @@ if __name__ == "__main__":
 
     ih = InputHandler()
 
-    df_sine = cast(pd.DataFrame, ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv")))
-
-    """
-    sin_wave_60 = np.sin(
-        60 * (2 * np.pi - 2) * np.linspace(0, 1, 1024, dtype=float, endpoint=False)
-    )
-
-    sin_wave_90 = np.sin(
-        90 * (2 * np.pi - 3) * np.linspace(0, 1, 1024, dtype=float, endpoint=False)
-    )
-    """
+    # df_sine = cast(pd.DataFrame, ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv")))
     # sin_wave = df_sine.to_numpy(dtype=float, copy=False).flatten()
 
-    sample_rate = 2048
+    sample_rate = 190
     time_step = 1 / sample_rate
     t = np.arange(0, 1, time_step, dtype=float)
     f = 100
-    sin_wave = np.sin(2 * np.pi * f * t)
-    sin_wave += 2 * np.sin(2 * np.pi * 200 * t)
-    sin_wave += np.sin(2 * np.pi * 300 * t)
 
-    # sin_wave = ih.input_data(os.path.join(PROJECT_ROOT, "data", "sine_wave.csv"))
-    # sin_wave = cast(pd.DataFrame, sin_wave).to_numpy(dtype=float, copy=False).flatten()
+    # sin_wave = np.sin(2 * np.pi * f * t)
+    # sin_wave += 2 * np.sin(2 * np.pi * 200 * t)
+    # sin_wave += np.sin(2 * np.pi * 300 * t)
+
+    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
+
+    hot_gym = cast(pd.DataFrame, hot_gym).drop(columns="timestamp")
+
+    hot_gym = hot_gym.to_numpy(dtype=float, copy=False).flatten()
 
     fourier_encoder = FourierEncoder()
-    freq_data = fourier_encoder.transform(sin_wave)
+    freq_data = fourier_encoder.transform(hot_gym)
+    gym_fft = cast(np.ndarray, fft(hot_gym))
 
-    sin_y = sin_wave
+    freq_data = gym_fft
+    y = hot_gym
 
     plt.figure(figsize=(16, 8))
-    plt.plot(t, sin_y, "r")  # Plot the sine wave, plot(x, y, 'r') means red line
+    plt.plot(t, y, "r")  # Plot the sine wave, plot(x, y, 'r') means red line
     plt.title("Sine Wave in Time Domain")
     plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
@@ -326,3 +348,5 @@ if __name__ == "__main__":
     plt.ylabel("Magnitude")
     plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
     plt.show()
+
+    sdrs = fourier_encoder.encode(freq_data)
