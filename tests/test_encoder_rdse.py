@@ -54,17 +54,18 @@ def test_encode_active_bits():
         size=1000, active_bits=50, sparsity=0.0, radius=0.0, resolution=1.5, category=False, seed=0
     )
     encoder = RandomDistributedScalarEncoder(parameters, [1, 1000])
-    a = SDR(encoder.dimensions)
-    encoder.encode(10, a)
+    a = encoder.encode(10)
+    s = SDR([1, len(a)])
+    s.set_dense(a)
     """Is the SDR the correct size?"""
-    assert a.size == 1000
+    assert s.size == 1000
     """Is the SDR the correct dimensions?"""
-    assert a.dimensions == [1, 1000]
-    sparse_indices = a.get_sparse()
+    assert s.get_dimensions() == [1, 1000]
+    sparse_indices = s.get_sparse()
     sparse_size = len(sparse_indices)
     """Since we have hash collision we are making sure between 45 and 50 bits are encoded."""
     assert 45 <= sparse_size <= 50
-    dense_indices = a.get_dense()
+    dense_indices = s.get_dense()
     dense_size = len(dense_indices)
     """Is the dense size equal to size?"""
     assert dense_size == 1000
@@ -133,8 +134,10 @@ def test_2048_bits_40_active_bits():
     )
     rdse = RandomDistributedScalarEncoder(parameters, [1, 2048])
 
-    s = SDR([1, 2048])
-    rdse.encode(10, s)
+    # s = SDR([1, 2048])
+    a = rdse.encode(10)
+    s = SDR([1, len(a)])
+    s.set_dense(a)
 
     """Checking for active bits accounting for hash collisions."""
     assert 35 <= len(s.get_sparse()) <= 40

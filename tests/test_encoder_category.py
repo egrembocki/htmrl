@@ -34,10 +34,10 @@ def test_encode_us():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    a = SDR([1, 12])
-    e.encode("US", a)
+    # a = SDR([1, 12])
+    a = e.encode("US")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
-    assert a.get_dense() == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
+    assert a == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
 
 
 def test_unknown_category():
@@ -48,10 +48,10 @@ def test_unknown_category():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    a = SDR([1, 12])
-    e.encode("NA", a)
+    # a = SDR([1, 12])
+    a = e.encode("NA")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
-    assert a.get_dense() == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    assert a == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def test_encode_es():
@@ -62,10 +62,10 @@ def test_encode_es():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    a = SDR([1, 12])
-    e.encode("ES", a)
+    # a = SDR([1, 12])
+    a = e.encode("ES")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
-    assert a.get_dense() == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+    assert a == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
 
 
 def test_with_width_one():
@@ -84,9 +84,9 @@ def test_with_width_one():
     i = 0
     """The respective category should equal their index of expected results."""
     for cat in categories:
-        a = SDR([1, 6])
-        e.encode(cat, a)
-        assert a.get_dense() == expected[i]
+        # a = SDR([1, 6])
+        a = e.encode(cat)
+        assert a == expected[i]
         i = i + 1
 
 
@@ -99,18 +99,18 @@ def test_rdse_used():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories)
     e1 = CategoryEncoder(parameters=parameters)
-    a1 = SDR([1, 12])
-    a2 = SDR([1, 12])
+    # a1 = SDR([1, 12])
+    # a2 = SDR([1, 12])
     """These asserts just check that both SDRs are identical when the same category is encoded."""
-    e1.encode("ES", a1)
-    e1.encode("ES", a2)
-    assert a1.get_dense() == a2.get_dense()
-    e1.encode("GB", a1)
-    e1.encode("GB", a2)
-    assert a1.get_dense() == a2.get_dense()
-    e1.encode("US", a1)
-    e1.encode("US", a2)
-    assert a1.get_dense() == a2.get_dense()
-    e1.encode("NA", a1)
-    e1.encode("NA", a2)
-    assert a1.get_dense() == a2.get_dense()
+    a1 = e1.encode("ES")
+    a2 = e1.encode("ES")
+    assert a1 == a2
+    a1 = e1.encode("GB")
+    a2 = e1.encode("GB")
+    assert a1 == a2
+    a1 = e1.encode("US")
+    a2 = e1.encode("US")
+    assert a1 == a2
+    a1 = e1.encode("NA")
+    a2 = e1.encode("NA")
+    assert a1 == a2
