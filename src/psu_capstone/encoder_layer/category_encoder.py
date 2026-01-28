@@ -102,11 +102,13 @@ class CategoryEncoder(BaseEncoder[str]):
         return a
 
     def decode(self, input_sdr: SDR) -> str:
-        if self._RDSEused:
+        if self._RDSEused:  # 0,1,2,3 #ES, GB, US, NA
             rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
+            self._category_list.append("NA")
             result = rdse_encoder.decode(input_sdr)
-
-            return self._category_list[int(result)]
+            result = self._category_list[int(result) - 1]
+            self._category_list.pop()
+            return result
 
     def check_parameters(self, parameters: CategoryParameters):
         if parameters.w <= 0:
@@ -122,16 +124,10 @@ if __name__ == "__main__":
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=True)
     e = CategoryEncoder(parameters=parameters)
-    a = SDR([1, 12])
-    b = SDR([1, 12])
-    c = SDR([1, 12])
-    d = SDR([1, 12])
-    e.encode("US", a)
-    e.encode("ES", b)
-    # not working for a category not present yet
-    e.encode("NA", c)
-    e.encode("GB", d)
-
+    a = e.encode("US")
+    b = e.encode("ES")
+    c = e.encode("NA")
+    d = e.encode("GB")
     r = e.decode(a)
     print(r)
 

@@ -209,9 +209,6 @@ def test_resolution_boundary():
     sdr_a = encoder.encode(1.0)
     sdr_b = encoder.encode(1.999)
     sdr_c = encoder.encode(2.0)
-    print(sdr_a)
-    print(sdr_b)
-    print(sdr_c)
 
     assert sdr_a == sdr_b
 
@@ -294,7 +291,7 @@ def test_locality_checking_mmh3():
     print("Large consecutive numbers mean distance: ", mean_consecutive_large)
     print("Random hamming distance mean: ", mean_random)
 
-    assert mean_consecutive < mean_far
+    assert mean_consecutive < mean_random < mean_far
 
 
 # By: Dr. Agrawal

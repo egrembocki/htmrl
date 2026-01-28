@@ -384,7 +384,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self._buckets.clear()
 
         # -------- Season --------
-        if args.season_active_bits > 0:
+        if args.season_size > 0:
             logger.info("DateEncoder: enabling season encoder.")
             self._season_encoder = self._setup_feature_encoder(
                 feature_key=self.SEASON,
@@ -398,7 +398,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             size += self._season_encoder.size
 
         # -------- Day of week --------
-        if args.day_of_week_active_bits > 0:
+        if args.day_of_week_size > 0:
             logger.info("DateEncoder: enabling day of week encoder.")
             self._dayofweek_encoder = self._setup_feature_encoder(
                 feature_key=self.DAYOFWEEK,
@@ -415,7 +415,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             size += self._dayofweek_encoder.size
 
         # -------- Weekend --------
-        if args.weekend_active_bits > 0:
+        if args.weekend_size > 0:
             logger.info("DateEncoder: enabling weekend encoder.")
             self._weekend_encoder = self._setup_feature_encoder(
                 feature_key=self.WEEKEND,
@@ -431,7 +431,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             size += self._weekend_encoder.size
 
         # -------- Custom days --------
-        if args.custom_active_bits > 0:
+        if args.custom_size > 0:
             logger.info("DateEncoder: enabling custom days encoder.")
             if not args.custom_days:
                 raise ValueError(
@@ -473,7 +473,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             size += self._customdays_encoder.size
 
         # -------- Holiday --------
-        if args.holiday_active_bits > 0:
+        if args.holiday_size > 0:
             logger.info("DateEncoder: enabling holiday encoder.")
             for day in args.holiday_dates:
                 if len(day) not in (2, 3):
@@ -494,7 +494,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             size += self._holiday_encoder.size
 
         # -------- Time of day --------
-        if args.time_of_day_active_bits > 0:
+        if args.time_of_day_size > 0:
             logger.info("DateEncoder: enabling time of day encoder.")
             self._timeofday_encoder = self._setup_feature_encoder(
                 feature_key=self.TIMEOFDAY,

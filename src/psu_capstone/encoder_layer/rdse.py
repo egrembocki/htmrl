@@ -166,15 +166,11 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         knn.fit(x, y)
         self.knn = knn
 
-    def decode(self, input_sdr: SDR) -> float:
-        # x = np.array(self._sdrs_encoded, dtype=np.uint8)
-        # y = np.array(self._input_values_encoded, dtype=np.float32)
-        # knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
-        # knn.fit(x, y)
+    def decode(self, input_sdr: list[int]) -> float:
         if self.encoding:
-            self.makeKnn()
+            self.make_knn()
             self.encoding = False
-        query = np.asarray(input_sdr.get_dense(), dtype=np.int8).reshape(1, -1)
+        query = np.asarray(input_sdr, dtype=np.int8).reshape(1, -1)
         result = self.knn.predict(query)
         return result.item()
 
@@ -268,6 +264,22 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 if __name__ == "__main__":
+    params = RDSEParameters(
+        size=2048,
+        sparsity=0.02,
+        radius=1.0,
+        active_bits=0,
+        category=False,
+        seed=12345,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    a = encoder.encode(0.1)
+    b = encoder.encode(5.1)
+
+    def _overlap_count(first: list[int], second: list[int]) -> int:
+        return np.count_nonzero(first == second)
+
+    print(_overlap_count(a, b))
     # Tests
     """
     params = RDSEParameters(
