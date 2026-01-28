@@ -97,10 +97,10 @@ class DateEncoderParameters:
     # Season: day of year (0..366)
     # season size
     season_size: int = 2048
-    """Size of the season encoder (total bits). Declare size greater than zero to enable season encoding."""
+    """Size of the season encoder (total bits)."""
 
     season_active_bits: int = 40
-    """Number of active bits for season (day of year). how many bits to apply to season
+    """Set to greater than zero to enable season encoding. Number of active bits for season (day of year). how many bits to apply to season
        Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
 
     # season sparsity
@@ -119,11 +119,11 @@ class DateEncoderParameters:
 
     # day of week size
     day_of_week_size: int = 2048
-    """Size of the day of week encoder (total bits). Declare size greater than zero to enable day of week encoding."""
+    """Size of the day of week encoder (total bits)."""
 
     # day of week active bits
     day_of_week_active_bits: int = 40
-    """Number of active bits for day of week, how many bits to apply to day of week."""
+    """Set to greater than zero to enable day of week encoding. Number of active bits for day of week, how many bits to apply to day of week."""
 
     # day of week sparsity
     day_of_week_sparsity: float = 0.0
@@ -141,12 +141,11 @@ class DateEncoderParameters:
 
     # Weekend flag (0/1, Fri 6pm through Sun midnight)
     weekend_size: int = 2048
-    """Size of the weekend encoder (total bits). Declare size greater than zero to enable weekend encoding."""
+    """Size of the weekend encoder (total bits)."""
 
     # weekend active bits
     weekend_active_bits: int = 40
-    """Number of active bits for weekend flag."""
-
+    """Set to greater than zero to enable weekend encoding. Number of active bits for weekend flag."""
     # weekend sparsity
     weekend_sparsity: float = 0.0
     """Sparsity for weekend encoding (not used)."""
@@ -163,10 +162,10 @@ class DateEncoderParameters:
 
     # holiday active bits
     holiday_size: int = 2048
-    """Size of the holiday encoder (total bits). Declare size greater than zero to enable holiday encoding."""
+    """Size of the holiday encoder (total bits)."""
 
     holiday_active_bits: int = 40
-    """Number of active bits for holiday encoding."""
+    """Set to greater than zero to enable holiday encoding. Number of active bits for holiday encoding."""
 
     # holiday sparsity
     holiday_sparsity: float = 0.0
@@ -188,12 +187,11 @@ class DateEncoderParameters:
     # Time of day: 0..24 hours
     # time of day size
     time_of_day_size: int = 2048
-    """Size of the time of day encoder (total bits). Declare size greater than zero to enable time of day encoding."""
+    """Size of the time of day encoder (total bits)."""
 
     # time of day active bits
     time_of_day_active_bits: int = 24
-    """Number of active bits for time of day."""
-
+    """Set to greater than zero to enable time of day encoding. Number of active bits for time of day."""
     # time of day sparsity
     time_of_day_sparsity: float = 0.0
     """Sparsity for time of day encoding (not used)."""
@@ -212,10 +210,10 @@ class DateEncoderParameters:
     # Custom day groups (e.g. ["mon,wed,fri"])
     # custom days size
     custom_size: int = 2048
-    """Size of the custom days encoder (total bits). Declare size greater than zero to enable custom days encoding."""
+    """Size of the custom days encoder (total bits)."""
 
     custom_active_bits: int = 40
-    """Number of active bits for custom day groups."""
+    """Set to greater than zero to enable custom days encoding. Number of active bits for custom day groups."""
 
     # custom days sparsity
     custom_sparsity: float = 0.0
