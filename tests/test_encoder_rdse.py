@@ -235,6 +235,8 @@ def test_locality_checking_mmh3():
     of encoded values to 9000 through 10000. We then compare these hamming distances. The thought is that the values
     right next to each other should have less bit differences than ones far away.
     """
+    import random
+
     params = RDSEParameters(
         size=2048,
         active_bits=40,
@@ -245,54 +247,51 @@ def test_locality_checking_mmh3():
     )
     encoder = RandomDistributedScalarEncoder(params)
 
-    encodings_first = {}
-    encodings_second = {}
-
+    encodings_first = []
     for v in range(1, 1001):
-        encodings_first[v] = np.array(encoder.encode(float(v)), dtype=np.uint8)
+        encodings_first.append(np.array(encoder.encode(float(v))))
 
+    encodings_second = []
     for v in range(9000, 10001):
-        encodings_second[v] = np.array(encoder.encode(float(v)), dtype=np.uint8)
+        encodings_second.append(np.array(encoder.encode(float(v))))
 
+    random_values = random.sample(range(0, 10000), 2000)
+    encodings_random = []
+    for v in random_values:
+        encodings_random.append(np.array(encoder.encode(float(v))))
+
+    # check two encodings by each others hamming distances. small numbers
     consecutive_distances = []
-    for v in range(1, 1000):
+    for v in range(len(encodings_first) - 1):
         d = hamming_distance_helper(encodings_first[v], encodings_first[v + 1])
         consecutive_distances.append(d)
     mean_consecutive = np.mean(consecutive_distances)
 
-    consecutive_distances_larger_numbers = []
-    for v in range(9000, 10000):
+    # check two encodings by each others hamming distances, large numbers
+    consecutive_distances_large = []
+    for v in range(len(encodings_second) - 1):
         d = hamming_distance_helper(encodings_second[v], encodings_second[v + 1])
-        consecutive_distances_larger_numbers.append(d)
+        consecutive_distances_large.append(d)
+    mean_consecutive_large = np.mean(consecutive_distances_large)
 
-    mean_consecutive_larger_numbers = np.mean(consecutive_distances_larger_numbers)
-
+    # check the hamming distance between far apart input values
     far_distances = []
-
-    for v in range(1, 1001):
-        d = hamming_distance_helper(encodings_first[v], encodings_second[v + 8999])
+    for v in range(1000):
+        d = hamming_distance_helper(encodings_first[v], encodings_second[v])
         far_distances.append(d)
-
     mean_far = np.mean(far_distances)
 
-    import random
-
-    values = random.sample(range(0, 10000), 2000)
-    encodings = {}
-    for v in values:
-        encodings[v] = np.array(encoder.encode(float(v)), dtype=np.uint8)
-    pairs = random.sample(values, 2000)
-    hammings = []
-
-    for i, j in zip(pairs[:1000], pairs[1000:]):
-        hammings.append(hamming_distance_helper(encodings[i], encodings[j]))
-
-    mean_random = np.mean(hammings)
+    # check the hamming distance between two random encodings
+    random_distances = []
+    for i, j in zip(range(0, 1000), range(1000, 2000)):
+        d = hamming_distance_helper(encodings_random[i], encodings_random[j])
+        random_distances.append(d)
+    mean_random = np.mean(random_distances)
 
     print("\n")
     print("Consecutive distances mean: ", mean_consecutive)
     print("Far distances mean: ", mean_far)
-    print("Large consecutive numbers mean distance: ", mean_consecutive_larger_numbers)
+    print("Large consecutive numbers mean distance: ", mean_consecutive_large)
     print("Random hamming distance mean: ", mean_random)
 
     assert mean_consecutive < mean_far
