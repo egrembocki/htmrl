@@ -1,5 +1,6 @@
 batch_encoder_handler_driver
-code_level_test
 demo_driver
+grapher
+hashing
 psu_capstone
 utils
