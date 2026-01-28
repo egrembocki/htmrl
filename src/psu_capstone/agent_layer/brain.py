@@ -78,11 +78,11 @@ class Brain:
         for input_name in self._input_fields:
             input_field = self._input_fields[input_name]
             if hasattr(input_field.encoder, "decode"):
-                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(
+                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
                     "predictive"
                 )
 
-        return predictions
+        return predictions  # type: ignore
 
     def encode_only(self, inputs: dict[str, Any]) -> None:
         """Encode inputs without computing (useful for getting predictions first).
@@ -114,4 +114,4 @@ class Brain:
     def reset(self) -> None:
         """Clear all states in the column field."""
         for field in self.fields:
-            field.reset()
+            field.reset()  # type: ignore
