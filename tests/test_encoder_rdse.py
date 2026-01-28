@@ -288,42 +288,46 @@ def _make_large_encoder(radius: float = 1.0) -> RandomDistributedScalarEncoder:
         size=2048,
         sparsity=0.02,
         radius=radius,
+        active_bits=0,
         category=False,
         seed=12345,
     )
     return RandomDistributedScalarEncoder(params)
 
 
-"""
+def _overlap_count(first: list[int], second: list[int]) -> int:
+    return np.count_nonzero(first == second)
+
+
 # By: Dr. Agrawal
 def test_rdse_encodings_are_mostly_orthogonal():
-   encoder = _make_large_encoder(radius=1.0)
-   import random
-   values = [random.randint(0, 100000) for i in range(3000)]
-   encodings = [encoder.encode(value) for value in values]
+    encoder = _make_large_encoder(radius=1.0)
+    import random
 
-   firsts = random.choices(range(len(values)), k=3000)
-   seconds = random.choices(range(len(values)), k=3000)
-   overlaps = []
-   for i,j in zip(firsts, seconds):
-       first = encodings[i]
-       second = encodings[j]
-       overlaps.append(_overlap_count(first, second))
+    values = [random.randint(0, 100000) for i in range(3000)]
+    encodings = [encoder.encode(value) for value in values]
 
-   orthogonal_ratio = sum(1 for overlap in overlaps if overlap <= 2) / len(overlaps)
-   mean_overlap = sum(overlaps) / len(overlaps)
+    firsts = random.choices(range(len(values)), k=3000)
+    seconds = random.choices(range(len(values)), k=3000)
+    overlaps = []
+    for i, j in zip(firsts, seconds):
+        first = encodings[i]
+        second = encodings[j]
+        overlaps.append(_overlap_count(first, second))
+
+    orthogonal_ratio = sum(1 for overlap in overlaps if overlap <= 2) / len(overlaps)
+    mean_overlap = sum(overlaps) / len(overlaps)
+
+    print(f"Orthogonal ratio: {orthogonal_ratio:.3f}, Mean overlap: {mean_overlap:.3f}")
+    assert orthogonal_ratio >= 0.94
+    assert mean_overlap <= 1.0
 
 
-
-   print(f"Orthogonal ratio: {orthogonal_ratio:.3f}, Mean overlap: {mean_overlap:.3f}")
-   assert orthogonal_ratio >= 0.94
-   assert mean_overlap <= 1.0
 # By: Dr. Agrawal
 def test_rdse_no_overlap_outside_radius_large_encoding():
-   encoder = _make_large_encoder(radius=1.0)
-   values = [i * 0.1 for i in range(200)]
-   for value in values:
-       outside = value + 5.0
-       overlap = _overlap_count(encoder.encode(value), encoder.encode(outside))
-       assert overlap < 3
-"""
+    encoder = _make_large_encoder(radius=1.0)
+    values = [i * 0.1 for i in range(200)]
+    for value in values:
+        outside = value + 5.0
+        overlap = _overlap_count(encoder.encode(value), encoder.encode(outside))
+        assert overlap < 3
