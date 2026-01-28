@@ -135,7 +135,6 @@ def test_2048_bits_40_active_bits():
     )
     rdse = RandomDistributedScalarEncoder(parameters, [1, 2048])
 
-    # s = SDR([1, 2048])
     a = rdse.encode(10)
     s = SDR([1, len(a)])
     s.set_dense(a)
@@ -145,6 +144,78 @@ def test_2048_bits_40_active_bits():
     print(s.get_sparse)
     """Make sure the density is 2048."""
     assert len(s.get_dense()) == 2048
+
+
+def test_deterministic_same_seed():
+    """
+    This test assures that the same value encoded by two different
+    RDSE encoders with the same seed will output the same sdrs.
+    """
+    params = RDSEParameters(
+        size=2048,
+        active_bits=40,
+        seed=40,
+    )
+
+    encoder1 = RandomDistributedScalarEncoder(params)
+    encoder2 = RandomDistributedScalarEncoder(params)
+
+    sdr1 = encoder1.encode(12.34)
+    sdr2 = encoder2.encode(12.34)
+
+    assert sdr1 == sdr2
+
+
+def test_different_seed_produces_different_sdr_with_same_input_value():
+    """
+    This test assures that the same value encoded by two different
+    RDSE encoders with different seeds will produce different sdrs.
+    """
+    params = RDSEParameters(
+        size=2048,
+        active_bits=40,
+        seed=40,
+    )
+    params1 = RDSEParameters(
+        size=2048,
+        active_bits=40,
+        seed=39,
+    )
+    encoder1 = RandomDistributedScalarEncoder(params)
+    encoder2 = RandomDistributedScalarEncoder(params1)
+
+    sdr1 = encoder1.encode(12.34)
+    sdr2 = encoder2.encode(12.34)
+
+    assert sdr1 != sdr2
+
+
+def test_resolution_boundary():
+    """The goal of this test to determine if the resolution is functioning
+    correctly. The index inside of the rdse is determing by int(input_value/resolution).
+    This means that a resolution of 1.0 when encoding 1.0 will be 1, resolution of 1.0 and
+    encoding 1.999 will also be 1. But, if you have a resolution of 1.0 and a value of 2.0
+    it will be 2. So, the encoding of sdr_c should not be equal to a and b. To add to this
+    you can see that a resolution of 1.0 only cares about increments of 1."""
+    params = RDSEParameters(
+        size=2048,
+        active_bits=40,
+        resolution=1.0,
+        radius=0,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+
+    sdr_a = encoder.encode(1.0)
+    sdr_b = encoder.encode(1.999)
+    sdr_c = encoder.encode(2.0)
+    print(sdr_a)
+    print(sdr_b)
+    print(sdr_c)
+
+    assert sdr_a == sdr_b
+
+    assert sdr_a != sdr_c
 
 
 def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
@@ -202,3 +273,50 @@ def test_locality_checking_mmh3():
     print("Far distances mean: ", mean_far)
 
     assert mean_consecutive < mean_far
+
+
+# By: Dr. Agrawal
+def _make_large_encoder(radius: float = 1.0) -> RandomDistributedScalarEncoder:
+    params = RDSEParameters(
+        size=2048,
+        sparsity=0.02,
+        radius=radius,
+        category=False,
+        seed=12345,
+    )
+    return RandomDistributedScalarEncoder(params)
+
+
+"""
+# By: Dr. Agrawal
+def test_rdse_encodings_are_mostly_orthogonal():
+   encoder = _make_large_encoder(radius=1.0)
+   import random
+   values = [random.randint(0, 100000) for i in range(3000)]
+   encodings = [encoder.encode(value) for value in values]
+
+   firsts = random.choices(range(len(values)), k=3000)
+   seconds = random.choices(range(len(values)), k=3000)
+   overlaps = []
+   for i,j in zip(firsts, seconds):
+       first = encodings[i]
+       second = encodings[j]
+       overlaps.append(_overlap_count(first, second))
+
+   orthogonal_ratio = sum(1 for overlap in overlaps if overlap <= 2) / len(overlaps)
+   mean_overlap = sum(overlaps) / len(overlaps)
+
+
+
+   print(f"Orthogonal ratio: {orthogonal_ratio:.3f}, Mean overlap: {mean_overlap:.3f}")
+   assert orthogonal_ratio >= 0.94
+   assert mean_overlap <= 1.0
+# By: Dr. Agrawal
+def test_rdse_no_overlap_outside_radius_large_encoding():
+   encoder = _make_large_encoder(radius=1.0)
+   values = [i * 0.1 for i in range(200)]
+   for value in values:
+       outside = value + 5.0
+       overlap = _overlap_count(encoder.encode(value), encoder.encode(outside))
+       assert overlap < 3
+"""
