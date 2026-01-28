@@ -258,8 +258,14 @@ def test_locality_checking_mmh3():
     for v in range(1, 1000):
         d = hamming_distance_helper(encodings_first[v], encodings_first[v + 1])
         consecutive_distances.append(d)
-
     mean_consecutive = np.mean(consecutive_distances)
+
+    consecutive_distances_larger_numbers = []
+    for v in range(9000, 10000):
+        d = hamming_distance_helper(encodings_second[v], encodings_second[v + 1])
+        consecutive_distances_larger_numbers.append(d)
+
+    mean_consecutive_larger_numbers = np.mean(consecutive_distances_larger_numbers)
 
     far_distances = []
 
@@ -271,6 +277,7 @@ def test_locality_checking_mmh3():
     print("\n")
     print("Consecutive distances mean: ", mean_consecutive)
     print("Far distances mean: ", mean_far)
+    print("Large numbers mean distance: ", mean_consecutive_larger_numbers)
 
     assert mean_consecutive < mean_far
 
