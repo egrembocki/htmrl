@@ -1,7 +1,4 @@
-import copy
-import hashlib
 import os
-import random
 from dataclasses import dataclass, field
 from typing import cast
 
@@ -29,7 +26,6 @@ def plot_sdr(data: list[int]) -> None:
 
     print(f"SDR data length: {len(data)}")
     print(f"SDR active bits: {sum(data)}")
-    print(f"SDR dense: {data}")
 
     sdr = SDR([len(data)])
     sdr.set_dense(data)
@@ -83,12 +79,13 @@ def plot_hot_gym_fft(sample_rate: int = 190, dataset: str = "hot_gym_short.csv")
     plt.grid()
     plt.show()
     samples = len(freq_data)
-    freq = np.arange(samples, dtype=float) * (sample_rate / samples)
+    freq = np.arange(samples // 2, dtype=float) * (sample_rate / samples)
     freq_data = fourier_encoder._normalize(freq_data[: samples // 2])
-    freq = freq[: samples // 2]
     plt.figure(figsize=(16, 8))
     plt.stem(freq, np.abs(freq_data), linefmt="b-", markerfmt="bo", basefmt="r-")
-    print(f"FFT Peak Frequency: {freq[np.argmax(np.abs(freq_data))]} Hz")
+    peak_index = np.argmax(np.abs(freq_data))
+    peak_freq = peak_index * (sample_rate / samples)
+    print(f"FFT Peak Frequency: {peak_freq} Hz")
 
     plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(len(freq_data) // 10 or 1))
     plt.title("FFT Magnitude Spectrum")
@@ -103,14 +100,14 @@ if __name__ == "__main__":
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
             resolutions_in_ranges=[1.0],
-            frequency_ranges=[(100, 200)],
-            active_bits_in_ranges=[40],
+            frequency_ranges=[(1, 100)],
+            active_bits_in_ranges=[20],
             size=2048,
+            total_active_bits=40,
         )
     )
 
-    y = np.sin(2 * np.pi * 150 * np.linspace(0, 1, 256, endpoint=False))
-
+    y = np.sin(np.pi * 15 * np.linspace(0, 1, 256, endpoint=False))
     fft_data = fft_encoder.encode(y)
 
     # print(fft_data)
