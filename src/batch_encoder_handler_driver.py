@@ -4,11 +4,14 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 
-from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
-from psu_capstone.agent_layer.htm.temporal_memory import TemporalMemory
+from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.HTM import ColumnField
+from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
+from psu_capstone.agent_layer.legacy_htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -27,37 +30,45 @@ def main():
     handler = InputHandler.get_instance()
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
-    data_path = os.path.join(project_root, "data", "test.csv")
+    data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
     input_data = handler.input_data(input_source=data_path, required_columns=[])
     input_data = input_data.loc[:, ~input_data.columns.duplicated()]
 
-    # encoder = RandomDistributedScalarEncoder()
-    values = pd.to_numeric(input_data["Wave"])
-    # values = pd.to_numeric(input_data["kw_energy_consumption"], errors="coerce").dropna().tolist()
-    """
+    encoder = RandomDistributedScalarEncoder()
+    values = pd.to_numeric(input_data["kw_energy_consumption"], errors="coerce").dropna().tolist()
     train_values, test_values = train_test_split(values, test_size=0.2, shuffle=False)
-    #Train the knn for decoding on 80% of data
+    # Train the knn for decoding on 80% of data
     encodings = []
     for v in train_values:
         encodings.append(encoder.encode(v))
 
-    #Get SDRs from a different RDSE for 20% test data
+    # Get SDRs from a different RDSE for 20% test data
+    # I use a second RDSE so the first one that is already
+    # trained does not train on the test sdrs.
     test_encodings = []
     encoder2 = RandomDistributedScalarEncoder()
     for v in test_values:
         test_encodings.append(encoder2.encode(v))
 
-    #Decode the test SDRs and compare to the test values
+    # Decode the test SDRs and compare to the test values
     test_decoding = []
     for v in test_encodings:
-        test_decoding.append(encoder.decode(v))
-    for v, d in zip(test_values, test_decoding):
-        print("Value encoded: ", v)
-        print("Value decoded: ", d)
-    """
+        test_decoding.append(encoder.decode_knn(v))
+    # for v, d in zip(test_values, test_decoding):
+    #    print("Value encoded: ", v)
+    #    print("Value decoded: ", d)
+    rmse = np.sqrt(mean_squared_error(test_values, test_decoding))
+    mi = min(values)
+    ma = max(values)
+    print("Column max: ", ma)
+    print("Column min: ", mi)
+    print("RMSE:", rmse)
     # =======================================================================================================
 
+    # values = pd.to_numeric(input_data["Wave"])
+    # data_path = os.path.join(project_root, "data", "test.csv")
+    # =======================================================================================================
+    """
     encoder_htm = RandomDistributedScalarEncoder()
     # HTM testing here
     # train_values, test_values = train_test_split(values, test_size=0.20, shuffle=False)
@@ -134,20 +145,21 @@ def main():
     for pred, actual in zip(predictions, actual_values):
         print(f"Actual next step: {actual}, Prediction: {pred}")
 
-    """
-    print("__value_____predicted___error")
+    print("__actual_next_____predicted___error")
     y_true = []
     y_pred = []
 
-    for v in test_values:
-        test_sdr = SDR([encoder.size])
-        encoder.encode(v, test_sdr)
-        pred = encoder.decode(test_sdr)
-        y_true.append(v)
+    for i in range(len(predictions)):
+        actual = actual_values[i]
+        pred = predictions[i]
+
+        y_true.append(actual)
         y_pred.append(pred)
-        error = pred - v
-        print(f"{v:7.3f}   {pred:9.3f}   {error:+7.3f}")
+
+        error = pred - actual
+        print(f"{actual:9.3f}   {pred:9.3f}   {error:+9.3f}")
     """
+
     """
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)

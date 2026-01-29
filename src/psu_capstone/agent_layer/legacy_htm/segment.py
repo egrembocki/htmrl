@@ -21,10 +21,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from psu_capstone.agent_layer.htm.cell import Cell
+    from psu_capstone.agent_layer.legacy_htm.cell import Cell
 
-from psu_capstone.agent_layer.htm.constants import CONNECTED_PERM
-from psu_capstone.agent_layer.htm.distal_synapse import DistalSynapse
+from psu_capstone.agent_layer.legacy_htm.constants import CONNECTED_PERM
+from psu_capstone.agent_layer.legacy_htm.distal_synapse import DistalSynapse
 
 
 class Segment:

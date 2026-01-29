@@ -18,7 +18,7 @@ class CategoryParameters:
     The w is the width in bits per category. So, if you have 5 categories and w=3
     we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
     """
-    category_list: List[str]
+    category_list: list[str]
     """
     List of categories to use.
     """
@@ -48,7 +48,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: CategoryParameters, dimensions: List[int] | None = None):
+    def __init__(self, parameters: CategoryParameters, dimensions: list[int] | None = None):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w

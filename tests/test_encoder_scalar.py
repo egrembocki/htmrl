@@ -21,14 +21,14 @@ def test_scalar_encoder_initialization():
 
     # Arrange
     parameters = ScalarEncoderParameters(
-        minimum=0.0,
-        maximum=100.0,
+        minimum=0,
+        maximum=100,
         clip_input=True,
         periodic=False,
         active_bits=5,
         sparsity=0.0,
         size=10,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=1.0,
     )
@@ -49,15 +49,15 @@ def test_clipping_inputs():
 
     # Arrange
     p = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=False,
         active_bits=2,
         sparsity=0.0,
         size=10,
-        radius=0.0,
-        resolution=1.0,
+        radius=1.0,
+        resolution=0.0,
         category=False,
     )
     # Act and Assert baseline
@@ -92,7 +92,7 @@ def test_valid_scalar_inputs():
         minimum=10,
         maximum=20,
         sparsity=0.0,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=1.0,
         clip_input=False,
@@ -127,7 +127,7 @@ def test_scalar_encoder_category_encode():
         minimum=0,
         maximum=65,
         active_bits=0,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=1.0,
         clip_input=False,
@@ -170,7 +170,7 @@ def test_scalar_encoder_non_integer_bucket_width():
         active_bits=3,
         sparsity=0.0,
         size=7,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=1.0,
     )
@@ -190,8 +190,8 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
 
     # Arrange
     params = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=False,
         active_bits=3,
@@ -199,7 +199,7 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
         size=0,
         radius=0.0,
         category=False,
-        resolution=1,
+        resolution=1.0,
     )
 
     # Act and Assert - baseline
@@ -230,8 +230,8 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
     """Test that periodic scalar encoder rounds to the nearest multiple of resolution correctly."""
     # Arrange
     params = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=True,
         active_bits=3,
@@ -275,8 +275,8 @@ def test_scalar_encoder_serialization():
     inputs = []
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=34,
@@ -289,8 +289,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=True,
         periodic=False,
         active_bits=34,
@@ -303,8 +303,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=True,
         active_bits=34,
@@ -317,8 +317,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=34,
@@ -331,8 +331,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     q = ScalarEncoderParameters(
-        minimum=-1.0,
-        maximum=1.003,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=0,
@@ -345,8 +345,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(q, [1, 100]))
 
     r = ScalarEncoderParameters(
-        minimum=0,
-        maximum=65,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=0,
