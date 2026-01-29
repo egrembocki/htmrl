@@ -240,16 +240,14 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         self._total_samples = len(input_value)
         self._sample_rate = len(input_value)  # assume sample rate equals number of samples for now
 
-        scalar = ScalarEncoder(ScalarEncoderParameters(size=10, active_bits=2))
-        rdse = RandomDistributedScalarEncoder(RDSEParameters(size=10, active_bits=2))
+        scalar = ScalarEncoder(ScalarEncoderParameters(size=100, active_bits=2))
+        rdse = RandomDistributedScalarEncoder(RDSEParameters(size=100, active_bits=2))
 
         self._calc_bucket_sizes()
 
         sdr_list = [0] * self._size
 
         buckets_idx = [0] * self._size
-
-        sdr_dense = []
 
         start_freq = 0
         stop_freq = 0
@@ -292,18 +290,20 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                 )
 
                 # hash the bucket index value from freq data
-                seeds = random.Random(self._hash_bucket(buckets_idx[f]))
+                # seeds = random.Random(self._hash_bucket(buckets_idx[f]))
 
                 # pick a set of active bits from range from start to stop frequency
-                active_bits = seeds.sample(
-                    population=range(start_freq, stop_freq),
-                    k=self._params.active_bits_in_ranges[self._frequency_ranges.index(freq_range)],
-                )
+                # active_bits = seeds.sample(
+                #   population=range(start_freq, stop_freq),
+                #   k=self._params.active_bits_in_ranges[self._frequency_ranges.index#(freq_range)],
+                # )
 
                 # rdse
-                # active_bits = rdse.encode(buckets_idx[f])
+                active_bits = rdse.encode(buckets_idx[f])
+                sdr_list.extend(active_bits)
 
                 #  extend the sdr list with the randomly dense selected active bits
-                sdr_list.extend(active_bits)
+                # for bit in active_bits:
+                #   sdr_list[bit] = 1
 
         return sdr_list

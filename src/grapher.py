@@ -103,13 +103,13 @@ if __name__ == "__main__":
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
             resolutions_in_ranges=[1.0],
-            frequency_ranges=[(1, 20)],
-            active_bits_in_ranges=[2],
-            size=20,
+            frequency_ranges=[(100, 200)],
+            active_bits_in_ranges=[40],
+            size=2048,
         )
     )
 
-    y = np.sin(2 * np.pi * 9 * np.linspace(0, 1, 256, endpoint=False))
+    y = np.sin(2 * np.pi * 150 * np.linspace(0, 1, 256, endpoint=False))
 
     fft_data = fft_encoder.encode(y)
 
