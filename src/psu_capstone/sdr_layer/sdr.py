@@ -289,7 +289,7 @@ class SDR:
         self._dense, temp = temp, self._dense
         self.set_dense_inplace()
 
-    def get_dense(self) -> sdr_dense_t:
+    def get_dense(self) -> sdr_dense_t:  # alias: -> List[int]
         """Return the dense representation, materialising it from sparse data if required."""
         if not self._dense_valid:
             if not self._sparse_valid:

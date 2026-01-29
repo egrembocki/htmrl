@@ -84,7 +84,7 @@ class ScalarEncoderParameters:
      * Member "size" is the total number of bits in the encoded output SDR.
      */
     """
-    radius: float = 0.0
+    radius: float = 1.0
     """Approximate input range (width) covered by the active bits.
     /**
      * Member "radius" Two inputs separated by more than the radius have
