@@ -67,7 +67,8 @@ def test_season():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     # Assert
@@ -111,7 +112,8 @@ def test_day_of_week():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder day_of_week test failed!"
@@ -166,7 +168,8 @@ def test_weekend():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder weekend test failed!"
@@ -224,7 +227,8 @@ def test_holiday():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder holiday test failed!"
@@ -278,7 +282,8 @@ def test_time_of_day():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder time_of_day test failed!"
@@ -333,7 +338,8 @@ def test_custom_day():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder custom_day test failed!"
@@ -410,7 +416,8 @@ def test_all_combined():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     # Assert
