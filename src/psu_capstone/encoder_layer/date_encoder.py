@@ -25,7 +25,8 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
-from psu_capstone.sdr_layer.sdr import SDR
+
+# from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -548,7 +549,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             raise TypeError(f"Unsupported type for DateEncoder.encode: {type(input_value)}")
 
         # Collect per-attribute SDRs to later concatenate
-        sdrs: list[int] = []
+        sdrs: list[list[int]] = []
 
         # --- Season: day of year (0-based) ---
         if isinstance(self._season_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
@@ -747,7 +748,7 @@ if __name__ == "__main__":
         day_of_week_resolution=0.0,
         day_of_week_sparsity=0.0,
         weekend_size=100,
-        weekend_active_bits=5,
+        weekend_active_bits=0,
         weekend_radius=4.0,
         weekend_resolution=0.0,
         weekend_sparsity=0.0,
