@@ -137,7 +137,7 @@ class EncoderHandler:
                         )
                     )
                     sdr = SDR([encoder.size])
-                    encoder.encode(int(value), sdr)
+                    sdr = encoder.encode(int(value))
 
                 elif isinstance(value, str):
                     category_list = input_data[col_name].unique().tolist()
@@ -147,27 +147,13 @@ class EncoderHandler:
                             category_list=category_list,
                         )
                     )
-                    sdr = SDR(encoder.dimensions)
-                    encoder.encode(value, sdr)
+                    sdr = encoder.encode(value)
+                    encoder.encode(value)
 
                 elif isinstance(value, pd.Timestamp) or isinstance(value, datetime):
-                    encoder = DateEncoder(
-                        DateEncoderParameters(
-                            season_active_bits=0,
-                            season_radius=91.5,
-                            day_of_week_active_bits=7,
-                            day_of_week_radius=1.0,
-                            weekend_width=2,
-                            holiday_width=4,
-                            holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
-                            time_of_day_width=24,
-                            time_of_day_radius=1.0,
-                            custom_width=0,
-                            custom_days=[],
-                        )
-                    )
+                    encoder = DateEncoder(DateEncoderParameters())
                     sdr = SDR([encoder.size])
-                    encoder.encode(value, sdr)
+                    sdr = encoder.encode(value)
 
                 else:
                     raise TypeError(f"Unsupported value type for encoder: {type(value)}")

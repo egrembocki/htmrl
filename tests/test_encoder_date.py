@@ -34,11 +34,11 @@ def test_season():
         season_sparsity=0.0,
         season_radius=91.5,
         season_resolution=0.0,
-        day_of_week_size=0,
-        weekend_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -85,16 +85,16 @@ def test_day_of_week():
 
     # Arrange
     date_params = DateEncoderParameters(
-        season_size=0,
+        season_active_bits=0,
         day_of_week_size=2048,
         day_of_week_active_bits=2,
         day_of_week_radius=292.57,
         day_of_week_resolution=0.0,
         day_of_week_sparsity=0.0,
-        weekend_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -132,11 +132,11 @@ def test_weekend():
         weekend_radius=39.38,
         weekend_resolution=0.0,
         weekend_sparsity=0.0,
-        season_size=0,
-        day_of_week_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -187,11 +187,11 @@ def test_holiday():
         holiday_radius=186.18,
         holiday_resolution=0.0,
         holiday_sparsity=0.0,
-        season_size=0,
-        day_of_week_size=0,
-        weekend_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
     date_encoder = DateEncoder(date_params)
@@ -244,11 +244,11 @@ def test_time_of_day():
         time_of_day_radius=42.67,
         time_of_day_resolution=0.0,
         time_of_day_sparsity=0.0,
-        season_size=0,
-        day_of_week_size=0,
-        weekend_size=0,
-        holiday_size=0,
-        custom_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -299,11 +299,11 @@ def test_custom_day():
         custom_resolution=0.0,
         custom_sparsity=0.0,
         custom_days=["Monday", "Mon, Wed, Fri"],
-        season_size=0,
-        day_of_week_size=0,
-        weekend_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
         rdse_used=False,
     )
 

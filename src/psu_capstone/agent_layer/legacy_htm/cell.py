@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from psu_capstone.agent_layer.htm.segment import Segment
+    from psu_capstone.agent_layer.legacy_htm.segment import Segment
 
 
 class Cell:
