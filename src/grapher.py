@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
-from scipy.fft import fft, ifft
+from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
@@ -54,7 +54,7 @@ def plot_sdr(data: list[int]) -> None:
     plt.show(block=True)
 
 
-def plot_hot_gym_fft(sample_rate: int = 190, dataset: str = "hot_gym_short.csv") -> None:
+def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv") -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
     hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
@@ -66,11 +66,10 @@ def plot_hot_gym_fft(sample_rate: int = 190, dataset: str = "hot_gym_short.csv")
         .flatten()
     )
 
-    # signal = np.sin(2 * np.pi * 25 * np.linspace(0, 1, 256, endpoint=False))
+    # time domain example: sine wave at 25 Hz
+    signal = np.sin(2 * np.pi * 25 * np.linspace(0, 1, 256, endpoint=False))
 
     time_axis = np.arange(signal.size, dtype=float) / sample_rate
-    fourier_encoder = FourierEncoder()
-    freq_data = cast(np.ndarray, fft(signal))
     plt.figure(figsize=(16, 8))
     plt.plot(time_axis, signal, "r")
     plt.title("Sine Wave in Time Domain")
@@ -78,13 +77,17 @@ def plot_hot_gym_fft(sample_rate: int = 190, dataset: str = "hot_gym_short.csv")
     plt.ylabel("Amplitude")
     plt.grid()
     plt.show()
+
+    # frequency domain
+    fourier_encoder = FourierEncoder()
+    freq_data = cast(np.ndarray, fft(signal))
     samples = len(freq_data)
-    freq = np.arange(samples // 2, dtype=float) * (sample_rate / samples)
     freq_data = fourier_encoder._normalize(freq_data[: samples // 2])
+    freq_bin = fftfreq(samples, d=fourier_encoder._time_step)[: samples // 2]
     plt.figure(figsize=(16, 8))
-    plt.stem(freq, np.abs(freq_data), linefmt="b-", markerfmt="bo", basefmt="r-")
+    plt.plot(freq_bin, np.abs(freq_data))
     peak_index = np.argmax(np.abs(freq_data))
-    peak_freq = peak_index * (sample_rate / samples)
+    peak_freq = freq_bin[peak_index]
     print(f"FFT Peak Frequency: {peak_freq} Hz")
 
     plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(len(freq_data) // 10 or 1))
@@ -99,15 +102,22 @@ if __name__ == "__main__":
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
-            resolutions_in_ranges=[1.0],
-            frequency_ranges=[(1, 100)],
-            active_bits_in_ranges=[20],
+            resolutions_in_ranges=[1],
+            frequency_ranges=[(0, 200)],
+            # search for frequencies peaks between 0 and 200 Hz
+            active_bits_in_ranges=[5],
+            # every contributing frequency gets 5 active bits
             size=2048,
+            # use size and total active bits to set sparsity
             total_active_bits=40,
         )
     )
 
-    y = np.sin(np.pi * 15 * np.linspace(0, 1, 256, endpoint=False))
+    y = np.sin(2 * np.pi * 56 * np.linspace(0, 1, 2048, endpoint=False))
+    # y += a * np.sin(2 * np.pi * 25 * np.linspace(0, 1, 2048, endpoint=False))
+    # y += a * np.sin(2 * np.pi * 5 * np.linspace(0, 1, 2048, endpoint=False))
+    # y += a * np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+
     fft_data = fft_encoder.encode(y)
 
     # print(fft_data)
