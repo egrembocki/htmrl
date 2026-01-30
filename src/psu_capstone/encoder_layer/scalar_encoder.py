@@ -29,7 +29,7 @@ class ScalarEncoderParameters:
      * Members "minimum" and "maximum" define the range of the input signal.
      * These endpoints are inclusive.
      */"""
-    maximum: int = 5000
+    maximum: int = 1000
     """Min and Max
      * Members "minimum" and "maximum" define the range of the input signal.
      * These endpoints are inclusive.
