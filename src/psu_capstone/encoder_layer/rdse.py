@@ -122,6 +122,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._encoding_cache.clear()
 
     def _compute_encoding(self, input_value: float) -> List[int]:
+        """
+        Uses murmurhash3 algorithm to encode a float value.
+
+        :param self: Description
+        :param input_value: The value we want encoded.
+        :type input_value: float
+        :return: Returns a list of integers that signify an SDR.
+        :rtype: List[int]
+        """
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
@@ -154,6 +163,16 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @staticmethod
     def _overlap(first: List[int], second: List[int]) -> int:
+        """
+        Checks for overlapping bits in two Lists of integers.
+
+        :param first: The first list in checking.
+        :type first: List[int]
+        :param second: The second list in checking.
+        :type second: List[int]
+        :return: Returns the overlapping bits.
+        :rtype: int
+        """
         if len(first) != len(second):
             raise ValueError("Vectors must be the same length to compute overlap")
         return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
@@ -195,6 +214,11 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         return best_value, confidence
 
     def make_knn(self) -> None:
+        """
+        Alternate method to decode where it employs a knn regressor model.
+
+        :param self: Description
+        """
         if not self._encoding_cache:
             raise ValueError("No registered encodings available to build KNN")
 
