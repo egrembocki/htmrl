@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import List, cast, override
+from typing import Iterable, List, Tuple, cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -101,14 +101,16 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    def decode(self, input_sdr: SDR) -> str:
-        if self._RDSEused:  # 0,1,2,3 #ES, GB, US, NA
+    def decode(self, input_sdr: SDR) -> Tuple[float | None, float]:
+        if self._RDSEused:
             rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
-            self._category_list.append("NA")
-            result = rdse_encoder.decode(input_sdr)
-            result = self._category_list[int(result) - 1]
-            self._category_list.pop()
-            return result
+            self._category_list.append(
+                "NA"
+            )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
+            result_tuple = rdse_encoder.decode(input_sdr)
+            result = self._category_list[int(result_tuple[0]) - 1]
+            self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
+            return Tuple[result, result_tuple[1]]
 
     def check_parameters(self, parameters: CategoryParameters):
         if parameters.w <= 0:

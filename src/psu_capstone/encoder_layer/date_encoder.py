@@ -17,7 +17,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import cast, override
+from typing import Iterable, List, Tuple, cast, override
 
 import pandas as pd
 
@@ -532,7 +532,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
         """
 
-        output_sdr = SDR(dimensions=[self._size])
+        # output_sdr = SDR(dimensions=[self._size])
+        output_sdr: list[int] = []
 
         if input_value is None:
             t = time.localtime()
@@ -547,19 +548,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             raise TypeError(f"Unsupported type for DateEncoder.encode: {type(input_value)}")
 
         # Collect per-attribute SDRs to later concatenate
-        sdrs: list[SDR] = []
+        sdrs: list[int] = []
 
         # --- Season: day of year (0-based) ---
         if isinstance(self._season_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             day_of_year = float(t.tm_yday - 1)  # tm_yday is 1..366
+            print(day_of_year)
             encoded_value = self._season_encoder.encode(day_of_year)
-            rdse_sdr = SDR(dimensions=[self._season_encoder.size])
-            rdse_sdr.set_dense(encoded_value)
-            # bucket index: floor(day / radius)
             bucket_idx = math.floor(day_of_year / self._season_encoder._radius)
             self._buckets[self._bucketMap[self.SEASON]] = float(bucket_idx)
 
-            sdrs.append(rdse_sdr)
+            sdrs.append(encoded_value)
 
         # --- Day of week (Monday=0..Sunday=6, same as header comment) ---
         if isinstance(self._dayofweek_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
@@ -569,13 +568,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             c_tm_wday = (t.tm_wday + 1) % 7  # now 0=Sun..6=Sat
             day_of_week = float((c_tm_wday + 6) % 7)
             encoded_value = self._dayofweek_encoder.encode(day_of_week)
-            rdse_sdr = SDR(dimensions=[self._dayofweek_encoder.size])
-            rdse_sdr.set_dense(encoded_value)
             radius = max(self._dayofweek_encoder._radius, 1e-9)
             bucket_val = day_of_week - math.fmod(day_of_week, radius)
             self._buckets[self._bucketMap[self.DAYOFWEEK]] = bucket_val
 
-            sdrs.append(rdse_sdr)
+            sdrs.append(encoded_value)
 
         else:
             # still compute c_tm_wday for weekend/custom use
@@ -589,61 +586,92 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             else:
                 val = 0.0
             encoded_value = self._weekend_encoder.encode(val)
-            rdse_sdr = SDR(dimensions=[self._weekend_encoder.size])
-            rdse_sdr.set_dense(encoded_value)
             self._buckets[self._bucketMap[self.WEEKEND]] = val
 
-            sdrs.append(rdse_sdr)
+            sdrs.append(encoded_value)
 
         # --- Custom days ---
         if isinstance(self._customdays_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             # customDays_ holds Python tm_wday (0=Mon..6=Sun)
             custom_val = 1.0 if t.tm_wday in self._customDays else 0.0
             encoded_value = self._customdays_encoder.encode(custom_val)
-            rdse_sdr = SDR(dimensions=[self._customdays_encoder.size])
-            rdse_sdr.set_dense(encoded_value)
             self._buckets[self._bucketMap[self.CUSTOM]] = custom_val
 
-            sdrs.append(rdse_sdr)
+            sdrs.append(encoded_value)
 
         # --- Holiday ramp ---
         if isinstance(self._holiday_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             val = self._holiday_value(t)
             encoded_value = self._holiday_encoder.encode(val)
-            rdse_sdr = SDR(dimensions=[self._holiday_encoder.size])
-            rdse_sdr.set_dense(encoded_value)
             self._buckets[self._bucketMap[self.HOLIDAY]] = math.floor(val)
 
-            sdrs.append(rdse_sdr)
+            sdrs.append(encoded_value)
 
         # --- Time of day ---
         if isinstance(self._timeofday_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             tod = t.tm_hour + t.tm_min / 60.0 + t.tm_sec / 3600.0
             encoded_value = self._timeofday_encoder.encode(tod)
-            rdse_sdr = SDR(dimensions=[self._timeofday_encoder.size])
-            rdse_sdr.set_dense(encoded_value)
             radius = max(self._timeofday_encoder._radius, 1e-9)
             bucket_val = tod - math.fmod(tod, radius)
             self._buckets[self._bucketMap[self.TIMEOFDAY]] = bucket_val
 
-            sdrs.append(rdse_sdr)
+            sdrs.append(encoded_value)
 
         if not sdrs:
             raise RuntimeError("DateEncoder misconfigured: no sub-encoders enabled.")
 
         # Concatenate SDRs into `output`
         all_sparse: list[int] = []
-        offset = 0
 
         for sdr in sdrs:
-            for idx in sdr.get_sparse():
-                all_sparse.append(idx + offset)
-            offset += sdr.size
+            output_sdr.extend(sdr)
 
-        output_sdr.zero()
-        output_sdr.set_sparse(all_sparse)
+        output_sdr.append(all_sparse)
 
-        return output_sdr.get_sparse()
+        return output_sdr
+
+    def decode(
+        self, encoded: List[int], candidates: Iterable[float] | None = None
+    ) -> Tuple[float | None, float | None, float | None, float | None, float | None, float | None]:
+        decoded_floats: list[float] = []
+        if self._season_encoder is not None and isinstance(
+            self._season_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._season_encoder, encoded)
+            decoded_floats.append(local_decode)
+        if self._dayofweek_encoder is not None and isinstance(
+            self._dayofweek_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._dayofweek_encoder, encoded)
+            decoded_floats.append(local_decode)
+        if self._weekend_encoder is not None and isinstance(
+            self._weekend_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._weekend_encoder, encoded)
+            decoded_floats.append(local_decode)
+        if self._customdays_encoder is not None and isinstance(
+            self._customdays_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._customdays_encoder, encoded)
+            decoded_floats.append(local_decode)
+        if self._holiday_encoder is not None and isinstance(
+            self._holiday_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._holiday_encoder, encoded)
+            decoded_floats.append(local_decode)
+        if self._timeofday_encoder is not None and isinstance(
+            self._timeofday_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._timeofday_encoder, encoded)
+            decoded_floats.append(local_decode)
+        return Tuple[decoded_floats]
+
+    def _compute_decode(self, rdse: RandomDistributedScalarEncoder, encoded: List[int]) -> float:
+        size = rdse.size
+        local_encode = encoded[:size]
+        del encoded[:size]
+        local_decode = rdse.decode(local_encode)
+        return local_decode
 
     def _holiday_value(self, t: time.struct_time) -> float:
         """Return the holiday ramp value for the provided timestamp."""
@@ -690,33 +718,33 @@ if __name__ == "__main__":
         season_radius=4.0,
         season_resolution=0.0,
         day_of_week_size=100,
-        day_of_week_active_bits=2,
+        day_of_week_active_bits=5,
         day_of_week_radius=4.0,
         day_of_week_resolution=0.0,
         day_of_week_sparsity=0.0,
         weekend_size=100,
-        weekend_active_bits=2,
+        weekend_active_bits=5,
         weekend_radius=4.0,
         weekend_resolution=0.0,
         weekend_sparsity=0.0,
         holiday_size=100,
-        holiday_active_bits=4,
+        holiday_active_bits=0,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
         holiday_radius=4.0,
         holiday_resolution=0.0,
         holiday_sparsity=0.0,
         time_of_day_size=100,
-        time_of_day_active_bits=4,
+        time_of_day_active_bits=0,
         time_of_day_radius=4.0,
         time_of_day_resolution=0.0,
         time_of_day_sparsity=0.0,
         custom_size=100,
-        custom_active_bits=2,
+        custom_active_bits=0,
         custom_radius=4.0,
         custom_resolution=0.0,
         custom_sparsity=0.0,
         custom_days=["Monday", "Mon, Wed, Fri"],
-        rdse_used=False,
+        rdse_used=True,
     )
 
     date_encoder = DateEncoder(date_params)
@@ -747,9 +775,19 @@ if __name__ == "__main__":
         [54, 55, 56, 57],
         [53, 54, 55, 56],
     ]
-
+    """
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
         actual_encoding.append(encoding)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
+    """
+    output_sdr: list[int] = []
+    for test in test_case:
+        dt = datetime(test[0], test[1], test[2], test[3], test[4])
+        encoding = date_encoder.encode(dt)
+        actual_encoding.append(encoding)
+
+    for output in actual_encoding:
+        decode_tuple = date_encoder.decode(output)
+        logger.info(decode_tuple)

@@ -30,7 +30,7 @@ def test_scalar_encoder_initialization():
         size=10,
         radius=1.0,
         category=False,
-        resolution=1.0,
+        resolution=0.0,
     )
 
     # Act
@@ -94,7 +94,7 @@ def test_valid_scalar_inputs():
         sparsity=0.0,
         radius=1.0,
         category=False,
-        resolution=1.0,
+        resolution=0.0,
         clip_input=False,
         periodic=False,
     )
@@ -129,7 +129,7 @@ def test_scalar_encoder_category_encode():
         active_bits=0,
         radius=1.0,
         category=False,
-        resolution=1.0,
+        resolution=0.0,
         clip_input=False,
         periodic=False,
     )
@@ -172,7 +172,7 @@ def test_scalar_encoder_non_integer_bucket_width():
         size=7,
         radius=1.0,
         category=False,
-        resolution=1.0,
+        resolution=0.0,
     )
 
     encoder = ScalarEncoder(params, [1, 7])

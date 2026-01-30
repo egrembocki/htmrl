@@ -167,7 +167,9 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
     ) -> Tuple[float | None, float]:
         """Returns the value whose encoding overlaps the most with the provided SDR."""
         if len(encoded) != self.size:
-            raise ValueError("Encoded input must match encoder size")
+            raise ValueError(
+                f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
+            )
 
         search_values = (
             list(candidates) if candidates is not None else list(self._encoding_cache.keys())
@@ -324,6 +326,8 @@ if __name__ == "__main__":
         return np.count_nonzero(first == second)
 
     print(_overlap_count(a, b))
+    print(encoder.decode(a))
+    print(encoder.decode(b))
     # Tests
     """
     params = RDSEParameters(
