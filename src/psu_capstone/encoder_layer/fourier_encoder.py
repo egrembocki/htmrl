@@ -134,6 +134,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
     # table this for now, use scipy fft
     def _transform(self, time_data: np.ndarray) -> np.ndarray:
         """A recursive implementation of the 1D Cooley-Tukey FFT, the input should have a length of power of 2.
+            Depreciated: Use scipy.fft.fft instead.
 
             O(n log n) time complexity.
 
