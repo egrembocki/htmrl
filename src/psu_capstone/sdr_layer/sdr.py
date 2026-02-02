@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import random
 from math import prod
-from typing import Any, Callable, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Iterable, Optional, Sequence
 
 # Type aliases mirroring the C++ implementation
 
@@ -442,7 +442,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Boolean operations
     # ------------------------------------------------------------------
-    def intersection(self, sdrs: List["SDR"]) -> None:
+    def intersection(self, sdrs: list["SDR"]) -> None:
         """Compute the bitwise intersection of multiple SDRs and store it in-place.
 
         Args:
@@ -484,7 +484,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def _validate_concatenate_inputs(self, inputs: List["SDR"], axis_index: int) -> int:
+    def _validate_concatenate_inputs(self, inputs: list["SDR"], axis_index: int) -> int:
         """Validate concatenate inputs and return the combined size along the chosen axis."""
         concat_axis_size = 0
         for sdr in inputs:
