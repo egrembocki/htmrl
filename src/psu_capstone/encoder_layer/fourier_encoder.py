@@ -55,13 +55,13 @@ class FourierEncoderParameters:
     total_active_bits: int = 40
     """Total number of active bits in the encoder output SDR."""
 
-    frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [])
+    frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(1, 100)])
     """List of frequency ranges to find."""
 
     magnitude_peaks: list[tuple[int, int]] = field(default_factory=lambda: [])
     """List of magnitudes corresponding to each frequency range or window."""
 
-    active_bits_in_ranges: list[int] = field(default_factory=lambda: [])
+    active_bits_in_ranges: list[int] = field(default_factory=lambda: [5])
     """The number of active bits per frequency range in the encoder output SDR."""
 
     resolutions_in_ranges: list[float] = field(default_factory=lambda: [])

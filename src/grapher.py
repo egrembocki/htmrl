@@ -1,5 +1,8 @@
 import os
+from cmath import phase
 from dataclasses import dataclass, field
+from importlib import simple
+from random import sample
 from typing import cast
 
 import matplotlib.pyplot as plt
@@ -66,8 +69,13 @@ def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv")
         .flatten()
     )
 
-    # time domain example: sine wave at 25 Hz
-    signal = np.sin(2 * np.pi * 25 * np.linspace(0, 1, 256, endpoint=False))
+    # time domain example: sine waves
+    phase_shift = np.cos(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+
+    signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
+    # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+
+    sample_rate = len(signal)  # samples per second
 
     time_axis = np.arange(signal.size, dtype=float) / sample_rate
     plt.figure(figsize=(16, 8))
@@ -79,11 +87,11 @@ def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv")
     plt.show()
 
     # frequency domain
-    fourier_encoder = FourierEncoder()
+
     freq_data = cast(np.ndarray, fft(signal))
     samples = len(freq_data)
-    freq_data = fourier_encoder._normalize(freq_data[: samples // 2])
-    freq_bin = fftfreq(samples, d=fourier_encoder._time_step)[: samples // 2]
+    freq_data = freq_data[: samples // 2]
+    freq_bin = fftfreq(samples, 1 / sample_rate)[: samples // 2]
     plt.figure(figsize=(16, 8))
     plt.plot(freq_bin, np.abs(freq_data))
     peak_index = np.argmax(np.abs(freq_data))
@@ -113,14 +121,10 @@ if __name__ == "__main__":
         )
     )
 
-    y = np.sin(2 * np.pi * 56 * np.linspace(0, 1, 2048, endpoint=False))
-    # y += a * np.sin(2 * np.pi * 25 * np.linspace(0, 1, 2048, endpoint=False))
-    # y += a * np.sin(2 * np.pi * 5 * np.linspace(0, 1, 2048, endpoint=False))
-    # y += a * np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    p = np.cos(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    y = np.sin(2 * np.pi * 56 * np.linspace(0, 1, 2048, endpoint=False) + p)
 
     fft_data = fft_encoder.encode(y)
-
-    # print(fft_data)
 
     plot_sdr(fft_data)
 
