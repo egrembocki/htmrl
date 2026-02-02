@@ -684,7 +684,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         :type rdse: RandomDistributedScalarEncoder
         :param encoded: The sdr that has been input for decoding.
         :type encoded: list[int]
-        :return: Return a Tuple of [value, confidence]
+        :return: Return a tuple of [value, confidence]
         :rtype: float
         """
         size = rdse.size
