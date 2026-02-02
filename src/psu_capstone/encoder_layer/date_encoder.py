@@ -17,7 +17,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable, List, Tuple, cast, override
+from typing import Iterable, cast, override
 
 import pandas as pd
 
@@ -621,19 +621,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if not sdrs:
             raise RuntimeError("DateEncoder misconfigured: no sub-encoders enabled.")
 
-        # Concatenate SDRs into `output`
-        all_sparse: list[int] = []
-
         for sdr in sdrs:
             output_sdr.extend(sdr)
-
-        output_sdr.append(all_sparse)
 
         return output_sdr
 
     def decode(
-        self, encoded: List[int], candidates: Iterable[float] | None = None
-    ) -> Tuple[float | None, float | None, float | None, float | None, float | None, float | None]:
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[float | None, float | None, float | None, float | None, float | None, float | None]:
         """
         This method checks if an encoder exists. Then, if it does, we run compute decode to and append
         the value to the decode_floats.
@@ -677,9 +672,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         ):
             local_decode = self._compute_decode(self._timeofday_encoder, encoded)
             decoded_floats.append(local_decode)
-        return Tuple[decoded_floats]
+        return tuple(decoded_floats)
 
-    def _compute_decode(self, rdse: RandomDistributedScalarEncoder, encoded: List[int]) -> float:
+    def _compute_decode(self, rdse: RandomDistributedScalarEncoder, encoded: list[int]) -> float:
         """
         This method takes in the encoder and sdr to be decoded. We slice from start of encoded
         to size of the encoder. We then remove those bits from the list and decode the slice.
@@ -688,7 +683,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         :param rdse: The encoder we are running decode from. Corresponds to 1 of 6 possible encoders.
         :type rdse: RandomDistributedScalarEncoder
         :param encoded: The sdr that has been input for decoding.
-        :type encoded: List[int]
+        :type encoded: list[int]
         :return: Return a Tuple of [value, confidence]
         :rtype: float
         """
