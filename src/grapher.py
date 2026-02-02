@@ -103,25 +103,38 @@ if __name__ == "__main__":
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
             resolutions_in_ranges=[1],
-            frequency_ranges=[(0, 200)],
             # search for frequencies peaks between 0 and 200 Hz
-            active_bits_in_ranges=[5],
-            # every contributing frequency gets 5 active bits
-            size=2048,
+            frequency_ranges=[(0, 200)],
+            # every contributing frequency gets 20 active bits, this divides up from total active bits
+            active_bits_in_ranges=[20],
             # use size and total active bits to set sparsity
+            size=2048,
+            # active bits in range times number of ranges
             total_active_bits=40,
         )
     )
 
-    y = np.sin(2 * np.pi * 56 * np.linspace(0, 1, 2048, endpoint=False))
-    # y += a * np.sin(2 * np.pi * 25 * np.linspace(0, 1, 2048, endpoint=False))
-    # y += a * np.sin(2 * np.pi * 5 * np.linspace(0, 1, 2048, endpoint=False))
-    # y += a * np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 = np.sin(2 * np.pi * 60 * np.linspace(0, 1, 2048, endpoint=False))
+    # y1 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * 30 * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
 
-    fft_data = fft_encoder.encode(y)
+    fft_one = fft_encoder.encode(y1)
+    fft_two = fft_encoder.encode(y2)
 
     # print(fft_data)
 
-    plot_sdr(fft_data)
+    plot_sdr(fft_one)
+    plot_sdr(fft_two)
+
+    sdr_one = SDR([len(fft_one)])
+    sdr_two = SDR([len(fft_two)])
+
+    sdr_one.set_dense(fft_one)
+    sdr_two.set_dense(fft_two)
+
+    overlap = sdr_one.get_overlap(sdr_two)
+    print(f"SDR Overlap: {overlap}")
+    print(f"SDR % Overlap: {overlap / sum(fft_one) * 100:.2f}%")
 
     # plot_hot_gym_fft(sample_rate=256)
