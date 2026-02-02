@@ -2,14 +2,7 @@ import copy
 import random
 from itertools import chain
 from statistics import fmean, pstdev
-from typing import (
-    Any,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-)
+from typing import Any, Iterable, List, Optional, Set, Tuple
 
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
@@ -32,14 +25,14 @@ LEARNING_THRESHOLD_PCT = 0.5  # Learning threshold as a percentage of synapses o
 debug = False
 
 
-def make_state_class(label: str):
+def make_state_class(label: str):  # type: ignore
     """Create a mixin that tracks current and previous boolean states for `label`."""
 
     attr = label.lower()
     prev_attr = f"prev_{attr}"
     new_class = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore
         super(new_class, self).__init__(*args, **kwargs)  # type: ignore
         setattr(self, attr, getattr(self, attr, False))
         setattr(self, prev_attr, getattr(self, prev_attr, False))

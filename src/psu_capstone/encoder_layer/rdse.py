@@ -14,7 +14,7 @@ import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import override
+from typing import Iterable, List, Tuple, override
 
 import mmh3
 import numpy as np
@@ -98,36 +98,46 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._resolution = self._parameters.resolution
         self._category = self._parameters.category
         self._seed = self._parameters.seed
-        self._sdrs_encoded: list[np.ndarray] = []
-        self._input_values_encoded: list[float] = []
+        self._encoding_cache: dict[float, List[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
         super().__init__(dimensions, self._size)
 
     @override
-    def encode(self, input_value: float) -> list[int]:
-        """Encode the input value into an dense SDR.
+    def encode(self, input_value: float) -> List[int]:
+        """Encode the input value into a binary vector."""
+        self.register_encoding(input_value)
+        return self._compute_encoding(input_value)
 
-        Args:
-            input_value (float): The input value to encode.
-        Returns:
-            list[int]: The dense SDR representation as a list of integers (0s and 1s).
-        Raises:
-            ValueError: If the input value is invalid for category encoding.
+    def register_encoding(self, input_value: float, encoded: List[int] | None = None) -> List[int]:
+        """Caches an encoding so decode_closest can compare against it."""
+        vector = encoded if encoded is not None else self._compute_encoding(input_value)
+        if len(vector) != self.size:
+            raise ValueError("Stored encoding must be the same length as encoder size")
+        self._encoding_cache[input_value] = vector
+        return vector
 
+    def clear_registered_encodings(self) -> None:
+        """Clears cached encodings used for nearest-neighbor decoding."""
+        self._encoding_cache.clear()
+
+    def _compute_encoding(self, input_value: float) -> List[int]:
         """
+        Uses murmurhash3 algorithm to encode a float value.
 
+        :param self: Description
+        :param input_value: The value we want encoded.
+        :type input_value: float
+        :return: Returns a list of integers that signify an SDR.
+        :rtype: List[int]
+        """
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
-
-        # I am appendding every successful input_value to the local list for knn regressor use.
-        self._input_values_encoded.append(input_value)
         self.encoding = True
+        data = [0] * self.size
 
-        sdr_output = [0] * self.size  # pad zeros into a dense list
-        assert self._resolution > 0.0, "Resolution must be greater than 0."
         index = int(input_value / self._resolution)
 
         for offset in range(self._active_bits):
@@ -149,33 +159,89 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
                 deviations in the sparsity or semantic similarity, depending on how
                 they're handled.
             """
-            sdr_output[bucket] = 1  # dense
+            data[bucket] = 1
+        return data
 
-        # add the density to the sdrs encoder list for knn regressor use
+    @staticmethod
+    def _overlap(first: List[int], second: List[int]) -> int:
+        """
+        Checks for overlapping bits in two Lists of integers.
 
-        data_array = np.array(sdr_output, dtype=np.uint8)
+        :param first: The first list in checking.
+        :type first: List[int]
+        :param second: The second list in checking.
+        :type second: List[int]
+        :return: Returns the overlapping bits.
+        :rtype: int
+        """
+        if len(first) != len(second):
+            raise ValueError("Vectors must be the same length to compute overlap")
+        return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
 
-        self._sdrs_encoded.append(data_array)
+    def sparsify(self, vector: List[int]) -> List[int]:
+        """Converts a sparse activity vector to a activation list."""
+        return [i for i, bit in enumerate(vector) if bit == 1]
 
-        # output_sdr.set_dense(data)
-        return sdr_output
+    def decode(
+        self, encoded: List[int], candidates: Iterable[float] | None = None
+    ) -> Tuple[float | None, float]:
+        """Returns the value whose encoding overlaps the most with the provided SDR."""
+        if len(encoded) != self.size:
+            raise ValueError(
+                f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
+            )
 
-    def make_knn(self):
-        x = np.array(self._sdrs_encoded, dtype=np.uint8)
-        y = np.array(self._input_values_encoded, dtype=np.float32)
-        knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
+        search_values = (
+            list(candidates) if candidates is not None else list(self._encoding_cache.keys())
+        )
+        if not search_values:
+            raise ValueError("No candidate encodings available for decoding")
+
+        best_value: float | None = None
+        best_overlap = -1
+
+        for candidate in search_values:
+            candidate_encoding = self._encoding_cache.get(candidate)
+            if candidate_encoding is None:
+                candidate_encoding = self.register_encoding(candidate)
+            overlap = self._overlap(encoded, candidate_encoding)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_value = candidate
+
+        confidence = (
+            best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
+        )
+        return best_value, confidence
+
+    def make_knn(self) -> None:
+        """
+        Alternate method to decode where it employs a knn regressor model.
+
+        :param self: Description
+        """
+        if not self._encoding_cache:
+            raise ValueError("No registered encodings available to build KNN")
+
+        x = np.array(list(self._encoding_cache.values()), dtype=np.uint8)
+        y = np.array(list(self._encoding_cache.keys()), dtype=np.float32)
+
+        knn = KNeighborsRegressor(
+            n_neighbors=min(2, len(y)),
+            weights="distance",
+            metric="hamming",
+        )
         knn.fit(x, y)
         self.knn = knn
 
-    def decode(self, input_sdr: SDR) -> float:
-        # x = np.array(self._sdrs_encoded, dtype=np.uint8)
-        # y = np.array(self._input_values_encoded, dtype=np.float32)
-        # knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
-        # knn.fit(x, y)
+    def decode_knn(self, encoded: List[int]) -> float:
+        """Returns the value whose encoding overlaps the most with the provided SDR."""
+        if len(encoded) != self.size:
+            raise ValueError("Encoded input must match encoder size")
         if self.encoding:
-            self.makeKnn()
+            self.make_knn()
             self.encoding = False
-        query = np.asarray(input_sdr.get_dense(), dtype=np.int8).reshape(1, -1)
+        query = np.asarray(encoded, dtype=np.int8).reshape(1, -1)
         result = self.knn.predict(query)
         return result.item()
 
@@ -269,6 +335,24 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 if __name__ == "__main__":
+    params = RDSEParameters(
+        size=2048,
+        sparsity=0.02,
+        radius=1.0,
+        active_bits=0,
+        category=False,
+        seed=12345,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    a = encoder.encode(0.1)
+    b = encoder.encode(5.1)
+
+    def _overlap_count(first: list[int], second: list[int]) -> int:
+        return np.count_nonzero(first == second)
+
+    print(_overlap_count(a, b))
+    print(encoder.decode(a))
+    print(encoder.decode(b))
     # Tests
     """
     params = RDSEParameters(
