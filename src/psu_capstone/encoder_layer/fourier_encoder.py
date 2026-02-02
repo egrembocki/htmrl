@@ -126,10 +126,11 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Sample rate in Hz."""
 
         # sub encoders
-        self._peak_encoder: RandomDistributedScalarEncoder | None = None
+        self._max_peak_encoder: RandomDistributedScalarEncoder | None = None
         """RDSE encoder for peak frequency."""
         self._magnitude_encoder: RandomDistributedScalarEncoder | None = None
         """RDSE encoder for peak magnitude."""
+        self._freqs
 
         self._calc_bucket_sizes()
 
@@ -277,7 +278,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         size = self._size
         freq_ranges = self._frequency_ranges
 
-        self._peak_encoder = RandomDistributedScalarEncoder(
+        self._max_peak_encoder = RandomDistributedScalarEncoder(
             RDSEParameters(
                 size=size,
                 active_bits=self._total_active_bits,
@@ -335,7 +336,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             return active_bits
         else:
 
-            sdr_freq = self._peak_encoder.encode(peak_freq)
+            sdr_freq = self._max_peak_encoder.encode(peak_freq)
             sdr_magnitude = self._magnitude_encoder.encode(magnitude)
 
             sdr_inter: set[int] = set(sdr_freq).intersection(set(sdr_magnitude))
