@@ -84,6 +84,28 @@ class SDR:
         """Return the total number of bits in the SDR."""
         return self._size
 
+    @size.setter
+    def size(self, size: int) -> None:
+        """Set the total number of bits in the SDR.
+
+        Args:
+            size: New size for the SDR.
+
+        Raises:
+            AssertionError: If the new size is not positive.
+        """
+        new_size = int(size)
+        assert new_size > 0, "SDR size must be positive."
+
+        self._size = new_size
+        self._dense = [elem_dense(0)] * int(self._size)
+        self._sparse = []
+        self._coordinates = [[] for _ in self._dimensions]
+
+        self.clear()
+        self._dense_valid = True
+        self.do_callbacks()
+
     @property
     def dimensions(self) -> List[int]:
         """Return the dimensions of the SDR."""

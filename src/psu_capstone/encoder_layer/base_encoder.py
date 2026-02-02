@@ -69,6 +69,10 @@ class BaseEncoder(ABC, Generic[T]):
     def size(self) -> int:
         return self._size
 
+    @size.setter
+    def size(self, value: int) -> None:
+        self._size = value
+
     @property
     def buffered_data(self) -> pd.DataFrame | None:
         """Gets the buffered data for processing by the encoder."""

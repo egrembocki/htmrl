@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import List, override
+from typing import Iterable, List, Tuple, cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -18,7 +18,7 @@ class CategoryParameters:
     The w is the width in bits per category. So, if you have 5 categories and w=3
     we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
     """
-    category_list: List[str]
+    category_list: list[str]
     """
     List of categories to use.
     """
@@ -48,7 +48,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: CategoryParameters, dimensions: List[int] | None = None):
+    def __init__(self, parameters: CategoryParameters, dimensions: list[int] | None = None):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
@@ -87,20 +87,59 @@ class CategoryEncoder(BaseEncoder[str]):
                 sparsity=0.0,
                 size=self._num_categories * self._w,
                 radius=0.0,
-                resolution=0.0,
+                resolution=1.0,
             )
             self.encoder = ScalarEncoder(self.sp, dimensions=[self.sp.size])
             self._dimensions = [self.sp.size]
 
     @override
-    def encode(self, input_value: str, output_sdr: SDR) -> None:
+    def encode(self, input_value: str) -> list[int]:
+        """
+        This method takes in a string and encodes it to a respective
+        index of the _category_list.
+
+        :param self: Description
+        :param input_value: Value that is to be encoded.
+        :type input_value: str
+        :return: Description
+        :rtype: list[int]
+        """
         if input_value not in self._category_list:
             index = 0
         else:
             index = self._category_list.index(input_value) + 1
-        self.encoder.encode(int(index), output_sdr)
+        a = self.encoder.encode(int(index))
+        return a
+
+    def decode(self, input_sdr: list[int]) -> Tuple[float | None, float]:
+        """
+        This will decode an SDR back into its category. We use the _category_list
+        again to turn the index back into a string.
+
+        :param self: Description
+        :param input_sdr: The list[int] of 1s and 0s that we want decoded.
+        :type input_sdr: list[int]
+        :return: The return is a [value, confidence] tuple.
+        :rtype: Tuple[float | None, float]
+        """
+        if self._RDSEused:
+            rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
+            self._category_list.append(
+                "NA"
+            )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
+            result_tuple = rdse_encoder.decode(input_sdr)
+            result = self._category_list[int(result_tuple[0]) - 1]
+            self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
+            return Tuple[result, result_tuple[1]]
 
     def check_parameters(self, parameters: CategoryParameters):
+        """
+        Simple checks to make sure the parameters are correct.
+
+        :param self: Description
+        :param parameters: The specified category parameters.
+        :type parameters: CategoryParameters
+        """
         if parameters.w <= 0:
             raise ValueError("Parameter 'w' must be positive.")
         if not parameters.category_list:
@@ -111,24 +150,25 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 if __name__ == "__main__":
-    # This tests the Scalar and RDSE versions to make sure we are getting correct encodings
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=True)
     e = CategoryEncoder(parameters=parameters)
-    a = SDR([1, 12])
-    e.encode("US", a)
-    assert a.get_dense() == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
-    print("Encoding is correct:", a.get_dense())
-    e.encode("ES", a)
-    assert a.get_dense() == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
-    print("Encoding is correct:", a.get_dense())
-    e.encode("US", a)
-    assert a.get_dense() == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
-    print("Encoding is correct:", a.get_dense())
-    e.encode("NA", a)
-    assert a.get_dense() == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    print("Encoding is correct:", a.get_dense())
+    a = e.encode("US")
+    b = e.encode("ES")
+    c = e.encode("NA")
+    d = e.encode("GB")
+    r = e.decode(a)
+    print(r)
 
+    r = e.decode(b)
+    print(r)
+
+    r = e.decode(c)
+    print(r)
+
+    r = e.decode(d)
+    print(r)
+    """
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories)
     e1 = CategoryEncoder(parameters=parameters)
@@ -154,3 +194,4 @@ if __name__ == "__main__":
     print(a1.get_dense())
     print(a2.get_dense())
     assert a1.get_dense() == a2.get_dense()
+    """

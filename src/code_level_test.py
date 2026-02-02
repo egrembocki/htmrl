@@ -9,35 +9,41 @@ from psu_capstone.sdr_layer.sdr import SDR
 
 if __name__ == "__main__":
 
-    rdse_encoder = RandomDistributedScalarEncoder()
-    scalar_encoder = ScalarEncoder()
+    date_encoder = DateEncoder()  # default date encoder test
 
-    rdse_encoder.active_bits = 50
-    rdse_encoder.size = 2058
+    date_encoder.rdse_sizes = {
+        "season": 16,
+        "dayOfWeek": 32,
+        "weekend": 64,
+        "holiday": 128,
+        "timeOfDay": 256,
+        "customDays": 512,
+    }
 
-    value = 3.14
-    output_sdr = SDR([rdse_encoder.size])
-    rdse_encoder.encode(value, output_sdr)
-    # create a default DateEncoder
-    date_encoder = DateEncoder()
+    print(f"Season Encoder Size after set: {date_encoder.season_size}")
+    print(f"Day of Week Encoder Size after set: {date_encoder.dayofweek_size}")
+    print(f"Weekend Encoder Size after set: {date_encoder.weekend_size}")
+    print(f"Holiday Encoder Size after set: {date_encoder.holiday_size}")
+    print(f"Time of Day Encoder Size after set: {date_encoder.timeofday_size}")
+    print(f"Custom Days Encoder Size after set: {date_encoder.customdays_size}")
 
-    date_value = datetime(2023, 10, 5, 14, 30, 0)
+    print(f"Date Encoder Size after setting individual encoders: {date_encoder.size}")
 
-    date_output_sdr = SDR([date_encoder.size])
-    date_encoder.encode(date_value, date_output_sdr)
+    test_date = datetime(2023, 3, 15, 14, 30)  # March 15, 2023, 14:30
+    output_sdr = SDR([date_encoder.size])
+    date_encoder.encode(test_date, output_sdr)
+    print(f"Encoded SDR for {test_date}: {output_sdr.get_sparse()}")
 
-    season_encoder = cast(RandomDistributedScalarEncoder, date_encoder.season_encoder)
-    season_encoder.active_bits = 10
-    season_encoder.size = 365
+    # Change individual encoder sizes
+    date_encoder.season_size = 20
 
-    print(f"Season Encoder Output SDR: {season_encoder.size}")
+    print(f"Season Encoder Size 20 :: {date_encoder.season_encoder.size}")
 
-    season_sdr = SDR([season_encoder.size])
-    season_encoder.encode(278, season_sdr)  # Example day of year
-    print(season_sdr.get_sparse())
+    output_sdr.size = date_encoder.size  # Update SDR size after changing encoder sizes
 
-    print(f"RDSE Encoder Output SDR: {output_sdr.size}")
-    print(output_sdr.get_sparse())
+    date_encoder.encode(test_date, output_sdr)
 
-    print(f"Date Encoder Output SDR: {date_output_sdr.size}")
-    print(date_output_sdr.get_sparse())
+    print(
+        f"Encoded SDR after changing individual encoder sizes for {test_date}: {output_sdr.get_sparse()}"
+    )
+    print(f"Date Encoder Size after changing individual encoder sizes: {date_encoder.size}")

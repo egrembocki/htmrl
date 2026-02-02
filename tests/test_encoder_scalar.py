@@ -21,14 +21,14 @@ def test_scalar_encoder_initialization():
 
     # Arrange
     parameters = ScalarEncoderParameters(
-        minimum=0.0,
-        maximum=100.0,
+        minimum=0,
+        maximum=100,
         clip_input=True,
         periodic=False,
         active_bits=5,
         sparsity=0.0,
         size=10,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=0.0,
     )
@@ -49,14 +49,14 @@ def test_clipping_inputs():
 
     # Arrange
     p = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=False,
         active_bits=2,
         sparsity=0.0,
         size=10,
-        radius=0.0,
+        radius=1.0,
         resolution=0.0,
         category=False,
     )
@@ -72,14 +72,14 @@ def test_clipping_inputs():
     # Act and Asset - Test input clipping
     # These should pass without exceptions
     try:
-        encoder.encode(10.0, test_sdr)  # At minimum edge case
-        encoder.encode(20.0, test_sdr)  # At maximum edge case
+        encoder.encode(10.0)  # At minimum edge case
+        encoder.encode(20.0)  # At maximum edge case
     except Exception as e:
         pytest.fail(f"Unexpected exception raised: {e}")
 
     with pytest.raises(ValueError):
-        encoder.encode(9.9, test_sdr)  # Below minimum edge case
-        encoder.encode(20.1, test_sdr)  # Above maximum edge case
+        encoder.encode(9.9)  # Below minimum edge case
+        encoder.encode(20.1)  # Above maximum edge case
 
 
 def test_valid_scalar_inputs():
@@ -92,7 +92,7 @@ def test_valid_scalar_inputs():
         minimum=10,
         maximum=20,
         sparsity=0.0,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=0.0,
         clip_input=False,
@@ -108,12 +108,12 @@ def test_valid_scalar_inputs():
     assert test_sdr.get_sparse() == []
 
     with pytest.raises(Exception):
-        encoder.encode(9.999, test_sdr)  # Below minimum edge case
-        encoder.encode(20.0001, test_sdr)  # Above maximum edge case
+        encoder.encode(9.999)  # Below minimum edge case
+        encoder.encode(20.0001)  # Above maximum edge case
 
     try:
-        encoder.encode(10.0, test_sdr)  # At minimum edge case
-        encoder.encode(19.9, test_sdr)  # Just below maximum edge case
+        encoder.encode(10.0)  # At minimum edge case
+        encoder.encode(19.9)  # Just below maximum edge case
     except Exception as e:
         pytest.fail(f"Unexpected exception raised: {e}")
 
@@ -127,7 +127,7 @@ def test_scalar_encoder_category_encode():
         minimum=0,
         maximum=65,
         active_bits=0,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=0.0,
         clip_input=False,
@@ -143,18 +143,18 @@ def test_scalar_encoder_category_encode():
 
     # Act and Assert - Value less than minimum should raise
     with pytest.raises(Exception):
-        encoder.encode(-0.01, output)  # Below minimum edge case
+        encoder.encode(-0.01)  # Below minimum edge case
 
     # Act and Assert - Value greater than maximum should raise
     with pytest.raises(Exception):
-        encoder.encode(66.0, output)  # Above maximum edge case
+        encoder.encode(66.0)  # Above maximum edge case
 
     # Value within range should not raise
     try:
-        encoder.encode(0.0, output)  # At minimum edge case
-        encoder.encode(32.0, output)  # Mid-range value
-        encoder.encode(65.0, output)  # At maximum edge case
-        encoder.encode(10.0, output)
+        encoder.encode(0.0)  # At minimum edge case
+        encoder.encode(32.0)  # Mid-range value
+        encoder.encode(65.0)  # At maximum edge case
+        encoder.encode(10.0)
     except Exception as e:
         pytest.fail(f"Unexpected exception raised: {e}")
 
@@ -170,7 +170,7 @@ def test_scalar_encoder_non_integer_bucket_width():
         active_bits=3,
         sparsity=0.0,
         size=7,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=0.0,
     )
@@ -190,8 +190,8 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
 
     # Arrange
     params = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=False,
         active_bits=3,
@@ -199,7 +199,7 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
         size=0,
         radius=0.0,
         category=False,
-        resolution=1,
+        resolution=1.0,
     )
 
     # Act and Assert - baseline
@@ -230,8 +230,8 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
     """Test that periodic scalar encoder rounds to the nearest multiple of resolution correctly."""
     # Arrange
     params = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=False,
         periodic=True,
         active_bits=3,
@@ -275,8 +275,8 @@ def test_scalar_encoder_serialization():
     inputs = []
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=34,
@@ -289,8 +289,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=True,
         periodic=False,
         active_bits=34,
@@ -303,8 +303,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=True,
         active_bits=34,
@@ -317,8 +317,8 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     p = ScalarEncoderParameters(
-        minimum=-1.234,
-        maximum=12.34,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=34,
@@ -331,28 +331,28 @@ def test_scalar_encoder_serialization():
     inputs.append(ScalarEncoder(p, [1, 34]))
 
     q = ScalarEncoderParameters(
-        minimum=-1.0,
-        maximum=1.003,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=0,
         sparsity=0.15,
         size=100,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=0.0,
     )
     inputs.append(ScalarEncoder(q, [1, 100]))
 
     r = ScalarEncoderParameters(
-        minimum=0,
-        maximum=65,
+        minimum=1,
+        maximum=100,
         clip_input=False,
         periodic=False,
         active_bits=0,
         sparsity=0.02,
         size=700,
-        radius=0.0,
+        radius=1.0,
         category=False,
         resolution=0.0,
     )

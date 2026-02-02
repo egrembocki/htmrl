@@ -3,13 +3,12 @@ from __future__ import annotations
 import copy
 import math
 from dataclasses import dataclass
-from typing import Optional, override
+from typing import List, Optional, override
 
 import numpy as np
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -78,34 +77,27 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         super().__init__(dimensions, self._size)
 
     @override
-    def encode(self, input_value: tuple[float, float], output_sdr: SDR) -> None:
-        assert output_sdr.size == self._size, "Output SDR size does not match encoder size."
+    def encode(self, input_value: tuple[float, float]) -> List[int]:
 
         a, b = input_value
-
-        if math.isnan(a) or math.isnan(b):
-            output_sdr.zero()
-            return
 
         x, y = float(a), float(b)
 
         dense_out: list[int] = []
 
-        tmp_x = SDR([self._size_per_axis])
-        tmp_y = SDR([self._size_per_axis])
+        tmp_x: List[int] = []
+        tmp_y: List[int] = []
 
         for xe, ye in zip(self._x_encoders, self._y_encoders):
             # x block
-            tmp_x.zero()
-            xe.encode(x, tmp_x)
-            dense_out.extend(int(v) for v in tmp_x.get_dense())
+            tmp_x = xe.encode(x)
+            dense_out.extend(int(v) for v in tmp_x)
 
             # y block
-            tmp_y.zero()
-            ye.encode(y, tmp_y)
-            dense_out.extend(int(v) for v in tmp_y.get_dense())
+            tmp_y = ye.encode(y)
+            dense_out.extend(int(v) for v in tmp_y)
 
-        output_sdr.set_dense(dense_out)
+        return dense_out
 
     def check_parameters(self, p: CoordinateParameters) -> CoordinateParameters:
         if p.size_per_axis <= 0:
@@ -129,12 +121,9 @@ if __name__ == "__main__":
 
     enc = CoordinateEncoder(params)
 
-    out1 = SDR([1, enc.size])
-    out2 = SDR([1, enc.size])
-
-    enc.encode((100.0, 200.0), out1)
-    enc.encode((100.0, 200.0), out2)
+    out1 = enc.encode((100.0, 200.0))
+    out2 = enc.encode((100.0, 200.0))
 
     print(out1)
-    assert out1.get_dense() == out2.get_dense()
-    print("Determinism OK:", out1.get_sum(), "active bits")
+    assert out1 == out2
+    # print("Determinism OK:", out1.get_sum(), "active bits")
