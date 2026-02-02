@@ -48,6 +48,7 @@ tests/test_encode_batch_sdrs.py
 tests/test_encoder_batch_handler.py
 tests/test_encoder_category.py
 tests/test_encoder_date.py
+tests/test_encoder_fourier.py
 tests/test_encoder_handler_suite.py
 tests/test_encoder_rdse.py
 tests/test_encoder_scalar.py

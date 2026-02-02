@@ -24,12 +24,11 @@ import numpy as np
 import pandas as pd
 from matplotlib.pyplot import sca
 from scipy.fft import fft, fftfreq, ifft
+from sklearn.utils import deprecated
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -53,16 +52,22 @@ class FourierEncoderParameters:
     total_active_bits: int = 40
     """Total number of active bits in the encoder output SDR."""
 
+    total_sparsity: float = 0.02
+    """Total sparsity of the encoder."""
+
     frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(1, 100)])
     """List of frequency ranges to find."""
 
     active_bits_in_ranges: list[int] = field(default_factory=lambda: [5])
     """The number of active bits per frequency range in the encoder output SDR."""
 
+    sparsity_in_ranges: list[float] = field(default_factory=lambda: [0.02])
+    """The sparsity per frequency range in the encoder output SDR."""
+
     resolutions_in_ranges: list[float] = field(default_factory=lambda: [1.0])
     """The resolution per frequency range in the encoder output SDR."""
 
-    seed: int = 42
+    seed: int = 32
     """Random seed for reproducibility."""
 
     #  time domain params
@@ -74,6 +79,10 @@ class FourierEncoderParameters:
 
     total_samples: int = 256
     """Total number of samples in the period."""
+
+    # reference to Encoder
+    encoder_class: FourierEncoder | None = None
+    """Reference to the FourierEncoder class."""
 
 
 class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
@@ -100,15 +109,19 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Size of the encoder."""
         self._total_active_bits = self._params.total_active_bits  # default to 40
         """Total number of active bits in the encoder output SDR."""
+        self._total_sparsity = self._params.total_sparsity  # default to 0.02
+        """Total sparsity of the encoder."""
         self._active_bits_in_ranges = self._params.active_bits_in_ranges
         """The number of active bits per frequency range in the encoder output SDR."""
+        self._sparsity_in_ranges = self._params.sparsity_in_ranges
+        """The sparsity per frequency range in the encoder output SDR."""
         self._resolutions_in_ranges = self._params.resolutions_in_ranges
         """The resolution per frequency range in the encoder output SDR."""
-        self._seed = self._params.seed  # default to 42
+        self._seed = self._params.seed  # default to 32
         """Random seed for reproducibility."""
         self._bucket_sizes: list[int] = []
         """The frequency intervals."""
-        self._magnitude_peaks: list[tuple[int, int]] = field(default_factory=lambda: [])
+        self._mean_magnitude_in_ranges: list[int] = field(default_factory=lambda: [])
         """List of magnitudes corresponding to each frequency range or window."""
 
         # time domain params
@@ -126,18 +139,19 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Sample rate in Hz."""
 
         # sub encoders
-        self._max_peak_encoder: RandomDistributedScalarEncoder | None = None
-        """RDSE encoder for peak frequency."""
         self._magnitude_encoder: RandomDistributedScalarEncoder | None = None
         """RDSE encoder for peak magnitude."""
-        self._freqs
+        self._freq_encoder: RandomDistributedScalarEncoder | None = None
+        """RDSE encoder for frequency detected in the signal."""
 
         self._calc_bucket_sizes()
 
-    # table this for now, use scipy fft
+    @deprecated("Use scipy.fft.fft instead.")
     def _transform(self, time_data: np.ndarray) -> np.ndarray:
         """A recursive implementation of the 1D Cooley-Tukey FFT, the input should have a length of power of 2.
             Depreciated: Use scipy.fft.fft instead.
+
+            Sum definition: X_k = sum(x_n * exp(-2*pi*i * k * n / N))
 
             O(n log n) time complexity.
 
@@ -187,6 +201,8 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Trim input array into a power of 2 size"""
 
         self._total_samples = len(input_data)  # MIGHT NOT BE TRUE IN ALL CASES
+        self._time_step = self._period_size / self._total_samples
+        self._sample_rate = float(1 / self._time_step)  # samples per
 
         if isinstance(input_data, pd.DataFrame):
 
@@ -236,10 +252,14 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
             self._bucket_sizes.append(bucket_size)
 
+    @deprecated("Using rdse internal hasher.")
     def _p_stable_lsh(
         self, interval: int, resolution: float, seed: int
     ) -> tuple[np.ndarray, np.ndarray]:
         """Create a p-stable LSH encoder for frequency buckets.
+
+            Logic: h(x) = floor((a*x + b) / r)
+
         Args:
             interval (int):size of set
             resolution (float): Resolution of the encoder.
@@ -253,12 +273,39 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         return p, b
 
+    def _set_sparsity_in_ranges(self, sparsity: float, index: int, even: bool) -> None:
+        """Set the sparsity in each frequency range based on total sparsity.
+
+        Args:
+            sparsity (float): Total sparsity of the encoder.
+        """
+
+        total_ranges = len(self._frequency_ranges)
+
+        if even:
+            sparsity_per_range = sparsity / total_ranges
+            self._sparsity_in_ranges = [sparsity_per_range] * total_ranges
+        else:
+            self._sparsity_in_ranges[index] = sparsity
+
+        self._set_active_bits_in_ranges()
+
+    def _set_active_bits_in_ranges(self) -> None:
+        """Set the active bits in each frequency range based sparisity."""
+
+        total_ranges = len(self._frequency_ranges)
+
+        for i in range(total_ranges):
+            active_bits = self._active_bits_in_ranges[i]
+            sparsity = self._sparsity_in_ranges[i]
+            active_bits = int(self._size * sparsity)
+            self._active_bits_in_ranges[i] = active_bits
+
     @override
     def encode(self, input_value: Any) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
 
         Encodes a single frequency peak into a SDR as list[int].
-        Logic: h(x) = floor((a*x + b) / r)
 
         Args:
             input_value: Any: The input time-domain signal to be encoded.
@@ -276,25 +323,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         sample_rate = self._sample_rate
         time_step = self._time_step
         size = self._size
+        total_active_bits = self._total_active_bits
         freq_ranges = self._frequency_ranges
 
-        self._max_peak_encoder = RandomDistributedScalarEncoder(
-            RDSEParameters(
-                size=size,
-                active_bits=self._total_active_bits,
-                radius=0.1,
-                seed=self._seed,
-            )
-        )
+        magnitudes = []
 
-        self._magnitude_encoder = RandomDistributedScalarEncoder(
-            RDSEParameters(
-                size=size,
-                active_bits=self._total_active_bits,
-                radius=0.1,
-                seed=self._seed,
-            )
-        )
+        #  TODO: use a variable to divide active bits between each RDSE as user input
 
         assert len(input_value) >= samples, "Input signal length is less than total samples."
         assert len(input_value) <= self._size, "Input signal length exceeds encoder size."
@@ -304,7 +338,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         start_freq = 0
         stop_freq = 0
 
-        active_bits: list[int] = [0] * size
+        dense_bits: list[int] = [0] * size
 
         freq_data = cast(np.ndarray, fft(input_value))
         freq_data = self._normalize(freq_data)
@@ -315,37 +349,28 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         # find peak frequency in entire FFT data
         peak_index = np.argmax(np.abs(freq_data))
-        peak_freq = freq_buckets[peak_index]
+        peak_freq = float(freq_buckets[peak_index])
         print(f"FFT Peak Frequency: {peak_freq} Hz")
 
         # save magnitude at peak frequency
-        magnitude = np.abs(freq_data[int(peak_freq)])
+        magnitude = float(np.abs(freq_data[int(peak_freq)]))
 
         # TODO: false freq detection check when ranges exceed nyquist limit and peak bucket is invalid
 
         # TODO: handle multiple frequency ranges and magnitudes :: Each range gets its own frequency and magnitude encoding :: Each range will have active bits set by the user which is current active bits below. This will give N bits per frequency peak found in each range. The user can adjust size of encoder and total active bits to accommodate for sparisity needs.
 
+        self._set_active_bits_in_ranges()
+
         # TODO: find how many frequency peak magnitudes exceed thresholds (.1)
 
+        # if not peaks are present return empty SDR :: early exit
         if peak_freq <= time_step:
             peak_freq = 0
             magnitude = 0
 
-            active_bits = [0] * size
+            dense_bits = [0] * size
 
-            return active_bits
-        else:
-
-            sdr_freq = self._max_peak_encoder.encode(peak_freq)
-            sdr_magnitude = self._magnitude_encoder.encode(magnitude)
-
-            sdr_inter: set[int] = set(sdr_freq).intersection(set(sdr_magnitude))
-
-            sdr_inter_list = list(sdr_inter)
-
-            # for bit in sdr_inter_list:
-            #    if sdr_inter_list[bit] == 1:
-            #        active_bits[bit] = 1
+            return dense_bits  # early exit
 
         # loop through each frequency range in list
         for freq_range in freq_ranges:
@@ -373,40 +398,65 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             freq_data = freq_data[start_freq : stop_freq + 1]
             freq_data = np.real(np.abs(freq_data))
 
+            # current active bits for this frequency range
             current_active_bits = self._active_bits_in_ranges[
                 self._frequency_ranges.index(freq_range)
             ]
+
+            # current resolution for this frequency range
             current_res = self._resolutions_in_ranges[self._frequency_ranges.index(freq_range)]
             current_interval_size = self._bucket_sizes[self._frequency_ranges.index(freq_range)]
 
             assert len(freq_data) >= current_active_bits, "Active bits exceed frequency range size."
 
-            projections, offsets = self._p_stable_lsh(
-                interval=current_interval_size,
-                resolution=current_res,
-                # create seed based on the seed before it and the index of the frequency range
-                seed=self._seed,
+            self._freq_encoder = RandomDistributedScalarEncoder(
+                RDSEParameters(
+                    size=size,
+                    active_bits=current_active_bits,
+                    radius=current_res,
+                    seed=self._seed,
+                )
             )
 
+            self._magnitude_encoder = RandomDistributedScalarEncoder(
+                RDSEParameters(
+                    size=size,
+                    active_bits=current_active_bits,
+                    radius=current_res,
+                    seed=self._seed,
+                )
+            )
+
+            freq_encoder = self._freq_encoder
+            magnitude_encoder = self._magnitude_encoder
+
             # encode the frequency range slice
-            #  Logic: h(x) = floor((a*x + b) / r)
             for f in range(current_interval_size):
 
-                # compute p-stable LSH
-                a = projections[f]
-                b = offsets[f]
+                # find frequencies that contributed to the fft output by magnitude threshold
+                if freq_data[f] < 0.1:
+                    continue
 
-                # hash value
-                hash_value = (a * freq_data[f] + b) / current_res
-                bucket_idx = int(np.floor(hash_value))
+                else:
+                    # freq is the current bucket being evaluated
+                    freq_value = float(f)
 
-                # map to bucket index to bit position in active bits
-                b_bytes = struct.pack("i", bucket_idx)
-                bit_idx = int(mmh3.hash(b_bytes, self._seed)) % size
+                    sdr_freq = freq_encoder.encode(freq_value)
+                    for idx in range(len(sdr_freq)):
+                        if sdr_freq[idx] == 1:
+                            dense_bits[idx] = 1
 
-                active_bits[bit_idx] = 1
+                    # encode the mean magnitude
+                    magnitudes.append(float(freq_data[f]))
 
-        return active_bits
+            magnitude = float(np.mean(magnitudes))
+            sdr_magnitude = magnitude_encoder.encode(magnitude)
+
+            for bit in sdr_magnitude:
+                if sdr_magnitude[bit] == 1:
+                    dense_bits[bit] = 1
+
+        return dense_bits
 
     def _check_params(self, parameters: FourierEncoderParameters) -> FourierEncoderParameters:
         """Check if the provided parameters are valid for the Fourier encoder.

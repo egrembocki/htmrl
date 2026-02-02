@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     y1 = np.sin(2 * np.pi * 60 * np.linspace(0, 1, 2048, endpoint=False))
     # y1 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * 1 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * 59 * np.linspace(0, 1, 2048, endpoint=False))
     # y2 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
@@ -141,8 +141,10 @@ if __name__ == "__main__":
     sdr_one.set_dense(fft_one)
     sdr_two.set_dense(fft_two)
 
-    overlap = sdr_one.get_overlap(sdr_two)
-    print(f"SDR Overlap: {overlap}")
-    print(f"SDR % Overlap: {overlap / sum(fft_one) * 100:.2f}%")
+    sdr_one = cast(list[int], sdr_one.get_dense())
+    sdr_two = cast(list[int], sdr_two.get_dense())
+
+    overlap = np.logical_and(sdr_one, sdr_two)
+    print(f"Overlap between SDRs: {np.sum(overlap)} bits")
 
     # plot_hot_gym_fft(sample_rate=256)
