@@ -3,6 +3,7 @@ pyproject.toml
 src/batch_encoder_handler_driver.py
 src/code_level_test.py
 src/demo_driver.py
+src/manual_test.py
 src/psu_capstone/__init__.py
 src/psu_capstone/log.py
 src/psu_capstone/utils.py

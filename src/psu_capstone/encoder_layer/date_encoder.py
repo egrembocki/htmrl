@@ -233,6 +233,10 @@ class DateEncoderParameters:
 
     # --------------------------------------------------------------------------
 
+    # reference encoder class
+    encoder_class: DateEncoder | None = None
+    """Reference to the DateEncoder instance."""
+
     # leave for now
     rdse_used: bool = True
     """Enable RDSE usage for date encoder."""
@@ -621,14 +625,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         if not sdrs:
             raise RuntimeError("DateEncoder misconfigured: no sub-encoders enabled.")
 
-        # Concatenate SDRs into `output`
-        all_sparse: list[int] = []
-
         for sdr in sdrs:
             output_sdr.extend(sdr)
 
-        output_sdr.append(all_sparse)
-
+        #  TODO: could we use a union here and still maintian similar behavior?
         return output_sdr
 
     def decode(
