@@ -75,9 +75,6 @@ class FourierEncoderParameters:
     total_samples: int = 256
     """Total number of samples in the period."""
 
-    sample_rate: int = 256
-    """Sample rate in Hz."""
-
 
 class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
     """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component. Assume that time domain is in seconds.
@@ -123,10 +120,10 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Total time period size in seconds."""
         self._total_samples = self._params.total_samples  # default to 256
         """Total number of samples in the period."""
-        self._sample_rate = self._params.sample_rate  # default to 256
-        """Sample rate in Hz."""
         self._time_step = self._period_size / self._total_samples
         """Time step between samples."""
+        self._sample_rate = float(1 / self._time_step)  # samples per second
+        """Sample rate in Hz."""
 
         # sub encoders
         self._peak_encoder: RandomDistributedScalarEncoder | None = None
@@ -187,6 +184,8 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
     def _trim(self, input_data: np.ndarray | pd.DataFrame | list[float]) -> np.ndarray:
         """Trim input array into a power of 2 size"""
+
+        self._total_samples = len(input_data)  # MIGHT NOT BE TRUE IN ALL CASES
 
         if isinstance(input_data, pd.DataFrame):
 
@@ -266,7 +265,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         Returns:
             list[int]: List of active bit indices in the encoded SDR.
 
-        Raises: # TODO: check these into different raised exceptions:
+        Raises: # TODO: change these into different raised exceptions:
             AssertionError: If input signal length is less than total samples or exceeds encoder size.
 
         """
