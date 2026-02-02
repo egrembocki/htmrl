@@ -254,6 +254,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
       - holiday
       - timeOfDay
 
+      Args:
+        date_params: DateEncoderParameters instance specifying encoding options.
+        dimensions: Optional SDR dimensions (unused, for compatibility).
+
+
       rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
       Current Test does not cover rdseUsed = True.
     """
@@ -275,7 +280,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         Initialize the DateEncoder with the given parameters.
 
         Args:
-            parameters: DateEncoderParameters instance specifying encoding options.
+            date_params: DateEncoderParameters instance specifying encoding options.
             dimensions: Optional SDR dimensions (unused, for compatibility).
 
         Raises:
@@ -375,7 +380,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             date_params: DateEncoderParameters instance specifying encoding options.
 
         Raises:
-            ValueError: If custom_days is specified but empty, or if no widths are provided.
+            ValueError: If custom_days is specified but empty, or if no active bits are provided.
 
         Returns:
                 None
@@ -526,7 +531,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
           - datetime      -> datetime (naive treated as local)
           - struct_time   -> used directly
 
-          Args:
+        Args:
                 input_value: datetime, pd.Timestamp, struct_time, or None for current time.
 
         Raises:
