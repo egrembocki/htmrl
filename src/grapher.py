@@ -113,8 +113,8 @@ if __name__ == "__main__":
             resolutions_in_ranges=[1],
             # search for frequencies peaks between 0 and 200 Hz
             frequency_ranges=[(0, 200)],
-            # every contributing frequency gets 20 active bits, this divides up from total active bits
-            active_bits_in_ranges=[20],
+            # every contributing frequency gets 40 active bits, this divides up from total active bits
+            active_bits_in_ranges=[40],
             # use size and total active bits to set sparsity
             size=2048,
             # active bits in range times number of ranges
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     y1 = np.sin(2 * np.pi * 60 * np.linspace(0, 1, 2048, endpoint=False))
     # y1 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * 59 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * 1 * np.linspace(0, 1, 2048, endpoint=False))
     # y2 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
