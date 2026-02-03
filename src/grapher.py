@@ -107,19 +107,19 @@ if __name__ == "__main__":
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
-            resolutions_in_ranges=[1.0],
+            resolutions_in_ranges=[1.0, 0.1, 2.0],
             # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 200)],
+            frequency_ranges=[(0, 200), (0, 10), (10, 500)],
             # every contributing frequency gets 40 active bits, this divides up from total active bits
             size=2048,
             # active bits in range times number of ranges
-            sparsity_in_ranges=[0.021],
+            sparsity_in_ranges=[0.02, 0.02, 0.02],
         )
     )
 
-    y1 = np.sin(2 * np.pi * 150 * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * 1 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 = np.sin(2 * np.pi * 250 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 += np.sin(2 * np.pi * 8 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * 350 * np.linspace(0, 1, 2048, endpoint=False))
     y2 += np.sin(2 * np.pi * 9 * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
