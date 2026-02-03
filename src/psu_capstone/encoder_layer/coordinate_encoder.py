@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import copy
-import math
 from dataclasses import dataclass
-from typing import List, Optional, override
+from typing import Optional, override
 
 import numpy as np
 
@@ -77,7 +76,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         super().__init__(dimensions, self._size)
 
     @override
-    def encode(self, input_value: tuple[float, float]) -> List[int]:
+    def encode(self, input_value: tuple[float, float]) -> list[int]:
 
         a, b = input_value
 
@@ -85,8 +84,8 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
         dense_out: list[int] = []
 
-        tmp_x: List[int] = []
-        tmp_y: List[int] = []
+        tmp_x: list[int] = []
+        tmp_y: list[int] = []
 
         for xe, ye in zip(self._x_encoders, self._y_encoders):
             # x block
@@ -126,4 +125,3 @@ if __name__ == "__main__":
 
     print(out1)
     assert out1 == out2
-    # print("Determinism OK:", out1.get_sum(), "active bits")
