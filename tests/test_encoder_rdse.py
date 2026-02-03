@@ -222,7 +222,7 @@ def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
     first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
     distance of 2 since 2 of the bits are different.
     """
-    return np.count_nonzero(first != second)
+    return int(np.count_nonzero(first != second))
 
 
 def test_locality_checking_mmh3():
@@ -300,6 +300,7 @@ def _make_large_encoder(radius: float = 1.0) -> RandomDistributedScalarEncoder:
         size=2048,
         sparsity=0.02,
         radius=radius,
+        resolution=0,
         active_bits=0,
         category=False,
         seed=12345,
