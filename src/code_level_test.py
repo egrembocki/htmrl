@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     test_date = datetime(2023, 3, 15, 14, 30)  # March 15, 2023, 14:30
 
-    params = DateEncoderParameters(DateEncoder)
+    params = DateEncoderParameters()
 
     encoder = params.encoder_class(params)
 
