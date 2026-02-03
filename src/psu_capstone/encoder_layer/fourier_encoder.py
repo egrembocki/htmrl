@@ -247,6 +247,16 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             active_bits = int(self._size * sparsity)
             self._active_bits_in_ranges[i] = active_bits
 
+    def _find_num_peaks(self, freq_data: np.ndarray) -> int:
+        """Find the number of peaks in the given frequency data."""
+        # TODO: Implement peak finding logic
+        num_peaks = 0
+
+        for i in range(0, len(freq_data) - 1):
+            if freq_data[i] > 0.1:
+                num_peaks += 1
+        return num_peaks
+
     @override
     def encode(self, input_value: Any) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
@@ -297,7 +307,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
             return dense_bits  # early exit
 
-        # loop through each frequency range in list
+        # LOOP THROUGH FREQUENCY RANGES !!
         print("Looping through frequency ranges:")
         for freq_range in freq_ranges:
             start_freq = freq_range[0]
@@ -317,23 +327,33 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             current_interval_size = self._bucket_sizes[self._frequency_ranges.index(freq_range)]
             current_sparsity = self._sparsity_in_ranges[self._frequency_ranges.index(freq_range)]
 
+            # call helper to find the number of peaks in the freq_data of this range
+            num_peaks = self._find_num_peaks(freq_data)
+            if num_peaks == 1:
+                num_peaks += 1
+            elif num_peaks == 0:
+                continue
+            else:
+                num_peaks += 0
+            print(f"Number of peaks in range {freq_range}: {num_peaks}")
+
             self._freq_encoder = RandomDistributedScalarEncoder(
                 RDSEParameters(
-                    size=size,
+                    size=size // num_peaks,  # Divide by the number of found freq peaks
                     active_bits=0,
                     sparsity=current_sparsity,
-                    radius=current_res,
-                    seed=self._seed + current_interval_size,
+                    resolution=current_res,
+                    seed=current_interval_size,
                 )
             )
 
             self._magnitude_encoder = RandomDistributedScalarEncoder(
                 RDSEParameters(
-                    size=size,
+                    size=size // num_peaks,  # Divide by the number of found freq peaks
                     sparsity=current_sparsity,
                     active_bits=0,
-                    radius=current_res,
-                    seed=self._seed + current_interval_size,
+                    resolution=current_res,
+                    seed=current_interval_size,
                 )
             )
 
@@ -350,10 +370,10 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                 else:
                     # freq is the current bucket being evaluated
                     freq_value = float(f)
-                    # sdr_magnitude = magnitude_encoder.encode(freq_data[f])
+                    sdr_magnitude = magnitude_encoder.encode(freq_data[f])
                     sdr_freq = freq_encoder.encode(freq_value)
                     dense_bits.extend(sdr_freq)
-                    # dense_bits.extend(sdr_magnitude)
+                    dense_bits.extend(sdr_magnitude)
             # END of INNER for loop :: freq intervals
 
         # END of OUTER for loop

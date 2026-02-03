@@ -1,8 +1,4 @@
 import os
-from cmath import phase
-from dataclasses import dataclass, field
-from importlib import simple
-from random import sample
 from typing import cast
 
 import matplotlib.pyplot as plt
@@ -19,7 +15,7 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
-from utils import DATA_PATH, PROJECT_ROOT
+from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 plt.style.use("seaborn-v0_8-poster")
 
@@ -112,37 +108,36 @@ if __name__ == "__main__":
         FourierEncoderParameters(
             resolutions_in_ranges=[1.0],
             # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 50)],
+            frequency_ranges=[(0, 100)],
             # every contributing frequency gets 40 active bits, this divides up from total active bits
-            size=256,
+            size=2048,
             # active bits in range times number of ranges
             sparsity_in_ranges=[0.02],
         )
     )
 
-    y1 = np.sin(2 * np.pi * 6 * np.linspace(0, 1, 256, endpoint=False))
-    # y1 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * 5 * np.linspace(0, 1, 256, endpoint=False))
-    # y2 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 = np.sin(2 * np.pi * 60 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * 59 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
 
     # print(fft_data)
 
-    plot_sdr(fft_one)
-    plot_sdr(fft_two)
+    # plot_sdr(fft_one)
+    # plot_sdr(fft_two)
 
-    sdr_one = SDR([len(fft_one)])
-    sdr_two = SDR([len(fft_two)])
+    fft_one = np.array(fft_one)
+    fft_two = np.array(fft_two)
 
-    sdr_one.set_dense(fft_one)
-    sdr_two.set_dense(fft_two)
+    print(f"SDR One: {len(fft_one)}")
+    print(f"SDR Two: {len(fft_two)}")
 
-    sdr_one = cast(list[int], sdr_one.get_dense())
-    sdr_two = cast(list[int], sdr_two.get_dense())
-
-    overlap = np.logical_and(sdr_one, sdr_two)
-    print(f"Overlap between SDRs: {np.sum(overlap)} bits")
+    hamming = hamming_distance(fft_one, fft_two)
+    print(f"Hamming distance between SDRs: {hamming} bits")
+    overlap = overlap(fft_one, fft_two)
+    print(f"Overlap between SDRs: {overlap} bits")
 
     # plot_hot_gym_fft(sample_rate=256)

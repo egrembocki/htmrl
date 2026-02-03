@@ -18,7 +18,7 @@ if __name__ == "__main__":
     encoder = RandomDistributedScalarEncoder()
 
     sdr_5 = encoder.encode(5)
-    sdr_6 = encoder.encode(6)
+    sdr_6 = encoder.encode(8)
     sdr_59 = encoder.encode(59)
     sdr_60 = encoder.encode(60)
 
