@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
+from matplotlib.pylab import f
 from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -108,21 +109,26 @@ if __name__ == "__main__":
         FourierEncoderParameters(
             resolutions_in_ranges=[1.0],
             # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 100)],
+            frequency_ranges=[(0, 200)],
             # every contributing frequency gets 40 active bits, this divides up from total active bits
             size=2048,
             # active bits in range times number of ranges
-            sparsity_in_ranges=[0.02],
+            sparsity_in_ranges=[0.021],
         )
     )
 
-    y1 = np.sin(2 * np.pi * 60 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 = np.sin(2 * np.pi * 150 * np.linspace(0, 1, 2048, endpoint=False))
     y1 += np.sin(2 * np.pi * 1 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * 59 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * 2 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * 9 * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
+
+    print(f"SDR One: {len(fft_one)}")
+    print(f"SDR active bits One: {sum(fft_one)}")
+    print(f"SDR Two: {len(fft_two)}")
+    print(f"SDR active bits Two: {sum(fft_two)}")
 
     # print(fft_data)
 
@@ -131,9 +137,6 @@ if __name__ == "__main__":
 
     fft_one = np.array(fft_one)
     fft_two = np.array(fft_two)
-
-    print(f"SDR One: {len(fft_one)}")
-    print(f"SDR Two: {len(fft_two)}")
 
     hamming = hamming_distance(fft_one, fft_two)
     print(f"Hamming distance between SDRs: {hamming} bits")
