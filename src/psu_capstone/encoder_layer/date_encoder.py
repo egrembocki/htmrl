@@ -17,7 +17,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable, List, Tuple, cast, override
+from typing import Iterable, cast, override
 
 import pandas as pd
 
@@ -25,8 +25,6 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
-
-# from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -36,8 +34,9 @@ class DateEncoderParameters:
     Each field controls the encoding of a specific temporal feature.
     Set the corresponding width to a nonzero value to enable encoding for that feature.
 
-    Atrtibutes:
+    Attributes:
 
+        encoder_class: The class of the encoder to use.
         season_size: Size of the season encoder (total bits).
         season_active_bits: Number of active bits for season (day of year).
         season_sparsity: Sparsity for season encoding.
@@ -94,6 +93,10 @@ class DateEncoderParameters:
          *
          */
     """
+
+    # Reference to the DateEncoder class blueprint not the object itself
+    encoder_class: type[DateEncoder]
+    """Reference to the DateEncoder blueprint."""
 
     # Season: day of year (0..366)
     # season size
@@ -233,10 +236,6 @@ class DateEncoderParameters:
 
     # --------------------------------------------------------------------------
 
-    # reference encoder class
-    encoder_class: DateEncoder | None = None
-    """Reference to the DateEncoder instance."""
-
     # leave for now
     rdse_used: bool = True
     """Enable RDSE usage for date encoder."""
@@ -256,11 +255,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
       Args:
         date_params: DateEncoderParameters instance specifying encoding options.
-        dimensions: Optional SDR dimensions (unused, for compatibility).
-
-
+        encoder_class: The class of the encoder to use.
       rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
+
       Current Test does not cover rdseUsed = True.
+
     """
 
     # !!enum!! type constants for indices
@@ -273,8 +272,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     def __init__(
         self,
-        date_params: DateEncoderParameters = DateEncoderParameters(),
-        dimensions: list[int] = [],
+        date_params: DateEncoderParameters | None = None,
+        dimensions: list[int] | None = None,
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.
@@ -287,17 +286,20 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             ValueError: If custom_days is specified but empty, or if no widths are provided.
         """
 
-        self._date_params: DateEncoderParameters = copy.deepcopy(date_params)
-        self._customDays: set[int] = set()
+        self._date_params: DateEncoderParameters = (
+            copy.deepcopy(date_params)
+            if date_params is not None
+            else DateEncoderParameters(DateEncoder)
+        )
+        self._customDays: set[int] = set()  # no repeating days
         """Set of integer day indices for custom days."""
-
         self._bucketMap: dict[int, int] = {}
         """Mapping from feature index to bucket position."""
         self._buckets: list[float] = []
         """List of bucket values for each feature."""
         self._size: int = 0
         """Total number of bits DateEncoder."""
-        self._rdse_used: bool = date_params.rdse_used
+        self._rdse_used: bool = self._date_params.rdse_used
         """Flag indicating if RDSE is used."""
         self._all_valid_encoders: bool = False
         """Flag indicating if all sub-encoders are valid."""
@@ -637,8 +639,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         return output_sdr
 
     def decode(
-        self, encoded: List[int], candidates: Iterable[float] | None = None
-    ) -> Tuple[float | None, float | None, float | None, float | None, float | None, float | None]:
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[float | None, float | None, float | None, float | None, float | None, float | None]:
         """
         This method checks if an encoder exists. Then, if it does, we run compute decode to and append
         the value to the decode_floats.
@@ -682,9 +684,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         ):
             local_decode = self._compute_decode(self._timeofday_encoder, encoded)
             decoded_floats.append(local_decode)
-        return Tuple[decoded_floats]
+        return tuple(decoded_floats)
 
-    def _compute_decode(self, rdse: RandomDistributedScalarEncoder, encoded: List[int]) -> float:
+    def _compute_decode(self, rdse: RandomDistributedScalarEncoder, encoded: list[int]) -> float:
         """
         This method takes in the encoder and sdr to be decoded. We slice from start of encoded
         to size of the encoder. We then remove those bits from the list and decode the slice.
@@ -693,7 +695,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         :param rdse: The encoder we are running decode from. Corresponds to 1 of 6 possible encoders.
         :type rdse: RandomDistributedScalarEncoder
         :param encoded: The sdr that has been input for decoding.
-        :type encoded: List[int]
+        :type encoded: list[int]
         :return: Return a Tuple of [value, confidence]
         :rtype: float
         """
@@ -737,6 +739,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
 
 # ---------------------------------------------------------------------------------------
+
+DateEncoderParameters.encoder_class = DateEncoder
 
 
 if __name__ == "__main__":
