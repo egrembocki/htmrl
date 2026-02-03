@@ -2,7 +2,6 @@ import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import List
 
 import mmh3
 
@@ -22,7 +21,7 @@ class RDSEParameters:
 
 
 class RandomDistributedScalarEncoder(BaseEncoder):
-    def __init__(self, parameters: RDSEParameters, dimensions: List[int]):
+    def __init__(self, parameters: RDSEParameters, dimensions: list[int]):
         super().__init__(dimensions)
 
         parameters = self.check_parameters(parameters)

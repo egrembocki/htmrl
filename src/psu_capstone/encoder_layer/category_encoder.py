@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple, cast, override
+from typing import cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -111,7 +111,9 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    def decode(self, input_sdr: list[int]) -> Tuple[float | None, float]:
+    def decode(
+        self, input_sdr: list[int]
+    ) -> tuple[float | None, float]:  # TODO: tuples are immutable
         """
         This will decode an SDR back into its category. We use the _category_list
         again to turn the index back into a string.
@@ -120,7 +122,7 @@ class CategoryEncoder(BaseEncoder[str]):
         :param input_sdr: The list[int] of 1s and 0s that we want decoded.
         :type input_sdr: list[int]
         :return: The return is a [value, confidence] tuple.
-        :rtype: Tuple[float | None, float]
+        :rtype: tuple[float | None, float]
         """
         if self._RDSEused:
             rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
@@ -130,7 +132,7 @@ class CategoryEncoder(BaseEncoder[str]):
             result_tuple = rdse_encoder.decode(input_sdr)
             result = self._category_list[int(result_tuple[0]) - 1]
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
-            return Tuple[result, result_tuple[1]]
+            return tuple[result, result_tuple[1]]
 
     def check_parameters(self, parameters: CategoryParameters):
         """

@@ -247,7 +247,7 @@ class InputHandler:
         multi-dimensional.
 
         Returns:
-            Tuple[pd.DataFrame, bool]: The coerced DataFrame and a flag indicating whether the
+            tuple[pd.DataFrame, bool]: The coerced DataFrame and a flag indicating whether the
             input provided multiple columns (either originally or due to nested iterables).
         """
 
@@ -305,7 +305,7 @@ class InputHandler:
         any datetime-like content was discovered.
 
         Returns:
-            Tuple[pd.DataFrame, bool]: The normalized DataFrame/Series and a boolean indicating
+            tuple[pd.DataFrame, bool]: The normalized DataFrame/Series and a boolean indicating
             presence of temporal data.
         """
         contains_sequential = self._validate_sequence(dataframe)
@@ -346,7 +346,7 @@ class InputHandler:
             value: Scalar under inspection.
 
         Returns:
-            Tuple[object, bool]: Possibly-transformed value and whether a datetime was detected.
+            tuple[object, bool]: Possibly-transformed value and whether a datetime was detected.
         """
         if isinstance(value, pd.Timestamp):
             return value.to_pydatetime().isoformat(), True
