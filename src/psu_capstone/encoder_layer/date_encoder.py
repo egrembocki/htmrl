@@ -17,7 +17,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable, List, Tuple, cast, override
+from typing import Iterable, override
 
 import pandas as pd
 
@@ -25,8 +25,6 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
-
-# from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -393,7 +391,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 resolution=args.season_resolution,
                 sparsity=args.season_sparsity,
             )
-            assert self._season_encoder is not None, "DateEncoder: season encoder must be enabled."
+            if self._season_encoder is None:
+                raise ValueError("DateEncoder: season encoder must be enabled.")
             size += self._season_encoder.size
 
         # -------- Day of week --------
@@ -407,10 +406,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 resolution=args.day_of_week_resolution,
                 sparsity=args.day_of_week_sparsity,
             )
-
-            assert (
-                self._dayofweek_encoder is not None
-            ), "DateEncoder: day of week encoder must be enabled."
+            if self._dayofweek_encoder is None:
+                raise ValueError("DateEncoder: day of week encoder must be enabled.")
             size += self._dayofweek_encoder.size
 
         # -------- Weekend --------
@@ -424,9 +421,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 resolution=args.weekend_resolution,
                 sparsity=args.weekend_sparsity,
             )
-            assert (
-                self._weekend_encoder is not None
-            ), "DateEncoder: weekend encoder must be enabled."
+            if self._weekend_encoder is None:
+                raise ValueError("DateEncoder: weekend encoder must be enabled.")
             size += self._weekend_encoder.size
 
         # -------- Custom days --------
@@ -466,9 +462,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 resolution=args.custom_resolution,
                 sparsity=args.custom_sparsity,
             )
-            assert (
-                self._customdays_encoder is not None
-            ), "DateEncoder: custom days encoder must be enabled."
+            if self._customdays_encoder is None:
+                raise ValueError("DateEncoder: custom days encoder must be enabled.")
             size += self._customdays_encoder.size
 
         # -------- Holiday --------
@@ -487,9 +482,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 resolution=args.holiday_resolution,
                 sparsity=args.holiday_sparsity,
             )
-            assert (
-                self._holiday_encoder is not None
-            ), "DateEncoder: holiday encoder must be enabled."
+            if self._holiday_encoder is None:
+                raise ValueError("DateEncoder: holiday encoder must be enabled.")
             size += self._holiday_encoder.size
 
         # -------- Time of day --------
@@ -503,9 +497,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
                 resolution=args.time_of_day_resolution,
                 sparsity=args.time_of_day_sparsity,
             )
-            assert (
-                self._timeofday_encoder is not None
-            ), "DateEncoder: time of day encoder must be enabled."
+            if self._timeofday_encoder is None:
+                raise ValueError(
+                    "DateEncoder: time of day encoder must be enabled when active bits are set."
+                )
             size += self._timeofday_encoder.size
 
         self._size = size
@@ -554,7 +549,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         # --- Season: day of year (0-based) ---
         if isinstance(self._season_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
             day_of_year = float(t.tm_yday - 1)  # tm_yday is 1..366
-            print(day_of_year)
             encoded_value = self._season_encoder.encode(day_of_year)
             bucket_idx = math.floor(day_of_year / self._season_encoder._radius)
             self._buckets[self._bucketMap[self.SEASON]] = float(bucket_idx)
@@ -632,8 +626,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         return output_sdr
 
     def decode(
-        self, encoded: List[int], candidates: Iterable[float] | None = None
-    ) -> Tuple[float | None, float | None, float | None, float | None, float | None, float | None]:
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> dict[str, tuple[float | None]]:
         """
         This method checks if an encoder exists. Then, if it does, we run compute decode to and append
         the value to the decode_floats.
@@ -644,42 +638,44 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         :param candidates: Iterable candidates, no function yet.
         :type candidates: Iterable[float] | None
         :return: Returns a Tuple of [value, confidence]....n times/the number of encoders that had been used.
-        :rtype: Tuple[float | None, float | None, float | None, float | None, float | None, float | None]
+        :rtype: Tuple[Tuple[float | None], Tuple[float | None], Tuple[float | None], Tuple[float | None], Tuple[float | None], Tuple[float | None]]
         """
-        decoded_floats: list[float] = []
+        decoded_floats = {}
         if self._season_encoder is not None and isinstance(
             self._season_encoder, RandomDistributedScalarEncoder
         ):
             local_decode = self._compute_decode(self._season_encoder, encoded)
-            decoded_floats.append(local_decode)
+            decoded_floats["season"] = local_decode
         if self._dayofweek_encoder is not None and isinstance(
             self._dayofweek_encoder, RandomDistributedScalarEncoder
         ):
             local_decode = self._compute_decode(self._dayofweek_encoder, encoded)
-            decoded_floats.append(local_decode)
+            decoded_floats["dayofweek"] = local_decode
         if self._weekend_encoder is not None and isinstance(
             self._weekend_encoder, RandomDistributedScalarEncoder
         ):
             local_decode = self._compute_decode(self._weekend_encoder, encoded)
-            decoded_floats.append(local_decode)
+            decoded_floats["weekend"] = local_decode
         if self._customdays_encoder is not None and isinstance(
             self._customdays_encoder, RandomDistributedScalarEncoder
         ):
             local_decode = self._compute_decode(self._customdays_encoder, encoded)
-            decoded_floats.append(local_decode)
+            decoded_floats["customdays"] = local_decode
         if self._holiday_encoder is not None and isinstance(
             self._holiday_encoder, RandomDistributedScalarEncoder
         ):
             local_decode = self._compute_decode(self._holiday_encoder, encoded)
-            decoded_floats.append(local_decode)
+            decoded_floats["holiday"] = local_decode
         if self._timeofday_encoder is not None and isinstance(
             self._timeofday_encoder, RandomDistributedScalarEncoder
         ):
             local_decode = self._compute_decode(self._timeofday_encoder, encoded)
-            decoded_floats.append(local_decode)
-        return Tuple[decoded_floats]
+            decoded_floats["timeofday"] = local_decode
+        return decoded_floats
 
-    def _compute_decode(self, rdse: RandomDistributedScalarEncoder, encoded: List[int]) -> float:
+    def _compute_decode(
+        self, rdse: RandomDistributedScalarEncoder, encoded: list[int]
+    ) -> tuple[float | None, float]:
         """
         This method takes in the encoder and sdr to be decoded. We slice from start of encoded
         to size of the encoder. We then remove those bits from the list and decode the slice.
@@ -789,24 +785,6 @@ if __name__ == "__main__":
 
     actual_encoding = []
 
-    expected_encoding = [
-        [0, 1, 2, 3],
-        [125, 126, 127, 128],
-        [111, 112, 113, 114],
-        [67, 68, 69, 70],
-        [40, 41, 42, 43],
-        [38, 39, 40, 41],
-        [38, 39, 40, 41],
-        [54, 55, 56, 57],
-        [53, 54, 55, 56],
-    ]
-    """
-    for test in test_case:
-        dt = datetime(test[0], test[1], test[2], test[3], test[4])
-        encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
-        logger.info(f"Date: {dt} -> Encoding: {encoding}")
-    """
     output_sdr: list[int] = []
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])

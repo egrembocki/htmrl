@@ -2,12 +2,11 @@
 
 import copy
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple, cast, override
+from typing import cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -111,7 +110,7 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    def decode(self, input_sdr: list[int]) -> Tuple[float | None, float]:
+    def decode(self, input_sdr: list[int]) -> tuple[str | None, float]:
         """
         This will decode an SDR back into its category. We use the _category_list
         again to turn the index back into a string.
@@ -128,9 +127,10 @@ class CategoryEncoder(BaseEncoder[str]):
                 "NA"
             )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
             result_tuple = rdse_encoder.decode(input_sdr)
-            result = self._category_list[int(result_tuple[0]) - 1]
+            result: str = self._category_list[int(result_tuple[0]) - 1]
+            print(result)
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
-            return Tuple[result, result_tuple[1]]
+            return (result, result_tuple[1])
 
     def check_parameters(self, parameters: CategoryParameters):
         """

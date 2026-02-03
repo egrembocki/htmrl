@@ -3,7 +3,8 @@
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.sdr_layer.sdr import SDR
+
+# from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -12,7 +13,7 @@ def base_encoder_instance() -> BaseEncoder:
 
     # Arrange @mock
     class TestEncoder(BaseEncoder):
-        def encode(self, input_value, output_sdr: SDR) -> None:
+        def encode(self, input_value, output_sdr: list[int]) -> None:
             """Dummy encode method for testing."""
             pass
 

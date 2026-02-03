@@ -3,14 +3,13 @@ import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple, override
+from typing import Iterable, override
 
 import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.sdr_layer.sdr import SDR
 
 """
  * Parameters for the RandomDistributedScalarEncoder (RDSE)
@@ -97,19 +96,19 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._resolution = self._parameters.resolution
         self._category = self._parameters.category
         self._seed = self._parameters.seed
-        self._encoding_cache: dict[float, List[int]] = {}
+        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
         super().__init__(dimensions, self._size)
 
     @override
-    def encode(self, input_value: float) -> List[int]:
+    def encode(self, input_value: float) -> list[int]:
         """Encode the input value into a binary vector."""
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
 
-    def register_encoding(self, input_value: float, encoded: List[int] | None = None) -> List[int]:
+    def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
         """Caches an encoding so decode_closest can compare against it."""
         vector = encoded if encoded is not None else self._compute_encoding(input_value)
         if len(vector) != self.size:
@@ -121,7 +120,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Clears cached encodings used for nearest-neighbor decoding."""
         self._encoding_cache.clear()
 
-    def _compute_encoding(self, input_value: float) -> List[int]:
+    def _compute_encoding(self, input_value: float) -> list[int]:
         """
         Uses murmurhash3 algorithm to encode a float value.
 
@@ -162,7 +161,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         return data
 
     @staticmethod
-    def _overlap(first: List[int], second: List[int]) -> int:
+    def _overlap(first: list[int], second: list[int]) -> int:
         """
         Checks for overlapping bits in two Lists of integers.
 
@@ -177,13 +176,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             raise ValueError("Vectors must be the same length to compute overlap")
         return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
 
-    def sparsify(self, vector: List[int]) -> List[int]:
+    def sparsify(self, vector: list[int]) -> list[int]:
         """Converts a sparse activity vector to a activation list."""
         return [i for i, bit in enumerate(vector) if bit == 1]
 
     def decode(
-        self, encoded: List[int], candidates: Iterable[float] | None = None
-    ) -> Tuple[float | None, float]:
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[float | None, float]:
         """Returns the value whose encoding overlaps the most with the provided SDR."""
         if len(encoded) != self.size:
             raise ValueError(
@@ -233,7 +232,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         knn.fit(x, y)
         self.knn = knn
 
-    def decode_knn(self, encoded: List[int]) -> float:
+    def decode_knn(self, encoded: list[int]) -> float:
         """Returns the value whose encoding overlaps the most with the provided SDR."""
         if len(encoded) != self.size:
             raise ValueError("Encoded input must match encoder size")
@@ -253,11 +252,12 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         Returns:
             RDSEParameters: The checked and filled in parameters.
         Raises:
-            AssertionError: If the parameters are invalid.
+            ValueError: If the parameters are invalid.
 
         """
 
-        assert parameters.size > 0
+        if not parameters.size > 0:
+            raise ValueError("You have no size set.")
 
         num_active_args = 0
 
@@ -269,10 +269,10 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if parameters.sparsity > 0.0:
             num_active_args += 1
 
-        assert num_active_args != 0, "Missing argument, need one of: 'activeBits' or 'sparsity'."
-        assert (
-            num_active_args == 1
-        ), "Too many arguments, choose only one of: 'activeBits' or 'sparsity'."
+        if num_active_args == 0:
+            raise ValueError("Missing argument, need one of: 'activeBits' or 'sparsity'.")
+        if num_active_args != 1:
+            raise ValueError("Too many arguments, choose only one of: 'activeBits' or 'sparsity'.")
 
         # radius XOR resolution XOR category
         # Check radius / resolution / category mutual exclusivity
@@ -284,47 +284,53 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if parameters.resolution > 0.0:
             num_resolution_args += 1
 
-        assert (
-            num_resolution_args != 0
-        ), "Missing argument, need one of: 'radius', 'resolution', 'category'."
-        assert (
-            num_resolution_args == 1
-        ), "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+        if num_resolution_args == 0:
+            raise ValueError("Missing argument, need one of: 'radius', 'resolution', 'category'.")
+        if num_resolution_args != 1:
+            raise ValueError(
+                "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+            )
 
         # Fill in missing active bits / sparsity
 
         if parameters.sparsity > 0 and parameters.active_bits == 0:
-            assert 0 <= parameters.sparsity <= 1
+            if not 0 <= parameters.sparsity <= 1:
+                raise ValueError("Sparsity is not between 0 and 1 inclusive.")
             parameters.active_bits = int(round(parameters.size * parameters.sparsity))
-            assert parameters.active_bits > 0
-            assert parameters.sparsity > 0.0
-
-        # category XOR radius XOR resolution
-        # Fill in missing radius / resolution / category
-        if parameters.category and parameters.radius <= 0.0 and parameters.resolution <= 0.0:
-            parameters.radius = 1.0
-
-            assert parameters.radius > 0.0
-            assert parameters.resolution <= 0.0
-            assert parameters.category
+            if not parameters.active_bits > 0:
+                raise ValueError("Active bits are not greater than 0.")
+            if not parameters.sparsity > 0.0:
+                raise ValueError("Sparsity is not greater than 0.")
 
         if parameters.radius > 0.0 and parameters.resolution <= 0.0 and not parameters.category:
-            assert parameters.active_bits > 0
+            if not parameters.active_bits > 0:
+                raise ValueError("Active bits are not greater than zero when given radius.")
             parameters.resolution = parameters.radius / parameters.active_bits
             parameters.category = False
 
-            assert parameters.resolution > 0.0
-            assert not parameters.category
-            assert parameters.radius > 0.0
+            if not parameters.resolution > 0.0:
+                raise ValueError(
+                    "Resolution was not set to something other than zero even though we were given radius."
+                )
+            if parameters.category is not False:
+                raise ValueError("Category should not be set if given radius.")
+            if not parameters.radius > 0.0:
+                raise ValueError("Radius is not greater than zero even though it was given.")
 
-        if parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
-            assert parameters.active_bits > 0
+        elif parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
+            if not parameters.active_bits > 0:
+                raise ValueError("Active bits are not greater than zero when given resolution.")
             parameters.radius = float(parameters.active_bits) * parameters.resolution
             parameters.category = False
 
-            assert parameters.radius > 0.0
-            assert not parameters.category
-            assert parameters.resolution > 0.0
+            if not parameters.radius > 0.0:
+                raise ValueError(
+                    "Radius is not greater than zero even though we were given resolution."
+                )
+            if parameters.category is not False:
+                raise ValueError("Category should not be set if given resolution.")
+            if not parameters.resolution > 0.0:
+                raise ValueError("Resolution is not greater than zero even though it was given.")
 
         # Handle seed == 0 case
         while parameters.seed == 0:
