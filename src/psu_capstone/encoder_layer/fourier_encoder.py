@@ -14,6 +14,7 @@ https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fa
 from __future__ import annotations
 
 import copy
+from calendar import c
 from dataclasses import dataclass, field
 from datetime import time
 from typing import Any, cast, override
@@ -323,13 +324,14 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         # Nyquist frequency limit and store freq buckets as indexes
         freq_data = freq_data[: samples // 2]
-        freq_buckets = fftfreq(samples, time_step)[: samples // 2]
 
         # LOOP THROUGH FREQUENCY RANGES !!
         print("Looping through frequency ranges:")
         for freq_range in freq_ranges:
             start_freq = freq_range[0]
             stop_freq = freq_range[1]
+
+            freq_buckets = fftfreq(samples, time_step)[start_freq : stop_freq + 1]
 
             # slice freq data to current frequency range  :: assuming freq ranges are int in Hz
             freq_slice = freq_data[start_freq : stop_freq + 1]
@@ -371,7 +373,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             peak_freq = float(freq_buckets[peak_index])
 
             # if no peaks are present return empty SDR :: early exit
-            if peak_freq <= time_step:
+            if peak_freq <= 0:
                 peak_freq = 0
                 logger.info(f"No significant peaks found in range {freq_range}.")
                 continue
@@ -384,14 +386,13 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                     continue
 
                 else:
-                    logger.info(f"Encoding frequency bucket: {f}")
+                    logger.info(f"Encoding frequency bucket: {f + start_freq}")
                     # freq is the current bucket being evaluated
-                    freq_value = float(f)
+                    freq_value = float(f + start_freq)
 
                     sdr_freq = freq_encoder.encode(freq_value)
                     magnitudes.append(freq_slice[f])
-                    frequencies.append(f)
-
+                    frequencies.append(f + start_freq)
                     for ids in range(len(sdr_freq)):
                         if sdr_freq[ids] == 1:
                             dense_bits[ids] = 1

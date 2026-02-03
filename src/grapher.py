@@ -24,9 +24,6 @@ plt.style.use("seaborn-v0_8-poster")
 def plot_sdr(data: list[int]) -> None:
     """Plot a visual representation of the given SDR data."""
 
-    print(f"SDR data length: {len(data)}")
-    print(f"SDR active bits: {sum(data)}")
-
     sdr = SDR([len(data)])
     sdr.set_dense(data)
     dense = np.array(sdr.get_dense(), dtype=int)
@@ -117,7 +114,7 @@ if __name__ == "__main__":
         )
     )
 
-    a, b, c, d = 1, 2, 3, 4
+    a, b, c, d = 9, 10, 11, 12
 
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
     y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
