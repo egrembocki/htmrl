@@ -117,9 +117,9 @@ if __name__ == "__main__":
     )
 
     y1 = np.sin(2 * np.pi * 60 * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
+    y1 += np.sin(2 * np.pi * 1 * np.linspace(0, 1, 2048, endpoint=False))
     y2 = np.sin(2 * np.pi * 59 * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * 26 * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * 2 * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
