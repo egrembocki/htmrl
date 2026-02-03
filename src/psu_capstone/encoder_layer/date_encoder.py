@@ -431,11 +431,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
         :param self: Description
         :param encoded: Is the SDR that you want decoded.
-        :type encoded: List[int]
+        :type encoded: list[int]
         :param candidates: Iterable candidates, no function yet.
         :type candidates: Iterable[float] | None
-        :return: Returns a Tuple of [value, confidence]....n times/the number of encoders that had been used.
-        :rtype: Tuple[float | None, float | None, float | None, float | None, float | None, float | None]
+        :return: Returns a tuple of [value, confidence]....n times/the number of encoders that had been used.
+        :rtype: tuple[float | None, float | None, float | None, float | None, float | None, float | None]
         """
         decoded_floats: list[float] = []
         if self._season_encoder is not None and isinstance(
@@ -480,7 +480,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         :type rdse: RandomDistributedScalarEncoder
         :param encoded: The sdr that has been input for decoding.
         :type encoded: list[int]
-        :return: Return a Tuple of [value, confidence]
+        :return: Return a tuple of [value, confidence]
         :rtype: float
         """
         size = rdse.size
