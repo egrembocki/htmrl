@@ -317,7 +317,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             assert not parameters.category
             assert parameters.radius > 0.0
 
-        if parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
+        elif parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
             assert parameters.active_bits > 0
             parameters.radius = float(parameters.active_bits) * parameters.resolution
             parameters.category = False
