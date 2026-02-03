@@ -332,23 +332,23 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             stop_freq = freq_range[1]
 
             # slice freq data to current frequency range  :: assuming freq ranges are int in Hz
-            freq_data = freq_data[start_freq : stop_freq + 1]
-            freq_data = np.real(np.abs(freq_data))
+            freq_slice = freq_data[start_freq : stop_freq + 1]
+            freq_slice = np.real(np.abs(freq_slice))
 
             # current resolution for this frequency range
             current_res = self._resolutions_in_ranges[self._frequency_ranges.index(freq_range)]
             current_interval_size = self._bucket_sizes[self._frequency_ranges.index(freq_range)]
             current_sparsity = self._sparsity_in_ranges[self._frequency_ranges.index(freq_range)]
 
-            size = size // 2
+            # size = size // 2
 
-            num_peaks = self._find_num_peaks(freq_data)
+            num_peaks = self._find_num_peaks(freq_slice)
             logger.info(f"Number of peaks found in range {freq_range}: {num_peaks}")
 
             # build each encoder for frequency and magnitude :: thank you GC
             freq_encoder = RandomDistributedScalarEncoder(
                 RDSEParameters(
-                    size=size // num_peaks if num_peaks >= 1 else size,
+                    size=size,  # // num_peaks if num_peaks >= 1 else size
                     sparsity=current_sparsity,  # sparisity requested by user
                     active_bits=0,
                     resolution=current_res,
@@ -367,34 +367,20 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                 )
             )
             # find peak frequency in the current interval
-            peak_index = np.argmax(np.abs(freq_data))
+            peak_index = np.argmax(np.abs(freq_slice))
             peak_freq = float(freq_buckets[peak_index])
 
             # if no peaks are present return empty SDR :: early exit
             if peak_freq <= time_step:
-                noise = 0
                 peak_freq = 0
-                logger.info(f"No peaks found in range {freq_range}, returning noise floor.")
-
-                # capture noise
-
-                for idx in range(len(freq_data)):
-                    noise += freq_data[idx] + 1  # avoid zero
-                    noise += time_step
-
-                freq_encoder.encode(noise)
-
-                for idx in range(len(dense_bits)):
-                    if dense_bits[idx] == 1:
-                        dense_bits[idx] = 1
-
-                return dense_bits  # early exit
+                logger.info(f"No significant peaks found in range {freq_range}.")
+                continue
 
             # encode the frequency range slice
             for f in range(current_interval_size):
 
                 # find frequencies that contributed to the fft output by magnitude threshold
-                if freq_data[f] < 0.1:
+                if freq_slice[f] < 0.1:
                     continue
 
                 else:
@@ -403,7 +389,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                     freq_value = float(f)
 
                     sdr_freq = freq_encoder.encode(freq_value)
-                    magnitudes.append(freq_data[f])
+                    magnitudes.append(freq_slice[f])
                     frequencies.append(f)
 
                     for ids in range(len(sdr_freq)):
