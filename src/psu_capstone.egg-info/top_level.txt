@@ -1,4 +1,5 @@
 batch_encoder_handler_driver
 code_level_test
 demo_driver
+manual_test
 psu_capstone
