@@ -113,6 +113,6 @@ class BaseEncoder(ABC, Generic[T]):
         return self.__buffered_data
 
     @abstractmethod
-    def encode(self, input_value: T) -> list[int] | tuple[int, ...] | np.ndarray:
+    def encode(self, input_value: T) -> list[int]:
         """Encodes the input value into the provided output SDR by reference."""
         raise NotImplementedError("Subclasses must implement this method")
