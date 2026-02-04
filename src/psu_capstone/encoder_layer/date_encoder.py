@@ -26,217 +26,6 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
 
-# from psu_capstone.sdr_layer.sdr import SDR
-
-
-@dataclass
-class DateEncoderParameters:
-    """Configuration parameters for DateEncoder.
-
-    Each field controls the encoding of a specific temporal feature.
-    Set the corresponding width to a nonzero value to enable encoding for that feature.
-
-    Atrtibutes:
-
-        season_size: Size of the season encoder (total bits).
-        season_active_bits: Number of active bits for season (day of year).
-        season_sparsity: Sparsity for season encoding.
-        season_radius: Radius for season encoding, in days.
-        season_resolution: Resolution for season encoding .
-        day_of_week_size: Size of the day of week encoder (total bits).
-        day_of_week_active_bits: Number of active bits for day of week.
-        day_of_week_sparsity: Sparsity for day of week encoding .
-        day_of_week_radius: Radius for day of week encoding.
-        day_of_week_resolution: Resolution for day of week encoding.
-        weekend_active_bits: Number of active bits for weekend flag.
-        weekend_sparsity: Sparsity for weekend encoding .
-        weekend_radius: Radius for weekend encoding .
-        weekend_resolution: Resolution for weekend encoding .
-        holiday_size: Size of the holiday encoder (total bits).
-        holiday_active_bits: Number of active bits for holiday encoding.
-        holiday_sparsity: Sparsity for holiday encoding .
-        holiday_radius: Radius for holiday encoding .
-        holiday_resolution: Resolution for holiday encoding .
-        holiday_dates: List of holidays as [month, day] or [year, month, day].
-        time_of_day_size: Size of the time of day encoder (total bits).
-        time_of_day_active_bits: Number of active bits for time of day.
-        time_of_day_sparsity: Sparsity for time of day encoding .
-        time_of_day_radius: Radius for time of day encoding, in hours.
-        time_of_day_resolution: Resolution for time of day encoding .
-        custom_size: Size of the custom days encoder (total bits).
-        custom_active_bits: Number of active bits for custom day groups.
-        custom_sparsity: Sparsity for custom days encoding .
-        custom_radius: Radius for custom days encoding .
-        custom_resolution: Resolution for custom days encoding .
-        custom_days: List of custom day group strings (e.g., ["mon,wed,fri"]).
-        rdse_used: Enable RDSE usage for date encoder.
-
-      /** NuPic C++ DateEncoder class
-         * The DateEncoderParameters structure is used to pass configuration parameters to
-         * the DateEncoder. These Six (6) members define the total number of bits in the output.
-         *     Members:  season, dayOfWeek, weekend, holiday, timeOfDay, customDays
-         *
-         * Each member is a separate attribute of a date/time that can be activated
-         * by providing a width parameter and sometimes a radius parameter.
-         * Each is implemented separately using a ScalarEncoder and the results
-         * are concatinated together.
-         *
-         * The width attribute determines the number of bits to be used for each member.
-         * and 0 means don't use.  The width is like a weighting to indicate the relitive importance
-         * of this member to the overall data value.
-         *
-         * The radius attribute indicates the size of the bucket; the quantization size.
-         * All values in the same bucket generate the same pattern.
-         *
-         * To avoid problems with leap year, consider a year to have 366 days.
-         * The timestamp will be converted to components such as time and dst based on
-         * local timezone and location (see localtime()).
-         *
-         */
-    """
-
-    # Season: day of year (0..366)
-    # season size
-    season_size: int = 2048
-    """Size of the season encoder (total bits)."""
-
-    season_active_bits: int = 40
-    """Set to greater than zero to enable season encoding. Number of active bits for season (day of year). how many bits to apply to season
-       Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
-
-    # season sparsity
-    season_sparsity: float = 0.0
-    """Sparsity for season encoding (not used)."""
-
-    # seaon radius in days
-    season_radius: float = 91.5
-    """Radius for season encoding, in days (default ~4 seasons) days per season."""
-
-    # season  resoulation
-    season_resolution: float = 0.0
-    """Resolution for season encoding (not used)."""
-
-    # --------------------------------------------------------------------------
-
-    # day of week size
-    day_of_week_size: int = 2048
-    """Size of the day of week encoder (total bits)."""
-
-    # day of week active bits
-    day_of_week_active_bits: int = 40
-    """Set to greater than zero to enable day of week encoding. Number of active bits for day of week, how many bits to apply to day of week."""
-
-    # day of week sparsity
-    day_of_week_sparsity: float = 0.0
-    """Sparsity for day of week encoding (not used)."""
-
-    # day of week radius
-    day_of_week_radius: float = 1.0
-    """Radius for day of week encoding, every day is a separate bucket."""
-
-    # day of week resolution
-    day_of_week_resolution: float = 0.0
-    """Resolution for day of week encoding (not used)."""
-
-    # --------------------------------------------------------------------------
-
-    # Weekend flag (0/1, Fri 6pm through Sun midnight)
-    weekend_size: int = 2048
-    """Size of the weekend encoder (total bits)."""
-
-    # weekend active bits
-    weekend_active_bits: int = 40
-    """Set to greater than zero to enable weekend encoding. Number of active bits for weekend flag."""
-    # weekend sparsity
-    weekend_sparsity: float = 0.0
-    """Sparsity for weekend encoding (not used)."""
-
-    # weekend radius
-    weekend_radius: float = 1.0
-    """Radius for weekend encoding (not used)."""
-
-    # weekend resolution
-    weekend_resolution: float = 0.0
-    """Resolution for weekend encoding (not used)."""
-
-    # --------------------------------------------------------------------------
-
-    # holiday active bits
-    holiday_size: int = 2048
-    """Size of the holiday encoder (total bits)."""
-
-    holiday_active_bits: int = 40
-    """Set to greater than zero to enable holiday encoding. Number of active bits for holiday encoding."""
-
-    # holiday sparsity
-    holiday_sparsity: float = 0.0
-    """Sparsity for holiday encoding (not used)."""
-
-    # holiday radius
-    holiday_radius: float = 1.0
-    """Radius for holiday encoding (not used)."""
-
-    # holiday resolution
-    holiday_resolution: float = 0.0
-    """Resolution for holiday encoding (not used)."""
-
-    holiday_dates: list[list[int]] = field(default_factory=lambda: [[12, 25]])
-    """List of holidays as [month, day] or [year, month, day]."""
-
-    # --------------------------------------------------------------------------
-
-    # Time of day: 0..24 hours
-    # time of day size
-    time_of_day_size: int = 2048
-    """Size of the time of day encoder (total bits)."""
-
-    # time of day active bits
-    time_of_day_active_bits: int = 24
-    """Set to greater than zero to enable time of day encoding. Number of active bits for time of day."""
-    # time of day sparsity
-    time_of_day_sparsity: float = 0.0
-    """Sparsity for time of day encoding (not used)."""
-
-    # time of day radius
-    time_of_day_radius: float = 1.0
-    """Radius for time of day encoding, in hours."""
-
-    # time of day resolution
-    time_of_day_resolution: float = 0.0
-    """Resolution for time of day encoding (not used)."""
-
-    # --------------------------------------------------------------------------
-
-    # custom days active bits
-    # Custom day groups (e.g. ["mon,wed,fri"])
-    # custom days size
-    custom_size: int = 2048
-    """Size of the custom days encoder (total bits)."""
-
-    custom_active_bits: int = 40
-    """Set to greater than zero to enable custom days encoding. Number of active bits for custom day groups."""
-
-    # custom days sparsity
-    custom_sparsity: float = 0.0
-    """Sparsity for custom days encoding (not used)."""
-
-    # custom days radius
-    custom_radius: float = 1.0
-    """Radius for custom days encoding (not used)."""
-
-    # custom days resolution
-    custom_resolution: float = 0.0
-    """Resolution for custom days encoding (not used)."""
-
-    custom_days: list[str] = field(default_factory=lambda: ["mon,tue,wed,thu,fri"])
-    """List of custom day group strings (e.g., ["mon,wed,fri"])."""
-
-    # --------------------------------------------------------------------------
-
-    # leave for now
-    rdse_used: bool = True
-    """Enable RDSE usage for date encoder."""
-
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]):
     """
@@ -250,10 +39,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
       - holiday
       - timeOfDay
 
+      Args:
+        date_params: DateEncoderParameters instance specifying encoding options.
+        encoder_class: The class of the encoder to use.
       rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
 
       TODO:
       Current Test does not cover rdseUsed = True.
+
     """
 
     # !!enum!! type constants for indices
@@ -266,31 +59,32 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     def __init__(
         self,
-        date_params: DateEncoderParameters = DateEncoderParameters(),
-        dimensions: list[int] = [],
+        date_params: DateEncoderParameters | None = None,
+        dimensions: list[int] | None = None,
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.
 
         Args:
-            parameters: DateEncoderParameters instance specifying encoding options.
+            date_params: DateEncoderParameters instance specifying encoding options.
             dimensions: Optional SDR dimensions (unused, for compatibility).
 
         Raises:
             ValueError: If custom_days is specified but empty, or if no widths are provided.
         """
 
-        self._date_params: DateEncoderParameters = copy.deepcopy(date_params)
-        self._customDays: set[int] = set()
+        self._date_params: DateEncoderParameters = (
+            copy.deepcopy(date_params) if date_params is not None else DateEncoderParameters()
+        )
+        self._customDays: set[int] = set()  # no repeating days
         """Set of integer day indices for custom days."""
-
         self._bucketMap: dict[int, int] = {}
         """Mapping from feature index to bucket position."""
         self._buckets: list[float] = []
         """List of bucket values for each feature."""
         self._size: int = 0
         """Total number of bits DateEncoder."""
-        self._rdse_used: bool = date_params.rdse_used
+        self._rdse_used: bool = self._date_params.rdse_used
         """Flag indicating if RDSE is used."""
         self._all_valid_encoders: bool = False
         """Flag indicating if all sub-encoders are valid."""
@@ -373,7 +167,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             date_params: DateEncoderParameters instance specifying encoding options.
 
         Raises:
-            ValueError: If custom_days is specified but empty, or if no widths are provided.
+            ValueError: If custom_days is specified but empty, or if no active bits are provided.
 
         Returns:
                 None
@@ -524,7 +318,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
           - datetime      -> datetime (naive treated as local)
           - struct_time   -> used directly
 
-          Args:
+        Args:
                 input_value: datetime, pd.Timestamp, struct_time, or None for current time.
 
         Raises:
@@ -626,6 +420,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         for sdr in sdrs:
             output_sdr.extend(sdr)
 
+        #  TODO: could we use a union here and still maintian similar behavior?
         return output_sdr
 
     def decode(
@@ -728,8 +523,221 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         return time.mktime(dt.timetuple())
 
 
-# ---------------------------------------------------------------------------------------
+@dataclass
+class DateEncoderParameters:
+    """Configuration parameters for DateEncoder.
 
+    Each field controls the encoding of a specific temporal feature.
+    Set the corresponding width to a nonzero value to enable encoding for that feature.
+
+    Attributes:
+
+        encoder_class: The class of the encoder to use.
+        season_size: Size of the season encoder (total bits).
+        season_active_bits: Number of active bits for season (day of year).
+        season_sparsity: Sparsity for season encoding.
+        season_radius: Radius for season encoding, in days.
+        season_resolution: Resolution for season encoding .
+        day_of_week_size: Size of the day of week encoder (total bits).
+        day_of_week_active_bits: Number of active bits for day of week.
+        day_of_week_sparsity: Sparsity for day of week encoding .
+        day_of_week_radius: Radius for day of week encoding.
+        day_of_week_resolution: Resolution for day of week encoding.
+        weekend_active_bits: Number of active bits for weekend flag.
+        weekend_sparsity: Sparsity for weekend encoding .
+        weekend_radius: Radius for weekend encoding .
+        weekend_resolution: Resolution for weekend encoding .
+        holiday_size: Size of the holiday encoder (total bits).
+        holiday_active_bits: Number of active bits for holiday encoding.
+        holiday_sparsity: Sparsity for holiday encoding .
+        holiday_radius: Radius for holiday encoding .
+        holiday_resolution: Resolution for holiday encoding .
+        holiday_dates: List of holidays as [month, day] or [year, month, day].
+        time_of_day_size: Size of the time of day encoder (total bits).
+        time_of_day_active_bits: Number of active bits for time of day.
+        time_of_day_sparsity: Sparsity for time of day encoding .
+        time_of_day_radius: Radius for time of day encoding, in hours.
+        time_of_day_resolution: Resolution for time of day encoding .
+        custom_size: Size of the custom days encoder (total bits).
+        custom_active_bits: Number of active bits for custom day groups.
+        custom_sparsity: Sparsity for custom days encoding .
+        custom_radius: Radius for custom days encoding .
+        custom_resolution: Resolution for custom days encoding .
+        custom_days: List of custom day group strings (e.g., ["mon,wed,fri"]).
+        rdse_used: Enable RDSE usage for date encoder.
+
+      /** NuPic C++ DateEncoder class
+         * The DateEncoderParameters structure is used to pass configuration parameters to
+         * the DateEncoder. These Six (6) members define the total number of bits in the output.
+         *     Members:  season, dayOfWeek, weekend, holiday, timeOfDay, customDays
+         *
+         * Each member is a separate attribute of a date/time that can be activated
+         * by providing a width parameter and sometimes a radius parameter.
+         * Each is implemented separately using a ScalarEncoder and the results
+         * are concatinated together.
+         *
+         * The width attribute determines the number of bits to be used for each member.
+         * and 0 means don't use.  The width is like a weighting to indicate the relitive importance
+         * of this member to the overall data value.
+         *
+         * The radius attribute indicates the size of the bucket; the quantization size.
+         * All values in the same bucket generate the same pattern.
+         *
+         * To avoid problems with leap year, consider a year to have 366 days.
+         * The timestamp will be converted to components such as time and dst based on
+         * local timezone and location (see localtime()).
+         *
+         */
+    """
+
+    # Reference to the DateEncoder class blueprint not the object itself
+    encoder_class = DateEncoder
+    """Reference to the DateEncoder blueprint."""
+
+    # Season: day of year (0..366)
+    # season size
+    season_size: int = 2048
+    """Size of the season encoder (total bits)."""
+
+    season_active_bits: int = 40
+    """Set to greater than zero to enable season encoding. Number of active bits for season (day of year). how many bits to apply to season
+       Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
+
+    # season sparsity
+    season_sparsity: float = 0.0
+    """Sparsity for season encoding (not used)."""
+
+    # seaon radius in days
+    season_radius: float = 91.5
+    """Radius for season encoding, in days (default ~4 seasons) days per season."""
+
+    # season  resoulation
+    season_resolution: float = 0.0
+    """Resolution for season encoding (not used)."""
+
+    # --------------------------------------------------------------------------
+
+    # day of week size
+    day_of_week_size: int = 2048
+    """Size of the day of week encoder (total bits)."""
+
+    # day of week active bits
+    day_of_week_active_bits: int = 40
+    """Set to greater than zero to enable day of week encoding. Number of active bits for day of week, how many bits to apply to day of week."""
+
+    # day of week sparsity
+    day_of_week_sparsity: float = 0.0
+    """Sparsity for day of week encoding (not used)."""
+
+    # day of week radius
+    day_of_week_radius: float = 1.0
+    """Radius for day of week encoding, every day is a separate bucket."""
+
+    # day of week resolution
+    day_of_week_resolution: float = 0.0
+    """Resolution for day of week encoding (not used)."""
+
+    # --------------------------------------------------------------------------
+
+    # Weekend flag (0/1, Fri 6pm through Sun midnight)
+    weekend_size: int = 2048
+    """Size of the weekend encoder (total bits)."""
+
+    # weekend active bits
+    weekend_active_bits: int = 40
+    """Set to greater than zero to enable weekend encoding. Number of active bits for weekend flag."""
+    # weekend sparsity
+    weekend_sparsity: float = 0.0
+    """Sparsity for weekend encoding (not used)."""
+
+    # weekend radius
+    weekend_radius: float = 1.0
+    """Radius for weekend encoding (not used)."""
+
+    # weekend resolution
+    weekend_resolution: float = 0.0
+    """Resolution for weekend encoding (not used)."""
+
+    # --------------------------------------------------------------------------
+
+    # holiday active bits
+    holiday_size: int = 2048
+    """Size of the holiday encoder (total bits)."""
+
+    holiday_active_bits: int = 40
+    """Set to greater than zero to enable holiday encoding. Number of active bits for holiday encoding."""
+
+    # holiday sparsity
+    holiday_sparsity: float = 0.0
+    """Sparsity for holiday encoding (not used)."""
+
+    # holiday radius
+    holiday_radius: float = 1.0
+    """Radius for holiday encoding (not used)."""
+
+    # holiday resolution
+    holiday_resolution: float = 0.0
+    """Resolution for holiday encoding (not used)."""
+
+    holiday_dates: list[list[int]] = field(default_factory=lambda: [[12, 25]])
+    """List of holidays as [month, day] or [year, month, day]."""
+
+    # --------------------------------------------------------------------------
+
+    # Time of day: 0..24 hours
+    # time of day size
+    time_of_day_size: int = 2048
+    """Size of the time of day encoder (total bits)."""
+
+    # time of day active bits
+    time_of_day_active_bits: int = 24
+    """Set to greater than zero to enable time of day encoding. Number of active bits for time of day."""
+    # time of day sparsity
+    time_of_day_sparsity: float = 0.0
+    """Sparsity for time of day encoding (not used)."""
+
+    # time of day radius
+    time_of_day_radius: float = 1.0
+    """Radius for time of day encoding, in hours."""
+
+    # time of day resolution
+    time_of_day_resolution: float = 0.0
+    """Resolution for time of day encoding (not used)."""
+
+    # --------------------------------------------------------------------------
+
+    # custom days active bits
+    # Custom day groups (e.g. ["mon,wed,fri"])
+    # custom days size
+    custom_size: int = 2048
+    """Size of the custom days encoder (total bits)."""
+
+    custom_active_bits: int = 40
+    """Set to greater than zero to enable custom days encoding. Number of active bits for custom day groups."""
+
+    # custom days sparsity
+    custom_sparsity: float = 0.0
+    """Sparsity for custom days encoding (not used)."""
+
+    # custom days radius
+    custom_radius: float = 1.0
+    """Radius for custom days encoding (not used)."""
+
+    # custom days resolution
+    custom_resolution: float = 0.0
+    """Resolution for custom days encoding (not used)."""
+
+    custom_days: list[str] = field(default_factory=lambda: ["mon,tue,wed,thu,fri"])
+    """List of custom day group strings (e.g., ["mon,wed,fri"])."""
+
+    # --------------------------------------------------------------------------
+
+    # leave for now
+    rdse_used: bool = True
+    """Enable RDSE usage for date encoder."""
+
+
+# ---------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 

@@ -1,3 +1,14 @@
+"""
+@Nemunta - NuPic
+* Parameters for the RandomDistributedScalarEncoder (RDSE)
+*
+* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+* of them.
+*
+* Members "radius", "resolution", & "category" are mutually exclusive, specify
+* exactly one of them.
+"""
+
 import copy
 import math
 import random
@@ -10,16 +21,6 @@ import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-
-"""
- * Parameters for the RandomDistributedScalarEncoder (RDSE)
- *
- * Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
- * of them.
- *
- * Members "radius", "resolution", & "category" are mutually exclusive, specify
- * exactly one of them.
-"""
 
 
 @dataclass
@@ -39,17 +40,16 @@ class RDSEParameters:
     * encoder will activate. This is an alternative way to specify the member
     * "activeBits".
     """
-    radius: float = 1.0
+    radius: float = 0.0
     """
     * Member "radius" Two inputs separated by more than the radius have
     * non-overlapping representations. Two inputs separated by less than the
     * radius will in general overlap in at least some of their bits. You can
     * think of this as the radius of the input.
     """
-    resolution: float = 0.0
+    resolution: float = 1.0
     """
-    * Member "resolution" Two inputs separated by greater than, or equal to the
-    * resolution will in general have different representations.
+    * The representation will only "shift" or change significantly every 1 unit.
     """
     category: bool = False
     """
@@ -316,7 +316,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             assert not parameters.category
             assert parameters.radius > 0.0
 
-        if parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
+        elif parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
             assert parameters.active_bits > 0
             parameters.radius = float(parameters.active_bits) * parameters.resolution
             parameters.category = False
