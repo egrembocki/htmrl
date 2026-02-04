@@ -339,3 +339,88 @@ def test_rdse_no_overlap_outside_radius_large_encoding():
         outside = value + 5.0
         overlap = _overlap_count(encoder.encode(value), encoder.encode(outside))
         assert overlap < 3
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, sparsity/active_bits)
+# ---------------------------------------------------------------------------
+
+
+def test_rdse_encode_output_only_zeros_and_ones():
+    """Encoder output must contain only 0 and 1."""
+    params = RDSEParameters(
+        size=256,
+        active_bits=20,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    for value in (0.0, 1.0, 5.0, 100.0):
+        out = encoder.encode(value)
+        assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
+
+
+def test_rdse_encode_output_length_equals_size():
+    """Encoder output length must equal the configured size."""
+    params = RDSEParameters(
+        size=512,
+        active_bits=30,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    out = encoder.encode(7.0)
+    assert len(out) == 512, f"Output length must equal size (512), got {len(out)}"
+
+
+def test_rdse_encode_output_active_bits_conforms():
+    """When active_bits is set, number of 1s should be at most active_bits (hash collisions can reduce it)."""
+    size = 1024
+    active_bits = 40
+    params = RDSEParameters(
+        size=size,
+        active_bits=active_bits,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    for value in (0.0, 1.0, 10.0, 100.0):
+        out = encoder.encode(value)
+        num_ones = sum(out)
+        assert num_ones <= active_bits, f"At most {active_bits} ones expected, got {num_ones}"
+        # Hash collisions can reduce; allow down to ~90% of active_bits
+        assert num_ones >= int(
+            0.9 * active_bits
+        ), f"Too few ones ({num_ones}), expected ~{active_bits}"
+
+
+def test_rdse_encode_output_sparsity_conforms():
+    """When sparsity is set (e.g. 0.2), fraction of 1s in output should be approximately that sparsity."""
+    size = 1000
+    sparsity = 0.2
+    params = RDSEParameters(
+        size=size,
+        active_bits=0,
+        sparsity=sparsity,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    out = encoder.encode(5.0)
+    num_ones = sum(out)
+    actual_sparsity = num_ones / len(out)
+    # Allow tolerance: hash collisions can reduce ones slightly
+    assert (
+        0.15 <= actual_sparsity <= 0.25
+    ), f"Sparsity={sparsity} => ~{sparsity * 100}% ones expected, got {actual_sparsity:.3f} ({num_ones}/{len(out)})"
