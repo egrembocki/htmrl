@@ -44,9 +44,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         encoder_class: The class of the encoder to use.
       rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
 
-      TODO:
-      Current Test does not cover rdseUsed = True.
-
     """
 
     # !!enum!! type constants for indices
