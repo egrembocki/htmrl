@@ -67,7 +67,7 @@ class ScalarEncoderParameters:
      * inputs will have unique / non-overlapping representations.
      */
     """
-    active_bits: int = 20
+    active_bits: int = 40
     """Number of active bits in the output SDR.
      * Member "activeBits" is the number of true bits in the encoded output SDR.
      * The output encodings will have a contiguous block of this many 1's.
@@ -78,7 +78,7 @@ class ScalarEncoderParameters:
     * Sparsity requires that the size to also be specified.
     * Specify only one of: activeBits or sparsity.
     """
-    size: int = 1000
+    size: int = 2048
     """Total number of bits in the output SDR.
      /**
      * Member "size" is the total number of bits in the encoded output SDR.
@@ -144,15 +144,34 @@ class ScalarEncoder(BaseEncoder[int]):
         an SDR that has the encoding of the input value.
     """
 
+    @property
+    def size(self) -> int:
+        return self._size
+
+    @size.setter
+    def size(self, value: int) -> None:
+
+        self._size = value
+
+        try:
+            new_params = self.check_parameters(
+                ScalarEncoderParameters(size=self._size, radius=0.0, category=False, resolution=0.0)
+            )
+            self._parameters = new_params
+
+        except AssertionError as err:
+            print(f"ERROR :: {self.__class__.__qualname__} :: {err}")
+            self._size = self._parameters.size
+
     @override
-    def encode(self, input_value: int | float, output_sdr: SDR) -> None:
-        assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
+    def encode(self, input_value: int | float) -> list[int]:
+        # assert output_sdr.size == self.size, "Output SDR size does not match encoder size."
 
-        if math.isnan(input_value):
-            output_sdr.zero()
-            return
+        # if math.isnan(input_value):
+        #    output_sdr.zero()
+        #    return
 
-        elif self._clip_input:
+        if self._clip_input:
             if self._periodic:
 
                 input_value = input_value % self._maximum
@@ -177,19 +196,23 @@ class ScalarEncoder(BaseEncoder[int]):
           // this by pushing the endpoint (and everything which rounds to it) onto the
           // last bit in the SDR.
         """
-        if not self._periodic:
-            start = min(start, output_sdr.size - self._active_bits)
+        s = SDR([1, self.size])
 
-        sparse = output_sdr.get_sparse()
+        if not self._periodic:
+            start = min(start, self.size - self._active_bits)
+
+        sparse = s.get_sparse()
         sparse[:] = range(start, start + self._active_bits)
 
         if self._periodic:
             for i, bit in enumerate(sparse):
-                if bit >= output_sdr.size:
-                    sparse[i] = bit - output_sdr.size
+                if bit >= self.size:
+                    sparse[i] = bit - self.size.size
             sparse.sort()
 
-        output_sdr.set_sparse(sparse)
+        s.set_sparse(sparse)
+        result = s.get_dense()
+        return result
 
     # After encode we may need a check_parameters method since most of the encoders have this
     def check_parameters(self, parameters: ScalarEncoderParameters):
@@ -205,6 +228,7 @@ class ScalarEncoder(BaseEncoder[int]):
         assert parameters.minimum <= parameters.maximum
         num_active_args = sum([parameters.active_bits > 0, parameters.sparsity > 0])
         assert num_active_args != 0, "Missing argument, need one of: 'active_bits', 'sparsity'."
+
         # print(str(parameters.sparsity))
         # print(str(parameters.active_bits))
         assert (
@@ -214,7 +238,6 @@ class ScalarEncoder(BaseEncoder[int]):
         )
         num_size_args = sum(
             [
-                parameters.size > 0,
                 parameters.radius > 0,
                 parameters.category,
                 parameters.resolution > 0,
@@ -222,9 +245,9 @@ class ScalarEncoder(BaseEncoder[int]):
         )
         assert (
             num_size_args != 0
-        ), "Missing argument, need one of: 'size', 'radius', 'resolution', 'category'."
+        ), "Missing argument, need one of: 'radius', 'resolution', 'category'."
         assert num_size_args == 1, (
-            "Too many arguments specified: 'size', 'radius', 'resolution', 'category'. Choose only one of them."
+            "Too many arguments specified: 'radius', 'resolution', 'category'. Choose only one of them."
             + str(num_size_args)
             + "     "
             + str(parameters.size)

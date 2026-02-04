@@ -69,6 +69,10 @@ class BaseEncoder(ABC, Generic[T]):
     def size(self) -> int:
         return self._size
 
+    @size.setter
+    def size(self, value: int) -> None:
+        self._size = value
+
     @property
     def buffered_data(self) -> pd.DataFrame | None:
         """Gets the buffered data for processing by the encoder."""
@@ -108,6 +112,6 @@ class BaseEncoder(ABC, Generic[T]):
         return self.__buffered_data
 
     @abstractmethod
-    def encode(self, input_value: T, output_sdr: Any) -> None:
+    def encode(self, input_value: T) -> list[int]:
         """Encodes the input value into the provided output SDR by reference."""
         raise NotImplementedError("Subclasses must implement this method")

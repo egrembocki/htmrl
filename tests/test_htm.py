@@ -5,7 +5,7 @@ import pytest
 from matplotlib.pyplot import isinteractive
 
 # importing modules to test :: must use scope operator to get access to the class objects
-from psu_capstone.agent_layer.htm import (
+from psu_capstone.agent_layer.legacy_htm import (
     cell,
     column,
     constants,
