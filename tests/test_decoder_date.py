@@ -55,12 +55,12 @@ def test_season():
     assert len(actual_decoded) == len(test_case)
     for i, decoded in enumerate(actual_decoded):
         assert isinstance(
-            decoded, tuple
-        ), f"Date {test_case[i]}: decoded should be tuple, got {type(decoded)}"
+            decoded, dict
+        ), f"Date {test_case[i]}: decoded should be dict, got {type(decoded)}"
         assert (
-            len(decoded) == 1
-        ), f"Date {test_case[i]}: one encoder => 1 element, got {len(decoded)}"
-        value = decoded[0][0]
+            "season" in decoded and len(decoded) == 1
+        ), f"Date {test_case[i]}: one encoder => 1 key (season), got {list(decoded)}"
+        value = decoded["season"][0]
         assert (
             0 <= value <= 366
         ), f"Date {test_case[i]}: season (day of year) in [0, 366], got {value}"
@@ -71,7 +71,9 @@ def test_season():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    assert dec1[0][0] == dec2[0][0], "Round-trip should be deterministic for same encoder instance"
+    assert (
+        dec1["season"][0] == dec2["season"][0]
+    ), "Round-trip should be deterministic for same encoder instance"
 
 
 def test_rdse_decode_same_across_instances_with_same_params():
@@ -96,7 +98,7 @@ def test_rdse_decode_same_across_instances_with_same_params():
         encoder = DateEncoder(date_params)
         encoded = encoder.encode(dt)
         decoded = encoder.decode(encoded)
-        decoded_values.append(decoded[0][0])
+        decoded_values.append(decoded["dayofweek"][0])
 
     # Same params => same default RDSE seed => same decode (deterministic across instances)
     assert (
@@ -147,12 +149,12 @@ def test_day_of_week():
     assert len(actual_decoded) == len(test_case)
     for i, decoded in enumerate(actual_decoded):
         assert isinstance(
-            decoded, tuple
-        ), f"Date {test_case[i]}: decoded should be tuple, got {type(decoded)}"
+            decoded, dict
+        ), f"Date {test_case[i]}: decoded should be dict, got {type(decoded)}"
         assert (
-            len(decoded) == 1
-        ), f"Date {test_case[i]}: one encoder => 1 element, got {len(decoded)}"
-        value = decoded[0][0]
+            "dayofweek" in decoded and len(decoded) == 1
+        ), f"Date {test_case[i]}: one encoder => 1 key (dayofweek), got {list(decoded)}"
+        value = decoded["dayofweek"][0]
         assert (
             0 <= value < 7
         ), f"Date {test_case[i]}: day_of_week (Mon=0..Sun=6) in [0, 7), got {value}"
@@ -163,7 +165,9 @@ def test_day_of_week():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    assert dec1[0][0] == dec2[0][0], "Round-trip should be deterministic for same encoder instance"
+    assert (
+        dec1["dayofweek"][0] == dec2["dayofweek"][0]
+    ), "Round-trip should be deterministic for same encoder instance"
 
 
 # Shared test cases for multi-encoder decoder tests ([year, month, day, hour, minute])
@@ -206,9 +210,9 @@ def test_weekend():
 
     assert len(actual_decoded) == len(_DECODER_TEST_CASES)
     for i, decoded in enumerate(actual_decoded):
-        assert isinstance(decoded, tuple)
-        assert len(decoded) == 1
-        value = decoded[0][0]
+        assert isinstance(decoded, dict)
+        assert "weekend" in decoded and len(decoded) == 1
+        value = decoded["weekend"][0]
         assert 0 <= value <= 1, f"Date {_DECODER_TEST_CASES[i]}: weekend in [0, 1], got {value}"
 
     dt = datetime(2020, 1, 1, 0, 0)
@@ -216,7 +220,9 @@ def test_weekend():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    assert dec1[0][0] == dec2[0][0], "Round-trip should be deterministic for same encoder instance"
+    assert (
+        dec1["weekend"][0] == dec2["weekend"][0]
+    ), "Round-trip should be deterministic for same encoder instance"
 
 
 def test_custom_days():
@@ -246,9 +252,9 @@ def test_custom_days():
 
     assert len(actual_decoded) == len(_DECODER_TEST_CASES)
     for i, decoded in enumerate(actual_decoded):
-        assert isinstance(decoded, tuple)
-        assert len(decoded) == 1
-        value = decoded[0][0]
+        assert isinstance(decoded, dict)
+        assert "customdays" in decoded and len(decoded) == 1
+        value = decoded["customdays"][0]
         assert 0 <= value <= 1, f"Date {_DECODER_TEST_CASES[i]}: custom_days in [0, 1], got {value}"
 
     dt = datetime(2020, 1, 1, 0, 0)
@@ -256,7 +262,9 @@ def test_custom_days():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    assert dec1[0][0] == dec2[0][0], "Round-trip should be deterministic for same encoder instance"
+    assert (
+        dec1["customdays"][0] == dec2["customdays"][0]
+    ), "Round-trip should be deterministic for same encoder instance"
 
 
 def test_holiday():
@@ -286,9 +294,9 @@ def test_holiday():
 
     assert len(actual_decoded) == len(_DECODER_TEST_CASES)
     for i, decoded in enumerate(actual_decoded):
-        assert isinstance(decoded, tuple)
-        assert len(decoded) == 1
-        value = decoded[0][0]
+        assert isinstance(decoded, dict)
+        assert "holiday" in decoded and len(decoded) == 1
+        value = decoded["holiday"][0]
         assert (
             0 <= value <= 3
         ), f"Date {_DECODER_TEST_CASES[i]}: holiday ramp in [0, 3], got {value}"
@@ -298,7 +306,9 @@ def test_holiday():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    assert dec1[0][0] == dec2[0][0], "Round-trip should be deterministic for same encoder instance"
+    assert (
+        dec1["holiday"][0] == dec2["holiday"][0]
+    ), "Round-trip should be deterministic for same encoder instance"
 
 
 def test_time_of_day():
@@ -327,9 +337,9 @@ def test_time_of_day():
 
     assert len(actual_decoded) == len(_DECODER_TEST_CASES)
     for i, decoded in enumerate(actual_decoded):
-        assert isinstance(decoded, tuple)
-        assert len(decoded) == 1
-        value = decoded[0][0]
+        assert isinstance(decoded, dict)
+        assert "timeofday" in decoded and len(decoded) == 1
+        value = decoded["timeofday"][0]
         assert (
             0 <= value <= 24
         ), f"Date {_DECODER_TEST_CASES[i]}: time_of_day in [0, 24], got {value}"
@@ -339,7 +349,9 @@ def test_time_of_day():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    assert dec1[0][0] == dec2[0][0], "Round-trip should be deterministic for same encoder instance"
+    assert (
+        dec1["timeofday"][0] == dec2["timeofday"][0]
+    ), "Round-trip should be deterministic for same encoder instance"
 
 
 def test_all_combined():
@@ -402,21 +414,20 @@ def test_all_combined():
         actual_decoded.append(decoded)
         logger.info(f"Date: {dt} -> Encoding: {encoded} -> Decoding: {decoded}")
 
-    # Decode returns tuple of 6 (value, confidence) pairs: season, day_of_week, weekend, custom, holiday, time_of_day
+    # Decode returns dict of 6 keys: season, dayofweek, weekend, customdays, holiday, timeofday; each value is (value, confidence)
     assert len(actual_decoded) == len(test_case)
+    keys = ["season", "dayofweek", "weekend", "customdays", "holiday", "timeofday"]
     for i, decoded in enumerate(actual_decoded):
-        assert isinstance(decoded, tuple), f"Date {test_case[i]}: decoded should be tuple"
-        assert (
-            len(decoded) == 6
-        ), f"Date {test_case[i]}: all combined => 6 elements, got {len(decoded)}"
-        season, dow, weekend, custom, holiday, tod = (
-            decoded[0][0],
-            decoded[1][0],
-            decoded[2][0],
-            decoded[3][0],
-            decoded[4][0],
-            decoded[5][0],
-        )
+        assert isinstance(decoded, dict), f"Date {test_case[i]}: decoded should be dict"
+        assert len(decoded) == 6 and all(
+            k in decoded for k in keys
+        ), f"Date {test_case[i]}: all combined => 6 keys, got {list(decoded)}"
+        season = decoded["season"][0]
+        dow = decoded["dayofweek"][0]
+        weekend = decoded["weekend"][0]
+        custom = decoded["customdays"][0]
+        holiday = decoded["holiday"][0]
+        tod = decoded["timeofday"][0]
         assert 0 <= season <= 366, f"Date {test_case[i]}: season in [0, 366], got {season}"
         assert 0 <= dow < 7, f"Date {test_case[i]}: day_of_week in [0, 7), got {dow}"
         assert 0 <= weekend <= 1, f"Date {test_case[i]}: weekend in [0, 1], got {weekend}"
@@ -429,5 +440,5 @@ def test_all_combined():
     enc2 = date_encoder.encode(dt)
     dec1 = date_encoder.decode(enc1)
     dec2 = date_encoder.decode(enc2)
-    for idx in range(6):
-        assert dec1[idx][0] == dec2[idx][0], f"Round-trip deterministic for encoder {idx}"
+    for key in keys:
+        assert dec1[key][0] == dec2[key][0], f"Round-trip deterministic for encoder {key}"
