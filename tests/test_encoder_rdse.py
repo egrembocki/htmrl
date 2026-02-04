@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -56,17 +55,15 @@ def test_encode_active_bits():
     )
     encoder = RandomDistributedScalarEncoder(parameters, [1, 1000])
     a = encoder.encode(10)
-    s = SDR([1, len(a)])
-    s.set_dense(a)
     """Is the SDR the correct size?"""
-    assert s.size == 1000
+    assert len(a) == 1000
     """Is the SDR the correct dimensions?"""
-    assert s.get_dimensions() == [1, 1000]
-    sparse_indices = s.get_sparse()
+    assert [1, len(a)] == [1, 1000]
+    sparse_indices = [i for i, x in enumerate(a) if x == 1]
     sparse_size = len(sparse_indices)
     """Since we have hash collision we are making sure between 45 and 50 bits are encoded."""
     assert 45 <= sparse_size <= 50
-    dense_indices = s.get_dense()
+    dense_indices = a
     dense_size = len(dense_indices)
     """Is the dense size equal to size?"""
     assert dense_size == 1000
@@ -136,14 +133,12 @@ def test_2048_bits_40_active_bits():
     rdse = RandomDistributedScalarEncoder(parameters, [1, 2048])
 
     a = rdse.encode(10)
-    s = SDR([1, len(a)])
-    s.set_dense(a)
-
+    sparse = [i for i, x in enumerate(a) if x == 1]
     """Checking for active bits accounting for hash collisions."""
-    assert 35 <= len(s.get_sparse()) <= 40
-    print(s.get_sparse)
+    assert 35 <= len(sparse) <= 40
+    print(sparse)
     """Make sure the density is 2048."""
-    assert len(s.get_dense()) == 2048
+    assert len(a) == 2048
 
 
 def test_deterministic_same_seed():

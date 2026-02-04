@@ -8,7 +8,6 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
 from psu_capstone.log import logger
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture

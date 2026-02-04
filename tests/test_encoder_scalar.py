@@ -3,7 +3,6 @@
 import pytest
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -62,12 +61,10 @@ def test_clipping_inputs():
     )
     # Act and Assert baseline
     encoder = ScalarEncoder(p, dimensions=[2, 5])
-    test_sdr = SDR([2, 5])
-    test_sdr.zero()
 
     assert encoder.size == 10
     assert encoder.dimensions == [2, 5]
-    assert test_sdr.size == 10
+    # assert test_sdr.size == 10
 
     # Act and Asset - Test input clipping
     # These should pass without exceptions
@@ -101,11 +98,8 @@ def test_valid_scalar_inputs():
 
     # Act and Assert - baseline
     encoder = ScalarEncoder(params, [2, 5])
-    test_sdr = SDR([2, 5])
     assert encoder.size == 10
     assert encoder.dimensions == [2, 5]
-    assert test_sdr.size == 10
-    assert test_sdr.get_sparse() == []
 
     with pytest.raises(Exception):
         encoder.encode(9.999)  # Below minimum edge case
@@ -136,10 +130,8 @@ def test_scalar_encoder_category_encode():
 
     # Act and Assert - baseline
     encoder = ScalarEncoder(params, dimensions=[66])
-    output = SDR([66])
     assert encoder.size == 66
     assert encoder.dimensions == [66]
-    assert output.size == 66
 
     # Act and Assert - Value less than minimum should raise
     with pytest.raises(Exception):

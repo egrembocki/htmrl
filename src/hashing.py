@@ -5,7 +5,7 @@ import numpy as np
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder
 
-scalarEncoder = ScalarEncoder()
+scalar_encoder = ScalarEncoder()
 
 
 random.seed(32)
