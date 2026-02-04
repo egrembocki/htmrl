@@ -121,10 +121,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             t_odd = self.__transform(time_data[1::2])
             omega = np.exp(-2j * np.pi * np.arange(total_samples) / total_samples)
 
+            half = int(total_samples / 2)
+
             freq_data = np.concatenate(
                 [
-                    t_even + omega[: int(total_samples / 2)] * t_odd,
-                    t_even + omega[int(total_samples / 2):] * t_odd,
+                    t_even + omega[np.arange(half)] * t_odd,
+                    t_even + omega[np.arange(half, total_samples)] * t_odd,
                 ]
             )
 

@@ -7,7 +7,6 @@ import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture

@@ -284,8 +284,8 @@ class InputHandler:
             details["reason"] = "too_short_for_detection"
             return False, details
 
-        AUTOCORR_THRESH = 0.65
-        FFT_PEAK_RATIO_THRESH = 0.30
+        autocorr_thresh = 0.65
+        fft_peak_ratio_thresh = 0.30
 
         for col in num.columns:
             x = num[col].to_numpy(dtype=float, copy=False)
@@ -338,7 +338,7 @@ class InputHandler:
             print(peak_ratio)
 
             # Either condition holds either strong lag-1 autocorrelation or strong periodic frequency
-            passed = (abs(ac1) >= AUTOCORR_THRESH) or (peak_ratio >= FFT_PEAK_RATIO_THRESH)
+            passed = (abs(ac1) >= autocorr_thresh) or (peak_ratio >= fft_peak_ratio_thresh)
 
             if passed:
                 print(passed)

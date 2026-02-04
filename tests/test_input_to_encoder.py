@@ -6,7 +6,6 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.input_layer.input_interface import InputInterface
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -18,7 +17,7 @@ def input_handler() -> InputInterface:
 def encoder() -> BaseEncoder:
     class _DummyEncoder(BaseEncoder[float]):
 
-        def encode(self, input_value: float, output_sdr: SDR) -> None:
+        def encode(self, input_value: float) -> None:
             # This method is intentionally left empty because _DummyEncoder is a test stub
             # and does not require an actual encoding implementation for this test.
             pass
