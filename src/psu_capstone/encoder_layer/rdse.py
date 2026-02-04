@@ -1,5 +1,15 @@
+"""
+@Nemunta - NuPic
+* Parameters for the RandomDistributedScalarEncoder (RDSE)
+*
+* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+* of them.
+*
+* Members "radius", "resolution", & "category" are mutually exclusive, specify
+* exactly one of them.
+"""
+
 import copy
-import math
 import random
 import struct
 from dataclasses import dataclass
@@ -50,6 +60,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._category = self._parameters.category
         self._seed = self._parameters.seed
         self._encoding_cache: dict[float, list[int]] = {}
+        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
@@ -81,7 +92,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         :param input_value: The value we want encoded.
         :type input_value: float
         :return: Returns a list of integers that signify an SDR.
-        :rtype: List[int]
+        :rtype: list[int]
         """
         if self._category:
             if input_value != int(input_value) or input_value < 0:
@@ -119,9 +130,9 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         Checks for overlapping bits in two Lists of integers.
 
         :param first: The first list in checking.
-        :type first: List[int]
+        :type first: list[int]
         :param second: The second list in checking.
-        :type second: List[int]
+        :type second: list[int]
         :return: Returns the overlapping bits.
         :rtype: int
         """
@@ -286,14 +297,14 @@ class RDSEParameters:
     * encoder will activate. This is an alternative way to specify the member
     * "activeBits".
     """
-    radius: float = 1.0
+    radius: float = 0.0
     """
     * Member "radius" Two inputs separated by more than the radius have
     * non-overlapping representations. Two inputs separated by less than the
     * radius will in general overlap in at least some of their bits. You can
     * think of this as the radius of the input.
     """
-    resolution: float = 0.0
+    resolution: float = 1.0
     """
     * Member "resolution" Two inputs separated by greater than, or equal to the
     * resolution will in general have different representations.
@@ -329,7 +340,7 @@ if __name__ == "__main__":
     b = encoder.encode(5.1)
 
     def _overlap_count(first: list[int], second: list[int]) -> int:
-        return np.count_nonzero(first == second)
+        return int(np.count_nonzero(first == second))
 
     print(_overlap_count(a, b))
     print(encoder.decode(a))

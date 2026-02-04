@@ -1,8 +1,24 @@
 """Utility functions for PSU Capstone project. Global utilities used across the project."""
 
+import os
 from ctypes import Structure as Struct
 from ctypes import c_bool, c_float, c_int
 from math import isclose
+
+import numpy as np
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(PROJECT_ROOT, "data")
+
+
+def hamming_distance(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+
+    return int(np.count_nonzero(sdr1 != sdr2))
+
+
+def overlap(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+
+    return int(np.sum(np.logical_and(sdr1, sdr2)))
 
 
 class Parameters(Struct):
@@ -88,6 +104,8 @@ def smoke_check():
     assert isclose(params.scalar_minimum, 0.0)
     assert params.rdse_seed == 42
     assert params.day_of_week_width == 3
+
+    print(PROJECT_ROOT + DATA_PATH)
     print("Smoke check passed.")
 
 

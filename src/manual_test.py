@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # By: Dr. Agrawal
 """Sine-wave regression test and evaluator for HTM parameter sweeps."""
+
 from __future__ import annotations
 
 import random

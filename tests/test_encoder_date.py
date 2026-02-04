@@ -12,7 +12,14 @@ from psu_capstone.log import logger
 
 @pytest.fixture
 def date_encoder_instance() -> DateEncoder:
-    """Fixture to create a DateEncoder instance for testing."""
+    """Fixture to create a DateEncoder instance for testing. This can be used to test any defualt DateEncoder object.
+
+    Usage:
+        def test_example(date_encoder_instance):
+            # Use date_encoder_instance in your test
+            pass
+
+    """
 
     return DateEncoder()
 

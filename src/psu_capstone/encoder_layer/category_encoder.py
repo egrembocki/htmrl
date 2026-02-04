@@ -98,7 +98,7 @@ class CategoryEncoder(BaseEncoder[str]):
         :param input_sdr: The list[int] of 1s and 0s that we want decoded.
         :type input_sdr: list[int]
         :return: The return is a [value, confidence] tuple.
-        :rtype: Tuple[float | None, float]
+        :rtype: tuple[float | None, float]
         """
         if self._RDSEused:
             rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
