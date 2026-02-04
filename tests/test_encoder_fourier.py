@@ -13,9 +13,7 @@ def _build_encoder() -> FourierEncoder:
         frequency_ranges=[(0, 200)],
         resolutions_in_ranges=[1],
         active_bits_in_ranges=[20],
-        size=2048,
-        total_active_bits=40,
-        seed=42,
+        size=4096,
     )
 
     return FourierEncoder(params)
