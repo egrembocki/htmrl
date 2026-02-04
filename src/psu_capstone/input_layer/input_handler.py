@@ -213,7 +213,14 @@ class InputHandler:
         return normalized_df
 
     def _coerce_dataframe_for_sequence(self, data: Any) -> tuple[pd.DataFrame, bool]:
-        """Build a DataFrame from the payload and report whether it was multi-column."""
+        """
+        Coerce raw payloads into DataFrames while tracking whether the data was inherently
+        multi-dimensional.
+
+        Returns:
+            tuple[pd.DataFrame, bool]: The coerced DataFrame and a flag indicating whether the
+            input provided multiple columns (either originally or due to nested iterables).
+        """
 
         if isinstance(data, pd.DataFrame):
             df = data
@@ -259,8 +266,11 @@ class InputHandler:
         return iterable, is_nested
 
     def _normalize_dataframe_entries(self, dataframe: pd.DataFrame) -> tuple[pd.DataFrame, bool]:
-        """Normalize each value and report whether datetime-like content was encountered."""
-
+        """Normalize each value and report whether datetime-like content was encountered.
+        Returns:
+            tuple[pd.DataFrame, bool]: The normalized DataFrame/Series and a boolean indicating
+            presence of temporal data.
+        """
         contains_sequential = self._validate_sequence(dataframe)
 
         def _normalize(value: Any) -> Any:
@@ -290,8 +300,14 @@ class InputHandler:
         return dataframe
 
     def _normalize_datetime_entry(self, value: object) -> tuple[object, bool]:
-        """Return ISO-8601 strings for date-like values and note if a conversion occurred."""
+        """Return ISO-8601 strings for date-like values and note if a conversion occurred.
 
+        Args:
+            value: Scalar under inspection.
+
+        Returns:
+            tuple[object, bool]: Possibly-transformed value and whether a datetime was detected.
+        """
         if isinstance(value, pd.Timestamp):
             return value.to_pydatetime().isoformat(), True
         elif isinstance(value, datetime.datetime):

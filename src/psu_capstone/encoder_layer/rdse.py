@@ -14,14 +14,13 @@ import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple, override
+from typing import Iterable, override
 
 import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @dataclass
@@ -97,19 +96,19 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._resolution = self._parameters.resolution
         self._category = self._parameters.category
         self._seed = self._parameters.seed
-        self._encoding_cache: dict[float, List[int]] = {}
+        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
         super().__init__(dimensions, self._size)
 
     @override
-    def encode(self, input_value: float) -> List[int]:
+    def encode(self, input_value: float) -> list[int]:
         """Encode the input value into a binary vector."""
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
 
-    def register_encoding(self, input_value: float, encoded: List[int] | None = None) -> List[int]:
+    def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
         """Caches an encoding so decode_closest can compare against it."""
         vector = encoded if encoded is not None else self._compute_encoding(input_value)
         if len(vector) != self.size:
@@ -121,7 +120,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Clears cached encodings used for nearest-neighbor decoding."""
         self._encoding_cache.clear()
 
-    def _compute_encoding(self, input_value: float) -> List[int]:
+    def _compute_encoding(self, input_value: float) -> list[int]:
         """
         Uses murmurhash3 algorithm to encode a float value.
 
@@ -129,7 +128,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         :param input_value: The value we want encoded.
         :type input_value: float
         :return: Returns a list of integers that signify an SDR.
-        :rtype: List[int]
+        :rtype: list[int]
         """
         if self._category:
             if input_value != int(input_value) or input_value < 0:
@@ -162,14 +161,14 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         return data
 
     @staticmethod
-    def _overlap(first: List[int], second: List[int]) -> int:
+    def _overlap(first: list[int], second: list[int]) -> int:
         """
         Checks for overlapping bits in two Lists of integers.
 
         :param first: The first list in checking.
-        :type first: List[int]
+        :type first: list[int]
         :param second: The second list in checking.
-        :type second: List[int]
+        :type second: list[int]
         :return: Returns the overlapping bits.
         :rtype: int
         """
@@ -177,13 +176,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
             raise ValueError("Vectors must be the same length to compute overlap")
         return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
 
-    def sparsify(self, vector: List[int]) -> List[int]:
+    def sparsify(self, vector: list[int]) -> list[int]:
         """Converts a sparse activity vector to a activation list."""
         return [i for i, bit in enumerate(vector) if bit == 1]
 
     def decode(
-        self, encoded: List[int], candidates: Iterable[float] | None = None
-    ) -> Tuple[float | None, float]:
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[float | None, float]:
         """Returns the value whose encoding overlaps the most with the provided SDR."""
         if len(encoded) != self.size:
             raise ValueError(
@@ -233,7 +232,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         knn.fit(x, y)
         self.knn = knn
 
-    def decode_knn(self, encoded: List[int]) -> float:
+    def decode_knn(self, encoded: list[int]) -> float:
         """Returns the value whose encoding overlaps the most with the provided SDR."""
         if len(encoded) != self.size:
             raise ValueError("Encoded input must match encoder size")
@@ -245,7 +244,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         return result.item()
 
     # After encode we may need a check_parameters method since most of the encoders have this
-    def check_parameters(self, parameters: RDSEParameters):
+    def check_parameters(self, parameters: RDSEParameters) -> RDSEParameters:
         """Method to check mutually exclusive parameters and fill in missing values.
 
         Args:
