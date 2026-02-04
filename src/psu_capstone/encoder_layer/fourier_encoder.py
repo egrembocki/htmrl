@@ -124,7 +124,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             freq_data = np.concatenate(
                 [
                     t_even + omega[: int(total_samples / 2)] * t_odd,
-                    t_even + omega[int(total_samples / 2):] * t_odd,
+                    t_even + omega[int(total_samples / 2) :] * t_odd,
                 ]
             )
 

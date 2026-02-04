@@ -374,3 +374,72 @@ def test_scalar_encoder_serialization():
             assert nearly_equal(p1.resolution, p2.resolution)
             assert nearly_equal(p1.sparsity, p2.sparsity)
             assert nearly_equal(p1.radius, p2.radius)
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, length, active_bits)
+# ---------------------------------------------------------------------------
+
+
+def test_scalar_encode_output_only_zeros_and_ones():
+    """Encoder output must contain only 0 and 1."""
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=5,
+        sparsity=0.0,
+        size=50,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p, [1, 50])
+    for value in (0, 10, 50, 100):
+        out = encoder.encode(value)
+        assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
+
+
+def test_scalar_encode_output_length_equals_size():
+    """Encoder output length must equal the configured size."""
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=4,
+        sparsity=0.0,
+        size=32,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p, [1, 32])
+    out = encoder.encode(50.0)
+    assert len(out) == 32, f"Output length must equal size (32), got {len(out)}"
+
+
+def test_scalar_encode_output_active_bits_conforms():
+    """Output must have exactly active_bits ones; sparsity = active_bits/size."""
+    size = 64
+    active_bits = 8
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=active_bits,
+        sparsity=0.0,
+        size=size,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p, [1, size])
+    out = encoder.encode(25.0)
+    num_ones = sum(out)
+    assert num_ones == active_bits, f"Exactly {active_bits} ones expected, got {num_ones}"
+    assert num_ones / len(out) == pytest.approx(
+        active_bits / size
+    ), "Sparsity should equal active_bits/size"

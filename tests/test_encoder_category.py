@@ -114,3 +114,34 @@ def test_rdse_used():
     a1 = e1.encode("NA")
     a2 = e1.encode("NA")
     assert a1 == a2
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, length)
+# ---------------------------------------------------------------------------
+
+
+def test_category_encode_output_only_zeros_and_ones():
+    """CategoryEncoder output must contain only 0 and 1."""
+    categories = ["ES", "GB", "US"]
+    for rdse_used in (False, True):
+        parameters = CategoryParameters(w=3, category_list=categories, rdse_used=rdse_used)
+        encoder = CategoryEncoder(parameters)
+        for cat in categories + ["NA"]:
+            out = encoder.encode(cat)
+            assert all(
+                b in (0, 1) for b in out
+            ), f"Output must be binary (0/1), rdse_used={rdse_used}, cat={cat!r}, got {set(out)}"
+
+
+def test_category_encode_output_length_equals_size():
+    """CategoryEncoder output length must equal (num_categories + 1) * w."""
+    categories = ["ES", "GB", "US"]
+    w = 4
+    parameters = CategoryParameters(w=w, category_list=categories, rdse_used=False)
+    encoder = CategoryEncoder(parameters)
+    expected_size = (len(categories) + 1) * w  # +1 for unknown
+    out = encoder.encode("US")
+    assert (
+        len(out) == expected_size
+    ), f"Output length must equal (1+len(categories))*w = {expected_size}, got {len(out)}"
