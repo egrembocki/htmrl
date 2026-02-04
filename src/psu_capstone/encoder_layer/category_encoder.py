@@ -9,27 +9,6 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
-@dataclass
-class CategoryParameters:
-
-    w: int
-    """
-    The w is the width in bits per category. So, if you have 5 categories and w=3
-    we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
-    """
-    category_list: list[str]
-    """
-    List of categories to use.
-    """
-
-    rdse_used: bool = True
-    """
-    This is an optional default true bool. The category encoder will use the
-    RDSE for each category encoded unless this is false, then it will use a
-    basic scalar encoder like the htm core implementation.
-    """
-
-
 class CategoryEncoder(BaseEncoder[str]):
     """
     Encodes a list of discrete categories (described by strings), that aren't
@@ -47,7 +26,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: CategoryParameters, dimensions: list[int] | None = None):
+    def __init__(self, parameters: "CategoryParameters", dimensions: list[int] | None = None):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
@@ -132,7 +111,7 @@ class CategoryEncoder(BaseEncoder[str]):
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
             return (result, result_tuple[1])
 
-    def check_parameters(self, parameters: CategoryParameters):
+    def check_parameters(self, parameters: "CategoryParameters"):
         """
         Simple checks to make sure the parameters are correct.
 
@@ -147,6 +126,28 @@ class CategoryEncoder(BaseEncoder[str]):
         if len(set(parameters.category_list)) != len(parameters.category_list):
             raise ValueError("category_list contains duplicate entries.")
         return parameters
+
+
+@dataclass
+class CategoryParameters:
+
+    w: int
+    """
+    The w is the width in bits per category. So, if you have 5 categories and w=3
+    we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
+    """
+    category_list: list[str]
+    """
+    List of categories to use.
+    """
+
+    rdse_used: bool = True
+    """
+    This is an optional default true bool. The category encoder will use the
+    RDSE for each category encoded unless this is false, then it will use a
+    basic scalar encoder like the htm core implementation.
+    """
+    encoder_class = CategoryEncoder
 
 
 if __name__ == "__main__":

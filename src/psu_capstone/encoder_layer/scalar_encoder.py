@@ -20,86 +20,6 @@ from typing import Iterable, override
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 
 
-@dataclass
-class ScalarEncoderParameters:
-
-    minimum: int = 0
-    """Min and Max
-     * Members "minimum" and "maximum" define the range of the input signal.
-     * These endpoints are inclusive.
-     */"""
-    maximum: int = 1000
-    """Min and Max
-     * Members "minimum" and "maximum" define the range of the input signal.
-     * These endpoints are inclusive.
-     */"""
-
-    clip_input: bool = False
-    """Whether to clip inputs outside the min/max range.
-       /**
-     * Member "clipInput" determines whether to allow input values outside the
-     * range [minimum, maximum].
-     * If true, the input will be clipped into the range [minimum, maximum].
-     * If false, inputs outside of the range will raise an error.
-     */"""
-
-    periodic: bool = False
-    """Whether the encoder is periodic (circular) or not.
-    /**
-     * Member "periodic" controls what happens near the edges of the input
-     * range.
-     *
-     * If true, then the minimum & maximum input values are the same and the
-     * first and last bits of the output SDR are adjacent.  The contiguous
-     * block of 1's wraps around the end back to the beginning.
-     *
-     * If false, then minimum & maximum input values are the endpoints of the
-     * input range, are not adjacent, and activity does not wrap around.
-     */
-    """
-
-    category: bool = False
-    """Whether the encoder is a category encoder.
-    /**
-     * Member "category" means that the inputs are enumerated categories.
-     * If true then this encoder will only encode unsigned integers, and all
-     * inputs will have unique / non-overlapping representations.
-     */
-    """
-    active_bits: int = 40
-    """Number of active bits in the output SDR.
-     * Member "activeBits" is the number of true bits in the encoded output SDR.
-     * The output encodings will have a contiguous block of this many 1's.
-    """
-    sparsity: float = 0.0
-    """Sparsity level -- % of active bits.
-    * Member "sparsity" is an alternative way to specify the member "activeBits".
-    * Sparsity requires that the size to also be specified.
-    * Specify only one of: activeBits or sparsity.
-    """
-    size: int = 2048
-    """Total number of bits in the output SDR.
-     /**
-     * Member "size" is the total number of bits in the encoded output SDR.
-     */
-    """
-    radius: float = 0.0
-    """Approximate input range (width) covered by the active bits.
-    /**
-     * Member "radius" Two inputs separated by more than the radius have
-     * non-overlapping representations. Two inputs separated by less than the
-     * radius will in general overlap in at least some of their bits. You can
-     * think of this as the radius of the input.
-     */
-    """
-    resolution: float = 0.0
-    """The smallest difference between two inputs that produces different outputs.
-      /**
-     * Member "resolution" Two inputs separated by greater than, or equal to the
-     * resolution are guaranteed to have different representations.
-     */"""
-
-
 class ScalarEncoder(BaseEncoder[int]):
     """
     /**
@@ -116,7 +36,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
     def __init__(
         self,
-        parameters: ScalarEncoderParameters = ScalarEncoderParameters(),
+        parameters: "ScalarEncoderParameters",
         dimensions: list[int] | None = None,
     ):
         self._parameters = copy.deepcopy(parameters)
@@ -278,7 +198,7 @@ class ScalarEncoder(BaseEncoder[int]):
         return [i for i, bit in enumerate(vector) if bit == 1]
 
     # After encode we may need a check_parameters method since most of the encoders have this
-    def check_parameters(self, parameters: ScalarEncoderParameters):
+    def check_parameters(self, parameters: "ScalarEncoderParameters"):
         """
         Check parameters method is used to verify that the correct parameters were entered
         and reject the user when they are not.
@@ -374,6 +294,87 @@ class ScalarEncoder(BaseEncoder[int]):
             raise ValueError("Sanity check failed for sparsity, it was not greater than 0.")
 
         return args
+
+
+@dataclass
+class ScalarEncoderParameters:
+
+    minimum: int = 0
+    """Min and Max
+     * Members "minimum" and "maximum" define the range of the input signal.
+     * These endpoints are inclusive.
+     */"""
+    maximum: int = 1000
+    """Min and Max
+     * Members "minimum" and "maximum" define the range of the input signal.
+     * These endpoints are inclusive.
+     */"""
+
+    clip_input: bool = False
+    """Whether to clip inputs outside the min/max range.
+       /**
+     * Member "clipInput" determines whether to allow input values outside the
+     * range [minimum, maximum].
+     * If true, the input will be clipped into the range [minimum, maximum].
+     * If false, inputs outside of the range will raise an error.
+     */"""
+
+    periodic: bool = False
+    """Whether the encoder is periodic (circular) or not.
+    /**
+     * Member "periodic" controls what happens near the edges of the input
+     * range.
+     *
+     * If true, then the minimum & maximum input values are the same and the
+     * first and last bits of the output SDR are adjacent.  The contiguous
+     * block of 1's wraps around the end back to the beginning.
+     *
+     * If false, then minimum & maximum input values are the endpoints of the
+     * input range, are not adjacent, and activity does not wrap around.
+     */
+    """
+
+    category: bool = False
+    """Whether the encoder is a category encoder.
+    /**
+     * Member "category" means that the inputs are enumerated categories.
+     * If true then this encoder will only encode unsigned integers, and all
+     * inputs will have unique / non-overlapping representations.
+     */
+    """
+    active_bits: int = 40
+    """Number of active bits in the output SDR.
+     * Member "activeBits" is the number of true bits in the encoded output SDR.
+     * The output encodings will have a contiguous block of this many 1's.
+    """
+    sparsity: float = 0.0
+    """Sparsity level -- % of active bits.
+    * Member "sparsity" is an alternative way to specify the member "activeBits".
+    * Sparsity requires that the size to also be specified.
+    * Specify only one of: activeBits or sparsity.
+    """
+    size: int = 2048
+    """Total number of bits in the output SDR.
+     /**
+     * Member "size" is the total number of bits in the encoded output SDR.
+     */
+    """
+    radius: float = 0.0
+    """Approximate input range (width) covered by the active bits.
+    /**
+     * Member "radius" Two inputs separated by more than the radius have
+     * non-overlapping representations. Two inputs separated by less than the
+     * radius will in general overlap in at least some of their bits. You can
+     * think of this as the radius of the input.
+     */
+    """
+    resolution: float = 0.0
+    """The smallest difference between two inputs that produces different outputs.
+      /**
+     * Member "resolution" Two inputs separated by greater than, or equal to the
+     * resolution are guaranteed to have different representations.
+     */"""
+    encoder_class = ScalarEncoder
 
 
 if __name__ == "__main__":

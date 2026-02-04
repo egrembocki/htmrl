@@ -5,8 +5,6 @@ import pytest
 
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
-# from psu_capstone.sdr_layer.sdr import SDR
-
 
 @pytest.fixture
 def rdse_instance():
@@ -135,8 +133,6 @@ def test_2048_bits_40_active_bits():
     rdse = RandomDistributedScalarEncoder(parameters, [1, 2048])
 
     a = rdse.encode(10)
-    # s = SDR([1, len(a)])
-    # s.set_dense(a)
     sparse = [i for i, x in enumerate(a) if x == 1]
     """Checking for active bits accounting for hash collisions."""
     assert 35 <= len(sparse) <= 40
