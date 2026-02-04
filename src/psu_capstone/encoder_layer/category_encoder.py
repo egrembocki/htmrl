@@ -132,7 +132,8 @@ class CategoryEncoder(BaseEncoder[str]):
             result_tuple = rdse_encoder.decode(input_sdr)
             result = self._category_list[int(result_tuple[0]) - 1]
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
-            return tuple[result, result_tuple[1]]
+
+            return (result, result_tuple[1])
 
     def check_parameters(self, parameters: CategoryParameters):
         """

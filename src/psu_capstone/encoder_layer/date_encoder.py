@@ -251,6 +251,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
       - timeOfDay
 
       rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
+
+      TODO:
       Current Test does not cover rdseUsed = True.
     """
 
