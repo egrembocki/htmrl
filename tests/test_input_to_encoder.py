@@ -1,6 +1,5 @@
 import pytest
 
-# should not have to pull from multiple layers like this
 from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
@@ -8,7 +7,7 @@ from psu_capstone.input_layer.input_interface import InputInterface
 
 
 @pytest.fixture
-def input_handler() -> InputInterface:
+def input_handler() -> InputHandler:
     return InputHandler.get_instance()
 
 
