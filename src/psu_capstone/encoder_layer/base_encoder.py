@@ -24,8 +24,8 @@
 """
 
 from abc import ABC, abstractmethod
-from math import prod
 from collections.abc import Mapping, Sequence
+from math import prod
 from typing import Any, Generic, TypeVar
 
 from psu_capstone.agent_layer.agent_interface import AgentInterface
@@ -114,8 +114,10 @@ class BaseEncoder(ABC, Generic[T]):
 
     def _to_records(self, input_data: Any) -> list[dict[str, Any]]:
         """Normalize input data into a list of record dictionaries."""
-        if isinstance(input_data, list) and input_data and all(
-            isinstance(item, Mapping) for item in input_data
+        if (
+            isinstance(input_data, list)
+            and input_data
+            and all(isinstance(item, Mapping) for item in input_data)
         ):
             return [dict(item) for item in input_data]
 

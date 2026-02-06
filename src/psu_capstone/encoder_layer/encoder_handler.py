@@ -19,9 +19,9 @@ resulting composite SDRs are consistent across calls.
 from __future__ import annotations
 
 import copy
-from datetime import datetime
-
 from collections.abc import Mapping
+from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -107,9 +107,7 @@ class EncoderHandler:
             raise ValueError("Input data must contain at least one record.")
 
         column_names = list(input_data[0].keys())
-        column_values = {
-            name: [row.get(name) for row in input_data] for name in column_names
-        }
+        column_values = {name: [row.get(name) for row in input_data] for name in column_names}
 
         for row in input_data:
             sdrs: list[SDR] = []

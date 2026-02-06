@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import datetime
 import csv
+import datetime
 import json
 import os
 from collections.abc import Mapping, Sequence
@@ -114,7 +114,14 @@ class InputHandler:
                 self._validate_data(required_columns)
                 return self._data
 
-            if file_extension in {".csv", ".xlsx", ".xls", ".json", ".parquet", self._TEXT_EXTENSION}:
+            if file_extension in {
+                ".csv",
+                ".xlsx",
+                ".xls",
+                ".json",
+                ".parquet",
+                self._TEXT_EXTENSION,
+            }:
                 raise FileNotFoundError(f"No file found at {input_source}")
 
         normalized_records = self._raw_to_sequence(input_source)
@@ -165,7 +172,9 @@ class InputHandler:
                 rows = list(sheet.iter_rows(values_only=True))
                 if not rows:
                     return []
-                headers = [str(h) if h is not None else f"col_{idx}" for idx, h in enumerate(rows[0])]
+                headers = [
+                    str(h) if h is not None else f"col_{idx}" for idx, h in enumerate(rows[0])
+                ]
                 records = []
                 for row in rows[1:]:
                     record = {headers[idx]: value for idx, value in enumerate(row)}
@@ -320,9 +329,7 @@ class InputHandler:
         elif isinstance(data, dict):
             for key, value in data.items():
                 if isinstance(value, list):
-                    numeric_values = [
-                        v for v in value if isinstance(v, (int, float, np.number))
-                    ]
+                    numeric_values = [v for v in value if isinstance(v, (int, float, np.number))]
                     mean_value = (
                         sum(numeric_values) / len(numeric_values) if numeric_values else None
                     )

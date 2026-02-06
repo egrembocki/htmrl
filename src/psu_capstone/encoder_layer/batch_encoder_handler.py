@@ -505,9 +505,7 @@ class BatchEncoderHandler:
 
         records, column_names = self._normalize_records(input_data)
         target_col = column_names[1]
-        y = np.asarray(
-            [[records[i + 1].get(target_col)] for i in range(num_samples)], dtype=float
-        )
+        y = np.asarray([[records[i + 1].get(target_col)] for i in range(num_samples)], dtype=float)
 
         knn = KNeighborsRegressor(n_neighbors=n_neighbors, weights=weights, metric=distance)
         knn.fit(x, y)
