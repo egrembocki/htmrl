@@ -19,11 +19,11 @@ from psu_capstone.log import logger
 class InputHandler:
     """Build an input data manager."""
 
-    __instance: InputHandler
-    """Singleton instance"""
+    __instance: ClassVar[InputHandler | None] = None
+    """Singleton instance."""
 
-    __interface: Any
-    """Interface for future extension"""
+    __interface: ClassVar[Any | None] = None
+    """Interface for future extension."""
 
     _TEXT_EXTENSION: str = ".txt"
     """File extension for text files."""
