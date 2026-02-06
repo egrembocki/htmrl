@@ -24,10 +24,9 @@
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from math import prod
 from typing import Any, Generic, TypeVar
-
-import pandas as pd
 
 from psu_capstone.agent_layer.agent_interface import AgentInterface
 
@@ -41,7 +40,7 @@ class BaseEncoder(ABC, Generic[T]):
 
     __interface: AgentInterface | None = None
 
-    __buffered_data: pd.DataFrame | None = None
+    __buffered_data: list[dict[str, Any]] | None = None
 
     __buffer_bounds: tuple[int, int] | None = None
 
@@ -69,8 +68,12 @@ class BaseEncoder(ABC, Generic[T]):
     def size(self) -> int:
         return self._size
 
+    @size.setter
+    def size(self, value: int) -> None:
+        self._size = value
+
     @property
-    def buffered_data(self) -> pd.DataFrame | None:
+    def buffered_data(self) -> list[dict[str, Any]] | None:
         """Gets the buffered data for processing by the encoder."""
         return self.__buffered_data
 
@@ -82,16 +85,18 @@ class BaseEncoder(ABC, Generic[T]):
         self.__buffered_data = None
         self.__buffer_bounds = None
 
-    def buffer_data(self, input_data: Any, start: int = 0, stop: int | None = None) -> pd.DataFrame:
+    def buffer_data(
+        self, input_data: Any, start: int = 0, stop: int | None = None
+    ) -> list[dict[str, Any]]:
         """Buffers the input data for processing by the encoder.
 
         Args:
             input_data (Any): The input data to be buffered.
             start (int): Inclusive row index where buffering begins.
-            stop (int | None): Exclusive row index where buffering ends; defaults to the DataFrame length.
+            stop (int | None): Exclusive row index where buffering ends; defaults to the record length.
         """
-        df = input_data if isinstance(input_data, pd.DataFrame) else pd.DataFrame(input_data)
-        total_len = len(df)
+        records = self._to_records(input_data)
+        total_len = len(records)
         if total_len == 0:
             raise ValueError("input_data must contain at least one row")
         if start < 0 or start >= total_len:
@@ -104,10 +109,55 @@ class BaseEncoder(ABC, Generic[T]):
             raise ValueError("stop must not exceed the length of input_data")
 
         self.__buffer_bounds = (start, stop)
-        self.__buffered_data = df
+        self.__buffered_data = records
         return self.__buffered_data
 
+    def _to_records(self, input_data: Any) -> list[dict[str, Any]]:
+        """Normalize input data into a list of record dictionaries."""
+        if (
+            isinstance(input_data, list)
+            and input_data
+            and all(isinstance(item, Mapping) for item in input_data)
+        ):
+            return [dict(item) for item in input_data]
+
+        if isinstance(input_data, Mapping):
+            values = list(input_data.values())
+            if values and all(isinstance(value, list) for value in values):
+                max_len = max(len(value) for value in values)
+                records = []
+                for idx in range(max_len):
+                    records.append(
+                        {
+                            key: (col_values[idx] if idx < len(col_values) else None)
+                            for key, col_values in input_data.items()
+                        }
+                    )
+                return records
+            return [dict(input_data)]
+
+        if isinstance(input_data, Sequence) and not isinstance(input_data, (str, bytes, bytearray)):
+            if input_data and all(
+                isinstance(item, Sequence) and not isinstance(item, (str, bytes, bytearray))
+                for item in input_data
+            ):
+                num_cols = max(len(item) for item in input_data)
+                columns = [f"col_{idx}" for idx in range(num_cols)]
+                records = []
+                for row in input_data:
+                    row_values = list(row)
+                    records.append(
+                        {
+                            columns[idx]: (row_values[idx] if idx < len(row_values) else None)
+                            for idx in range(len(columns))
+                        }
+                    )
+                return records
+            return [{"value": item} for item in list(input_data)]
+
+        return [{"value": input_data}]
+
     @abstractmethod
-    def encode(self, input_value: T, output_sdr: Any) -> None:
+    def encode(self, input_value: T) -> list[int]:
         """Encodes the input value into the provided output SDR by reference."""
         raise NotImplementedError("Subclasses must implement this method")

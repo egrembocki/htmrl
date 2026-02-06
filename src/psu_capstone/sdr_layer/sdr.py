@@ -10,15 +10,15 @@ from __future__ import annotations
 
 import random
 from math import prod
-from typing import Any, Callable, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Iterable, Optional, Sequence
 
 # Type aliases mirroring the C++ implementation
 
 elem_dense = int  #: Dense element type used for storing SDR bits.
 elem_sparse = int  #: Sparse index type mirroring the C++ implementation.
-sdr_dense_t = List[elem_dense]  #: Alias for the dense SDR container type.
-sdr_sparse_t = List[elem_sparse]  #: Alias for the sparse SDR container type.
-sdr_coordinate_t = List[List[int]]  #: Alias representing coordinates grouped per dimension.
+sdr_dense_t = list[elem_dense]  #: Alias for the dense SDR container type.
+sdr_sparse_t = list[elem_sparse]  #: Alias for the sparse SDR container type.
+sdr_coordinate_t = list[list[int]]  #: Alias representing coordinates grouped per dimension.
 sdr_callback_t = Callable[[], None]  #: Callback signature invoked on SDR state changes.
 
 
@@ -45,7 +45,7 @@ class SDR:
         __destroy_callbacks: Callbacks invoked during ``destroy``.
     """
 
-    def __init__(self, dimensions: List[int]) -> None:
+    def __init__(self, dimensions: list[int]) -> None:
         """Create a new SDR with the given dimensions.
 
         Args:
@@ -58,7 +58,7 @@ class SDR:
             if dimensions is None or len(dimensions) == 0:
                 raise ValueError("SDR must have at least one dimension.")
             else:
-                self._dimensions: List[int] = [int(dim) for dim in dimensions]
+                self._dimensions: list[int] = [int(dim) for dim in dimensions]
 
         except Exception as e:
             raise ValueError("Invalid dimensions provided for SDR.") from e
@@ -75,8 +75,8 @@ class SDR:
         self._sparse_valid = False
         self._coordinates_valid = False
 
-        self.__callbacks: List[Optional[sdr_callback_t]] = []
-        self.__destroy_callbacks: List[Optional[sdr_callback_t]] = []
+        self.__callbacks: list[sdr_callback_t | None] = []
+        self.__destroy_callbacks: list[sdr_callback_t | None] = []
 
     # ------------------------------------------------------------------
     @property
@@ -84,8 +84,30 @@ class SDR:
         """Return the total number of bits in the SDR."""
         return self._size
 
+    @size.setter
+    def size(self, size: int) -> None:
+        """Set the total number of bits in the SDR.
+
+        Args:
+            size: New size for the SDR.
+
+        Raises:
+            AssertionError: If the new size is not positive.
+        """
+        new_size = int(size)
+        assert new_size > 0, "SDR size must be positive."
+
+        self._size = new_size
+        self._dense = [elem_dense(0)] * int(self._size)
+        self._sparse = []
+        self._coordinates = [[] for _ in self._dimensions]
+
+        self.clear()
+        self._dense_valid = True
+        self.do_callbacks()
+
     @property
-    def dimensions(self) -> List[int]:
+    def dimensions(self) -> list[int]:
         """Return the dimensions of the SDR."""
         return self._dimensions
 
@@ -221,7 +243,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Dimension helpers
     # ------------------------------------------------------------------
-    def get_dimensions(self) -> List[int]:
+    def get_dimensions(self) -> list[int]:
         """Return a copy of the SDR dimensionality."""
         return list(self._dimensions)
 
@@ -267,7 +289,7 @@ class SDR:
         self._dense, temp = temp, self._dense
         self.set_dense_inplace()
 
-    def get_dense(self) -> sdr_dense_t:
+    def get_dense(self) -> sdr_dense_t:  # alias: -> List[int]
         """Return the dense representation, materialising it from sparse data if required."""
         if not self._dense_valid:
             if not self._sparse_valid:
@@ -420,7 +442,7 @@ class SDR:
     # ------------------------------------------------------------------
     # Boolean operations
     # ------------------------------------------------------------------
-    def intersection(self, sdrs: List["SDR"]) -> None:
+    def intersection(self, sdrs: list["SDR"]) -> None:
         """Compute the bitwise intersection of multiple SDRs and store it in-place.
 
         Args:
@@ -462,7 +484,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def _validate_concatenate_inputs(self, inputs: List["SDR"], axis_index: int) -> int:
+    def _validate_concatenate_inputs(self, inputs: list["SDR"], axis_index: int) -> int:
         """Validate concatenate inputs and return the combined size along the chosen axis."""
         concat_axis_size = 0
         for sdr in inputs:
@@ -478,7 +500,7 @@ class SDR:
                     ), "All non-axis dimensions must match for concatenate."
         return concat_axis_size
 
-    def set_union(self, sdrs: List["SDR"]) -> None:
+    def set_union(self, sdrs: list["SDR"]) -> None:
         """Compute the bitwise union of multiple SDRs and store it in-place.
 
         Args:
@@ -520,7 +542,7 @@ class SDR:
 
         self.set_dense_inplace()
 
-    def concatenate(self, inputs: List["SDR"], axis: int = 0) -> None:
+    def concatenate(self, inputs: list["SDR"], axis: int = 0) -> None:
         """Concatenate SDRs along a chosen axis, writing the dense result into this instance.
 
         Args:
@@ -543,7 +565,7 @@ class SDR:
         ), "Concatenation axis dimensions do not sum to output size."
 
         buffers = [list(sdr.get_dense()) for sdr in inputs]
-        row_lengths: List[int] = []
+        row_lengths: list[int] = []
         for sdr in inputs:
             row = 1
             dims = sdr.get_dimensions()

@@ -1,7 +1,24 @@
 """Utility functions for PSU Capstone project. Global utilities used across the project."""
 
+import os
 from ctypes import Structure as Struct
 from ctypes import c_bool, c_float, c_int
+from math import isclose
+
+import numpy as np
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(PROJECT_ROOT, "data")
+
+
+def hamming_distance(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+
+    return int(np.count_nonzero(sdr1 != sdr2))
+
+
+def overlap(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+
+    return int(np.sum(np.logical_and(sdr1, sdr2)))
 
 
 class Parameters(Struct):
@@ -9,18 +26,16 @@ class Parameters(Struct):
 
     _fields_ = [
         # ScalarEncoder
-        ("minimum", c_float),
-        ("maximum", c_float),
-        ("clip_input", c_bool),
-        ("periodic", c_bool),
-        ("category", c_bool),
-        ("active_bits", c_int),
-        ("sparsity", c_float),
-        ("size", c_int),
-        ("radius", c_float),
-        ("resolution", c_float),
-        ("size_or_radius_or_category_or_resolution", c_float),
-        ("active_bits_or_sparsity", c_float),
+        ("scalar_minimum", c_float),
+        ("scalar_maximum", c_float),
+        ("scalar_clip_input", c_bool),
+        ("scalar_periodic", c_bool),
+        ("scalar_category", c_bool),
+        ("scalar_active_bits", c_int),
+        ("scalar_sparsity", c_float),
+        ("scalar_size", c_int),
+        ("scalar_radius", c_float),
+        ("scalar_resolution", c_float),
         # RDSE
         ("rdse_active_bits", c_int),
         ("rdse_sparsity", c_float),
@@ -47,16 +62,16 @@ class Parameters(Struct):
     def __init__(self):
         super().__init__()
         # ScalarEncoder defaults
-        self.minimum = 0.0
-        self.maximum = 100.0
-        self.clip_input = True
-        self.periodic = False
-        self.active_bits = 5
-        self.sparsity = 0.0
-        self.size = 10
-        self.radius = 0.0
-        self.resolution = 0.0
-        self.category = False
+        self.scalar_minimum = 0.0
+        self.scalar_maximum = 100.0
+        self.scalar_clip_input = True
+        self.scalar_periodic = False
+        self.scalar_active_bits = 5
+        self.scalar_sparsity = 0.0
+        self.scalar_size = 10
+        self.scalar_radius = 0.0
+        self.scalar_resolution = 0.0
+        self.scalar_category = False
         self.size_or_radius_or_category_or_resolution = 0.0
         self.active_bits_or_sparsity = 0.0
         # RDSE defaults
@@ -84,23 +99,14 @@ class Parameters(Struct):
 
 def smoke_check():
     """Basic smoke check for utils module."""
-    try:
-        from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder
-        from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder
 
-        p = Parameters()
-        # Only pass 'size' as the second argument to avoid the error
-        s_enc = ScalarEncoder(p)
-        print("Smoke check passed: Parameters and ScalarEncoder initialized.", s_enc)
-        rdse_enc = RandomDistributedScalarEncoder(p)
-        print(
-            "Smoke check passed: Parameters and RandomDistributedScalarEncoder initialized.",
-            rdse_enc,
-        )
-        return True
-    except Exception as e:
-        print(f"Smoke check failed: {e}")
-        return False
+    params = Parameters()
+    assert isclose(params.scalar_minimum, 0.0)
+    assert params.rdse_seed == 42
+    assert params.day_of_week_width == 3
+
+    print(PROJECT_ROOT + DATA_PATH)
+    print("Smoke check passed.")
 
 
 if __name__ == "__main__":

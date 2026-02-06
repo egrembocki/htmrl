@@ -1,8 +1,7 @@
 """Input layer interface contract"""
 
+from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
-
-import pandas as pd
 
 
 @runtime_checkable
@@ -10,8 +9,8 @@ class InputInterface(Protocol):
     """Interface for input handlers."""
 
     @property
-    def data(self) -> pd.DataFrame:
-        """Return the normalized DataFrame currently held by the handler."""
+    def data(self) -> list[Mapping[str, Any]]:
+        """Return the normalized record list currently held by the handler."""
 
         ...
 
@@ -19,6 +18,6 @@ class InputInterface(Protocol):
         self,
         input_source: Any,
         required_columns: list[str] | None = None,
-    ) -> pd.DataFrame:
-        """Process input data from various sources into a standardized DataFrame."""
+    ) -> list[Mapping[str, Any]]:
+        """Process input data from various sources into standardized records."""
         ...

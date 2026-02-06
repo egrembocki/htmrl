@@ -30,17 +30,17 @@ import random
 
 import numpy as np
 
-from psu_capstone.agent_layer.htm.cell import Cell
-from psu_capstone.agent_layer.htm.column import Column
-from psu_capstone.agent_layer.htm.constants import (
+from psu_capstone.agent_layer.legacy_htm.cell import Cell
+from psu_capstone.agent_layer.legacy_htm.column import Column
+from psu_capstone.agent_layer.legacy_htm.constants import (
     INITIAL_DISTAL_PERM,
     NEW_SYNAPSE_MAX,
     PERMANENCE_DEC,
     PERMANENCE_INC,
     SEGMENT_ACTIVATION_THRESHOLD,
 )
-from psu_capstone.agent_layer.htm.distal_synapse import DistalSynapse
-from psu_capstone.agent_layer.htm.segment import Segment
+from psu_capstone.agent_layer.legacy_htm.distal_synapse import DistalSynapse
+from psu_capstone.agent_layer.legacy_htm.segment import Segment
 
 
 class TemporalMemory:
