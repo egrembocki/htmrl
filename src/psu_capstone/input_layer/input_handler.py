@@ -31,7 +31,7 @@ class InputHandler:
     def __new__(cls) -> "InputHandler":
         """Constructor ::  Singleton pattern implementation."""
 
-        if cls.__instance is None:
+        if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
 
         return cls.__instance
@@ -60,7 +60,7 @@ class InputHandler:
     def get_instance(cls) -> "InputHandler":
         """Static access method to get the singleton instance."""
 
-        if cls.__instance is None:
+        if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = InputHandler()
         return cls.__instance
 
@@ -93,6 +93,9 @@ class InputHandler:
 
         self._appended_required_columns.clear()
         self._required_columns_context = required_columns or []
+
+        if isinstance(input_source, bytes):
+            input_source = bytearray(input_source)
 
         # Check if input is a file path
         if isinstance(input_source, os.PathLike):
@@ -237,13 +240,15 @@ class InputHandler:
 
         return [{"value": item} for item in iterable], False
 
-    def _coerce_iterable_for_sequence(self, data: Any) -> tuple[list[Any], bool]:
+    def _coerce_iterable_for_sequence(self, data: Any) -> tuple[Sequence[Any], bool]:
         """Standardize iterables into lists and detect nested structures."""
 
         if isinstance(data, np.ndarray):
             iterable = data.tolist()
-        elif isinstance(data, (bytearray, bytes)):
-            iterable = list(data)
+        elif isinstance(data, bytearray):
+            iterable = data
+        elif isinstance(data, bytes):
+            iterable = bytearray(data)
         elif isinstance(data, list):
             iterable = data[:]
         elif isinstance(data, Sequence) and not isinstance(data, (str, bytes, bytearray)):
@@ -267,7 +272,11 @@ class InputHandler:
     def _prepend_timestamp_column(self, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Insert a leading timestamp field using the current time for each row."""
 
-        timestamp_values = [datetime.datetime.now().isoformat() for _ in range(len(records))]
+        base_time = datetime.datetime(1970, 1, 1)
+        timestamp_values = [
+            (base_time + datetime.timedelta(seconds=idx)).isoformat()
+            for idx in range(len(records))
+        ]
         updated_records = []
         for idx, record in enumerate(records):
             updated_record = {"timestamp": timestamp_values[idx], **record}
