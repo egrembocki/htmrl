@@ -31,9 +31,7 @@ class InputHandler:
     def __new__(cls) -> InputHandler:
         """Constructor ::  Singleton pattern implementation."""
 
-        cls.__instance
-
-        if cls.__instance is None:
+        if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
 
         return cls.__instance
@@ -62,7 +60,7 @@ class InputHandler:
     def get_instance(cls) -> InputHandler:
         """Static access method to get the singleton instance."""
 
-        if cls.__instance is None:
+        if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = InputHandler()
         return cls.__instance
 
