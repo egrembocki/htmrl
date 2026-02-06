@@ -57,8 +57,7 @@ class InputHandler:
                 self._data = []
             else:
                 headers = [
-                    str(h) if h is not None else f"col_{idx}"
-                    for idx, h in enumerate(rows[0])
+                    str(h) if h is not None else f"col_{idx}" for idx, h in enumerate(rows[0])
                 ]
                 records = []
                 for row in rows[1:]:

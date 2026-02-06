@@ -14,14 +14,12 @@ https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fa
 from __future__ import annotations
 
 import copy
-from calendar import c
 from dataclasses import dataclass, field
-from datetime import time
 from typing import Any, Iterable, cast, override
 
 import numpy as np
 from matplotlib.pyplot import sca
-from scipy.fft import fft, fftfreq, ifft
+from scipy.fft import fft, fftfreq
 from sklearn.utils import deprecated
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -440,9 +438,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
             if candidates is not None:
                 range_candidates = [
-                    candidate
-                    for candidate in candidates
-                    if start_freq <= candidate < stop_freq
+                    candidate for candidate in candidates if start_freq <= candidate < stop_freq
                 ]
                 if not range_candidates:
                     range_candidates = list(range(start_freq, stop_freq))
