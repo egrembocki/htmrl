@@ -17,7 +17,7 @@ import copy
 from calendar import c
 from dataclasses import dataclass, field
 from datetime import time
-from typing import Any, cast, override
+from typing import Any, Iterable, cast, override
 
 import numpy as np
 from matplotlib.pyplot import sca
@@ -410,6 +410,65 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         # freq that are further apart will have less collissions giving more active bits than expected
         return dense_bits
         # END def encode
+
+    def decode(
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> dict[str, list[tuple[tuple[int, int], float | None, float]] | tuple[float | None, float]]:
+        """Decode a combined Fourier SDR into per-range frequency estimates and magnitude."""
+        if len(encoded) != self.size:
+            raise ValueError(
+                f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
+            )
+
+        results: dict[
+            str, list[tuple[tuple[int, int], float | None, float]] | tuple[float | None, float]
+        ] = {"frequencies": []}
+
+        for range_index, freq_range in enumerate(self._frequency_ranges):
+            start_freq, stop_freq = freq_range
+            current_res = self._resolutions_in_ranges[range_index]
+            current_sparsity = self._sparsity_in_ranges[range_index]
+
+            freq_encoder = RandomDistributedScalarEncoder(
+                RDSEParameters(
+                    size=self._size,
+                    sparsity=current_sparsity,
+                    active_bits=0,
+                    resolution=current_res,
+                )
+            )
+
+            if candidates is not None:
+                range_candidates = [
+                    candidate
+                    for candidate in candidates
+                    if start_freq <= candidate < stop_freq
+                ]
+                if not range_candidates:
+                    range_candidates = list(range(start_freq, stop_freq))
+            else:
+                range_candidates = list(range(start_freq, stop_freq))
+            decoded_value, confidence = freq_encoder.decode(encoded, range_candidates)
+            results["frequencies"].append((freq_range, decoded_value, confidence))
+
+        magnitude_candidates: list[float] = []
+        if self._time_step > 0:
+            magnitude_candidates = list(
+                np.arange(0.0, 1.0 + self._time_step, self._time_step, dtype=float)
+            )
+
+        if magnitude_candidates:
+            magnitude_encoder = RandomDistributedScalarEncoder(
+                RDSEParameters(
+                    size=self._size,
+                    sparsity=self._time_step,
+                    active_bits=0,
+                    resolution=self._time_step,
+                )
+            )
+            results["magnitude"] = magnitude_encoder.decode(encoded, magnitude_candidates)
+
+        return results
 
     # END class FourierEncoder
 
