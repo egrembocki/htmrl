@@ -6,15 +6,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
-from matplotlib.pylab import f
-from scipy.fft import fft, fftfreq, ifft
+from scipy.fft import fft, fftfreq
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
