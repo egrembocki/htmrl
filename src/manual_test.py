@@ -48,6 +48,7 @@ def _seed_rng(config: SineConfig) -> None:
 def _build_sine_brain(config: SineConfig) -> tuple[Brain, list[float]]:
     rdse_params = RDSEParameters(
         size=config.num_columns,
+        active_bits=0,
         sparsity=0.02,
         resolution=config.resolution,
         category=False,
