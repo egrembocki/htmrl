@@ -1,6 +1,6 @@
 import pytest
 
-from psu_capstone.input_layer.improved_input_handler import InputHandler
+from psu_capstone.input_layer.input_handler import InputHandler
 
 
 @pytest.fixture
