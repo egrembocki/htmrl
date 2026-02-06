@@ -30,6 +30,7 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+*.egg-info
 .installed.cfg
 *.egg
 MANIFEST
@@ -150,6 +151,7 @@ celerybeat.pid
 
 # Environments
 #.env
+.venv/
 .venv
 .venv/*
 .vscode

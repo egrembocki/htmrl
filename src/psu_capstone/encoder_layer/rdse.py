@@ -1,5 +1,15 @@
+"""
+@Nemunta - NuPic
+* Parameters for the RandomDistributedScalarEncoder (RDSE)
+*
+* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+* of them.
+*
+* Members "radius", "resolution", & "category" are mutually exclusive, specify
+* exactly one of them.
+"""
+
 import copy
-import math
 import random
 import struct
 from dataclasses import dataclass
@@ -22,51 +32,6 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 """
 
 
-@dataclass
-class RDSEParameters:
-
-    size: int = 2048
-    """
-    * Member "size" is the total number of bits in the encoded output SDR.
-    """
-    active_bits: int = 40
-    """
-    * Member "activeBits" is the number of true bits in the encoded output SDR.
-    """
-    sparsity: float = 0.0
-    """
-    * Member "sparsity" is the fraction of bits in the encoded output which this
-    * encoder will activate. This is an alternative way to specify the member
-    * "activeBits".
-    """
-    radius: float = 1.0
-    """
-    * Member "radius" Two inputs separated by more than the radius have
-    * non-overlapping representations. Two inputs separated by less than the
-    * radius will in general overlap in at least some of their bits. You can
-    * think of this as the radius of the input.
-    """
-    resolution: float = 0.0
-    """
-    * Member "resolution" Two inputs separated by greater than, or equal to the
-    * resolution will in general have different representations.
-    """
-    category: bool = False
-    """
-    * Member "category" means that the inputs are enumerated categories.
-    * If true then this encoder will only encode unsigned integers, and all
-    * inputs will have unique / non-overlapping representations.
-    """
-    seed: int = 42
-    """
-    * Member "seed" forces different encoders to produce different outputs, even
-    * if the inputs and all other parameters are the same.  Two encoders with the
-    * same seed, parameters, and input will produce identical outputs.
-    *
-    * The seed 0 is special.  Seed 0 is replaced with a random number.
-    """
-
-
 """
  * Encodes a real number as a set of randomly generated activations.
  *
@@ -83,9 +48,7 @@ class RDSEParameters:
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
 
-    def __init__(
-        self, parameters: RDSEParameters = RDSEParameters(), dimensions: list[int] | None = None
-    ):
+    def __init__(self, parameters: "RDSEParameters", dimensions: list[int] | None = None):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -96,6 +59,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._resolution = self._parameters.resolution
         self._category = self._parameters.category
         self._seed = self._parameters.seed
+        self._encoding_cache: dict[float, list[int]] = {}
         self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
@@ -244,7 +208,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         return result.item()
 
     # After encode we may need a check_parameters method since most of the encoders have this
-    def check_parameters(self, parameters: RDSEParameters) -> RDSEParameters:
+    def check_parameters(self, parameters: "RDSEParameters"):
         """Method to check mutually exclusive parameters and fill in missing values.
 
         Args:
@@ -252,15 +216,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         Returns:
             RDSEParameters: The checked and filled in parameters.
         Raises:
-            AssertionError: If the parameters are invalid.
+            ValueError: If the parameters are invalid.
 
         """
-
-        assert parameters.size > 0
+        # Check size parameter
+        if not parameters.size > 0:
+            raise ValueError("You have no size set.")
 
         num_active_args = 0
 
-        # sparisty XOR active bits
         # Check active bits / sparsity mutual exclusivity
 
         if parameters.active_bits > 0:
@@ -268,12 +232,11 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if parameters.sparsity > 0.0:
             num_active_args += 1
 
-        assert num_active_args != 0, "Missing argument, need one of: 'activeBits' or 'sparsity'."
-        assert (
-            num_active_args == 1
-        ), "Too many arguments, choose only one of: 'activeBits' or 'sparsity'."
+        if num_active_args == 0:
+            raise ValueError("Missing argument, need one of: 'activeBits' or 'sparsity'.")
+        if num_active_args != 1:
+            raise ValueError("Too many arguments, choose only one of: 'activeBits' or 'sparsity'.")
 
-        # radius XOR resolution XOR category
         # Check radius / resolution / category mutual exclusivity
         num_resolution_args = 0
         if parameters.radius > 0.0:
@@ -283,53 +246,84 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if parameters.resolution > 0.0:
             num_resolution_args += 1
 
-        assert (
-            num_resolution_args != 0
-        ), "Missing argument, need one of: 'radius', 'resolution', 'category'."
-        assert (
-            num_resolution_args == 1
-        ), "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+        if num_resolution_args == 0:
+            raise ValueError("Missing argument, need one of: 'radius', 'resolution', 'category'.")
+        if num_resolution_args != 1:
+            raise ValueError(
+                "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+            )
 
-        # Fill in missing active bits / sparsity
+        # Finish filling in all of parameters.
 
-        if parameters.sparsity > 0 and parameters.active_bits == 0:
-            assert 0 <= parameters.sparsity <= 1
+        # Determine number of activeBits.
+        if parameters.sparsity > 0:
+            if not 0 <= parameters.sparsity <= 1:
+                raise ValueError("Sparsity is not between 0 and 1 inclusive.")
             parameters.active_bits = int(round(parameters.size * parameters.sparsity))
-            assert parameters.active_bits > 0
-            assert parameters.sparsity > 0.0
+            if not parameters.active_bits > 0:
+                raise ValueError("Active bits are not greater than 0.")
 
-        # category XOR radius XOR resolution
-        # Fill in missing radius / resolution / category
-        if parameters.category and parameters.radius <= 0.0 and parameters.resolution <= 0.0:
-            parameters.radius = 1.0
+        # Determine sparsity. Always calculate this even if it was given, to correct for rounding error.
+        parameters.sparsity = float(parameters.active_bits / parameters.size)
 
-            assert parameters.radius > 0.0
-            assert parameters.resolution <= 0.0
-            assert parameters.category
-
-        if parameters.radius > 0.0 and parameters.resolution <= 0.0 and not parameters.category:
-            assert parameters.active_bits > 0
-            parameters.resolution = parameters.radius / parameters.active_bits
-            parameters.category = False
-
-            assert parameters.resolution > 0.0
-            assert not parameters.category
-            assert parameters.radius > 0.0
-
-        if parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
-            assert parameters.active_bits > 0
+        if parameters.category:
+            parameters.active_bits = 1.0
+        # Determine resolution.
+        if parameters.radius > 0.0:
+            parameters.resolution = parameters.radius / float(parameters.active_bits)
+        # Determine radius.
+        elif parameters.resolution > 0.0:
             parameters.radius = float(parameters.active_bits) * parameters.resolution
-            parameters.category = False
 
-            assert parameters.radius > 0.0
-            assert not parameters.category
-            assert parameters.resolution > 0.0
-
-        # Handle seed == 0 case
         while parameters.seed == 0:
             parameters.seed = random.getrandbits(32)
-
         return parameters
+
+
+@dataclass
+class RDSEParameters:
+
+    size: int = 2048
+    """
+    * Member "size" is the total number of bits in the encoded output SDR.
+    """
+    active_bits: int = 40
+    """
+    * Member "activeBits" is the number of true bits in the encoded output SDR.
+    """
+    sparsity: float = 0.0
+    """
+    * Member "sparsity" is the fraction of bits in the encoded output which this
+    * encoder will activate. This is an alternative way to specify the member
+    * "activeBits".
+    """
+    radius: float = 0.0
+    """
+    * Member "radius" Two inputs separated by more than the radius have
+    * non-overlapping representations. Two inputs separated by less than the
+    * radius will in general overlap in at least some of their bits. You can
+    * think of this as the radius of the input.
+    """
+    resolution: float = 1.0
+    """
+    * Member "resolution" Two inputs separated by greater than, or equal to the
+    * resolution will in general have different representations.
+    """
+    category: bool = False
+    """
+    * Member "category" means that the inputs are enumerated categories.
+    * If true then this encoder will only encode unsigned integers, and all
+    * inputs will have unique / non-overlapping representations.
+    """
+    seed: int = 42
+    """
+    * Member "seed" forces different encoders to produce different outputs, even
+    * if the inputs and all other parameters are the same.  Two encoders with the
+    * same seed, parameters, and input will produce identical outputs.
+    *
+    * The seed 0 is special.  Seed 0 is replaced with a random number.
+    """
+    encoder_class = RandomDistributedScalarEncoder
 
 
 if __name__ == "__main__":
