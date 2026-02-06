@@ -1,26 +1,13 @@
-"""Base class for all encoders -- from NuPic Numenta Cpp ported to python.
-/**
- * Base class for all encoders.
- * An encoder converts a value to a sparse distributed representation.
- *
- * Subclasses must implement method encode and Serializable interface.
- * Subclasses can optionally implement method reset.
- *
- * There are several critical properties which all encoders must have:
- *
- * 1) Semantic similarity:  Similar inputs should have high overlap.  Overlap
- * decreases smoothly as inputs become less similar.  Dissimilar inputs have
- * very low overlap so that the output representations are not easily confused.
- *
- * 2) Stability:  The representation for an input does not change during the
- * lifetime of the encoder.
- *
- * 3) Sparsity: The output SDR should have a similar sparsity for all inputs and
- * have enough active bits to handle noise and subsampling.
- *
- * Reference: https://arxiv.org/pdf/1602.05925.pdf
- */
+"""Base encoder abstractions for creating sparse distributed representations (SDRs).
 
+This module defines :class:`BaseEncoder`, the shared contract for encoder implementations.
+Encoders map input values to sparse distributed representations with the following goals:
+
+1. **Semantic similarity**: similar inputs produce overlapping SDRs.
+2. **Stability**: an input value maps to the same SDR over time.
+3. **Sparsity**: SDRs preserve a consistent sparsity level to support robustness.
+
+Reference: https://arxiv.org/pdf/1602.05925.pdf
 """
 
 from abc import ABC, abstractmethod
@@ -34,7 +21,10 @@ T = TypeVar("T")
 
 
 class BaseEncoder(ABC, Generic[T]):
-    """Base class for all encoders"""
+    """Base class for all encoders.
+
+    Subclasses should implement :meth:`encode` to transform input values into SDRs.
+    """
 
     # class variables
 
@@ -45,40 +35,48 @@ class BaseEncoder(ABC, Generic[T]):
     __buffer_bounds: tuple[int, int] | None = None
 
     def __init__(self, dimensions: list[int] | None = None, size: int | None = None):
-        """Initializes the BaseEncoder with given dimensions."""
+        """Initialize an encoder with optional dimensions or size.
+
+        Args:
+            dimensions: Shape of the SDR when the encoder outputs multi-dimensional SDRs.
+            size: Explicit SDR size. If omitted, it is derived from ``dimensions``.
+        """
 
         self._dimensions: list[int] = dimensions if dimensions is not None else []
         self._size: int = size if size is not None else prod(int(dim) for dim in self._dimensions)
 
     @property
     def interface(self) -> AgentInterface | None:
-        """Gets the AgentInterface associated with this encoder."""
+        """Return the agent interface associated with this encoder, if any."""
         return self.__interface
 
     @interface.setter
     def interface(self, value: AgentInterface | None) -> None:
-        """Sets the AgentInterface associated with this encoder."""
+        """Set the agent interface associated with this encoder."""
         self.__interface = value
 
     @property
     def dimensions(self) -> list[int]:
+        """Return the SDR dimensions configured for this encoder."""
         return self._dimensions
 
     @property
     def size(self) -> int:
+        """Return the SDR size used by this encoder."""
         return self._size
 
     @size.setter
     def size(self, value: int) -> None:
+        """Set the SDR size for this encoder."""
         self._size = value
 
     @property
     def buffered_data(self) -> list[dict[str, Any]] | None:
-        """Gets the buffered data for processing by the encoder."""
+        """Return buffered input records, if any."""
         return self.__buffered_data
 
     def reset(self):
-        """Resets the encoder to its initial state if applicable."""
+        """Reset the encoder state, clearing dimensions, size, and buffers."""
 
         self._dimensions = []
         self._size = 0
@@ -88,12 +86,15 @@ class BaseEncoder(ABC, Generic[T]):
     def buffer_data(
         self, input_data: Any, start: int = 0, stop: int | None = None
     ) -> list[dict[str, Any]]:
-        """Buffers the input data for processing by the encoder.
+        """Buffer input data for encoder processing.
 
         Args:
-            input_data (Any): The input data to be buffered.
-            start (int): Inclusive row index where buffering begins.
-            stop (int | None): Exclusive row index where buffering ends; defaults to the record length.
+            input_data: Raw input data or record-like structures.
+            start: Inclusive row index where buffering begins.
+            stop: Exclusive row index where buffering ends; defaults to the record length.
+
+        Returns:
+            A list of normalized record dictionaries.
         """
         records = self._to_records(input_data)
         total_len = len(records)
@@ -113,7 +114,10 @@ class BaseEncoder(ABC, Generic[T]):
         return self.__buffered_data
 
     def _to_records(self, input_data: Any) -> list[dict[str, Any]]:
-        """Normalize input data into a list of record dictionaries."""
+        """Normalize input data into a list of record dictionaries.
+
+        The method supports dicts, lists of dicts, row/column sequences, or scalar values.
+        """
         if (
             isinstance(input_data, list)
             and input_data
@@ -159,5 +163,12 @@ class BaseEncoder(ABC, Generic[T]):
 
     @abstractmethod
     def encode(self, input_value: T) -> list[int]:
-        """Encodes the input value into the provided output SDR by reference."""
+        """Encode a value into a sparse representation.
+
+        Args:
+            input_value: The value to encode.
+
+        Returns:
+            The indices of active bits in the SDR.
+        """
         raise NotImplementedError("Subclasses must implement this method")
