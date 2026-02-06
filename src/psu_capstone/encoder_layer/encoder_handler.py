@@ -1,4 +1,4 @@
-"""Encoder Handler to build composite SDRs
+"""Encoder handler for building composite SDRs.
 
 This module provides the EncoderHandler class, which manages multiple encoder types
 and dynamically selects the appropriate encoder for each column in record data
@@ -34,7 +34,7 @@ from psu_capstone.sdr_layer.sdr import SDR
 
 
 class EncoderHandler:
-    """Handles multiple encoders to create composite SDRs.
+    """Build composite SDRs by delegating to per-column encoders.
 
     This class uses a singleton pattern to ensure only one instance exists.
     It dynamically selects the appropriate encoder for each column
@@ -59,10 +59,10 @@ class EncoderHandler:
         return cls.__instance
 
     def __init__(self, input_data: list[dict[str, Any]] | None = None):
-        """Initializes the EncoderHandler with record-based input data.
+        """Initialize the handler with optional record data.
 
         Args:
-            input_data (list[dict[str, Any]] | None): Record list containing input data.
+            input_data: Optional record list used to seed handler state.
         """
         self._data_frame = copy.deepcopy(input_data) if input_data is not None else []
         self._encoders: list[BaseEncoder] = []
@@ -82,16 +82,16 @@ class EncoderHandler:
         return cls.__instance
 
     def build_composite_sdr(self, input_data: list[Mapping[str, Any]]) -> list[SDR]:
-        """Builds a composite SDR from multiple encoders based on the input data.
+        """Build composite SDRs from record data.
 
         For each column in the input records, selects an encoder based on the value type,
         encodes the value, and concatenates the resulting SDRs into a single composite SDR.
 
         Args:
-            input_data (list[Mapping[str, Any]]): Records containing input values for each encoder.
+            input_data: Records containing input values for each encoder.
 
         Returns:
-            list[SDR]: Composite SDRs built from all encoded columns.
+            Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.
