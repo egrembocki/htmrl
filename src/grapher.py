@@ -3,7 +3,6 @@ from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
 from matplotlib.pylab import f
@@ -54,14 +53,14 @@ def plot_sdr(data: list[int]) -> None:
 def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv") -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
-
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
+    hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
+    signal_values: list[float] = []
+    for record in hot_gym_records:
+        for key, value in record.items():
+            if key == "timestamp":
+                continue
+            signal_values.append(float(value))
+    signal = np.asarray(signal_values, dtype=float)
 
     # signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
     # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
@@ -147,14 +146,14 @@ if __name__ == "__main__":
     print(f"Overlap between SDRs: {overlap} bits")
 
     ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
-
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
+    hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
+    signal_values = []
+    for record in hot_gym_records:
+        for key, value in record.items():
+            if key == "timestamp":
+                continue
+            signal_values.append(float(value))
+    signal = np.asarray(signal_values, dtype=float)
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(

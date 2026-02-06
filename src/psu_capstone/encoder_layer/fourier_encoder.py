@@ -20,7 +20,6 @@ from datetime import time
 from typing import Any, cast, override
 
 import numpy as np
-import pandas as pd
 from matplotlib.pyplot import sca
 from scipy.fft import fft, fftfreq, ifft
 from sklearn.utils import deprecated
@@ -102,7 +101,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
 
         Args:
-            time_data (np.ndarray | pd.DataFrame): Input time-domain data.
+            time_data (np.ndarray): Input time-domain data.
 
         Returns:
             np.ndarray: Transformed frequency-domain data. (complex-valued)
@@ -142,7 +141,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         return unit_vector
 
-    def _trim(self, input_data: np.ndarray | pd.DataFrame | list[float]) -> np.ndarray:
+    def _trim(self, input_data: np.ndarray | list[float]) -> np.ndarray:
         """Trim input array into a power of 2 size"""
 
         # verify sizes of input data
@@ -150,14 +149,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         self._time_step = self._period_size / self._total_samples
         self._sample_rate = float(1 / self._time_step)  # samples per second
 
-        if isinstance(input_data, pd.DataFrame):
-
-            # convert all pd.DataFrame columns to float types
-            input_data = (
-                input_data.select_dtypes(include=[np.number]).astype(float).to_numpy(copy=False)
-            )
-
-        elif isinstance(input_data, np.ndarray):
+        if isinstance(input_data, np.ndarray):
             input_data = input_data.astype(float, copy=False)
 
         else:

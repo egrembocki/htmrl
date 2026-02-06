@@ -16,7 +16,6 @@ from datetime import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.colors import ListedColormap
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -113,12 +112,12 @@ def visualize_sdr_all_rows(
     plt.show(block=True)
 
 
-def build_demo_dataframe() -> pd.DataFrame:
+def build_demo_records() -> list[dict[str, object]]:
     """
-    Build a simple demonstration DataFrame with scalar, category, and datetime columns.
+    Build a simple demonstration record set with scalar, category, and datetime columns.
 
     Returns:
-        pd.DataFrame: DataFrame containing sample rows for encoding demonstration.
+        list[dict[str, object]]: Sample rows for encoding demonstration.
     """
 
     scalar_rows = [
@@ -147,7 +146,7 @@ def build_demo_dataframe() -> pd.DataFrame:
             "timestamp": datetime(2023, 12, 25, 8, 30),
         },
     ]
-    return pd.DataFrame(scalar_rows)
+    return scalar_rows
 
 
 def main():
@@ -273,20 +272,18 @@ def main():
     visualize_sdr_all_rows(date_sdrs, title="Date Encoder SDR", row_labels=date_values)  # type: ignore
 
     # Test composite SDR building
-    demo_sample_df = build_demo_dataframe()
-    sub_set_df = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
+    demo_sample_records = build_demo_records()
+    sub_set_records = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
 
     # change values to all float to trigger rdse in sub_set_df
-    for col in sub_set_df.columns:
-        if sub_set_df[col].dtype == int:
-            try:
-                sub_set_df[col] = sub_set_df[col].astype(float)
-            except ValueError:
-                pass  # Ignore columns that cannot be converted to float
+    for row in sub_set_records:
+        for key, value in row.items():
+            if isinstance(value, int) and not isinstance(value, bool):
+                row[key] = float(value)
 
     # encoder parameters are hardcoded in EncoderHandler for demo purposes
-    handler = EncoderHandler(demo_sample_df)
-    composite_list = handler.build_composite_sdr(demo_sample_df)
+    handler = EncoderHandler(demo_sample_records)
+    composite_list = handler.build_composite_sdr(demo_sample_records)
 
     print("Composite SDR count:", len(composite_list))
     for idx, composite in enumerate(composite_list):
@@ -297,7 +294,7 @@ def main():
 
     # For demo_sample_df, show all values being encoded for each row, but skip any datetime/Timestamp in the label
     def all_row_label(row, max_len=60):
-        vals = list(row.values)
+        vals = list(row.values())
         # Only include non-datetime values
 
         def is_not_datetime(val):
@@ -319,10 +316,10 @@ def main():
             label = "\n".join(parts)
         return label
 
-    row_labels = [all_row_label(row) for _, row in demo_sample_df.iterrows()]
+    row_labels = [all_row_label(row) for row in demo_sample_records]
     visualize_sdr_all_rows(composite_list, title="Composite SDR", row_labels=row_labels)
 
-    composite_list_excel = handler.build_composite_sdr(sub_set_df)
+    composite_list_excel = handler.build_composite_sdr(sub_set_records)
 
     print("Composite SDR count (Excel data):", len(composite_list_excel))
     for idx, composite in enumerate(composite_list_excel):
@@ -330,7 +327,7 @@ def main():
         print(f"Composite SDR {idx} size:", composite.size)
         print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
 
-    row_labels_excel = [all_row_label(row) for _, row in sub_set_df.iterrows()]
+    row_labels_excel = [all_row_label(row) for row in sub_set_records]
     visualize_sdr_all_rows(composite_list_excel, title="Composite SDR", row_labels=row_labels_excel)
 
 
