@@ -48,6 +48,7 @@ tests/test_base_encoder.py
 tests/test_decoder_category.py
 tests/test_decoder_date.py
 tests/test_decoder_rdse.py
+tests/test_demo_driver_integration.py
 tests/test_encode_batch_sdrs.py
 tests/test_encoder_batch_handler.py
 tests/test_encoder_category.py

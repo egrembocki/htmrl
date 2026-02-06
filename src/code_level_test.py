@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, cast
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
