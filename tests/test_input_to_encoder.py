@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 # should not have to pull from multiple layers like this
@@ -30,14 +29,11 @@ def encoder_interface(encoder) -> EncoderInterface:
     return encoder.get_instance()
 
 
-def test_input_to_encoder_passes_same_dataframe_object(input_handler, encoder):
+def test_input_to_encoder_passes_records_into_encoder_dataframe(input_handler, encoder):
     """
-    This test verifies that EncoderInterface.buffered_data returns a pandas DataFrame
-    and that passing that DataFrame from an InputHandler to an encoder keeps the *same object*.
-
-    The purpose is to ensure we are not copying, re-wrapping, or rebuilding
-    the DataFrame — the encoder should receive the identical object produced
-    by the handler.
+    This test verifies that InputHandler yields record dictionaries and that
+    EncoderInterface.buffered_data can ingest those records
+    without data loss.
     """
 
     # Arrange
@@ -45,13 +41,12 @@ def test_input_to_encoder_passes_same_dataframe_object(input_handler, encoder):
     input_handler.interface = encoder
 
     # Act
-    input_df = input_handler.input_data(data_list, required_columns=["timestamp", "value"])
-    encoder_df = input_handler.interface.buffer_data(input_df)
+    records = input_handler.input_data(data_list, required_columns=["timestamp", "value"])
+    encoder_records = input_handler.interface.buffer_data(records)
 
     # Assert
     assert isinstance(input_handler, InputInterface)
     assert isinstance(encoder, EncoderInterface)
-    assert isinstance(input_df, pd.DataFrame)
-    assert isinstance(encoder_df, pd.DataFrame)
-    assert input_df["value"].equals(encoder_df["value"])
-    assert input_df is encoder_df
+    assert isinstance(records, list)
+    assert isinstance(encoder_records, list)
+    assert [row["value"] for row in encoder_records] == [row["value"] for row in records]

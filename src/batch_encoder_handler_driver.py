@@ -3,7 +3,6 @@ import time
 import warnings
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -31,11 +30,14 @@ def main():
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
-    input_data = handler.input_data(input_source=data_path, required_columns=[])
-    input_data = input_data.loc[:, ~input_data.columns.duplicated()]
+    input_records = handler.input_data(input_source=data_path, required_columns=[])
 
     encoder = RandomDistributedScalarEncoder()
-    values = pd.to_numeric(input_data["kw_energy_consumption"], errors="coerce").dropna().tolist()
+    values = [
+        float(row["kw_energy_consumption"])
+        for row in input_records
+        if row.get("kw_energy_consumption") is not None
+    ]
     train_values, test_values = train_test_split(values, test_size=0.2, shuffle=False)
     # Train the knn for decoding on 80% of data
     encodings = []
@@ -65,7 +67,7 @@ def main():
     print("RMSE:", rmse)
     # =======================================================================================================
 
-    # values = pd.to_numeric(input_data["Wave"])
+    # values = [float(row["Wave"]) for row in input_records if row.get("Wave") is not None]
     # data_path = os.path.join(project_root, "data", "test.csv")
     # =======================================================================================================
     """

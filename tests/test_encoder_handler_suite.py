@@ -3,7 +3,6 @@
 import copy
 from datetime import datetime
 
-import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
@@ -13,16 +12,14 @@ from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 def handler() -> EncoderHandler:
     """Fixture to create an EncoderHandler with multiple encoders"""
 
-    df = pd.DataFrame(
-        [
-            {
-                "float_col": float(3.14),  # rdse
-                "int_col": int(42),  # scalar
-                "str_col": str("B"),  # category
-                "date_col": datetime(2023, 12, 25),  # date
-            }
-        ]
-    )
+    df = [
+        {
+            "float_col": float(3.14),  # rdse
+            "int_col": int(42),  # scalar
+            "str_col": str("B"),  # category
+            "date_col": datetime(2023, 12, 25),  # date
+        }
+    ]
 
     handler = EncoderHandler(df)
 

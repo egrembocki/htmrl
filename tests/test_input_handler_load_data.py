@@ -4,8 +4,8 @@ tests.test_input_handler_load_data
 
 from pathlib import Path
 
-import pandas as pd
 import pytest
+from openpyxl import Workbook
 
 from psu_capstone.input_layer.input_handler import InputHandler
 
@@ -25,88 +25,86 @@ def temp_path(tmp_path: Path) -> Path:
 
 
 def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
-    """Ensure CSV files are parsed with a timestamp column and exact value preservation."""
+    """Ensure CSV files are parsed into record dictionaries."""
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b,c\n1,2,3\n4,5,6\n")
     required = ["a", "b", "c"]
 
     # Act
-    df = handler.input_data(str(csv_path), required_columns=required)
+    records = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
-    assert list(df.columns) == required
-    assert df.shape == (2, 3)
-    assert df.loc[0, ["a", "b", "c"]].values.tolist() == [1, 2, 3]  # type: ignore
+    assert list(records[0].keys()) == required
+    assert len(records) == 2
+    assert [records[0]["a"], records[0]["b"], records[0]["c"]] == ["1", "2", "3"]
 
 
 def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> None:
-    """Confirm XLSX ingestion yields the requested timestamp and numeric columns."""
+    """Confirm XLSX ingestion yields the requested columns."""
     # Arrange
     xlsx_path = temp_path / "sample.xlsx"
-    df_in = pd.DataFrame({"a": [10, 20], "b": [30, 40]})
-    df_in.to_excel(xlsx_path, index=False)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["a", "b"])
+    sheet.append([10, 30])
+    sheet.append([20, 40])
+    workbook.save(xlsx_path)
     required = ["a", "b"]
 
     # Act
-    df = handler.input_data(str(xlsx_path), required_columns=required)
+    records = handler.input_data(str(xlsx_path), required_columns=required)
 
     # Assert
-    assert list(df.columns) == required
-    assert df["a"].tolist() == [10, 20]
-    assert df["b"].tolist() == [30, 40]
+    assert list(records[0].keys()) == required
+    assert [records[0]["a"], records[1]["a"]] == [10, 20]
+    assert [records[0]["b"], records[1]["b"]] == [30, 40]
 
 
-def test_load_input_data_excel_xls(temp_path: Path, handler: InputHandler) -> None:
-    """Validate legacy XLS files are supported and maintain row counts."""
+def test_load_input_data_excel_xls_is_unsupported(temp_path: Path, handler: InputHandler) -> None:
+    """Validate legacy XLS files raise a ValueError without optional XLS readers."""
     # Arrange
     xls_path = temp_path / "sample.xls"
-    df_in = pd.DataFrame({"a": [1], "b": [2]})
-    df_in.to_excel(xls_path, index=False)
+    xls_path.write_text("placeholder")
     required = ["a", "b"]
 
     # Act
-    df = handler.input_data(str(xls_path), required_columns=required)
-
-    # Assert
-    assert list(df.columns) == required
-    assert df.shape == (1, 2)
-    assert df.loc[0, "a"] == 1
+    with pytest.raises(ValueError):
+        handler.input_data(str(xls_path), required_columns=required)
 
 
 def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
-    """Check JSON records are converted into the expected DataFrame layout."""
+    """Check JSON records are converted into the expected record layout."""
     # Arrange
     json_path = temp_path / "sample.json"
-    df_in = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-    df_in.to_json(json_path, orient="records")
+    json_path.write_text('[{"a": 1, "b": 3}, {"a": 2, "b": 4}]')
     required = ["a", "b"]
 
     # Act
-    df = handler.input_data(str(json_path), required_columns=required)
+    records = handler.input_data(str(json_path), required_columns=required)
 
     # Assert
-    assert list(df.columns) == required
-    assert df["a"].tolist() == [1, 2]
-    assert df["b"].tolist() == [3, 4]
+    assert list(records[0].keys()) == required
+    assert [records[0]["a"], records[1]["a"]] == [1, 2]
+    assert [records[0]["b"], records[1]["b"]] == [3, 4]
 
 
 def test_load_input_data_txt_returns_dataframe_of_lines(
     temp_path: Path, handler: InputHandler
 ) -> None:
-    """Verify plain-text files become line-per-row DataFrames with timestamps."""
+    """Verify plain-text files become line-per-row records."""
     # Arrange
     txt_path = temp_path / "sample.txt"
     lines = ["first line\n", "second line\n", "third line\n"]
     txt_path.write_text("".join(lines))
 
     # Act
-    df = handler.input_data(str(txt_path), required_columns=["value"])
+    records = handler.input_data(str(txt_path), required_columns=["value"])
 
     # Assert
-    assert list(df.columns) == ["value"]
-    assert df.shape == (len(lines), 1)
-    assert df["value"].tolist() == lines
+    assert list(records[0].keys()) == ["value"]
+    assert len(records) == len(lines)
+    assert [record["value"] for record in records] == lines
 
 
 def test_load_input_data_unsupported_extension_raises_value_error(
@@ -154,18 +152,25 @@ def test_input_handler_is_singleton() -> None:
 
 
 def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandler) -> None:
-    """Check the handler caches the latest DataFrame without sharing references."""
+    """Check the handler caches the latest records without sharing references."""
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")
     required = ["timestamp", "a", "b"]
 
     # Act
-    df_one = handler.input_data(str(csv_path), required_columns=required)
-    df_two = handler.input_data(str(csv_path), required_columns=required)
+    records_one = handler.input_data(str(csv_path), required_columns=required)
+    records_two = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
-    assert isinstance(df_one, pd.DataFrame)
-    assert isinstance(df_two, pd.DataFrame)
-    assert df_two["a"].equals(df_one["a"]) and df_two["b"].equals(df_one["b"])
-    assert df_two is not df_one
+    assert isinstance(records_one, list)
+    assert isinstance(records_two, list)
+    assert records_two == records_one
+    assert records_two is not records_one
+
+
+def test_load_input_data_bytearray(handler: InputHandler) -> None:
+    """Ensure bytearray inputs become value records that preserve byte order."""
+    payload = bytearray([1, 2, 255])
+    records = handler.input_data(payload, required_columns=["value"])
+    assert [record["value"] for record in records] == [1, 2, 255]
