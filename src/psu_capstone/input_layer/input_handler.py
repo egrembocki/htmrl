@@ -31,6 +31,8 @@ class InputHandler:
     def __new__(cls) -> InputHandler:
         """Constructor ::  Singleton pattern implementation."""
 
+        cls.__instance
+
         if cls.__instance is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
 

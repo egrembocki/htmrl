@@ -141,7 +141,7 @@ if __name__ == "__main__":
     print(f"Overlap between SDRs: {overlap} bits")
 
     ih = InputHandler()
-    hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
+    hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", "rec-center-hourly.csv"))
     signal_values = []
     for record in hot_gym_records:
         for key, value in record.items():
