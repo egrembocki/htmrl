@@ -1,0 +1,12 @@
+@startuml
+
+title psu_capstone.encoder_layer.scalar_encoder
+
+class BaseEncoder
+class ScalarEncoder
+class ScalarEncoderParameters
+
+BaseEncoder <|-- ScalarEncoder
+ScalarEncoder o-- ScalarEncoderParameters : parameters
+
+@enduml

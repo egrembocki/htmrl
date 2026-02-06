@@ -1,0 +1,20 @@
+@startuml
+
+title psu_capstone.encoder_layer.date_encoder
+
+class BaseEncoder
+class DateEncoder
+class DateEncoderParameters
+class RandomDistributedScalarEncoder
+class RDSEParameters
+class ScalarEncoder
+class ScalarEncoderParameters
+
+BaseEncoder <|-- DateEncoder
+DateEncoder o-- DateEncoderParameters : parameters
+DateEncoder ..> RandomDistributedScalarEncoder : sub-encoders
+DateEncoder ..> ScalarEncoder : sub-encoders
+DateEncoder ..> RDSEParameters : build
+DateEncoder ..> ScalarEncoderParameters : build
+
+@enduml
