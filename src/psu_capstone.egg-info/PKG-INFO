@@ -13,7 +13,7 @@ Requires-Dist: mmh3>=3.0
 Requires-Dist: matplotlib>=3.7
 Requires-Dist: scikit-learn>=1.7.2
 
-# PSU Capstone Project
+# PSU Capstone Project (FORK - millscb)
 
 ## 1. Environment Setup: uv
 

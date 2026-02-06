@@ -19,16 +19,16 @@ from psu_capstone.log import logger
 class InputHandler:
     """Build an input data manager."""
 
-    __instance: ClassVar[InputHandler | None] = None
+    __instance: InputHandler
     """Singleton instance"""
 
-    __interface: ClassVar[Any]  # may get removed in future updates -- sonarqube(python:S4487)
+    __interface: Any
     """Interface for future extension"""
 
-    _TEXT_EXTENSION: ClassVar[str] = ".txt"
+    _TEXT_EXTENSION: str = ".txt"
     """File extension for text files."""
 
-    def __new__(cls) -> "InputHandler":
+    def __new__(cls) -> InputHandler:
         """Constructor ::  Singleton pattern implementation."""
 
         if getattr(cls, "_InputHandler__instance", None) is None:
@@ -40,7 +40,7 @@ class InputHandler:
         """Constructor :: called after new().
 
         Args:
-            data (Any, optional): Initial data to load into the handler. Defaults to None.
+            data (Any): Initial data to load into the handler. Defaults to None.
 
         """
 
