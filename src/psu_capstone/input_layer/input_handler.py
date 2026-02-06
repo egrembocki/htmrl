@@ -59,7 +59,7 @@ class InputHandler:
         """Most-recent required_columns list passed to input_data (used for timestamp behavior)"""
 
     @classmethod
-    def get_instance(cls) -> "InputHandler":
+    def get_instance(cls) -> InputHandler:
         """Static access method to get the singleton instance."""
 
         if cls.__instance is None:
@@ -276,8 +276,7 @@ class InputHandler:
 
         base_time = datetime.datetime(1970, 1, 1)
         timestamp_values = [
-            (base_time + datetime.timedelta(seconds=idx)).isoformat()
-            for idx in range(len(records))
+            (base_time + datetime.timedelta(seconds=idx)).isoformat() for idx in range(len(records))
         ]
         updated_records = []
         for idx, record in enumerate(records):
