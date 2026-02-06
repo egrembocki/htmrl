@@ -1,210 +1,156 @@
-#!/usr/bin/env python3
-# By: Dr. Agrawal
-"""Sine-wave regression test and evaluator for HTM parameter sweeps."""
+"""Manual demo runner for the full HTM pipeline.
+
+This module stitches together the input layer, encoder layer, and HTM brain engine
+into a single runtime demo suitable for live presentations.
+"""
 
 from __future__ import annotations
 
-import random
-import sys
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from datetime import datetime
 
-import numpy as np
-from tqdm import tqdm
-
-from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, InputField
+from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RDSEParameters
-
-sys.path.append(str(Path(__file__).parent.parent))
-
-
-@dataclass(frozen=True)
-class SineConfig:
-    num_columns: int = 512
-    cells_per_column: int = 16
-    resolution: float = 0.001
-    cycle_length: int = 64
-    rdse_seed: int = 5
-    total_steps: int = 1_000
-    rng_seed: int = 42
-    missing_prediction_penalty: float = 2.0
+from psu_capstone.input_layer.input_handler import InputHandler
 
 
-def _resolve_config(config: dict[str, Any] | SineConfig | None) -> SineConfig:
-    if config is None:
-        return SineConfig()
-    if isinstance(config, SineConfig):
-        return config
-    return SineConfig(**config)
-
-
-def _seed_rng(config: SineConfig) -> None:
-    np.random.seed(config.rng_seed)
-    random.seed(config.rng_seed)
-
-
-def _build_sine_brain(config: SineConfig) -> tuple[Brain, list[float]]:
-    rdse_params = RDSEParameters(
-        size=config.num_columns,
-        active_bits=0,
-        sparsity=0.02,
-        resolution=config.resolution,
-        category=False,
-        seed=config.rdse_seed,
-    )
-    input_field = InputField(size=config.num_columns, encoder_params=rdse_params)
-    column_field = ColumnField(
-        input_fields=[input_field],
-        non_spatial=True,
-        num_columns=config.num_columns,
-        cells_per_column=config.cells_per_column,
-    )
-    sine_cycle = np.sin(np.linspace(0, 2 * np.pi, config.cycle_length, endpoint=False)).tolist()
-    brain = Brain(
+def build_demo_payload() -> list[dict[str, object]]:
+    """Construct a small, presentation-friendly dataset."""
+    return [
         {
-            "sine_input": input_field,
-            "column_field": column_field,
+            "timestamp": datetime(2024, 7, 4, 9, 0),
+            "sensor_id": "alpha",
+            "temp_c": 21.5,
+            "usage_kw": 3,
+        },
+        {
+            "timestamp": datetime(2024, 7, 4, 10, 0),
+            "sensor_id": "alpha",
+            "temp_c": 22.1,
+            "usage_kw": 5,
+        },
+        {
+            "timestamp": datetime(2024, 7, 4, 11, 0),
+            "sensor_id": "beta",
+            "temp_c": 23.2,
+            "usage_kw": 8,
+        },
+        {
+            "timestamp": datetime(2024, 7, 4, 12, 0),
+            "sensor_id": "beta",
+            "temp_c": 24.0,
+            "usage_kw": 13,
+        },
+    ]
+
+
+def build_brain(field_sizes: dict[str, int]) -> Brain:
+    """Create a Brain wired to four input fields and one column field."""
+    temp_field = InputField(
+        RDSEParameters(size=field_sizes["temp_c"], active_bits=8, resolution=0.5, seed=11)
+    )
+    usage_field = InputField(
+        RDSEParameters(size=field_sizes["usage_kw"], active_bits=8, resolution=1.0, seed=17)
+    )
+    sensor_field = InputField(
+        RDSEParameters(size=field_sizes["sensor_id"], active_bits=1, category=True, seed=23)
+    )
+    timestamp_field = InputField(
+        RDSEParameters(size=field_sizes["timestamp"], active_bits=8, resolution=3600.0, seed=29)
+    )
+
+    column_field = ColumnField(
+        input_fields=[temp_field, usage_field, sensor_field, timestamp_field],
+        num_columns=128,
+        cells_per_column=4,
+    )
+
+    return Brain(
+        {
+            "temp_c": temp_field,
+            "usage_kw": usage_field,
+            "sensor_id": sensor_field,
+            "timestamp": timestamp_field,
+            "cortex": column_field,
         }
     )
-    return brain, sine_cycle
 
 
-def _train_sine(
-    brain: Brain,
-    sine_cycle: list[float],
-    config: SineConfig,
-) -> list[int]:
-    burst_counts = []
-    for step in tqdm(range(config.total_steps), desc="Training"):
-        value = sine_cycle[step % config.cycle_length]
-        brain.step({"sine_input": value})
-        burst_counts.append(len(brain.column_field.bursting_columns))
-    print("Burst counts over time:", burst_counts)
-    return burst_counts
+def normalize_for_brain(records: list[dict[str, object]]) -> list[dict[str, float]]:
+    """Convert records into numeric values consumable by RDSE input fields."""
+    sensor_ids = sorted({record["sensor_id"] for record in records})
+    sensor_lookup = {sensor_id: idx for idx, sensor_id in enumerate(sensor_ids)}
+
+    normalized: list[dict[str, float]] = []
+    for record in records:
+        timestamp = record["timestamp"]
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+        normalized.append(
+            {
+                "timestamp": float(timestamp.timestamp()),
+                "sensor_id": float(sensor_lookup[str(record["sensor_id"])]),
+                "temp_c": float(record["temp_c"]),
+                "usage_kw": float(record["usage_kw"]),
+            }
+        )
+    return normalized
 
 
-def _evaluate_sine(
-    brain: Brain,
-    sine_cycle: list[float],
-    config: SineConfig,
-) -> tuple[list[float], list[int], int]:
-    evaluation_bursts = []
-    errors = []
-    prediction_failures = 0
-    for value in sine_cycle:
-        prediction = brain.prediction()["sine_input"]
-        if prediction is None:
-            prediction_failures += 1
-            errors.append(config.missing_prediction_penalty)
-        else:
-            errors.append(abs(value - prediction) ** 2)
-        brain.step({"sine_input": value}, learn=False)
-        evaluation_bursts.append(len(brain.column_field.bursting_columns))
-    print("Evaluation burst counts:", evaluation_bursts)
-    print("Evaluation errors:", errors)
-    return errors, evaluation_bursts, prediction_failures
+def prepare_encoder_records(records: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Ensure datetime values are restored for the encoder layer demo."""
+    hydrated: list[dict[str, object]] = []
+    for record in records:
+        timestamp = record["timestamp"]
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+        hydrated.append({**record, "timestamp": timestamp})
+    return hydrated
 
 
-def _summarize_sine_metrics(
-    errors: list[float],
-    evaluation_bursts: list[int],
-    prediction_failures: int,
-    burst_counts: list[int],
-    params: dict[str, float],
-) -> dict[str, Any]:
-    mae = sum(errors[1:]) / len(errors[1:])
-    score = float(mae)
-    return {
-        "mean_abs_error": float(mae),
-        "prediction_failures": int(prediction_failures),
-        "avg_eval_bursting_columns": float(
-            sum(evaluation_bursts[1:]) / max(1, len(evaluation_bursts[1:]))
-        ),
-        "train_final_burst": int(burst_counts[-1]) if burst_counts else 0,
-        "score": score,
-        "params_used": params,
-    }
+def run_demo() -> None:
+    """Run the full demo: input layer -> encoder layer -> HTM brain."""
+    print("\n=== PSU Capstone Manual Demo ===")
 
+    input_handler = InputHandler()
+    raw_payload = build_demo_payload()
+    normalized_records = input_handler.input_data(raw_payload)
 
-def evaluate_sine_wave(
-    params: dict[str, float] | None = None,
-    config: dict[str, Any] | SineConfig | None = None,
-) -> dict[str, Any]:
-    """Evaluate sine-wave prediction and return metrics for optimization."""
-    params = params or {}
-    config_obj = _resolve_config(config)
-    _seed_rng(config_obj)
-    brain, sine_cycle = _build_sine_brain(config_obj)
-    burst_counts = _train_sine(brain, sine_cycle, config_obj)
-    errors, evaluation_bursts, prediction_failures = _evaluate_sine(brain, sine_cycle, config_obj)
-    brain.column_field.print_stats()
-    return _summarize_sine_metrics(
-        errors, evaluation_bursts, prediction_failures, burst_counts, params
+    print("\nInput Layer Output (normalized records):")
+    print(f"Loaded {len(normalized_records)} rows from the input layer.")
+    for row in normalized_records:
+        print(f"  {row}")
+
+    encoder_records = prepare_encoder_records(normalized_records)
+    encoder_handler = EncoderHandler(encoder_records)
+    composite_sdrs = encoder_handler.build_composite_sdr(encoder_records)
+
+    print("\nEncoder Layer Output (composite SDR summary):")
+    for idx, composite in enumerate(composite_sdrs, start=1):
+        print(
+            f"  Row {idx}: size={composite.size}, sparsity={composite.get_sparsity():.4f}"
+        )
+
+    brain = build_brain(
+        {
+            "temp_c": 128,
+            "usage_kw": 128,
+            "sensor_id": 64,
+            "timestamp": 128,
+        }
     )
 
+    print("\nBrain HTM Engine Output:")
+    brain_inputs = normalize_for_brain(normalized_records)
+    for step_idx, row in enumerate(brain_inputs, start=1):
+        brain.step(row, learn=True)
+        prediction = brain.prediction()
+        print(f"  Step {step_idx}: input={row} prediction={prediction}")
 
-def test_sine_wave_bursting_columns_converge() -> None:
-    """Test ColumnField bursts converge to zero on a learned sine-driven sequence."""
-    metrics = evaluate_sine_wave()
-    print("Mean Absolute Error of predictions:", metrics["mean_abs_error"])
-    print("Prediction failures:", metrics["prediction_failures"])
-    print("Evaluation bursting columns:", metrics["avg_eval_bursting_columns"])
+    print("\nHTM Column Statistics:")
+    brain.print_stats()
 
 
 if __name__ == "__main__":
-    test_sine_wave_bursting_columns_converge()
-
-""""
-Stats
-
-learning =.5*num_synapses
-ColumnField statistics:
-  Columns: 512 | Cells: 8192 | Segments: 114 | Synapses: 16731
-  +------------------------+--------------------+----------+----------+
-  | Metric                 |   Mean ± Std      |      Min |      Max |
-  +------------------------+--------------------+----------+----------+
-  | Segments per cell     |     0.01 ± 0.33    |        0 |       16 |
-  | Synapses per segment  |   146.76 ± 134.99  |       16 |      496 |
-  | Permanence            |    0.145 ± 0.197   |    0.000 |    1.000 |
-  +------------------------+--------------------+----------+----------+
-  Connected synapses (>= 0.5): 492 (2.9% of all synapses)
-
-learning = 5
-ColumnField statistics:
-  Columns: 512 | Cells: 8192 | Segments: 51 | Synapses: 11263
-  +------------------------+--------------------+----------+----------+
-  | Metric                 |   Mean ± Std      |      Min |      Max |
-  +------------------------+--------------------+----------+----------+
-  | Segments per cell     |     0.01 ± 0.10    |        0 |        2 |
-  | Synapses per segment  |   220.84 ± 191.64  |        0 |      559 |
-  | Permanence            |    0.047 ± 0.199   |    0.000 |    1.000 |
-  +------------------------+--------------------+----------+----------+
-  Connected synapses (>= 0.5): 524 (4.7% of all synapses)
-
-learning = .1*num_synapses
-ColumnField statistics:
-  Columns: 512 | Cells: 8192 | Segments: 38 | Synapses: 11327
-  +------------------------+--------------------+----------+----------+
-  | Metric                 |   Mean ± Std       |      Min |      Max |
-  +------------------------+--------------------+----------+----------+
-  | Segments per cell      |     0.00 ± 0.08    |        0 |        4 |
-  | Synapses per segment   |   298.08 ± 160.36  |       16 |      559 |
-  | Permanence             |    0.048 ± 0.199   |    0.000 |    1.000 |
-  +------------------------+--------------------+----------+----------+
-  Connected synapses (>= 0.5): 524 (4.6% of all synapses)
-
-activation threshold = .005*max_synapses
-max_new_synapse_count=.1*field
-ColumnField statistics:
-  Columns: 512 | Cells: 8192 | Segments: 38 | Synapses: 11102
-  +------------------------+--------------------+----------+----------+
-  | Metric                 |   Mean ± Std      |      Min |      Max |
-  +------------------------+--------------------+----------+----------+
-  | Segments per cell     |     0.00 ± 0.08    |        0 |        4 |
-  | Synapses per segment  |   292.16 ± 157.54  |       16 |      559 |
-  | Permanence            |    0.049 ± 0.200   |    0.000 |    1.000 |
-  +------------------------+--------------------+----------+----------+
-  Connected synapses (>= 0.5): 524 (4.7% of all synapses)
-"""
+    run_demo()
