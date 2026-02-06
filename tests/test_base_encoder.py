@@ -13,9 +13,9 @@ def base_encoder_instance() -> BaseEncoder:
 
     # Arrange @mock
     class TestEncoder(BaseEncoder):
-        def encode(self, input_value, output_sdr: list[int]) -> None:
+        def encode(self, input_value: float) -> list[int]:
             """Dummy encode method for testing."""
-            pass
+            return [0] * self.size
 
     return TestEncoder([10, 10])
 
