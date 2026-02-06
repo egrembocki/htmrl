@@ -1,0 +1,10 @@
+@startuml
+
+title psu_capstone.encoder_layer.base_encoder
+
+abstract class BaseEncoder
+class AgentInterface
+
+BaseEncoder ..> AgentInterface : interface
+
+@enduml

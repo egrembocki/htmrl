@@ -1,0 +1,14 @@
+@startuml
+
+title psu_capstone.agent_layer.agent_interface
+
+interface Protocol
+
+interface AgentInterface {
+  +select_action(state: tuple)
+  +update_policy(state: tuple, action: Any, reward: float, next_state: tuple)
+}
+
+Protocol <|.. AgentInterface
+
+@enduml

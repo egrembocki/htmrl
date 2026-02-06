@@ -10,20 +10,9 @@ for demonstration and testing purposes, providing insight into how input data is
 """
 
 import os
-import sys
+
 from datetime import datetime
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.colors import ListedColormap
-
-from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 
 # To force browser mode explicitly:
@@ -42,6 +31,10 @@ def visualize_sdr_all_rows(
 
     Allows interactive navigation between SDRs using left/right arrow keys.
     """
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from matplotlib.colors import ListedColormap
 
     # Precompute grids and labels
     grids: list[np.ndarray] = []
@@ -161,6 +154,13 @@ def main():
     """
 
     print("Beginning Demo...")
+    from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
+    from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+    from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
+    from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+    from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+    from psu_capstone.input_layer.input_handler import InputHandler
+
     ih = InputHandler()
 
     scalar_encoder = ScalarEncoder(

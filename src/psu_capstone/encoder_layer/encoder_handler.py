@@ -126,8 +126,9 @@ class EncoderHandler:
                             seed=1,
                         )
                     )
+                    dense = encoder.encode(float(value))
                     sdr = SDR([encoder.size])
-                    encoder.encode(float(value), sdr)
+                    sdr.set_dense(dense)
 
                 elif scalartrue or isinstance(value, int) or isinstance(value, np.integer):
                     encoder = ScalarEncoder(
@@ -141,11 +142,12 @@ class EncoderHandler:
                             size=2048,
                             radius=0.0,
                             category=False,
-                            resolution=0.0,
+                            resolution=1.0,
                         )
                     )
+                    dense = encoder.encode(int(value))
                     sdr = SDR([encoder.size])
-                    sdr = encoder.encode(int(value))
+                    sdr.set_dense(dense)
 
                 elif isinstance(value, str):
                     category_list = sorted(
@@ -157,13 +159,15 @@ class EncoderHandler:
                             category_list=category_list,
                         )
                     )
-                    sdr = encoder.encode(value)
-                    encoder.encode(value)
+                    dense = encoder.encode(value)
+                    sdr = SDR([encoder.size])
+                    sdr.set_dense(dense)
 
                 elif isinstance(value, datetime):
                     encoder = DateEncoder(DateEncoderParameters())
+                    dense = encoder.encode(value)
                     sdr = SDR([encoder.size])
-                    sdr = encoder.encode(value)
+                    sdr.set_dense(dense)
 
                 else:
                     raise TypeError(f"Unsupported value type for encoder: {type(value)}")

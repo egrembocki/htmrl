@@ -1,0 +1,14 @@
+@startuml
+
+title psu_capstone.encoder_layer.encoder_interface
+
+interface Protocol
+
+interface EncoderInterface {
+  +buffer_data(input_data: Any, start: int, stop: int | None)
+  +encode(input_value: Any)
+}
+
+Protocol <|.. EncoderInterface
+
+@enduml

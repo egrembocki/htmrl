@@ -1,0 +1,7 @@
+@startuml
+
+title psu_capstone.agent_layer.legacy_htm.synapse
+
+class Synapse
+
+@enduml

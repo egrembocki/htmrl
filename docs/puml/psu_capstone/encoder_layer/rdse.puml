@@ -1,0 +1,12 @@
+@startuml
+
+title psu_capstone.encoder_layer.rdse
+
+class BaseEncoder
+class RandomDistributedScalarEncoder
+class RDSEParameters
+
+BaseEncoder <|-- RandomDistributedScalarEncoder
+RandomDistributedScalarEncoder o-- RDSEParameters : parameters
+
+@enduml

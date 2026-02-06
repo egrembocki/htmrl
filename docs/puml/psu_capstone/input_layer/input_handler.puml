@@ -1,0 +1,10 @@
+@startuml
+
+title psu_capstone.input_layer.input_handler
+
+class InputHandler
+class InputInterface
+
+InputHandler ..> InputInterface : interface
+
+@enduml
