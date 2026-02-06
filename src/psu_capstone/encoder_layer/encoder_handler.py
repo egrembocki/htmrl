@@ -119,7 +119,7 @@ class EncoderHandler:
                         )
                     )
                     sdr = SDR([encoder.size])
-                    encoder.encode(float(value), sdr)
+                    sdr = encoder.encode(float(value))
 
                 elif scalartrue or isinstance(value, int) or isinstance(value, np.integer):
                     encoder = ScalarEncoder(
