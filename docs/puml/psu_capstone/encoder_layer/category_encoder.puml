@@ -1,0 +1,12 @@
+@startuml
+
+title psu_capstone.encoder_layer.category_encoder
+
+class BaseEncoder
+class CategoryEncoder
+class CategoryParameters
+
+BaseEncoder <|-- CategoryEncoder
+CategoryEncoder o-- CategoryParameters : parameters
+
+@enduml

@@ -1,0 +1,17 @@
+@startuml
+
+title psu_capstone.environment.env_interface
+
+interface Protocol
+
+interface EnvInterface {
+  +reset()
+  +step(action: Any)
+  +render()
+  +close()
+  +observe()
+}
+
+Protocol <|.. EnvInterface
+
+@enduml

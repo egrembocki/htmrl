@@ -1,0 +1,12 @@
+@startuml
+
+title psu_capstone.encoder_layer.fourier_encoder
+
+class BaseEncoder
+class FourierEncoder
+class FourierEncoderParameters
+
+BaseEncoder <|-- FourierEncoder
+FourierEncoder o-- FourierEncoderParameters : parameters
+
+@enduml
