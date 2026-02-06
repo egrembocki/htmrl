@@ -3,7 +3,6 @@
 import pytest
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -62,12 +61,10 @@ def test_clipping_inputs():
     )
     # Act and Assert baseline
     encoder = ScalarEncoder(p, dimensions=[2, 5])
-    test_sdr = SDR([2, 5])
-    test_sdr.zero()
 
     assert encoder.size == 10
     assert encoder.dimensions == [2, 5]
-    assert test_sdr.size == 10
+    # assert test_sdr.size == 10
 
     # Act and Asset - Test input clipping
     # These should pass without exceptions
@@ -101,11 +98,8 @@ def test_valid_scalar_inputs():
 
     # Act and Assert - baseline
     encoder = ScalarEncoder(params, [2, 5])
-    test_sdr = SDR([2, 5])
     assert encoder.size == 10
     assert encoder.dimensions == [2, 5]
-    assert test_sdr.size == 10
-    assert test_sdr.get_sparse() == []
 
     with pytest.raises(Exception):
         encoder.encode(9.999)  # Below minimum edge case
@@ -136,10 +130,8 @@ def test_scalar_encoder_category_encode():
 
     # Act and Assert - baseline
     encoder = ScalarEncoder(params, dimensions=[66])
-    output = SDR([66])
     assert encoder.size == 66
     assert encoder.dimensions == [66]
-    assert output.size == 66
 
     # Act and Assert - Value less than minimum should raise
     with pytest.raises(Exception):
@@ -374,3 +366,72 @@ def test_scalar_encoder_serialization():
             assert nearly_equal(p1.resolution, p2.resolution)
             assert nearly_equal(p1.sparsity, p2.sparsity)
             assert nearly_equal(p1.radius, p2.radius)
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, length, active_bits)
+# ---------------------------------------------------------------------------
+
+
+def test_scalar_encode_output_only_zeros_and_ones():
+    """Encoder output must contain only 0 and 1."""
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=5,
+        sparsity=0.0,
+        size=50,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p, [1, 50])
+    for value in (0, 10, 50, 100):
+        out = encoder.encode(value)
+        assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
+
+
+def test_scalar_encode_output_length_equals_size():
+    """Encoder output length must equal the configured size."""
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=4,
+        sparsity=0.0,
+        size=32,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p, [1, 32])
+    out = encoder.encode(50.0)
+    assert len(out) == 32, f"Output length must equal size (32), got {len(out)}"
+
+
+def test_scalar_encode_output_active_bits_conforms():
+    """Output must have exactly active_bits ones; sparsity = active_bits/size."""
+    size = 64
+    active_bits = 8
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=active_bits,
+        sparsity=0.0,
+        size=size,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p, [1, size])
+    out = encoder.encode(25.0)
+    num_ones = sum(out)
+    assert num_ones == active_bits, f"Exactly {active_bits} ones expected, got {num_ones}"
+    assert num_ones / len(out) == pytest.approx(
+        active_bits / size
+    ), "Sparsity should equal active_bits/size"

@@ -11,7 +11,6 @@ from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, Categor
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")

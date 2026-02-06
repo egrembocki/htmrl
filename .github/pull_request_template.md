@@ -21,10 +21,6 @@ Example:
 Currently, errors in the SDR encoder are not wrapped. Raw errors are sent back up the callstack. This is not ideal since it does provide a callstack for us and makes it more difficult to determine where in the logic the error is taking place. This PR updates the logic in the SDR encoder method to better wrap errors before returning them up the callstack
 -->
 
-## Bump version
-Use tags for the version bump. `version:major`, `version:minor`, or `version:patch`
-<!-- https://semver.org/ -->
-
 # Dependencies
 <!--
 If applicable, link to any other PRs this PR depends upon and why.

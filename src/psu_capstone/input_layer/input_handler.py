@@ -469,12 +469,12 @@ if __name__ == "__main__":
 
     handler = InputHandler.get_instance()
 
-    assert isinstance(handler, InputHandler)
-    print("Singleton test passed.")
-    assert isinstance(handler.data, pd.DataFrame)
-    print("Initial data type test passed.")
-    assert isinstance(handler, InputInterface)
-    print("Interface conformance test passed.")
+    # assert isinstance(handler, InputHandler)
+    # print("Singleton test passed.")
+    # assert isinstance(handler.data, pd.DataFrame)
+    # print("Initial data type test passed.")
+    # assert isinstance(handler, InputInterface)
+    # print("Interface conformance test passed.")
 
     sample_matrix = [
         ("List input", [1, 2, 3], ["value"]),

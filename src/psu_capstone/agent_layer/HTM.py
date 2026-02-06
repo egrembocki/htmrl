@@ -32,8 +32,8 @@ def make_state_class(label: str):  # type: ignore
     prev_attr = f"prev_{attr}"
     new_class = None
 
-    def __init__(self, *args, **kwargs):  # type: ignore
-        super(new_class, self).__init__(*args, **kwargs)  # type: ignore
+    def _state_init(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        super(new_class, self).__init__(*args, **kwargs)  # type: ignore[misc]
         setattr(self, attr, getattr(self, attr, False))
         setattr(self, prev_attr, getattr(self, prev_attr, False))
 
@@ -49,7 +49,7 @@ def make_state_class(label: str):  # type: ignore
         setattr(self, prev_attr, False)
 
     namespace = {
-        "__init__": __init__,
+        "__init__": _state_init,
         "state_name": attr,
         "prev_state_name": prev_attr,
         f"set_{attr}": set_state,
