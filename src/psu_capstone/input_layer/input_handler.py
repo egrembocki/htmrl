@@ -34,7 +34,7 @@ class InputHandler:
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
 
-        return cls.__instance
+        return cls.__instance  # type: ignore
 
     def __init__(self, data: Any = None) -> None:
         """Constructor :: called after new().
@@ -62,7 +62,7 @@ class InputHandler:
 
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = InputHandler()
-        return cls.__instance
+        return cls.__instance  # type: ignore
 
     @property
     def data(self) -> list[dict[str, Any]]:
@@ -83,7 +83,8 @@ class InputHandler:
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """Public :: exposed method to the user. Inputing data into the handler starts here
+        """
+            Args:
 
         raises:
             TypeError: If input_source is a path-like object.
