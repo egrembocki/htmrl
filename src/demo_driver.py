@@ -173,7 +173,7 @@ def main():
             periodic=False,
             category=False,
             sparsity=0.0,
-            radius=0.0,
+            radius=1.0,
             resolution=0.0,
         )
     )
@@ -200,12 +200,12 @@ def main():
             season_radius=91.5,
             day_of_week_active_bits=7,
             day_of_week_radius=1.0,
-            weekend_width=2,
-            holiday_width=4,
+            weekend_active_bits=2,
+            holiday_active_bits=4,
             holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
-            time_of_day_width=24,
+            time_of_day_active_bits=24,
             time_of_day_radius=1.0,
-            custom_width=0,
+            custom_active_bits=0,
             custom_days=[],
             rdse_used=True,
         )
@@ -252,10 +252,10 @@ def main():
         sdr2 = SDR([rdse_encoder.size])
         sdr3 = SDR(category_encoder.dimensions)
         sdr4 = SDR([date_encoder.size])
-        scalar_encoder.encode(value, sdr1)
-        rdse_encoder.encode(value, sdr2)
-        category_encoder.encode(category_values[i], sdr3)
-        date_encoder.encode(date_values[i], sdr4)
+        sdr1 = scalar_encoder.encode(value)
+        sdr2 = rdse_encoder.encode(value)
+        sdr3 = category_encoder.encode(category_values[i])
+        sdr4 = date_encoder.encode(date_values[i])
         scalar_sdrs.append(sdr1)
         rdse_sdrs.append(sdr2)
         category_sdrs.append(sdr3)

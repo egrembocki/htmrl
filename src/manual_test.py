@@ -54,7 +54,7 @@ def build_brain(field_sizes: dict[str, int]) -> Brain:
         RDSEParameters(size=field_sizes["usage_kw"], active_bits=8, resolution=1.0, seed=17)
     )
     sensor_field = InputField(
-        RDSEParameters(size=field_sizes["sensor_id"], active_bits=1, category=True, seed=23)
+        RDSEParameters(size=field_sizes["sensor_id"], active_bits=1, category=True, resolution=0, seed=23)
     )
     timestamp_field = InputField(
         RDSEParameters(size=field_sizes["timestamp"], active_bits=8, resolution=3600.0, seed=29)
