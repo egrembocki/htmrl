@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, cast, override
 
 import numpy as np
-from matplotlib.pyplot import sca
 from scipy.fft import fft, fftfreq
 from sklearn.utils import deprecated
 
