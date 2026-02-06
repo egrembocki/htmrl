@@ -1,7 +1,7 @@
 """Category Encoder implementation"""
 
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -131,12 +131,12 @@ class CategoryEncoder(BaseEncoder[str]):
 @dataclass
 class CategoryParameters:
 
-    w: int
+    w: int = 3
     """
     The w is the width in bits per category. So, if you have 5 categories and w=3
     we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
     """
-    category_list: list[str]
+    category_list: list[str] = field(default_factory=list)
     """
     List of categories to use.
     """
