@@ -155,8 +155,8 @@ def test_scalar_encoder_non_integer_bucket_width():
     """Test that scalar encoder handles non-integer bucket widths correctly."""
     # Arrange
     params = ScalarEncoderParameters(
-        minimum=10.0,
-        maximum=20.0,
+        minimum=10,
+        maximum=20,
         clip_input=True,
         periodic=False,
         active_bits=3,

@@ -12,7 +12,6 @@ from typing import Any, ClassVar
 import numpy as np
 from openpyxl import load_workbook
 
-from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
 
 
