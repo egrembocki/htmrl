@@ -1,29 +1,34 @@
-import pandas as pd
 import pytest
 
-# should not have to pull from multiple layers like this
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.encoder_interface import EncoderInterface
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.input_layer.input_interface import InputInterface
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
-def input_handler() -> InputInterface:
+def input_handler() -> InputHandler:
     return InputHandler.get_instance()
 
 
+def _make_scalar_params() -> ScalarEncoderParameters:
+    return ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=False,
+        periodic=False,
+        category=False,
+        active_bits=3,
+        sparsity=0.0,
+        size=15,
+        radius=0.0,
+        resolution=1.0,
+    )
+
+
 @pytest.fixture
-def encoder() -> BaseEncoder:
-    class _DummyEncoder(BaseEncoder[float]):
-
-        def encode(self, input_value: float, output_sdr: SDR) -> None:
-            # This method is intentionally left empty because _DummyEncoder is a test stub
-            # and does not require an actual encoding implementation for this test.
-            pass
-
-    return _DummyEncoder()
+def encoder() -> ScalarEncoder:
+    return ScalarEncoder(_make_scalar_params())
 
 
 @pytest.fixture
@@ -31,28 +36,31 @@ def encoder_interface(encoder) -> EncoderInterface:
     return encoder.get_instance()
 
 
-def test_input_to_encoder_passes_same_dataframe_object(input_handler, encoder):
+def test_input_to_encoder_passes_records_into_encoder_dataframe(input_handler, encoder):
     """
-    This test verifies that EncoderInterface.buffered_data returns a pandas DataFrame
-    and that passing that DataFrame from an InputHandler to an encoder keeps the *same object*.
-
-    The purpose is to ensure we are not copying, re-wrapping, or rebuilding
-    the DataFrame — the encoder should receive the identical object produced
-    by the handler.
+    This test verifies that InputHandler yields record dictionaries and that
+    EncoderInterface.buffered_data can ingest those records
+    without data loss.
     """
 
     # Arrange
-    data_list = [[0, 1, 1, 2, 3, 5, 8, 13], [21, 34, 55, 89, 144, 233, 377, 610]]
+    values = [5.0, 10.0, 15.0, 10.0, 5.0]
+    data_stream = bytearray(int(value) for value in values)
     input_handler.interface = encoder
 
     # Act
-    input_df = input_handler.input_data(data_list, required_columns=["timestamp", "value"])
-    encoder_df = input_handler.interface.buffer_data(input_df)
+    records = input_handler.input_data(data_stream, required_columns=["value"])
+    encoder_records = input_handler.interface.buffer_data(records)
+    encoded_from_buffer = [encoder.encode(row["value"]) for row in encoder_records]
+    reference_encoder = ScalarEncoder(_make_scalar_params())
+    encoded_reference = [reference_encoder.encode(value) for value in values]
 
     # Assert
     assert isinstance(input_handler, InputInterface)
     assert isinstance(encoder, EncoderInterface)
-    assert isinstance(input_df, pd.DataFrame)
-    assert isinstance(encoder_df, pd.DataFrame)
-    assert input_df["value"].equals(encoder_df["value"])
-    assert input_df is encoder_df
+    assert isinstance(records, list)
+    assert isinstance(encoder_records, list)
+    assert [row["value"] for row in encoder_records] == values
+    assert all(row["value"] is not None for row in encoder_records)
+    assert encoder_records == records
+    assert encoded_from_buffer == encoded_reference
