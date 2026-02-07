@@ -189,7 +189,6 @@ class InputHandler:
 
         return filtered_sequence
 
-    # return a np.ndarray from record lists
     def to_numpy(self, data: list[dict[str, Any]]) -> np.ndarray:
         """Convert record data to a ``numpy.ndarray``.
 

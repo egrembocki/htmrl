@@ -10,7 +10,6 @@ for demonstration and testing purposes, providing insight into how input data is
 """
 
 import os
-
 from datetime import datetime
 
 from psu_capstone.sdr_layer.sdr import SDR

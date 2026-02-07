@@ -381,7 +381,7 @@ def test_scalar_encode_output_only_zeros_and_ones():
         category=False,
         resolution=0.0,
     )
-    encoder = ScalarEncoder(p, [1, 50])
+    encoder = ScalarEncoder(p)
     for value in (0, 10, 50, 100):
         out = encoder.encode(value)
         assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
@@ -401,7 +401,7 @@ def test_scalar_encode_output_length_equals_size():
         category=False,
         resolution=0.0,
     )
-    encoder = ScalarEncoder(p, [1, 32])
+    encoder = ScalarEncoder(p)
     out = encoder.encode(50.0)
     assert len(out) == 32, f"Output length must equal size (32), got {len(out)}"
 
@@ -422,7 +422,7 @@ def test_scalar_encode_output_active_bits_conforms():
         category=False,
         resolution=0.0,
     )
-    encoder = ScalarEncoder(p, [1, size])
+    encoder = ScalarEncoder(p)
     out = encoder.encode(25.0)
     num_ones = sum(out)
     assert num_ones == active_bits, f"Exactly {active_bits} ones expected, got {num_ones}"

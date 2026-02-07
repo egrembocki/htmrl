@@ -1,11 +1,11 @@
 @startuml
 
-title psu_capstone.input_layer.input_handler call graph
+title psu_capstone.input_layer.input_handler
 
 skinparam linetype ortho
 skinparam packageStyle rectangle
 
-package "InputHandler" {
+package psu_capstone.input_layer {
   class InputHandler {
     +input_data(input_source: Any, required_columns: list[str] | None): list[dict[str, Any]]
     +to_encoder_sequence(input_source: Any, required_columns: list[str] | None, column: str | None): list[Any]
@@ -27,33 +27,5 @@ package "InputHandler" {
     +_detect_repeating_values(records: list[dict[str, Any]]): bool
   }
 }
-
-class InputInterface
-
-InputHandler ..> InputInterface : interface
-
-InputHandler ..> InputHandler : input_data(input_source: Any)\n_calls _load_from_file(filepath: str)
-InputHandler ..> InputHandler : input_data(input_source: Any)\n_calls _raw_to_sequence(data: Any)
-InputHandler ..> InputHandler : input_data(required_columns: list[str] | None)\n_calls _apply_required_columns(required_columns: list[str])
-InputHandler ..> InputHandler : input_data(required_columns: list[str] | None)\n_calls _validate_data(required_columns: list[str] | None)
-
-InputHandler ..> InputHandler : to_encoder_sequence(input_source: Any)\n_calls input_data(input_source: Any)
-InputHandler ..> InputHandler : to_encoder_sequence(records: list[dict[str, Any]])\n_calls _validate_sequence(data: list[Any])
-
-InputHandler ..> InputHandler : to_numpy(data: list[dict[str, Any]])\n_calls _validate_data(required_columns: list[str] | None)
-
-InputHandler ..> InputHandler : _raw_to_sequence(data: Any)\n_calls _coerce_records_for_sequence(data: Any)
-InputHandler ..> InputHandler : _raw_to_sequence(records: list[dict[str, Any]])\n_calls _fill_missing_values(data: list[dict[str, Any]])
-InputHandler ..> InputHandler : _raw_to_sequence(records: list[dict[str, Any]])\n_calls _normalize_record_entries(records: list[dict[str, Any]])
-InputHandler ..> InputHandler : _raw_to_sequence(records: list[dict[str, Any]])\n_calls _detect_repeating_values(records: list[dict[str, Any]])
-InputHandler ..> InputHandler : _raw_to_sequence(records: list[dict[str, Any]])\n_calls _prepend_timestamp_column(records: list[dict[str, Any]])
-
-InputHandler ..> InputHandler : _coerce_records_for_sequence(data: Any)\n_calls _normalize_record_keys(records: list[Mapping[str, Any]])
-InputHandler ..> InputHandler : _coerce_records_for_sequence(data: Any)\n_calls _records_from_mapping(data: Mapping[str, Any])
-InputHandler ..> InputHandler : _coerce_records_for_sequence(data: Any)\n_calls _coerce_iterable_for_sequence(data: Any)
-InputHandler ..> InputHandler : _coerce_records_for_sequence(iterable: Sequence[Any])\n_calls _records_from_nested_iterable(iterable: list[Any])
-
-InputHandler ..> InputHandler : _normalize_record_entries(records: list[dict[str, Any]])\n_calls _normalize_datetime_entry(value: object)
-InputHandler ..> InputHandler : _normalize_record_entries(records: list[dict[str, Any]])\n_calls _validate_sequence(data: list[dict[str, Any]])
 
 @enduml

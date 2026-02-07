@@ -30,7 +30,7 @@ def encoder() -> ScalarEncoder:
     return ScalarEncoder(_make_scalar_params())
 
 
-def test_input_to_encoder_passes_records_into_encoder_dataframe(input_handler, encoder):
+def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     """
     This test verifies that InputHandler yields record dictionaries and that
     encoder-ready sequences can ingest those records without data loss.
