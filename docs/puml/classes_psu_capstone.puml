@@ -1,0 +1,3 @@
+@startuml classes_psu_capstone
+set namespaceSeparator none
+@enduml

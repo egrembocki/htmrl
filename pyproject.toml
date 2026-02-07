@@ -21,6 +21,7 @@ dependencies = [
  "scikit-learn>=1.7.2",
  "tqdm>=4.66.4",
  "plantuml>=0.3.0",
+ "pylint>=4.0.4",
 ]
 
 
