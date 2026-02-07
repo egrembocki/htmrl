@@ -1,4 +1,8 @@
-"""InputHandler for HTM pipeline. Normalize varied payloads into encoder-ready records."""
+"""InputHandler for the HTM pipeline.
+
+This module normalizes heterogeneous input sources (files, mappings, sequences)
+into encoder-ready records suitable for downstream SDR encoders.
+"""
 
 from __future__ import annotations
 
@@ -12,11 +16,16 @@ from typing import Any, ClassVar
 import numpy as np
 from openpyxl import load_workbook
 
+from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
 
 
 class InputHandler:
-    """Build an input data manager."""
+    """Normalize raw inputs into encoder-ready records.
+
+    The handler supports file paths (CSV, JSON, XLSX, TXT) as well as in-memory
+    payloads such as mappings, sequences, or scalars.
+    """
 
     __instance: ClassVar[InputHandler | None] = None
     """Singleton instance."""
@@ -28,7 +37,7 @@ class InputHandler:
     """File extension for text files."""
 
     def __new__(cls) -> InputHandler:
-        """Constructor ::  Singleton pattern implementation."""
+        """Create the singleton instance for the handler."""
 
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
@@ -36,11 +45,10 @@ class InputHandler:
         return cls.__instance  # type: ignore
 
     def __init__(self, data: Any = None) -> None:
-        """Constructor :: called after new().
+        """Initialize the handler with optional seed data.
 
         Args:
-            data (Any): Initial data to load into the handler. Defaults to None.
-
+            data: Initial data to load into the handler. Defaults to ``None``.
         """
 
         self._data: list[dict[str, Any]]
@@ -57,7 +65,7 @@ class InputHandler:
 
     @classmethod
     def get_instance(cls) -> InputHandler:
-        """Static access method to get the singleton instance."""
+        """Return the singleton instance."""
 
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = InputHandler()
@@ -82,11 +90,17 @@ class InputHandler:
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """
-            Args:
+        """Normalize input into record dictionaries.
 
-        raises:
-            TypeError: If input_source is a path-like object.
+        Args:
+            input_source: A file path, mapping, sequence, or scalar input value.
+            required_columns: Optional list of columns to enforce for all records.
+
+        Returns:
+            A list of record dictionaries ready for encoder ingestion.
+
+        Raises:
+            TypeError: If ``input_source`` is a path-like object (use a string path).
             FileNotFoundError: If a file path is provided but the file does not exist.
             ValueError: If data validation fails.
         """
@@ -136,14 +150,52 @@ class InputHandler:
         self._validate_data(required_columns)
         return self._data
 
-    # return a np.ndarray from record lists
-    def to_numpy(self, data: list[dict[str, Any]]) -> np.ndarray:
-        """Convert record data to a numpy ndarray.
+    def to_encoder_sequence(
+        self,
+        input_source: Any,
+        required_columns: list[str] | None = None,
+        column: str | None = None,
+    ) -> list[Any]:
+        """Normalize input data and return a value sequence ready for encoders.
 
         Args:
-            data (list[dict[str, Any]]): Input record list.
+            input_source: A file path, mapping, sequence, or scalar input value.
+            required_columns: Optional list of columns to enforce for all records.
+            column: Optional column to extract from multi-column records.
+
         Returns:
-            np.ndarray: The converted numpy ndarray.
+            A list of values that can be passed directly to encoder ``encode`` methods.
+        """
+
+        records = self.input_data(input_source, required_columns=required_columns)
+        if not records:
+            raise ValueError("No records available to build encoder sequence.")
+
+        if column is None:
+            if len(records[0]) == 1:
+                column = next(iter(records[0].keys()))
+            else:
+                raise ValueError(
+                    "Column must be specified when multiple columns are present in the input."
+                )
+
+        sequence = [record.get(column) for record in records]
+        filtered_sequence = [value for value in sequence if value is not None]
+        if not filtered_sequence:
+            raise ValueError("Encoder sequence contains no valid values after filtering.")
+
+        if not self._validate_sequence(filtered_sequence):
+            raise ValueError("Encoder sequence is not a valid iterable payload.")
+
+        return filtered_sequence
+
+    def to_numpy(self, data: list[dict[str, Any]]) -> np.ndarray:
+        """Convert record data to a ``numpy.ndarray``.
+
+        Args:
+            data: Input record list.
+        Returns:
+            The converted numpy array.
         """
 
         self._data = data
@@ -156,7 +208,11 @@ class InputHandler:
         return np.asarray(matrix, dtype=np.float64)
 
     def _load_from_file(self, filepath: str) -> Any:
-        """Read supported files into record-friendly structures."""
+        """Read supported files into record-friendly structures.
+
+        Args:
+            filepath: Path to a supported input file.
+        """
 
         try:
             logger.info("Loading data from %s", filepath)
@@ -195,13 +251,21 @@ class InputHandler:
             raise
 
     def _raw_to_sequence(self, data: Any) -> list[dict[str, Any]]:
-        """Turn raw payloads into sequence-friendly records while flagging temporal values."""
+        """Turn raw payloads into record dictionaries.
+
+        The method recognizes mappings, sequences of mappings, raw arrays, and scalars.
+        It normalizes date-like values into ISO-8601 timestamp strings.
+        """
 
         logger.info("converting to sequence")
 
         records, is_nested = self._coerce_records_for_sequence(data)
         self._fill_missing_values(records)
         normalized_records, contains_sequential = self._normalize_record_entries(records)
+        contains_repeating = self._detect_repeating_values(normalized_records)
+        if contains_repeating:
+            logger.info("Detected repeating values; treating input as sequential.")
+            contains_sequential = True
 
         if is_nested:
             logger.info("Detected multi-column input from nested iterables.")
@@ -503,3 +567,22 @@ class InputHandler:
             {key: _normalize(value) for key, value in record.items()} for record in records
         ]
         return normalized_records, contains_sequential
+
+    def _detect_repeating_values(self, records: list[dict[str, Any]]) -> bool:
+        """Determine whether the records show any repeated values."""
+
+        def _hashable(value: object) -> object:
+            try:
+                hash(value)
+                return value
+            except TypeError:
+                return repr(value)
+
+        seen: set[object] = set()
+        for record in records:
+            for value in record.values():
+                key = _hashable(value)
+                if key in seen:
+                    return True
+                seen.add(key)
+        return False

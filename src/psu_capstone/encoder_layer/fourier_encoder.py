@@ -14,15 +14,11 @@ https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fa
 from __future__ import annotations
 
 import copy
-from calendar import c
 from dataclasses import dataclass, field
-from datetime import time
-from typing import Any, cast, override
+from typing import Any, Iterable, cast, override
 
 import numpy as np
-import pandas as pd
-from matplotlib.pyplot import sca
-from scipy.fft import fft, fftfreq, ifft
+from scipy.fft import fft, fftfreq
 from sklearn.utils import deprecated
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -31,21 +27,23 @@ from psu_capstone.log import logger
 
 
 class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
-    """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component. Assume that time domain is in seconds.
+    """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component.
+
+    Assume that time domain is in seconds.
 
     Args:
-        parameters (FourierEncoderParameters, optional): Fourier encoder parameters. Defaults to FourierEncoderParameters().
-        dimensions (list[int], optional): List of dimensions for the encoder. Defaults to [].
+        parameters (FourierEncoderParameters, optional): Fourier encoder parameters. Defaults to
+            FourierEncoderParameters().
     """
 
     def __init__(self, parameters: FourierEncoderParameters | None = None):
-        """Initialize the encoder with optional Fourier parameters and encoder dimensions."""
+        """Initialize the encoder with optional Fourier parameters."""
 
         if parameters is None:
             parameters = FourierEncoderParameters()
 
         # set the size of the base encoder
-        super().__init__(dimensions=[], size=parameters.size)
+        super().__init__(size=parameters.size)
 
         self._params = copy.deepcopy(parameters)
         """Fourier encoder local copy of passed parameters."""
@@ -102,7 +100,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
 
         Args:
-            time_data (np.ndarray | pd.DataFrame): Input time-domain data.
+            time_data (np.ndarray): Input time-domain data.
 
         Returns:
             np.ndarray: Transformed frequency-domain data. (complex-valued)
@@ -142,7 +140,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         return unit_vector
 
-    def _trim(self, input_data: np.ndarray | pd.DataFrame | list[float]) -> np.ndarray:
+    def _trim(self, input_data: np.ndarray | list[float]) -> np.ndarray:
         """Trim input array into a power of 2 size"""
 
         # verify sizes of input data
@@ -150,14 +148,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         self._time_step = self._period_size / self._total_samples
         self._sample_rate = float(1 / self._time_step)  # samples per second
 
-        if isinstance(input_data, pd.DataFrame):
-
-            # convert all pd.DataFrame columns to float types
-            input_data = (
-                input_data.select_dtypes(include=[np.number]).astype(float).to_numpy(copy=False)
-            )
-
-        elif isinstance(input_data, np.ndarray):
+        if isinstance(input_data, np.ndarray):
             input_data = input_data.astype(float, copy=False)
 
         else:
@@ -418,6 +409,63 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         # freq that are further apart will have less collissions giving more active bits than expected
         return dense_bits
         # END def encode
+
+    def decode(
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> dict[str, list[tuple[tuple[int, int], float | None, float]] | tuple[float | None, float]]:
+        """Decode a combined Fourier SDR into per-range frequency estimates and magnitude."""
+        if len(encoded) != self.size:
+            raise ValueError(
+                f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
+            )
+
+        results: dict[
+            str, list[tuple[tuple[int, int], float | None, float]] | tuple[float | None, float]
+        ] = {"frequencies": []}
+
+        for range_index, freq_range in enumerate(self._frequency_ranges):
+            start_freq, stop_freq = freq_range
+            current_res = self._resolutions_in_ranges[range_index]
+            current_sparsity = self._sparsity_in_ranges[range_index]
+
+            freq_encoder = RandomDistributedScalarEncoder(
+                RDSEParameters(
+                    size=self._size,
+                    sparsity=current_sparsity,
+                    active_bits=0,
+                    resolution=current_res,
+                )
+            )
+
+            if candidates is not None:
+                range_candidates = [
+                    candidate for candidate in candidates if start_freq <= candidate < stop_freq
+                ]
+                if not range_candidates:
+                    range_candidates = list(range(start_freq, stop_freq))
+            else:
+                range_candidates = list(range(start_freq, stop_freq))
+            decoded_value, confidence = freq_encoder.decode(encoded, range_candidates)
+            results["frequencies"].append((freq_range, decoded_value, confidence))
+
+        magnitude_candidates: list[float] = []
+        if self._time_step > 0:
+            magnitude_candidates = list(
+                np.arange(0.0, 1.0 + self._time_step, self._time_step, dtype=float)
+            )
+
+        if magnitude_candidates:
+            magnitude_encoder = RandomDistributedScalarEncoder(
+                RDSEParameters(
+                    size=self._size,
+                    sparsity=self._time_step,
+                    active_bits=0,
+                    resolution=self._time_step,
+                )
+            )
+            results["magnitude"] = magnitude_encoder.decode(encoded, magnitude_candidates)
+
+        return results
 
     # END class FourierEncoder
 

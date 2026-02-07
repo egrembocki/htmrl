@@ -1,7 +1,7 @@
-"""Encoder Handler to build composite SDRs
+"""Encoder handler for building composite SDRs.
 
 This module provides the EncoderHandler class, which manages multiple encoder types
-and dynamically selects the appropriate encoder for each column in a pandas DataFrame
+and dynamically selects the appropriate encoder for each column in record data
 based on its dtype. It builds composite Sparse Distributed Representations (SDRs)
 from the encoded columns.
 
@@ -11,7 +11,7 @@ We may also need to build in support for state tracking to ensure consistent enc
 Poolers learn correctly over time. This could involve maintaining encoder instances for each column
 across multiple calls to build_composite_sdr.
 
-It has to be fully atomic, the list of SDRs encoded all at once from the DataFrame, so that the
+It has to be fully atomic, the list of SDRs encoded all at once from the record list, so that the
 resulting composite SDRs are consistent across calls.
 **
 """
@@ -19,10 +19,11 @@ resulting composite SDRs are consistent across calls.
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from datetime import datetime
+from typing import Any
 
 import numpy as np
-import pandas as pd
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -33,20 +34,20 @@ from psu_capstone.sdr_layer.sdr import SDR
 
 
 class EncoderHandler:
-    """Handles multiple encoders to create composite SDRs.
+    """Build composite SDRs by delegating to per-column encoders.
 
     This class uses a singleton pattern to ensure only one instance exists.
-    It dynamically selects the appropriate encoder for each DataFrame column
+    It dynamically selects the appropriate encoder for each column
     based on its dtype and builds a composite SDR from the encoded columns.
     """
 
     __instance: EncoderHandler | None = None
 
-    def __new__(cls, input_data: pd.DataFrame | None = None) -> "EncoderHandler":
+    def __new__(cls, input_data: list[dict[str, Any]] | None = None) -> "EncoderHandler":
         """Implements the singleton pattern for EncoderHandler.
 
         Args:
-            input_data (pd.DataFrame | None): Input data for encoder initialization.
+            input_data (list[dict[str, Any]] | None): Input data for encoder initialization.
 
         Returns:
             EncoderHandler: The singleton instance.
@@ -57,13 +58,13 @@ class EncoderHandler:
 
         return cls.__instance
 
-    def __init__(self, input_data: pd.DataFrame | None = None):
-        """Initializes the EncoderHandler with a DataFrame of input data.
+    def __init__(self, input_data: list[dict[str, Any]] | None = None):
+        """Initialize the handler with optional record data.
 
         Args:
-            input_data (pd.DataFrame | None): DataFrame containing input data.
+            input_data: Optional record list used to seed handler state.
         """
-        self._data_frame = copy.deepcopy(input_data) if input_data is not None else pd.DataFrame()
+        self._data_frame = copy.deepcopy(input_data) if input_data is not None else []
         self._encoders: list[BaseEncoder] = []
 
     @classmethod
@@ -71,7 +72,7 @@ class EncoderHandler:
         """Returns the singleton instance of EncoderHandler.
 
         Args:
-            input_data (pd.DataFrame): Input data for encoder initialization.
+            input_data (list[dict[str, Any]]): Input data for encoder initialization.
 
         Returns:
             EncoderHandler: The singleton instance.
@@ -80,17 +81,17 @@ class EncoderHandler:
             cls.__instance = EncoderHandler()
         return cls.__instance
 
-    def build_composite_sdr(self, input_data: pd.DataFrame) -> list[SDR]:
-        """Builds a composite SDR from multiple encoders based on the input data.
+    def build_composite_sdr(self, input_data: list[Mapping[str, Any]]) -> list[SDR]:
+        """Build composite SDRs from record data.
 
-        For each column in the input DataFrame, selects an encoder based on the column's dtype,
+        For each column in the input records, selects an encoder based on the value type,
         encodes the value, and concatenates the resulting SDRs into a single composite SDR.
 
         Args:
-            input_data (pd.DataFrame): DataFrame containing input values for each encoder.
+            input_data: Records containing input values for each encoder.
 
         Returns:
-            list[SDR]: Composite SDRs built from all encoded columns.
+            Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.
@@ -102,10 +103,17 @@ class EncoderHandler:
 
         scalartrue = False
 
-        for _, row in input_data.iterrows():
+        if not input_data:
+            raise ValueError("Input data must contain at least one record.")
+
+        column_names = list(input_data[0].keys())
+        column_values = {name: [row.get(name) for row in input_data] for name in column_names}
+
+        for row in input_data:
             sdrs: list[SDR] = []
 
-            for col_name, value in row.items():
+            for col_name in column_names:
+                value = row.get(col_name)
                 if isinstance(value, float) or isinstance(value, np.floating):
                     encoder = RandomDistributedScalarEncoder(
                         RDSEParameters(
@@ -118,8 +126,9 @@ class EncoderHandler:
                             seed=1,
                         )
                     )
+                    dense = encoder.encode(float(value))
                     sdr = SDR([encoder.size])
-                    sdr = encoder.encode(float(value))
+                    sdr.set_dense(dense)
 
                 elif scalartrue or isinstance(value, int) or isinstance(value, np.integer):
                     encoder = ScalarEncoder(
@@ -133,27 +142,32 @@ class EncoderHandler:
                             size=2048,
                             radius=0.0,
                             category=False,
-                            resolution=0.0,
+                            resolution=1.0,
                         )
                     )
+                    dense = encoder.encode(int(value))
                     sdr = SDR([encoder.size])
-                    sdr = encoder.encode(int(value))
+                    sdr.set_dense(dense)
 
                 elif isinstance(value, str):
-                    category_list = input_data[col_name].unique().tolist()
+                    category_list = sorted(
+                        {val for val in column_values[col_name] if isinstance(val, str)}
+                    )
                     encoder = CategoryEncoder(
                         CategoryParameters(
                             w=3,
                             category_list=category_list,
                         )
                     )
-                    sdr = encoder.encode(value)
-                    encoder.encode(value)
-
-                elif isinstance(value, pd.Timestamp) or isinstance(value, datetime):
-                    encoder = DateEncoder(DateEncoderParameters())
+                    dense = encoder.encode(value)
                     sdr = SDR([encoder.size])
-                    sdr = encoder.encode(value)
+                    sdr.set_dense(dense)
+
+                elif isinstance(value, datetime):
+                    encoder = DateEncoder(DateEncoderParameters())
+                    dense = encoder.encode(value)
+                    sdr = SDR([encoder.size])
+                    sdr.set_dense(dense)
 
                 else:
                     raise TypeError(f"Unsupported value type for encoder: {type(value)}")
@@ -193,26 +207,24 @@ class EncoderHandler:
 if __name__ == "__main__":
     """Smoke test for EncoderHandler.
 
-    Creates a sample DataFrame with various column types, initializes the EncoderHandler,
+    Creates a sample record set with various column types, initializes the EncoderHandler,
     builds a composite SDR, and prints its sparse representation and size.
     """
 
-    df = pd.DataFrame(
-        [
-            {
-                "float_col": float(3.14),
-                "int_col": int(42),
-                "str_col": str("B"),
-                "date_col": datetime(2023, 12, 25),
-            },
-            {
-                "float_col": float(2.71),
-                "int_col": int(7),
-                "str_col": str("A"),
-                "date_col": datetime(2024, 1, 1),
-            },
-        ]
-    )
+    df = [
+        {
+            "float_col": float(3.14),
+            "int_col": int(42),
+            "str_col": str("B"),
+            "date_col": datetime(2023, 12, 25),
+        },
+        {
+            "float_col": float(2.71),
+            "int_col": int(7),
+            "str_col": str("A"),
+            "date_col": datetime(2024, 1, 1),
+        },
+    ]
 
     handler = EncoderHandler(df)
     composite_sdr = handler.build_composite_sdr(df)

@@ -4,8 +4,6 @@ import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 
-# from psu_capstone.sdr_layer.sdr import SDR
-
 
 @pytest.fixture
 def base_encoder_instance() -> BaseEncoder:
@@ -13,11 +11,11 @@ def base_encoder_instance() -> BaseEncoder:
 
     # Arrange @mock
     class TestEncoder(BaseEncoder):
-        def encode(self, input_value: float) -> list[int]:
+        def encode(self, input_value) -> list[int]:
             """Dummy encode method for testing."""
-            return [0] * self.size
+            return []
 
-    return TestEncoder([10, 10])
+    return TestEncoder(size=100)
 
 
 def test_base_encoder_initialization(base_encoder_instance):
@@ -26,8 +24,6 @@ def test_base_encoder_initialization(base_encoder_instance):
     encoder = base_encoder_instance
 
     # Assert
-    print(encoder.dimensions)
     print(encoder.size)
 
-    assert encoder.dimensions == [10, 10]
     assert encoder.size == 100

@@ -48,7 +48,7 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
 
-    def __init__(self, parameters: "RDSEParameters", dimensions: list[int] | None = None):
+    def __init__(self, parameters: "RDSEParameters"):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -64,7 +64,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
-        super().__init__(dimensions, self._size)
+        super().__init__(self._size)
 
     @override
     def encode(self, input_value: float) -> list[int]:
@@ -330,7 +330,7 @@ if __name__ == "__main__":
     params = RDSEParameters(
         size=2048,
         sparsity=0.02,
-        radius=1.0,
+        resolution=1.0,
         active_bits=0,
         category=False,
         seed=12345,
