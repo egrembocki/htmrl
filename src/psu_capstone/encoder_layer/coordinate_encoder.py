@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import copy
+import itertools
 from dataclasses import dataclass
-from typing import Optional, override
+from typing import override
 
+import mmh3
 import numpy as np
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -12,116 +14,101 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 
 @dataclass
 class CoordinateParameters:
-
-    # size for each axis encoder which are x and y
-    size_per_axis: int = 2048
-
-    # active bits per axis encoder
-    w: int = 40
-
-    # units per bucket
-    resolution: float = 10.0
-
-    # optional multi-scale
-    resolutions: Optional[list[float]] = None
+    n: int = 2048
+    w: int = 25
+    seed: int = 0
+    max_radius: int = 2
 
 
 class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
     def __init__(self, parameters: CoordinateParameters, dimensions: list[int] | None = None):
         self._parameters = copy.deepcopy(parameters)
-        self._parameters = self.check_parameters(self._parameters)
 
-        self._size_per_axis = self._parameters.size_per_axis
+        self._n = self._parameters.n
         self._w = self._parameters.w
+        self._seed = self._parameters.seed
 
-        # choose scales
-        if self._parameters.resolutions is not None:
-            self._resolutions = list(self._parameters.resolutions)
-        else:
-            self._resolutions = [self._parameters.resolution]
+        enc_params = RDSEParameters(
+            size=self._n,
+            active_bits=self._w,
+            sparsity=0.0,
+            radius=1.0,
+            resolution=0.0,
+            category=False,
+            seed=self._seed,
+        )
 
-        # build RDSE pairs per scale
-        self._x_encoders: list[RandomDistributedScalarEncoder] = []
-        self._y_encoders: list[RandomDistributedScalarEncoder] = []
+        self._encoder = RandomDistributedScalarEncoder(enc_params)
 
-        for i, res in enumerate(self._resolutions):
-            x_params = RDSEParameters(
-                size=self._size_per_axis,
-                active_bits=self._w,
-                sparsity=0.0,
-                radius=0.0,
-                resolution=float(res),
-                category=False,
-                seed=0,
-            )
-            y_params = RDSEParameters(
-                size=self._size_per_axis,
-                active_bits=self._w,
-                sparsity=0.0,
-                radius=0.0,
-                resolution=float(res),
-                category=False,
-                seed=0,
-            )
+        dims = 2
+        max_neighbors = (2 * self._parameters.max_radius + 1) ** dims
 
-            self._x_encoders.append(
-                RandomDistributedScalarEncoder(x_params, dimensions=[x_params.size])
-            )
-            self._y_encoders.append(
-                RandomDistributedScalarEncoder(y_params, dimensions=[y_params.size])
-            )
+        # for all neighbors use this
+        self._size = max_neighbors * self._n
 
-        self._size = 2 * len(self._resolutions) * self._size_per_axis
+        # for winners use this
+        # self._size = self._w * self._n
+
         super().__init__(dimensions, self._size)
 
     @override
-    def encode(self, input_value: tuple[float, float]) -> list[int]:
+    def encode(self, input_value: tuple[tuple[int, ...] | list[int], int]) -> list[int]:
+        coordinate, radius = input_value
 
-        a, b = input_value
+        if not isinstance(radius, int):
+            raise TypeError(f"Expected integer radius, got: {radius!r} ({type(radius)})")
 
-        x, y = float(a), float(b)
+        neighbors = self._neighbors(coordinate, radius)
+        winners = self._topWCoordinates(neighbors, self._w)
 
-        dense_out: list[int] = []
+        out: list[int] = []
+        for c in neighbors:
+            v = self._coord_to_unit_float(c)
+            block = self._encoder.encode(v)
+            out.extend(int(b) for b in block)
 
-        tmp_x: list[int] = []
-        tmp_y: list[int] = []
+        # for winners, just in case we have fewer than w winners, pad with zeros.
+        # expected = self._size
+        # if len(out) < expected:
+        #     out.extend([0] * (expected - len(out)))
+        # elif len(out) > expected:
+        #     out = out[:expected]
 
-        for xe, ye in zip(self._x_encoders, self._y_encoders):
-            # x block
-            tmp_x = xe.encode(x)
-            dense_out.extend(int(v) for v in tmp_x)
+        return out
 
-            # y block
-            tmp_y = ye.encode(y)
-            dense_out.extend(int(v) for v in tmp_y)
+    @staticmethod
+    def _neighbors(coordinate, radius):
+        ranges = (range(int(n) - radius, int(n) + radius + 1) for n in coordinate)
+        return list(itertools.product(*ranges))
 
-        return dense_out
+    @classmethod
+    def _topWCoordinates(cls, coordinates, w):
+        scored = [(cls._orderForCoordinate(c), c) for c in coordinates]
 
-    def check_parameters(self, p: CoordinateParameters) -> CoordinateParameters:
-        if p.size_per_axis <= 0:
-            raise ValueError("size_per_axis must be > 0")
-        if p.w <= 0 or p.w > p.size_per_axis:
-            raise ValueError("w must be > 0 and <= size_per_axis")
-        if p.resolutions is not None:
-            if len(p.resolutions) == 0:
-                raise ValueError("resolutions cannot be empty if provided")
-            if any(r <= 0 for r in p.resolutions):
-                raise ValueError("all resolutions must be > 0")
-        else:
-            if p.resolution <= 0:
-                raise ValueError("resolution must be > 0")
-        return p
+        scored.sort(key=lambda x: x[0])
+        return [c for _, c in scored[-w:]]
+
+    @staticmethod
+    def _orderForCoordinate(coordinate) -> float:
+        s = ",".join(str(int(v)) for v in coordinate)
+        h = mmh3.hash(s, signed=False)
+        return h / 2**32
+
+    def _coord_to_unit_float(self, coordinate) -> float:
+        s = ",".join(str(int(v)) for v in coordinate)
+        h = mmh3.hash(s, seed=self._seed, signed=False)
+        return h / 2**32
 
 
 if __name__ == "__main__":
-
-    params = CoordinateParameters(size_per_axis=256, w=20, resolution=10.0)
-
+    params = CoordinateParameters(n=2048, w=25)
     enc = CoordinateEncoder(params)
 
-    out1 = enc.encode((100.0, 200.0))
-    out2 = enc.encode((100.0, 200.0))
+    a = enc.encode(((10, 20), 1))
+    b = enc.encode(((11, 20), 1))
 
-    print(out1)
-    assert out1 == out2
+    def _overlap_count(first: list[int], second: list[int]) -> int:
+        return np.count_nonzero(first == second)
+
+    print(_overlap_count(a, b))

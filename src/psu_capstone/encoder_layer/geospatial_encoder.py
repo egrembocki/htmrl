@@ -164,7 +164,7 @@ class GeospatialEncoder(BaseEncoder[tuple[float, float, float]]):
             raise ValueError("w_alt must be > 0 and <= size_alt")
         if p.resolutions_alt is not None:
             if len(p.resolutions_alt) == 0:
-                raise ValueError("resolutions_alt_m cannot be empty if provided")
+                raise ValueError("resolutions_alt cannot be empty if provided")
             if any(r <= 0 for r in p.resolutions_alt):
                 raise ValueError("all resolutions_alt_m must be > 0")
         else:
