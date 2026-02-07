@@ -27,21 +27,23 @@ from psu_capstone.log import logger
 
 
 class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
-    """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component. Assume that time domain is in seconds.
+    """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component.
+
+    Assume that time domain is in seconds.
 
     Args:
-        parameters (FourierEncoderParameters, optional): Fourier encoder parameters. Defaults to FourierEncoderParameters().
-        dimensions (list[int], optional): List of dimensions for the encoder. Defaults to [].
+        parameters (FourierEncoderParameters, optional): Fourier encoder parameters. Defaults to
+            FourierEncoderParameters().
     """
 
     def __init__(self, parameters: FourierEncoderParameters | None = None):
-        """Initialize the encoder with optional Fourier parameters and encoder dimensions."""
+        """Initialize the encoder with optional Fourier parameters."""
 
         if parameters is None:
             parameters = FourierEncoderParameters()
 
         # set the size of the base encoder
-        super().__init__(dimensions=[], size=parameters.size)
+        super().__init__(size=parameters.size)
 
         self._params = copy.deepcopy(parameters)
         """Fourier encoder local copy of passed parameters."""
