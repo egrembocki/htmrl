@@ -2,12 +2,31 @@
 
 title psu_capstone.agent_layer.legacy_htm.spatial_pooler
 
-class SpatialPooler
+class SpatialPooler {
+  +input_space_size: int
+  +column_count: int
+  +random_seed: int
+  +columns: list[Column]
+  +field_ranges: dict[str, tuple[int, int]]
+  +field_order: list[str]
+  +column_field_map: dict[Column, str | None]
+  +__init__(input_space_size: int, column_count: int, initial_synapses_per_column: int, random_seed: int = 0)
+  +_initialize_region(input_space_size: int, column_count: int, initial_synapses_per_column: int, random_seed: int): list[Column]
+  +combine_input_fields(input_vector: np.ndarray | list[int] | list[list[Any]] | list[np.ndarray] | dict[str, int] | dict[str, np.ndarray] | dict[str, list[Any]]): np.ndarray
+  +_columns_from_raw_input(combined: np.ndarray): list[Column]
+  +_assign_column_fields()
+  +compute_active_columns(input_vector: np.ndarray | list[int] | list[np.ndarray] | dict[str, int], inhibition_radius: float): tuple[np.ndarray, list[Column]]
+  +columns_to_binary(columns: list[Column]): np.ndarray
+  +_inhibition(columns: list[Column], inhibition_radius: float): list[Column]
+  +_euclidean_distance(pos1: tuple[int, int], pos2: tuple[int, int]): float
+  +_kth_score(neighbors: list[Column], k: int): float
+  +learning_phase(active_columns: list[Column], input_vector: np.ndarray)
+  +average_receptive_field_size(): float
+}
 class Column
 class Synapse
 
 SpatialPooler o-- "1..*" Column : columns
-Column o-- "0..*" Synapse : proximal synapses
-SpatialPooler ..> Synapse : initializes
+Column o-- "0..*" Synapse : potential_synapses
 
 @enduml

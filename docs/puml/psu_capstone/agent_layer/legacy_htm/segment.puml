@@ -2,11 +2,17 @@
 
 title psu_capstone.agent_layer.legacy_htm.segment
 
-class Segment
+class Segment {
+  +synapses: list[DistalSynapse]
+  +sequence_segment: bool
+  +__init__(synapses: list[DistalSynapse] | None = None)
+  +active_synapses(active_cells: list[Cell]): list[DistalSynapse]
+  +matching_synapses(prev_active_cells: list[Cell]): list[DistalSynapse]
+}
 class DistalSynapse
 class Cell
 
 Segment o-- "0..*" DistalSynapse : synapses
-Segment ..> Cell : active/matching queries
+DistalSynapse o-- Cell : source_cell
 
 @enduml

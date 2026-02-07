@@ -3,18 +3,81 @@
 title psu_capstone.encoder_layer.date_encoder
 
 class BaseEncoder
-class DateEncoder
-class DateEncoderParameters
-class RandomDistributedScalarEncoder
+class DateEncoder {
+  +SEASON: int
+  +DAYOFWEEK: int
+  +WEEKEND: int
+  +CUSTOM: int
+  +HOLIDAY: int
+  +TIMEOFDAY: int
+  -_date_params: DateEncoderParameters
+  -_customDays: set[int]
+  -_bucketMap: dict[int, int]
+  -_buckets: list[float]
+  -_size: int
+  -_rdse_used: bool
+  -_all_valid_encoders: bool
+  -_season_encoder
+  -_dayofweek_encoder
+  -_weekend_encoder
+  -_customdays_encoder
+  -_holiday_encoder
+  -_timeofday_encoder
+  +__init__(date_params: DateEncoderParameters, dimensions: list[int] | None = None)
+  +_setup_feature_encoder(feature_key: int, size_value: int, active_bits: int, radius: float, resolution: float, sparsity: float)
+  +_initialize(date_params: DateEncoderParameters)
+  +encode(input_value: datetime | time.struct_time | None): list[int]
+  +decode(input_sdr: list[int], timestamp: datetime | time.struct_time | None = None): list[tuple[float | None, float]]
+  +_compute_decode(input_sdr: list[int], encoder, timestamp: time.struct_time): tuple[float | None, float]
+  +_holiday_value(t: time.struct_time): float
+  +mktime(year: int, mon: int, day: int, hr: int = 0, minute: int = 0, sec: int = 0): float
+}
+class DateEncoderParameters {
+  +season_size: int
+  +season_active_bits: int
+  +season_sparsity: float
+  +season_radius: float
+  +season_resolution: float
+  +day_of_week_size: int
+  +day_of_week_active_bits: int
+  +day_of_week_sparsity: float
+  +day_of_week_radius: float
+  +day_of_week_resolution: float
+  +weekend_size: int
+  +weekend_active_bits: int
+  +weekend_sparsity: float
+  +weekend_radius: float
+  +weekend_resolution: float
+  +holiday_size: int
+  +holiday_active_bits: int
+  +holiday_sparsity: float
+  +holiday_radius: float
+  +holiday_resolution: float
+  +holiday_dates: list[list[int]]
+  +time_of_day_size: int
+  +time_of_day_active_bits: int
+  +time_of_day_sparsity: float
+  +time_of_day_radius: float
+  +time_of_day_resolution: float
+  +custom_size: int
+  +custom_active_bits: int
+  +custom_sparsity: float
+  +custom_radius: float
+  +custom_resolution: float
+  +custom_days: list[str]
+  +rdse_used: bool
+  +encoder_class
+}
 class RDSEParameters
-class ScalarEncoder
 class ScalarEncoderParameters
+class RandomDistributedScalarEncoder
+class ScalarEncoder
 
 BaseEncoder <|-- DateEncoder
-DateEncoder o-- DateEncoderParameters : parameters
-DateEncoder ..> RandomDistributedScalarEncoder : sub-encoders
-DateEncoder ..> ScalarEncoder : sub-encoders
-DateEncoder ..> RDSEParameters : build
-DateEncoder ..> ScalarEncoderParameters : build
+DateEncoder o-- DateEncoderParameters : date_params
+DateEncoder ..> RandomDistributedScalarEncoder
+DateEncoder ..> ScalarEncoder
+DateEncoder ..> RDSEParameters
+DateEncoder ..> ScalarEncoderParameters
 
 @enduml

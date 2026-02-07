@@ -14,12 +14,72 @@ class ScalarEncoderParameters
 class DateEncoderParameters
 class CategoryParameters
 
-class RdseThread
-class ScalarThread
-class DateThread
-class CategoryThread
-class CompositeBatchThread
-class BatchEncoderHandler
+class RdseThread {
+  -_column_data: Sequence[Any]
+  -_encoder: RandomDistributedScalarEncoder
+  -_output: list[SDR]
+  -_row_offset: int
+  +__init__(column_data: Sequence[Any], params: RDSEParameters, output: list[SDR], row_offset: int)
+  +run()
+}
+class ScalarThread {
+  -_column_data: Sequence[Any]
+  -_encoder: ScalarEncoder
+  -_output: list[SDR]
+  -_row_offset: int
+  +__init__(column_data: Sequence[Any], params: ScalarEncoderParameters, output: list[SDR], row_offset: int)
+  +run()
+}
+class DateThread {
+  -_column_data: Sequence[Any]
+  -_encoder: DateEncoder
+  -_output: list[SDR]
+  -_row_offset: int
+  +__init__(column_data: Sequence[Any], params: DateEncoderParameters, output: list[SDR], row_offset: int)
+  +run()
+}
+class CategoryThread {
+  -_column_data: Sequence[Any]
+  -_encoder: CategoryEncoder
+  -_output: list[SDR]
+  -_row_offset: int
+  +__init__(column_data: Sequence[Any], params: CategoryParameters, output: list[SDR], row_offset: int)
+  +run()
+}
+class CompositeBatchThread {
+  -_batch: list[list[SDR]]
+  -_out: list[SDR | None]
+  -_offset: int
+  +__init__(batch: list[list[SDR]], out: list[SDR | None], offset: int)
+  +run()
+}
+class BatchEncoderHandler {
+  -__instance: BatchEncoderHandler | None
+  -_data_frame: list[dict[str, Any]]
+  -_rdse_params: RDSEParameters
+  -_scalar_params: ScalarEncoderParameters
+  -_date_params: DateEncoderParameters
+  -_custom_encoding: dict[str, str]
+  -_category_params: CategoryParameters
+  +__new__(input_data: list[dict[str, Any]] | None = None): BatchEncoderHandler
+  +__init__(input_data: list[dict[str, Any]] | None = None)
+  +get_instance(): BatchEncoderHandler
+  +_build_dict_list_sdr(input_data: list[dict[str, Any]], threads_per_column: int): dict[str, list[SDR]]
+  +build_composite_sdr(input_data, threads_per_column: int, threads_per_rows: int = 4): list[SDR]
+  +sdrs_to_dense_matrix(sdrs)
+  +build_knn_from_tm_predictions(tm_prediction_masks, input_data, n_neighbors, weights, distance)
+  +_normalize_records(input_data: list[dict[str, Any]]): tuple[list[dict[str, Any]], list[str]]
+  +_unique_values(values: Sequence[Any]): list[str]
+  +_first_non_null(values: Sequence[Any]): Any | None
+  +_is_numeric_column(values: Sequence[Any]): bool
+  +_is_string_column(values: Sequence[Any]): bool
+  +_is_datetime_column(values: Sequence[Any]): bool
+  +set_category_encoder_parameters(params: CategoryParameters)
+  +set_rdse_encoder_parameters(params: RDSEParameters)
+  +set_scalar_encoder_parameters(params: ScalarEncoderParameters)
+  +set_date_encoder_parameters(params: DateEncoderParameters)
+  +choose_custom_column_encoding(custom_encoding: dict[str, str])
+}
 
 Thread <|-- RdseThread
 Thread <|-- ScalarThread

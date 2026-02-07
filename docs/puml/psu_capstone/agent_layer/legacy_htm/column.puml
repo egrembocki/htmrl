@@ -2,7 +2,19 @@
 
 title psu_capstone.agent_layer.legacy_htm.column
 
-class Column
+class Column {
+  +position: tuple[int, int]
+  +potential_synapses: list[Synapse]
+  +boost: float
+  +active_duty_cycle: float
+  +overlap_duty_cycle: float
+  +min_duty_cycle: float
+  +connected_synapses: list[Synapse]
+  +overlap: float
+  +cells: list[Cell]
+  +__init__(potential_synapses: list[Synapse], position: tuple[int, int])
+  +compute_overlap(input_vector: np.ndarray)
+}
 class Synapse
 class Cell
 
