@@ -3,10 +3,33 @@
 title psu_capstone.encoder_layer.category_encoder
 
 class BaseEncoder
-class CategoryEncoder
-class CategoryParameters
+class CategoryEncoder {
+  -_parameters: CategoryParameters
+  -_w: int
+  -_category_list: list[str]
+  -_RDSEused: bool
+  -_num_categories: int
+  -_size: int
+  +rdsep: RDSEParameters
+  +sp: ScalarEncoderParameters
+  +encoder
+  +__init__(parameters: CategoryParameters, dimensions: list[int] | None = None)
+  +encode(input_value: str): list[int]
+  +decode(input_sdr: list[int]): tuple[str | None, float]
+  +check_parameters(parameters: CategoryParameters)
+}
+class CategoryParameters {
+  +w: int
+  +category_list: list[str]
+  +rdse_used: bool = True
+  +encoder_class
+}
+class RDSEParameters
+class ScalarEncoderParameters
 
 BaseEncoder <|-- CategoryEncoder
 CategoryEncoder o-- CategoryParameters : parameters
+CategoryEncoder ..> RDSEParameters
+CategoryEncoder ..> ScalarEncoderParameters
 
 @enduml

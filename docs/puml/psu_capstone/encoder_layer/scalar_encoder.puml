@@ -3,8 +3,43 @@
 title psu_capstone.encoder_layer.scalar_encoder
 
 class BaseEncoder
-class ScalarEncoder
-class ScalarEncoderParameters
+class ScalarEncoder {
+  -_parameters: ScalarEncoderParameters
+  -_minimum: float
+  -_maximum: float
+  -_clip_input: bool
+  -_periodic: bool
+  -_category: bool
+  -_active_bits: int
+  -_sparsity: float
+  -_size: int
+  -_radius: float
+  -_resolution: float
+  -_encoding_cache: dict[float, list[int]]
+  +__init__(parameters: ScalarEncoderParameters, dimensions: list[int] | None = None)
+  +size: int
+  +register_encoding(input_value: float, encoded: list[int] | None = None): list[int]
+  +clear_registered_encodings()
+  +_compute_encoding(input_value: int | float): list[int]
+  +encode(input_value: int | float): list[int]
+  +decode(encoded: list[int], candidates: Iterable[float] | None = None): tuple[float | None, float]
+  +_overlap(first: list[int], second: list[int]): int
+  +sparsify(vector: list[int]): list[int]
+  +check_parameters(parameters: ScalarEncoderParameters)
+}
+class ScalarEncoderParameters {
+  +minimum: float
+  +maximum: float
+  +clip_input: bool
+  +periodic: bool
+  +category: bool
+  +active_bits: int
+  +sparsity: float
+  +size: int
+  +radius: float
+  +resolution: float
+  +encoder_class
+}
 
 BaseEncoder <|-- ScalarEncoder
 ScalarEncoder o-- ScalarEncoderParameters : parameters

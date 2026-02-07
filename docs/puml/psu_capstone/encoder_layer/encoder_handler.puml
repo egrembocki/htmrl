@@ -2,7 +2,15 @@
 
 title psu_capstone.encoder_layer.encoder_handler
 
-class EncoderHandler
+class EncoderHandler {
+  -__instance: EncoderHandler | None
+  -_data_frame: list[dict[str, Any]]
+  -_encoders: list[BaseEncoder]
+  +__new__(input_data: list[dict[str, Any]] | None = None): EncoderHandler
+  +__init__(input_data: list[dict[str, Any]] | None = None)
+  +get_instance(): EncoderHandler
+  +build_composite_sdr(input_data: list[Mapping[str, Any]]): list[SDR]
+}
 class BaseEncoder
 class ScalarEncoder
 class CategoryEncoder

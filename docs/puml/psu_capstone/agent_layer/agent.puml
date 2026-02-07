@@ -2,7 +2,24 @@
 
 title psu_capstone.agent_layer.agent
 
-class Agent
+class Agent {
+  -_poolers: list[SpatialPooler]
+  -_memory: list[TemporalMemory]
+  -_buffer_list: list[Any]
+  -_models: list[Any]
+  -_interfaces: list[Any]
+  -_encoder_handlers: list[Any]
+  +poolers: list[SpatialPooler]
+  +memory: list[TemporalMemory]
+  +__init__(poolers: list[SpatialPooler], memory: list[TemporalMemory])
+  +select_action(state: tuple): Any
+  +update_policy(state: tuple, action: Any, reward: float, next_state: tuple)
+  +append_buffer(sdr: Any)
+  +create_pooler(input_space_size: int, column_count: int, initial_synapses_per_column: int, random_seed: int = 0)
+  +create_memory(column_count: int, cells_per_column: int)
+  +create_model(model_type: str, **kwargs)
+  +create_encoder(encoder_type: str, **kwargs): Any
+}
 class SpatialPooler
 class TemporalMemory
 class Column
