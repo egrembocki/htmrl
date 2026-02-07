@@ -55,14 +55,12 @@ class DateEncoder(BaseEncoder[datetime | time.struct_time | None]):
     def __init__(
         self,
         date_params: "DateEncoderParameters",
-        dimensions: list[int] | None = None,
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.
 
         Args:
             date_params: DateEncoderParameters instance specifying encoding options.
-            dimensions: Optional SDR dimensions (unused, for compatibility).
 
         Raises:
             ValueError: If custom_days is specified but empty, or if no widths are provided.
@@ -100,7 +98,7 @@ class DateEncoder(BaseEncoder[datetime | time.struct_time | None]):
 
         # call initialize
         self._initialize(self._date_params)
-        super().__init__(dimensions, self._size)
+        super().__init__(self._size)
 
     def _setup_feature_encoder(
         self,

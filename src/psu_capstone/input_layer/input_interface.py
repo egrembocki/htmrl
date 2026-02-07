@@ -21,3 +21,12 @@ class InputInterface(Protocol):
     ) -> list[Mapping[str, Any]]:
         """Process input data from various sources into standardized records."""
         ...
+
+    def to_encoder_sequence(
+        self,
+        input_source: Any,
+        required_columns: list[str] | None = None,
+        column: str | None = None,
+    ) -> list[Any]:
+        """Return a list of values suitable for encoder encode() calls."""
+        ...
