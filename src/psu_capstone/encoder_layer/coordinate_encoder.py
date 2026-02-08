@@ -68,12 +68,11 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
             block = self._encoder.encode(v)
             out.extend(int(b) for b in block)
 
-        # for winners, just in case we have fewer than w winners, pad with zeros.
-        # expected = self._size
-        # if len(out) < expected:
-        #     out.extend([0] * (expected - len(out)))
-        # elif len(out) > expected:
-        #     out = out[:expected]
+        expected = self._size
+        if len(out) < expected:
+            out.extend([0] * (expected - len(out)))
+        elif len(out) > expected:
+            out = out[:expected]
 
         return out
 
@@ -102,13 +101,15 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
 
 if __name__ == "__main__":
-    params = CoordinateParameters(n=2048, w=25)
+    params = CoordinateParameters(n=40, w=25)
     enc = CoordinateEncoder(params)
 
-    a = enc.encode(((10, 20), 1))
-    b = enc.encode(((11, 20), 1))
+    a = enc.encode(((10, 20), 2))
+    b = enc.encode(((11, 20), 2))
 
     def _overlap_count(first: list[int], second: list[int]) -> int:
         return np.count_nonzero(first == second)
 
+    print(len(a))
     print(_overlap_count(a, b))
+    print(a)
