@@ -131,7 +131,7 @@ class GeospatialEncoder(
 
 
 if __name__ == "__main__":
-    coord_params = CoordinateParameters(n=40, w=25, seed=0, max_radius=2)
+    coord_params = CoordinateParameters(n=40, w=25, max_radius=2)
     geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=2, use_altitude=True)
 
     enc = GeospatialEncoder(geo_params=geo_params, coord_params=coord_params)

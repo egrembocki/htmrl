@@ -16,7 +16,7 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 class CoordinateParameters:
     n: int = 2048
     w: int = 25
-    seed: int = 0
+    seed: int = 42
     max_radius: int = 2
     dims: int = 2
 
