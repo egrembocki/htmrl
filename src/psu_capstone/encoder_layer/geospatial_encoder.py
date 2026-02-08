@@ -5,197 +5,141 @@ import math
 from dataclasses import dataclass
 from typing import Optional, override
 
+import numpy as np
+from pyproj import CRS, Transformer
+
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
-# Web Mercator practical latitude limit (degrees)
-_MAX_MERCATOR_LAT = 85.05112878
+CRS_MERC = CRS.from_epsg(3857)
+CRS_WGS84 = CRS.from_epsg(4326)
+
+CRS_GEO = CRS.from_proj4("+proj=geocent +datum=WGS84 +units=m +no_defs")
+
+T_WGS84_TO_MERC = Transformer.from_crs(CRS_WGS84, CRS_MERC, always_xy=True)
+T_MERC_TO_GEO = Transformer.from_crs(CRS_MERC, CRS_GEO, always_xy=True)
 
 
 @dataclass
 class GeospatialParameters:
-    """
-    Mercator (lat, lon) -> (x, y) meters, plus altitude meters -> z,
-    then encode as [XY SDR | Z SDR].
+    # meters per grid unit
+    scale: float = 10.0
 
-    - XY uses CoordinateEncoder (two RDSEs per scale)
-    - Z uses a dedicated RDSE (one per scale)
-    """
+    # seconds between readings
+    timestep: float = 1.0
 
-    # XY encoder config
-    size_per_axis: int = 2048
-    w_xy: int = 40
-    resolution_xy: float = 10.0
-    resolutions_xy: Optional[list[float]] = None
+    # clamp output radius
+    max_radius: int = 2
 
-    # Z encoder config
-    size_alt: int = 2048
-    w_alt: int = 40
-    resolution_alt: float = 5.0
-    resolutions_alt: Optional[list[float]] = None
-
-    origin_lat: float = 0.0
-    origin_lon: float = 0.0
-
-    origin_alt: float = 0.0
+    use_altitude: bool = True
 
 
-class GeospatialEncoder(BaseEncoder[tuple[float, float, float]]):
+class GeospatialEncoder(
+    BaseEncoder[tuple[float, float, float] | tuple[float, float, float, float]]
+):
 
-    def __init__(self, parameters: GeospatialParameters, dimensions: list[int] | None = None):
-        self._params = copy.deepcopy(parameters)
-        self._params = self.check_parameters(self._params)
+    def __init__(
+        self,
+        geo_params: GeospatialParameters,
+        coord_params: CoordinateParameters,
+        dimensions: list[int] | None = None,
+    ):
 
-        xy_params = CoordinateParameters(
-            size_per_axis=self._params.size_per_axis,
-            w=self._params.w_xy,
-            resolution=self._params.resolution_xy,
-            resolutions=self._params.resolutions_xy,
+        self._geo_params = copy.deepcopy(geo_params)
+        self._coord_params = copy.deepcopy(coord_params)
+
+        self._geo_params = geo_params
+
+        coord_params = CoordinateParameters(
+            n=coord_params.n,
+            w=coord_params.w,
+            seed=coord_params.seed,
+            max_radius=self._geo_params.max_radius,
         )
-        self._xy = CoordinateEncoder(xy_params, dimensions=None)
 
-        if self._params.resolutions_xy is not None:
-            self._xy_scales = list(self._params.resolutions_xy)
-        else:
-            self._xy_scales = [float(self._params.resolution_xy)]
+        self._encoder = CoordinateEncoder(coord_params)
 
-        if self._params.resolutions_alt is not None:
-            self._z_scales = list(self._params.resolutions_alt)
-        else:
-            self._z_scales = [float(self._params.resolution_alt)]
-
-        self._z_encoders: list[RandomDistributedScalarEncoder] = []
-        for res in self._z_scales:
-            z_params = RDSEParameters(
-                size=self._params.size_alt,
-                active_bits=self._params.w_alt,
-                sparsity=0.0,
-                radius=0.0,
-                resolution=float(res),
-                category=False,
-                seed=0,
-            )
-            self._z_encoders.append(
-                RandomDistributedScalarEncoder(z_params, dimensions=[z_params.size])
-            )
-
-        self._R = 6378137.0  # Web Mercator radius in meters
-        self._lon0 = math.radians(self._params.origin_lon)
-        self._y0 = self._mercator_y(math.radians(self._clamp_lat(self._params.origin_lat)))
-
-        self._alt = float(self._params.origin_alt)
-
-        # Total SDR size: XY size + (num_z_scales * size_alt)
-        self._size = self._xy.size + (len(self._z_encoders) * self._params.size_alt)
-        super().__init__(dimensions, self._size)
+        super().__init__(dimensions, self._encoder.size)
 
     @override
-    def encode(self, input_value: tuple[float, float, float]) -> list[int]:
-        lat, lon, alt = float(input_value[0]), float(input_value[1]), float(input_value[2])
+    def encode(self, input_value):
+        if len(input_value) == 3:
+            speed, lon, lat = input_value
+            alt = None
+        elif len(input_value) == 4:
+            speed, lon, lat, alt = input_value
+        else:
+            raise ValueError("Expected (speed, lon, lat) or (speed, lon, lat, alt).")
 
-        # Always normalize geo inputs
-        lat = self._clamp_lat(lat)
+        lon = float(lon)
+        lat = float(lat)
+        speed = float(speed)
+        alt = None if alt is None else float(alt)
+
         lon = self._wrap_lon(lon)
+        lat = self._clamp_lat(lat)
 
-        # Project to meters
-        x, y = self._project_mercator(lat, lon)
+        coord = self.coordinate_for_position(lon, lat, alt)
+        radius = self.radius_for_speed(speed)
 
-        # Center altitude
-        z = alt - self._alt
+        return self._encoder.encode((coord, radius))
 
-        out: list[int] = []
+    def coordinate_for_position(
+        self, lon: float, lat: float, alt: Optional[float]
+    ) -> tuple[int, ...]:
+        # lon/lat to Mercator meters
+        x_m, y_m = T_WGS84_TO_MERC.transform(lon, lat)
 
-        # XY block
-        out.extend(int(v) for v in self._xy.encode((x, y)))
+        if self._geo_params.use_altitude and alt is not None:
+            # Mercator meters and altitude to geocentric meters
+            x, y, z = T_MERC_TO_GEO.transform(x_m, y_m, alt)
+            coord = np.array([x, y, z], dtype=float) / float(self._geo_params.scale)
+            return tuple(int(round(v)) for v in coord)
+        else:
+            coord = np.array([x_m, y_m], dtype=float) / float(self._geo_params.scale)
+            return tuple(int(round(v)) for v in coord)
 
-        # Z block
-        for ze in self._z_encoders:
-            out.extend(int(v) for v in ze.encode(z))
+    def radius_for_speed(self, speed_mps: float) -> int:
 
-        return out
+        overlap = 1.5
+        coords_per_timestep = speed_mps * float(self._geo_params.timestep)
+        r = int(round((coords_per_timestep / 2.0) * overlap))
 
-    def _project_mercator(self, lat_deg: float, lon_deg: float) -> tuple[float, float]:
-        lat_rad = math.radians(lat_deg)
-        lon_rad = math.radians(lon_deg)
+        min_r = int(math.ceil((math.sqrt(self._encoder._w) - 1.0) / 2.0))
 
-        x = self._R * (lon_rad - self._lon0)
-        y = self._R * (self._mercator_y(lat_rad) - self._y0)
-        return (x, y)
-
-    @staticmethod
-    def _mercator_y(lat_rad: float) -> float:
-        # y = ln(tan(pi/4 + lat/2))
-        return math.log(math.tan((math.pi / 4.0) + (lat_rad / 2.0)))
+        r = max(r, min_r)
+        r = max(0, min(r, self._geo_params.max_radius))
+        return r
 
     @staticmethod
     def _clamp_lat(lat: float) -> float:
-        if lat > _MAX_MERCATOR_LAT:
-            return _MAX_MERCATOR_LAT
-        if lat < -_MAX_MERCATOR_LAT:
-            return -_MAX_MERCATOR_LAT
-        return lat
+        # Web Mercator is undefinded at poles so we should clamp it
+        return max(-85.05112878, min(85.05112878, lat))
 
     @staticmethod
     def _wrap_lon(lon: float) -> float:
-        # Wrap longitude to [-180, 180)
-        x = (lon + 180.0) % 360.0
-        return x - 180.0
-
-    def check_parameters(self, p: GeospatialParameters) -> GeospatialParameters:
-        # XY
-        if p.size_per_axis <= 0:
-            raise ValueError("size_per_axis must be > 0")
-        if p.w_xy <= 0 or p.w_xy > p.size_per_axis:
-            raise ValueError("w_xy must be > 0 and <= size_per_axis")
-        if p.resolutions_xy is not None:
-            if len(p.resolutions_xy) == 0:
-                raise ValueError("resolutions_xy_m cannot be empty if provided")
-            if any(r <= 0 for r in p.resolutions_xy):
-                raise ValueError("all resolutions_xy_m must be > 0")
-        else:
-            if p.resolution_xy <= 0:
-                raise ValueError("resolution_xy_m must be > 0")
-
-        # Z
-        if p.size_alt <= 0:
-            raise ValueError("size_alt must be > 0")
-        if p.w_alt <= 0 or p.w_alt > p.size_alt:
-            raise ValueError("w_alt must be > 0 and <= size_alt")
-        if p.resolutions_alt is not None:
-            if len(p.resolutions_alt) == 0:
-                raise ValueError("resolutions_alt cannot be empty if provided")
-            if any(r <= 0 for r in p.resolutions_alt):
-                raise ValueError("all resolutions_alt_m must be > 0")
-        else:
-            if p.resolution_alt <= 0:
-                raise ValueError("resolution_alt_m must be > 0")
-
-        # Origins
-        if not (-90.0 <= p.origin_lat <= 90.0):
-            raise ValueError("origin_lat must be in [-90, 90]")
-
-        # origin_lon / origin_alt_m can be any float
-        return p
+        # wrap to [-180, 180)
+        lon = (lon + 180.0) % 360.0 - 180.0
+        return lon
 
 
 if __name__ == "__main__":
+    coord_params = CoordinateParameters(n=40, w=25, seed=0, max_radius=2)
+    geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=2, use_altitude=True)
 
-    params = GeospatialParameters(
-        origin_lat=40.44,
-        origin_lon=-79.99,
-        origin_alt=300.0,
-        resolution_xy=20.0,
-        resolutions_xy=[20.0, 100.0, 500.0],
-        resolution_alt=5.0,
-        resolutions_alt=[5.0, 25.0, 100.0],
-    )
+    enc = GeospatialEncoder(geo_params=geo_params, coord_params=coord_params)
 
-    enc = GeospatialEncoder(params)
+    a = enc.encode((5.0, -177.0365, 38.8977, 10.0))
+    b = enc.encode((5.0, -77.0365, 38.897, 10.0))
 
-    out1 = enc.encode((40.4433, -79.9436, 320.0))
-    out2 = enc.encode((40.4433, -79.9436, 320.0))
+    lon = -1177.0365
+    lon1 = (lon + 180.0) % 360.0 - 180.0
+    print(lon1)
 
-    print(out1)
+    def overlap_count(x: list[int], y: list[int]) -> int:
+        return int(np.count_nonzero(np.array(x) == np.array(y)))
 
-    assert out1 == out2
+    print("len:", len(a))
+    print("overlap:", overlap_count(a, b))
+
+    print(a)

@@ -18,6 +18,7 @@ class CoordinateParameters:
     w: int = 25
     seed: int = 0
     max_radius: int = 2
+    dims: int = 2
 
 
 class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
@@ -28,6 +29,8 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         self._n = self._parameters.n
         self._w = self._parameters.w
         self._seed = self._parameters.seed
+
+        self._dims = self._parameters.dims
 
         enc_params = RDSEParameters(
             size=self._n,
@@ -41,8 +44,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
         self._encoder = RandomDistributedScalarEncoder(enc_params)
 
-        dims = 2
-        max_neighbors = (2 * self._parameters.max_radius + 1) ** dims
+        max_neighbors = (2 * self._parameters.max_radius + 1) ** self._dims
 
         # for all neighbors use this
         self._size = max_neighbors * self._n
