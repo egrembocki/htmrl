@@ -11,12 +11,19 @@ from pyproj import CRS, Transformer
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
+# Good for 2D
 CRS_MERC = CRS.from_epsg(3857)
+
+# Represents raw GPS coordinates
 CRS_WGS84 = CRS.from_epsg(4326)
 
+# Good for 3D
 CRS_GEO = CRS.from_proj4("+proj=geocent +datum=WGS84 +units=m +no_defs")
 
+# Turns GPS input into a flat metric space
 T_WGS84_TO_MERC = Transformer.from_crs(CRS_WGS84, CRS_MERC, always_xy=True)
+
+# Allows altitude to meaningfully affect the encoding
 T_MERC_TO_GEO = Transformer.from_crs(CRS_MERC, CRS_GEO, always_xy=True)
 
 
