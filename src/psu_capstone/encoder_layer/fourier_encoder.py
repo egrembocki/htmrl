@@ -1,5 +1,5 @@
 """
-FFT encoder implementation for HTM core
+FFT encoder implementation for HTM core --
 
 Indefinite integral proof:  g_f = integral(g_t * exp(-2*pi*i*f*t))
 
