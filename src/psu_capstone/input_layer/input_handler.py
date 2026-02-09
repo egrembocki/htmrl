@@ -44,14 +44,14 @@ class InputHandler:
 
         return cls.__instance  # type: ignore
 
-    def __init__(self, data: Any = None) -> None:
+    def __init__(self, data: Any | None = None) -> None:
         """Initialize the handler with optional seed data.
 
         Args:
             data: Initial data to load into the handler. Defaults to ``None``.
         """
 
-        self._data: list[dict[str, Any]]
+        self._data: list[dict[str, Any]] = [] if data is None else self._raw_to_sequence(data)
         """The processed input data -> encoder-ready records."""
 
         self._columns: list[str] = []
@@ -197,14 +197,17 @@ class InputHandler:
         Returns:
             The converted numpy array.
         """
+        if not data:
+            raise ValueError("Cannot convert empty record list to numpy array.")
+        else:
+            self._data = data
+            validate_data = self._validate_data()  # type: ignore
+            if not validate_data:
+                raise ValueError("Data validation failed; cannot convert to numpy ndarray.")
 
-        self._data = data
-        validate_data = self._validate_data()  # type: ignore
-        if not validate_data:
-            raise ValueError("Data validation failed; cannot convert to numpy ndarray.")
+            columns = self._columns or list(data[0].keys())
+            matrix = [[row.get(col) for col in columns] for row in data]
 
-        columns = self._columns or list(data[0].keys())
-        matrix = [[row.get(col) for col in columns] for row in data]
         return np.asarray(matrix, dtype=np.float64)
 
     def _load_from_file(self, filepath: str) -> Any:
@@ -416,7 +419,7 @@ class InputHandler:
         else:
             logger.info("no missing value handling for type: %s", type(data))
 
-    def _validate_data(self, required_columns: list[str] | None = None) -> bool:
+    def _validate_data(self, required_columns: list[str] | None = None) -> str:
         """Verify structure, NaN patterns, duplicates, and caller-specified schemas."""
 
         logger.info("validating data...")
@@ -424,17 +427,17 @@ class InputHandler:
         if not isinstance(self._data, list) or (
             self._data and not all(isinstance(row, Mapping) for row in self._data)
         ):
-            raise ValueError("data is not a list of records.")
+            return "Data is not a list of records."
 
         # Check empty
         if not self._data:
-            raise ValueError("Record list is empty")
+            return "Record list is empty"
 
         columns = self._columns or list(self._data[0].keys())
 
         # Check for duplicate columns
         if len(set(columns)) != len(columns):
-            raise ValueError("Record list has duplicate column names.")
+            return "Record list has duplicate column names."
 
         # Check for all-None columns
         nan_cols = [
@@ -444,7 +447,7 @@ class InputHandler:
             and col not in self._appended_required_columns
         ]
         if nan_cols:
-            raise ValueError(f"Columns with all None values: {nan_cols}")
+            return f"Columns with all None values: {nan_cols}"
 
         if self._appended_required_columns:
             logger.info(
@@ -456,10 +459,10 @@ class InputHandler:
         if required_columns:
             missing = [col for col in required_columns if col not in columns]
             if missing:
-                raise ValueError(f"Missing required columns: {missing}")
+                return f"Missing required columns: {missing}"
 
         logger.info("data has been validated")
-        return True
+        return "Data is valid."
 
     def _apply_required_columns(self, required_columns: list[str] = []) -> None:
         """Align columns to the requested order and append NA placeholders for missing names."""
