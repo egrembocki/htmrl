@@ -3,22 +3,30 @@ from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
-from matplotlib.pylab import f
 from scipy.fft import fft, fftfreq, ifft
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 plt.style.use("seaborn-v0_8-poster")
+
+
+def _records_to_signal(records: list[dict]) -> np.ndarray:
+    """Convert list-of-dicts records into a flattened numpy signal.
+
+    Drops any 'timestamp' key and converts remaining values to floats.
+    Returns an empty array for empty input.
+    """
+    if not records:
+        return np.array([])
+    cols = [k for k in records[0].keys() if k != "timestamp"]
+    arr = np.array([[float(r.get(c, 0)) for c in cols] for r in records], dtype=float)
+    return arr.flatten()
 
 
 def plot_sdr(data: list[int]) -> None:
@@ -55,13 +63,7 @@ def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv")
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
     hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
-
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
+    signal = _records_to_signal(hot_gym)
 
     # signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
     # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
@@ -149,12 +151,7 @@ if __name__ == "__main__":
     ih = InputHandler()
     hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
 
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
+    signal = _records_to_signal(hot_gym)
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(

@@ -3,7 +3,6 @@ import time
 import warnings
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -31,11 +30,30 @@ def main():
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
-    input_data = handler.input_data(input_source=data_path, required_columns=[])
-    input_data = input_data.loc[:, ~input_data.columns.duplicated()]
+    input_records = handler.input_data(input_source=data_path, required_columns=[])
+
+    # Ensure records are unique-keyed based on first record's keys
+    if input_records:
+        seen = []
+        cols = list(dict.fromkeys(input_records[0].keys()))
+    else:
+        cols = []
 
     encoder = RandomDistributedScalarEncoder()
-    values = pd.to_numeric(input_data["kw_energy_consumption"], errors="coerce").dropna().tolist()
+
+    def _numeric_column(records: list[dict], col: str) -> list[float]:
+        out = []
+        for r in records:
+            v = r.get(col)
+            if v is None:
+                continue
+            try:
+                out.append(float(v))
+            except Exception:
+                continue
+        return out
+
+    values = _numeric_column(input_records, "kw_energy_consumption")
     train_values, test_values = train_test_split(values, test_size=0.2, shuffle=False)
     # Train the knn for decoding on 80% of data
     encodings = []
@@ -139,8 +157,15 @@ def main():
 
         next_idx = (idx + 1) % len(sdrs_train)
         # target_col = input_data.columns[1]
-        target_col = input_data.columns[0]
-        actual_values.append(input_data.loc[input_data.index[next_idx], target_col])
+        target_col = cols[0] if cols else None
+        actual = None
+        if target_col is not None and next_idx < len(input_records):
+            actual = input_records[next_idx].get(target_col)
+            try:
+                actual = float(actual)
+            except Exception:
+                actual = None
+        actual_values.append(actual)
 
     for pred, actual in zip(predictions, actual_values):
         print(f"Actual next step: {actual}, Prediction: {pred}")

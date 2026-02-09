@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from tqdm import tqdm
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, InputField
@@ -76,6 +75,13 @@ def _train_sine(
     config: SineConfig,
 ) -> list[int]:
     burst_counts = []
+    try:
+        from tqdm import tqdm
+    except Exception:
+
+        def tqdm(x, **kwargs):
+            return x
+
     for step in tqdm(range(config.total_steps), desc="Training"):
         value = sine_cycle[step % config.cycle_length]
         brain.step({"sine_input": value})

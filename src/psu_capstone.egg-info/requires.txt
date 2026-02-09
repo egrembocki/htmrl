@@ -1,5 +1,5 @@
 sympy>=1.11
-pandas>=2.1
+# pandas removed - not required anymore
 openpyxl>=3.1.2
 mmh3>=3.0
 matplotlib>=3.7
