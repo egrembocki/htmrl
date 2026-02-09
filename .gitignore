@@ -6,7 +6,7 @@ Executables and build outputs
 /dist/
 /out/
 
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files / pycaches
 __pycache__/
 pyvenv
 *.py[codz]
@@ -152,9 +152,7 @@ celerybeat.pid
 
 # Environments
 #.env
-.venv/
 .venv
-.venv/*
 .vscode
 .requirements.txt
 .flake8
@@ -223,4 +221,5 @@ __marimo__/
 condaenv.iw4wefqq.requirements.txt
 
 # Ignore Python virtual environment configuration file
+*.cfg
 pyvenv.cfg
