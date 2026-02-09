@@ -9,7 +9,7 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
-def test_correct_encoder_created():
+def test_input_field_correct_encoder_created():
     """
     This class uses dynamic instantiation. The test is designed
     to make sure the correct instance is created with the parameter
@@ -38,7 +38,7 @@ def test_correct_encoder_created():
     # when geospatial is added, add it here.
 
 
-def test_check_cell_count():
+def test_input_field_check_cell_count():
     """Test to check that the number of cells is equal to the size in the encoder."""
     parameters = RDSEParameters()
     in_fi = InputField(parameters)
@@ -51,7 +51,7 @@ def test_input_field_with_no_parameters():
     assert isinstance(in_fi.encoder, RandomDistributedScalarEncoder)
 
 
-def test_check_cells_are_active_after_encode():
+def test_input_field_check_cells_are_active_after_encode():
     """Test that we have active cells after encoding."""
     in_fi = InputField()
     a = in_fi.encode(10)
@@ -61,7 +61,7 @@ def test_check_cells_are_active_after_encode():
     assert np.array_equal(sparse, active_cells)
 
 
-def test_advance_cell_states():
+def test_input_field_advance_cell_states():
     """This test makes sure cell states are being adjusted properly."""
     in_fi = InputField()
     in_fi.encode(10)
