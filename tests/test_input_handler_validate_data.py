@@ -84,6 +84,7 @@ def test_validate_data_non_dataframe(handler):
     handler._data = [1, 2, 3]
     try:
         result = handler._validate_data(required_columns=["id"])
+        assert result == ("Data is valid.", True)
     except AttributeError as e:
         assert "object has no attribute 'keys'" in str(e)
 
@@ -101,5 +102,8 @@ def test_input_data_scalar(handler):
     scalar_data = 42
     try:
         result = handler.input_data(scalar_data, required_columns=["value"])
+        assert result == [{"value": 42}]
     except TypeError as e:
         assert "Unsupported data type for conversion to sequence" in str(e)
+
+    assert handler._data == []
