@@ -1,0 +1,62 @@
+@startuml
+skinparam shadowing false
+left to right direction
+
+rectangle "Agent" as A
+rectangle "SpatialPooler" as SP
+rectangle "TemporalMemory" as TM
+
+rectangle "EncoderHandler\n(Singleton)" as EH
+rectangle "RandomDistributedScalarEncoder" as R
+rectangle "ScalarEncoder" as S
+rectangle "CategoryEncoder" as C
+rectangle "DateEncoder" as D
+
+rectangle "AgentInterface\nProtocol" as AI
+rectangle "EncoderInterface\nProtocol" as EI
+rectangle "InputInterface\nProtocol" as II
+rectangle "SDRInterface\nProtocol" as SI
+rectangle "InputHandler" as IH
+rectangle "SDR" as SDR
+
+rectangle "Brain" as B
+rectangle "InputField" as INF
+rectangle "InputField.encode" as IF
+rectangle "ColumnField.compute" as CF
+
+rectangle "HTM.make_state_class" as MSC
+rectangle "Active/Winner/Predictive/..." as AC
+rectangle "HTM Cell/Segment/Column usage" as CELL
+
+rectangle "HTM Segment" as SEG
+rectangle "DistalSynapse" as DS
+rectangle "ApicalSynapse" as APS
+
+A --> SP : Factory method
+A --> TM : Factory method
+
+EH --> R : delegates encode
+EH --> S : delegates encode
+EH --> C : delegates encode
+EH --> D : delegates encode
+
+D --> R : Strategy\nchoose implementation
+D --> S : Strategy\nchoose implementation
+
+AI ..> A : marker/contract
+EI ..> R : marker/contract
+EI ..> S : marker/contract
+II ..> IH : marker/contract
+SI ..> SDR : marker/contract
+
+B --> IF : delegates
+B --> CF : delegates
+B --> INF : uses managed field
+INF --> R : factory-style encoder\nvia params.encoder_class
+
+MSC --> AC : factory for mixins
+AC --> CELL
+
+SEG --> DS : configurable synapse_cls
+SEG --> APS : configurable synapse_cls
+@enduml
