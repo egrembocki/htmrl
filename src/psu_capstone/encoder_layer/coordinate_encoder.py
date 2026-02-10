@@ -12,15 +12,6 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
-@dataclass
-class CoordinateParameters:
-    n: int = 2048
-    w: int = 25
-    seed: int = 42
-    max_radius: int = 2
-    dims: int = 2
-
-
 class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
     def __init__(self, parameters: CoordinateParameters, dimensions: list[int] | None = None):
@@ -100,6 +91,16 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         s = ",".join(str(int(v)) for v in coordinate)
         h = mmh3.hash(s, seed=self._seed, signed=False)
         return h / 2**32
+
+
+@dataclass
+class CoordinateParameters:
+    n: int = 2048
+    w: int = 25
+    seed: int = 42
+    max_radius: int = 2
+    dims: int = 2
+    encoder_class = CoordinateEncoder
 
 
 if __name__ == "__main__":

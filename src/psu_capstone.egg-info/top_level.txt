@@ -4,6 +4,5 @@ demo_driver
 grapher
 hashing
 manual_test
-manual_test
 psu_capstone
 utils

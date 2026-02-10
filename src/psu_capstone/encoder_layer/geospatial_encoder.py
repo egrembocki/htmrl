@@ -27,20 +27,6 @@ T_WGS84_TO_MERC = Transformer.from_crs(CRS_WGS84, CRS_MERC, always_xy=True)
 T_MERC_TO_GEO = Transformer.from_crs(CRS_MERC, CRS_GEO, always_xy=True)
 
 
-@dataclass
-class GeospatialParameters:
-    # meters per grid unit
-    scale: float = 10.0
-
-    # seconds between readings
-    timestep: float = 1.0
-
-    # clamp output radius
-    max_radius: int = 2
-
-    use_altitude: bool = True
-
-
 class GeospatialEncoder(
     BaseEncoder[tuple[float, float, float] | tuple[float, float, float, float]]
 ):
@@ -128,6 +114,22 @@ class GeospatialEncoder(
         # wrap to [-180, 180)
         lon = (lon + 180.0) % 360.0 - 180.0
         return lon
+
+
+@dataclass
+class GeospatialParameters:
+    # meters per grid unit
+    scale: float = 10.0
+
+    # seconds between readings
+    timestep: float = 1.0
+
+    # clamp output radius
+    max_radius: int = 2
+
+    use_altitude: bool = True
+
+    encoder_class = GeospatialEncoder
 
 
 if __name__ == "__main__":
