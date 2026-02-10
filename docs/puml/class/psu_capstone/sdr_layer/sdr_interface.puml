@@ -1,4 +1,5 @@
 @startuml
+!pragma layout smetana
 
 title psu_capstone.sdr_layer.sdr_interface
 
