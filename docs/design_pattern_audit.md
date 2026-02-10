@@ -60,6 +60,7 @@ A strict GoF/Java-style marker interface is not clearly present.
 - Concrete strategies are implemented by encoders such as `ScalarEncoder`,
   `RandomDistributedScalarEncoder`, `CategoryEncoder`, and `DateEncoder`.
 - Handlers select strategies at runtime based on data types or custom mapping.
+- See `docs/strategy_pattern_evidence.md` for exact code-level evidence and examples.
 
 
 ## Immutable pattern (assessment)
