@@ -28,6 +28,7 @@ This repository contains clear examples (and a few "in-progress" uses) of the re
 
 - `EncoderHandler.build_composite_sdr()` delegates actual encoding work to concrete encoder objects (`RandomDistributedScalarEncoder`, `ScalarEncoder`, `CategoryEncoder`, `DateEncoder`) selected per value type.
 - `Brain.step()` delegates to `encode_only()` and `compute_only()`, which then delegate to field objects (`InputField.encode`, `ColumnField.compute`).
+- `InputHandler.input_data()` delegates ingestion stages to helper methods (`_load_from_file`, `_raw_to_sequence`, `_apply_required_columns`, `_validate_data`) rather than implementing all parsing/normalization inline.
 
 ## 6) HTM + Brain specifics
 
@@ -47,3 +48,7 @@ This repository contains clear examples (and a few "in-progress" uses) of the re
 !include docs/puml/design_patterns.puml
 @enduml
 ```
+
+## Delegation Reference
+
+- See `docs/delegation_pattern_examples.md` for concrete code locations and call flows where delegation is used.
