@@ -1,6 +1,6 @@
 from demo_driver import build_demo_records
-from psu_capstone.agent_layer.HTM import ColumnField, InputField
 from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.HTM import ColumnField, InputField
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.sdr_layer.sdr import SDR
 

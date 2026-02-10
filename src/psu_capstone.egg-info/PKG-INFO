@@ -14,7 +14,12 @@ Requires-Dist: mmh3>=3.0
 Requires-Dist: matplotlib>=3.7
 Requires-Dist: scikit-learn>=1.7.2
 Requires-Dist: tqdm>=4.66.4
+<<<<<<< HEAD
 Requires-Dist: pdoc>=16.0.0
+=======
+Requires-Dist: plantuml>=0.3.0
+Requires-Dist: pylint>=4.0.4
+>>>>>>> 876d5f2fe1f659cd134aadd8d69b9d03559629ab
 
 # PSU Capstone Project (FORK - millscb)
 

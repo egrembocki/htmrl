@@ -1,0 +1,46 @@
+@startuml
+
+title psu_capstone.encoder_layer.rdse
+
+class BaseEncoder
+class RandomDistributedScalarEncoder {
+  -_parameters: RDSEParameters
+  -_size: int
+  -_active_bits: int
+  -_sparsity: float
+  -_radius: float
+  -_resolution: float
+  -_category: bool
+  -_seed: int
+  -_encoding_cache: dict[float, list[int]]
+  +knn: KNeighborsRegressor
+  +encoding: bool
+  +__init__(parameters: RDSEParameters, dimensions: list[int] | None = None)
+  +encode(input_value: float): list[int]
+  +register_encoding(input_value: float, encoded: list[int] | None = None): list[int]
+  +clear_registered_encodings()
+  +_compute_encoding(input_value: float): list[int]
+  +_overlap(first: list[int], second: list[int]): int
+  +sparsify(vector: list[int]): list[int]
+  +decode(encoded: list[int], candidates: Iterable[float] | None = None): tuple[float | None, float]
+  +make_knn()
+  +decode_knn(encoded: list[int]): float
+  +check_parameters(parameters: RDSEParameters)
+}
+class RDSEParameters {
+  +size: int
+  +active_bits: int
+  +sparsity: float
+  +radius: float
+  +resolution: float
+  +category: bool
+  +seed: int
+  +encoder_class
+}
+class KNeighborsRegressor
+
+BaseEncoder <|-- RandomDistributedScalarEncoder
+RandomDistributedScalarEncoder o-- RDSEParameters : parameters
+RandomDistributedScalarEncoder ..> KNeighborsRegressor
+
+@enduml

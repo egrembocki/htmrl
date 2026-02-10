@@ -1,0 +1,14 @@
+@startuml
+
+title psu_capstone.encoder_layer.encoder_interface
+
+interface Protocol
+
+interface EncoderInterface {
+  +buffer_data(input_data: list[Mapping[str, Any]], start: int = 0, stop: int | None = None): list[dict[str, Any]]
+  +encode(input_value: Any): list[int]
+}
+
+Protocol <|.. EncoderInterface
+
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+' Agent/Brain/HTM compute cycle
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Agent Decision Cycle with Brain and HTM
+
+actor Environment
+participant "Agent" as Agent
+participant "Brain" as Brain
+participant "HTM" as HTM
+participant "SpatialPooler" as SP
+participant "TemporalMemory" as TM
+
+Environment -> Agent: observe(state_sdr)
+activate Agent
+Agent -> Brain: process(state_sdr)
+activate Brain
+Brain -> HTM: step(state_sdr)
+activate HTM
+
+HTM -> SP: compute_active_columns(state_sdr)
+activate SP
+SP --> HTM: active_columns
+Deactivate SP
+
+HTM -> TM: compute_cells(active_columns)
+activate TM
+TM --> HTM: predictive_state + learning updates
+Deactivate TM
+
+HTM --> Brain: inference/prediction
+Deactivate HTM
+Brain --> Agent: action decision
+Deactivate Brain
+Agent --> Environment: act(action)
+Deactivate Agent
+@enduml

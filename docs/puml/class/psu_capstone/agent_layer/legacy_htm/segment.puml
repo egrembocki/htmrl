@@ -1,0 +1,18 @@
+@startuml
+
+title psu_capstone.agent_layer.legacy_htm.segment
+
+class Segment {
+  +synapses: list[DistalSynapse]
+  +sequence_segment: bool
+  +__init__(synapses: list[DistalSynapse] | None = None)
+  +active_synapses(active_cells: list[Cell]): list[DistalSynapse]
+  +matching_synapses(prev_active_cells: list[Cell]): list[DistalSynapse]
+}
+class DistalSynapse
+class Cell
+
+Segment o-- "0..*" DistalSynapse : synapses
+DistalSynapse o-- Cell : source_cell
+
+@enduml

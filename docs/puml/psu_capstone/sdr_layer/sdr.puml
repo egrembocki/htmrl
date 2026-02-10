@@ -1,7 +1,0 @@
-@startuml
-
-title psu_capstone.sdr_layer.sdr
-
-class SDR
-
-@enduml

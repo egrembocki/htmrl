@@ -10,7 +10,6 @@ for demonstration and testing purposes, providing insight into how input data is
 """
 
 import os
-
 from datetime import datetime
 
 from psu_capstone.sdr_layer.sdr import SDR
@@ -250,7 +249,7 @@ def main():
     for i, value in enumerate(scalar_values):
         sdr1 = SDR([scalar_encoder.size])
         sdr2 = SDR([rdse_encoder.size])
-        sdr3 = SDR(category_encoder.dimensions)
+        sdr3 = SDR([category_encoder.size])
         sdr4 = SDR([date_encoder.size])
         sdr1 = scalar_encoder.encode(value)
         sdr2 = rdse_encoder.encode(value)

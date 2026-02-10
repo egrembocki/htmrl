@@ -1,0 +1,60 @@
+@startuml
+
+title psu_capstone.sdr_layer.sdr
+
+class SDR {
+  -_dimensions: list[int]
+  -_size: int
+  -_dense: sdr_dense_t
+  -_sparse: sdr_sparse_t
+  -_coordinates: sdr_coordinate_t
+  -_sparsity: float
+  -_interface: Any
+  -_dense_valid: bool
+  -_sparse_valid: bool
+  -_coordinates_valid: bool
+  -__callbacks: list[sdr_callback_t | None]
+  -__destroy_callbacks: list[sdr_callback_t | None]
+  +__init__(dimensions: list[int])
+  +size: int
+  +dimensions: list[int]
+  +interface: Any
+  +clear()
+  +do_callbacks()
+  +set_dense_inplace()
+  +set_sparse_inplace()
+  +set_coordinates_inplace()
+  +destroy()
+  +get_dimensions(): list[int]
+  +reshape(new_dimensions: Sequence[int])
+  +zero()
+  +set_dense(dense: Iterable[int])
+  +get_dense(): sdr_dense_t
+  +get_sparsity(): float
+  +set_sparsity(sparsity: float)
+  +set_sparse(sparse: Iterable[int])
+  +get_sparse(): sdr_sparse_t
+  +sdr_to_type(type: Any, is_sparse: bool): Any
+  +set_sdr(other: SDR)
+  +get_sdr(): SDR
+  +at_byte(coordinates: Sequence[int]): int
+  +set_coordinates(coordinates: Iterable[Iterable[int]])
+  +get_coordinates(): sdr_coordinate_t
+  +get_sum(): int
+  +get_overlap(other: SDR): int
+  +intersection(sdrs: list[SDR])
+  +_validate_concatenate_inputs(inputs: list[SDR], axis_index: int): int
+  +set_union(sdrs: list[SDR])
+  +concatenate(inputs: list[SDR], axis: int = 0)
+  +add_on_change_callback(callback: sdr_callback_t): int
+  +remove_on_change_callback(index: int)
+  +add_destroy_callback(callback: sdr_callback_t): int
+  +remove_destroy_callback(index: int)
+  +randomize(sparsity: float, rng: Optional[random.Random] = None)
+  +add_noise(fraction_noise: float, rng: Optional[random.Random] = None)
+  +kill_cells(fraction: float, seed: int = 0)
+  +__eq__(other: object): bool
+  +__repr__(): str
+}
+
+@enduml

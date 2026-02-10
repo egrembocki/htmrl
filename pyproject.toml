@@ -20,7 +20,12 @@ dependencies = [
  "matplotlib>=3.7",
  "scikit-learn>=1.7.2",
  "tqdm>=4.66.4",
+<<<<<<< HEAD
  "pdoc>=16.0.0",
+=======
+ "plantuml>=0.3.0",
+ "pylint>=4.0.4",
+>>>>>>> 876d5f2fe1f659cd134aadd8d69b9d03559629ab
 ]
 
 

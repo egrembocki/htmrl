@@ -1,0 +1,41 @@
+@startuml
+
+title psu_capstone.agent_layer.legacy_htm.temporal_memory
+
+class TemporalMemory {
+  +columns: list[Column]
+  +cells_per_column: int
+  +active_cells: dict[int, set[Cell]]
+  +winner_cells: dict[int, set[Cell]]
+  +predictive_cells: dict[int, set[Cell]]
+  +learning_segments: dict[int, set[Segment]]
+  +negative_segments: dict[int, set[Segment]]
+  +current_t: int
+  +column_field_map: dict[Column, str | None]
+  +__init__(columns: list[Column], cells_per_column: int)
+  +step(active_columns: list[Column]): dict[str, np.ndarray]
+  +_compute_active_state(active_columns: list[Column])
+  +_compute_predictive_state()
+  +_learn()
+  +cells_to_binary(cells: set[Cell]): np.ndarray
+  +get_predictive_columns_mask(t: int | None = None): np.ndarray
+  +reset_state()
+  +_best_matching_cell(column: Column, prev_t: int): tuple[Cell | None, Segment | None]
+  +_active_segments_of(cell: Cell, t: int): list[Segment]
+  +_reinforce_segment(segment: Segment)
+  +_punish_segment(segment: Segment)
+}
+class Column
+class Cell
+class Segment
+class DistalSynapse
+
+TemporalMemory o-- "1..*" Column : columns
+Column o-- "1..*" Cell : cells
+Cell o-- "0..*" Segment : segments
+Segment o-- "0..*" DistalSynapse : synapses
+
+TemporalMemory ..> Segment : learning
+TemporalMemory ..> DistalSynapse : updates
+
+@enduml

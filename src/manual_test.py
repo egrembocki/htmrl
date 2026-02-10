@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from psu_capstone.agent_layer.HTM import ColumnField, InputField
 from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.HTM import ColumnField, InputField
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
@@ -54,7 +54,9 @@ def build_brain(field_sizes: dict[str, int]) -> Brain:
         RDSEParameters(size=field_sizes["usage_kw"], active_bits=8, resolution=1.0, seed=17)
     )
     sensor_field = InputField(
-        RDSEParameters(size=field_sizes["sensor_id"], active_bits=1, category=True, resolution=0, seed=23)
+        RDSEParameters(
+            size=field_sizes["sensor_id"], active_bits=1, category=True, resolution=0, seed=23
+        )
     )
     timestamp_field = InputField(
         RDSEParameters(size=field_sizes["timestamp"], active_bits=8, resolution=3600.0, seed=29)
@@ -128,9 +130,7 @@ def run_demo() -> None:
 
     print("\nEncoder Layer Output (composite SDR summary):")
     for idx, composite in enumerate(composite_sdrs, start=1):
-        print(
-            f"  Row {idx}: size={composite.size}, sparsity={composite.get_sparsity():.4f}"
-        )
+        print(f"  Row {idx}: size={composite.size}, sparsity={composite.get_sparsity():.4f}")
 
     brain = build_brain(
         {

@@ -1,0 +1,9 @@
+@startuml packages_psu_capstone
+set namespaceSeparator none
+package "psu_capstone" as psu_capstone {
+}
+package "psu_capstone.log" as psu_capstone.log {
+}
+package "psu_capstone.play_ground" as psu_capstone.play_ground {
+}
+@enduml

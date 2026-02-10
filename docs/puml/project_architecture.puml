@@ -1,0 +1,133 @@
+@startuml psu_capstone_architecture
+!define ARC_FGCOLOR #3C7FC0
+!define ARC_BGCOLOR #DDEBF7
+!define LAYER_FGCOLOR #222222
+!define LAYER_BGCOLOR #E1F5FE
+
+title PSU Capstone - Complete Architecture
+
+skinparam backgroundColor #FEFEFE
+skinparam roundcornersize 5
+skinparam shadowing true
+skinparam sequence {
+    ArrowColor black
+    ActorBorderColor #A80036
+    LifeLineBorderColor black
+}
+
+package "Input Layer" as input_layer <<Rectangle>> {
+    component "InputInterface (Protocol)" as input_interface [
+        - data: list
+        - input_data()
+        - to_encoder_sequence()
+    ]
+    component "InputHandler" as input_handler [
+        Loads & validates data
+    ]
+    component "utils.py" as input_utils
+    input_handler --> input_interface
+}
+
+package "Encoder Layer" as encoder_layer <<Rectangle>> {
+    component "EncoderInterface (Protocol)" as encoder_interface [
+        - encode()
+    ]
+    component "BaseEncoder" as base_encoder
+    component "ScalarEncoder" as scalar_encoder
+    component "CategoryEncoder" as category_encoder
+    component "DateEncoder" as date_encoder
+    component "FourierEncoder" as fourier_encoder
+    component "RDSE" as rdse_encoder
+    component "EncoderHandler" as encoder_handler [
+        Orchestrates encoders
+    ]
+    component "BatchEncoderHandler" as batch_encoder_handler [
+        Batch processing
+    ]
+
+    base_encoder --|> encoder_interface
+    scalar_encoder --|> base_encoder
+    category_encoder --|> base_encoder
+    date_encoder --|> base_encoder
+    fourier_encoder --|> base_encoder
+    rdse_encoder --|> base_encoder
+    encoder_handler --> encoder_interface
+    batch_encoder_handler --> encoder_handler
+}
+
+package "SDR Layer" as sdr_layer <<Rectangle>> {
+    component "SDRInterface (Protocol)" as sdr_interface [
+        - sdr: SDR data
+    ]
+    component "SDR" as sdr_class [
+        Sparse Distributed
+        Representation
+    ]
+    sdr_class --|> sdr_interface
+}
+
+package "Agent Layer" as agent_layer <<Rectangle>> {
+    component "AgentInterface (Protocol)" as agent_interface [
+        - predict()
+        - learn()
+    ]
+    component "Agent" as agent_class
+    component "Brain" as brain [
+        Temporal Memory
+        Spatial Pooler
+    ]
+    component "HTM" as htm [
+        Hierarchical Temporal Memory
+    ]
+    agent_class --|> agent_interface
+    agent_class --> brain
+    brain --> htm
+}
+
+package "Environment Layer" as env_layer <<Rectangle>> {
+    component "EnvironmentInterface (Protocol)" as env_interface [
+        - step()
+        - reset()
+    ]
+}
+
+package "Top-Level Components" as top_level <<Rectangle>> {
+    component "demo_driver.py" as demo_driver [
+        Main demo orchestration
+    ]
+    component "batch_encoder_handler_driver.py" as batch_driver [
+        Batch encoding
+    ]
+    component "grapher.py" as grapher [
+        Visualization
+    ]
+    component "manual_test.py" as manual_test [
+        Testing utilities
+    ]
+    component "log.py" as logger [
+        Logging system
+    ]
+    component "play_ground.py" as playground [
+        Experimentation
+    ]
+}
+
+' Data flow and dependencies
+input_layer --> encoder_layer : encoded values
+encoder_layer --> sdr_layer : SDR output
+sdr_layer --> agent_layer : SDR input
+agent_layer --> env_layer : predictions
+
+' Top-level orchestration
+demo_driver --> input_layer : loads data
+demo_driver --> encoder_layer : encodes data
+demo_driver --> agent_layer : trains/predicts
+demo_driver --> grapher : visualizes
+demo_driver --> logger : logs
+
+batch_driver --> batch_encoder_handler
+batch_driver --> logger
+
+grapher ~~> logger
+
+@enduml

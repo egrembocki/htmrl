@@ -33,14 +33,13 @@ def test_scalar_encoder_initialization():
     )
 
     # Act
-    encoder = ScalarEncoder(parameters, [1, 10])
+    encoder = ScalarEncoder(parameters)
     """Demonstrating deep copy"""
-    ScalarEncoder(parameters, [1, 10])
+    ScalarEncoder(parameters)
 
     # Assert
     assert isinstance(encoder, ScalarEncoder)
     assert encoder.size == 10
-    assert encoder.dimensions == [1, 10]
 
 
 def test_clipping_inputs():
@@ -60,10 +59,9 @@ def test_clipping_inputs():
         category=False,
     )
     # Act and Assert baseline
-    encoder = ScalarEncoder(p, dimensions=[2, 5])
+    encoder = ScalarEncoder(p)
 
     assert encoder.size == 10
-    assert encoder.dimensions == [2, 5]
     # assert test_sdr.size == 10
 
     # Act and Asset - Test input clipping
@@ -97,9 +95,8 @@ def test_valid_scalar_inputs():
     )
 
     # Act and Assert - baseline
-    encoder = ScalarEncoder(params, [2, 5])
+    encoder = ScalarEncoder(params)
     assert encoder.size == 10
-    assert encoder.dimensions == [2, 5]
 
     with pytest.raises(Exception):
         encoder.encode(9.999)  # Below minimum edge case
@@ -129,9 +126,8 @@ def test_scalar_encoder_category_encode():
     )
 
     # Act and Assert - baseline
-    encoder = ScalarEncoder(params, dimensions=[66])
+    encoder = ScalarEncoder(params)
     assert encoder.size == 66
-    assert encoder.dimensions == [66]
 
     # Act and Assert - Value less than minimum should raise
     with pytest.raises(Exception):
@@ -167,7 +163,7 @@ def test_scalar_encoder_non_integer_bucket_width():
         resolution=0.0,
     )
 
-    encoder = ScalarEncoder(params, [1, 7])
+    encoder = ScalarEncoder(params)
 
     cases = [
         (10.0, [0, 1, 2]),
@@ -195,9 +191,8 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
     )
 
     # Act and Assert - baseline
-    encoder = ScalarEncoder(params, dimensions=[1, 13])
+    encoder = ScalarEncoder(params)
     assert encoder._size == 13
-    assert encoder._dimensions == [1, 13]
 
     cases = [
         (10.00, [0, 1, 2]),
@@ -233,11 +228,10 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
         category=False,
         resolution=1,
     )
-    encoder = ScalarEncoder(params, [1, 10])
+    encoder = ScalarEncoder(params)
 
     # Act and Assert - baseline
     assert encoder.size == 10
-    assert encoder.dimensions == [1, 10]
     cases = [
         (10.00, [0, 1, 2]),
         (10.49, [0, 1, 2]),
@@ -278,7 +272,7 @@ def test_scalar_encoder_serialization():
         category=False,
         resolution=0.0,
     )
-    inputs.append(ScalarEncoder(p, [1, 34]))
+    inputs.append(ScalarEncoder(p))
 
     p = ScalarEncoderParameters(
         minimum=1,
@@ -292,7 +286,7 @@ def test_scalar_encoder_serialization():
         category=False,
         resolution=0.0,
     )
-    inputs.append(ScalarEncoder(p, [1, 34]))
+    inputs.append(ScalarEncoder(p))
 
     p = ScalarEncoderParameters(
         minimum=1,
@@ -306,7 +300,7 @@ def test_scalar_encoder_serialization():
         category=False,
         resolution=0.0,
     )
-    inputs.append(ScalarEncoder(p, [1, 34]))
+    inputs.append(ScalarEncoder(p))
 
     p = ScalarEncoderParameters(
         minimum=1,
@@ -320,7 +314,7 @@ def test_scalar_encoder_serialization():
         category=False,
         resolution=0.1337,
     )
-    inputs.append(ScalarEncoder(p, [1, 34]))
+    inputs.append(ScalarEncoder(p))
 
     q = ScalarEncoderParameters(
         minimum=1,
@@ -334,7 +328,7 @@ def test_scalar_encoder_serialization():
         category=False,
         resolution=0.0,
     )
-    inputs.append(ScalarEncoder(q, [1, 100]))
+    inputs.append(ScalarEncoder(q))
 
     r = ScalarEncoderParameters(
         minimum=1,
@@ -348,8 +342,8 @@ def test_scalar_encoder_serialization():
         category=False,
         resolution=0.0,
     )
-    inputs.append(ScalarEncoder(r, [1, 700]))
-    inputs.append(ScalarEncoder(r, [1, 700]))
+    inputs.append(ScalarEncoder(r))
+    inputs.append(ScalarEncoder(r))
 
     for encoder in inputs:
         if type(encoder) is ScalarEncoder:
@@ -387,7 +381,7 @@ def test_scalar_encode_output_only_zeros_and_ones():
         category=False,
         resolution=0.0,
     )
-    encoder = ScalarEncoder(p, [1, 50])
+    encoder = ScalarEncoder(p)
     for value in (0, 10, 50, 100):
         out = encoder.encode(value)
         assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
@@ -407,7 +401,7 @@ def test_scalar_encode_output_length_equals_size():
         category=False,
         resolution=0.0,
     )
-    encoder = ScalarEncoder(p, [1, 32])
+    encoder = ScalarEncoder(p)
     out = encoder.encode(50.0)
     assert len(out) == 32, f"Output length must equal size (32), got {len(out)}"
 
@@ -428,7 +422,7 @@ def test_scalar_encode_output_active_bits_conforms():
         category=False,
         resolution=0.0,
     )
-    encoder = ScalarEncoder(p, [1, size])
+    encoder = ScalarEncoder(p)
     out = encoder.encode(25.0)
     num_ones = sum(out)
     assert num_ones == active_bits, f"Exactly {active_bits} ones expected, got {num_ones}"

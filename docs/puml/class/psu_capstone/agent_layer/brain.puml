@@ -1,0 +1,34 @@
+@startuml
+
+title psu_capstone.agent_layer.brain
+
+class Brain {
+  -_input_fields: dict[str, InputField]
+  -_output_fields: dict[str, OutputField]
+  -_column_fields: dict[str, ColumnField]
+  +fields: dict[str, Field]
+  +__init__(fields: dict[str, Field])
+  +__getitem__(name: str): Field
+  +__getattr__(name: str): Field
+  +step(inputs: dict[str, Any], learn: bool = True)
+  +prediction(): tuple[Any, ...]
+  +encode_only(inputs: dict[str, Any])
+  +compute_only(learn: bool = True)
+  +print_stats()
+  +reset()
+}
+class Field
+class InputField
+class OutputField
+class ColumnField
+
+Field <|-- InputField
+InputField <|-- OutputField
+Field <|-- ColumnField
+
+Brain o-- "0..*" InputField : input_fields
+Brain o-- "0..*" OutputField : output_fields
+Brain o-- "0..*" ColumnField : column_fields
+Brain o-- "0..*" Field : fields
+
+@enduml

@@ -1,0 +1,40 @@
+@startuml
+' Parallel batch encoding workflow
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title BatchEncoderHandler Parallel Encoding Workflow
+
+actor Caller
+participant "BatchEncoderHandler" as BH
+participant "Thread Factory" as TF
+participant "Worker Thread\n(ScalarThread/RdseThread/DateThread/CategoryThread)" as WT
+participant "Encoder" as ENC
+participant "SDR" as SDR
+
+Caller -> BH: encode_batch(dataset, schema)
+activate BH
+BH -> BH: allocate output buffer per row
+
+loop each selected column
+  BH -> TF: create worker(column_data, params, offset)
+  TF --> BH: worker instance
+  BH -> WT: start()
+end
+
+loop each worker
+  activate WT
+  loop each value in assigned column chunk
+    WT -> ENC: encode(value, row_sdr)
+    ENC -> SDR: set bits for value
+  end
+  WT --> BH: row outputs populated
+  deactivate WT
+end
+
+BH -> BH: join all workers
+BH -> BH: merge column SDRs into row composite SDRs
+BH --> Caller: list[SDR]
+deactivate BH
+@enduml

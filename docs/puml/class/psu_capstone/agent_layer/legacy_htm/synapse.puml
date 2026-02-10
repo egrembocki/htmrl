@@ -1,0 +1,11 @@
+@startuml
+
+title psu_capstone.agent_layer.legacy_htm.synapse
+
+class Synapse {
+  +source_input: int
+  +permanence: float
+  +__init__(source_input: int, permanence: float)
+}
+
+@enduml

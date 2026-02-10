@@ -1,0 +1,24 @@
+@startuml
+
+title psu_capstone.encoder_layer.base_encoder
+
+abstract class BaseEncoder {
+  -__interface: AgentInterface | None
+  -__buffered_data: list[dict[str, Any]] | None
+  -__buffer_bounds: tuple[int, int] | None
+  -_dimensions: list[int]
+  -_size: int
+  +__init__(dimensions: list[int] | None = None, size: int | None = None)
+  +interface: AgentInterface | None
+  +dimensions: list[int]
+  +size: int
+  +buffered_data: list[dict[str, Any]] | None
+  +reset()
+  +buffer_data(input_data: list[Mapping[str, Any]], start: int = 0, stop: int | None = None): list[dict[str, Any]]
+  +encode(input_value: T): list[int]
+}
+class AgentInterface
+
+BaseEncoder ..> AgentInterface : interface
+
+@enduml

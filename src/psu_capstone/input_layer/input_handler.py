@@ -150,7 +150,45 @@ class InputHandler:
         self._validate_data(required_columns)
         return self._data
 
-    # return a np.ndarray from record lists
+    def to_encoder_sequence(
+        self,
+        input_source: Any,
+        required_columns: list[str] | None = None,
+        column: str | None = None,
+    ) -> list[Any]:
+        """Normalize input data and return a value sequence ready for encoders.
+
+        Args:
+            input_source: A file path, mapping, sequence, or scalar input value.
+            required_columns: Optional list of columns to enforce for all records.
+            column: Optional column to extract from multi-column records.
+
+        Returns:
+            A list of values that can be passed directly to encoder ``encode`` methods.
+        """
+
+        records = self.input_data(input_source, required_columns=required_columns)
+        if not records:
+            raise ValueError("No records available to build encoder sequence.")
+
+        if column is None:
+            if len(records[0]) == 1:
+                column = next(iter(records[0].keys()))
+            else:
+                raise ValueError(
+                    "Column must be specified when multiple columns are present in the input."
+                )
+
+        sequence = [record.get(column) for record in records]
+        filtered_sequence = [value for value in sequence if value is not None]
+        if not filtered_sequence:
+            raise ValueError("Encoder sequence contains no valid values after filtering.")
+
+        if not self._validate_sequence(filtered_sequence):
+            raise ValueError("Encoder sequence is not a valid iterable payload.")
+
+        return filtered_sequence
+
     def to_numpy(self, data: list[dict[str, Any]]) -> np.ndarray:
         """Convert record data to a ``numpy.ndarray``.
 
@@ -224,6 +262,10 @@ class InputHandler:
         records, is_nested = self._coerce_records_for_sequence(data)
         self._fill_missing_values(records)
         normalized_records, contains_sequential = self._normalize_record_entries(records)
+        contains_repeating = self._detect_repeating_values(normalized_records)
+        if contains_repeating:
+            logger.info("Detected repeating values; treating input as sequential.")
+            contains_sequential = True
 
         if is_nested:
             logger.info("Detected multi-column input from nested iterables.")
@@ -525,3 +567,22 @@ class InputHandler:
             {key: _normalize(value) for key, value in record.items()} for record in records
         ]
         return normalized_records, contains_sequential
+
+    def _detect_repeating_values(self, records: list[dict[str, Any]]) -> bool:
+        """Determine whether the records show any repeated values."""
+
+        def _hashable(value: object) -> object:
+            try:
+                hash(value)
+                return value
+            except TypeError:
+                return repr(value)
+
+        seen: set[object] = set()
+        for record in records:
+            for value in record.values():
+                key = _hashable(value)
+                if key in seen:
+                    return True
+                seen.add(key)
+        return False

@@ -1,0 +1,36 @@
+@startuml sdr_layer_detailed
+title SDR Layer - Sparse Distributed Representation
+
+package "SDR Layer" {
+    interface "SDRInterface (Protocol)" as sdr_if {
+        + sdr: NDArray
+        + density: float
+        + nBits: int
+    }
+
+    class "SDR" as sdr_class {
+        - sdr: NDArray[bool]
+        - width: int
+        - {readonly} density: float
+        - {readonly} nBits: int
+        + __init__(width: int)
+        + set_active_indices(indices: list)
+        + get_active_indices(): list
+        + overlap(other_sdr): int
+        + to_array(): NDArray
+        + from_array(array): SDR
+        + visualize(): str
+    }
+
+    class "SDRComparison" as sdr_compare {
+        + hamming_distance(sdr1, sdr2): int
+        + overlap_ratio(sdr1, sdr2): float
+        + nlargest_indices(sdr, n): list
+        + similarity(sdr1, sdr2): float
+    }
+
+    sdr_class ..|> sdr_if
+    sdr_class --> sdr_compare
+}
+
+@enduml

@@ -164,8 +164,6 @@ if __name__ == "__main__":
         )
     )
 
-    print(signal)
-
     sdr_hot_gym = fft_encoder.encode(signal)
 
     plot_sdr(sdr_hot_gym)

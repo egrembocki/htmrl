@@ -1,0 +1,32 @@
+@startuml input_layer_detailed
+title Input Layer - Detailed Structure
+
+package "Input Layer" {
+    interface "InputInterface (Protocol)" as input_if {
+        + data: list[dict]
+        + input_data(source, columns)
+        + to_encoder_sequence(source, column)
+    }
+
+    class "InputHandler" as handler {
+        - data: list[dict]
+        - raw_data: Any
+        + input_data(source, required_columns): list[dict]
+        + validate_data(): bool
+        + normalize_data(): None
+        + to_encoder_sequence(source, column): list
+        + load_csv(filepath): list[dict]
+        + load_json(filepath): list[dict]
+    }
+
+    class "utils" as utils {
+        + load_file(path, format)
+        + validate_columns(data, required)
+        + clean_data(data)
+    }
+
+    handler ..|> input_if
+    handler --> utils
+}
+
+@enduml
