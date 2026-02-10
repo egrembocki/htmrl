@@ -1,0 +1,28 @@
+@startuml
+' Focused handoff from normalized records to encoder-ready vectors
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Input-to-Encoder Handoff Sequence
+
+actor Caller
+participant "InputHandler" as IH
+participant "EncoderHandler" as EH
+participant "Field Encoders" as FE
+
+Caller -> IH: to_encoder_sequence(input_source, required_columns, column?)
+activate IH
+IH -> IH: input_data(...)
+IH --> Caller: values or records
+deactivate IH
+
+Caller -> EH: encode(data_row)
+activate EH
+loop field/value pair
+  EH -> FE: encode(value, sdr)
+  FE --> EH: field SDR
+end
+EH --> Caller: composite SDR
+Deactivate EH
+@enduml
