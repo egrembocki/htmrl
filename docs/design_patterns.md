@@ -60,3 +60,12 @@ This repository contains clear examples (and a few "in-progress" uses) of the re
 - Strategy: `docs/strategy_pattern_examples.md`
 - Marker: `docs/marker_pattern_examples.md`
 - Delegation: `docs/delegation_pattern_examples.md`
+
+
+## Pattern Evidence References
+
+- Factory: `docs/factory_pattern_evidence.md`
+- Singleton: `docs/singleton_pattern_evidence.md`
+- Strategy: `docs/strategy_pattern_evidence.md`
+- Marker: `docs/marker_pattern_evidence.md`
+- Delegation: `docs/delegation_pattern_evidence.md`

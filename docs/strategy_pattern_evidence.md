@@ -1,92 +1,59 @@
-# Strategy Pattern Evidence: Encoder Layer
+# Strategy Pattern Evidence
 
-This document provides concrete evidence that the encoder layer is using the
-**Strategy pattern**.
+This document provides code-level evidence that the encoder layer uses the Strategy pattern.
 
 ## Why this is Strategy (GoF mapping)
 
-- **Strategy interface**: `BaseEncoder` defines a common `encode(...)` algorithm contract.
-- **Concrete strategies**: `ScalarEncoder`, `RandomDistributedScalarEncoder`, `CategoryEncoder`, and `DateEncoder` each implement `encode(...)` differently.
-- **Context**: `EncoderHandler` decides which concrete encoder to instantiate and delegates encoding to the selected object at runtime.
+- **Strategy interface**: common `encode(...)` contract.
+- **Concrete strategies**: multiple encoder classes implement different algorithms.
+- **Context**: handler/context selects a strategy at runtime and invokes a uniform method.
 
-## 1) Strategy contract (`BaseEncoder`)
+## 1) `BaseEncoder` defines the strategy contract
 
-`BaseEncoder` is an abstract base class with an abstract `encode` method:
+### Source files
+- `src/psu_capstone/encoder_layer/base_encoder.py`
 
+### Code example
 ```python
 class BaseEncoder(ABC, Generic[T]):
-    ...
     @abstractmethod
     def encode(self, input_value: T) -> list[int]:
         ...
 ```
 
-This is the shared strategy interface used by all encoder implementations.
+### Why this is strategy evidence
+All concrete encoder strategies share this common operation contract.
 
-## 2) Concrete strategy examples
+## 2) Concrete encoder strategies implement `encode(...)`
 
-### `ScalarEncoder` strategy
+### Source files
+- `src/psu_capstone/encoder_layer/scalar_encoder.py`
+- `src/psu_capstone/encoder_layer/rdse.py`
+- `src/psu_capstone/encoder_layer/category_encoder.py`
+- `src/psu_capstone/encoder_layer/date_encoder.py`
 
-`ScalarEncoder` inherits from `BaseEncoder[int]` and provides its own `encode` implementation:
-
+### Code example
 ```python
 class ScalarEncoder(BaseEncoder[int]):
-    ...
-    @override
     def encode(self, input_value: int | float) -> list[int]:
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
-```
 
-### `RandomDistributedScalarEncoder` strategy
-
-`RandomDistributedScalarEncoder` inherits from `BaseEncoder[float]` and implements `encode` with an RDSE-specific algorithm:
-
-```python
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
-    ...
-    @override
     def encode(self, input_value: float) -> list[int]:
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
 ```
 
-### `CategoryEncoder` strategy
+### Why this is strategy evidence
+Each class provides a distinct algorithm while honoring the same interface.
 
-`CategoryEncoder` inherits from `BaseEncoder[str]` and uses category index mapping:
+## 3) `EncoderHandler` selects strategy at runtime
 
-```python
-class CategoryEncoder(BaseEncoder[str]):
-    ...
-    @override
-    def encode(self, input_value: str) -> list[int]:
-        if input_value not in self._category_list:
-            index = 0
-        else:
-            index = self._category_list.index(input_value) + 1
-        a = self.encoder.encode(int(index))
-        return a
-```
+### Source files
+- `src/psu_capstone/encoder_layer/encoder_handler.py`
 
-### `DateEncoder` strategy
-
-`DateEncoder` inherits from `BaseEncoder[datetime | time.struct_time | None]` and composes several temporal sub-encodings:
-
-```python
-class DateEncoder(BaseEncoder[datetime | time.struct_time | None]):
-    ...
-    @override
-    def encode(self, input_value: datetime | time.struct_time | None) -> list[int]:
-        ...
-        output_sdr: list[int] = []
-        ...
-        return output_sdr
-```
-
-## 3) Runtime strategy selection in context (`EncoderHandler`)
-
-`EncoderHandler.build_composite_sdr(...)` selects different concrete strategies based on runtime value type, then calls the same method (`encode`) on each selected strategy:
-
+### Code example
 ```python
 if isinstance(value, float) or isinstance(value, np.floating):
     encoder = RandomDistributedScalarEncoder(...)
@@ -100,21 +67,26 @@ elif isinstance(value, str):
 elif isinstance(value, datetime):
     encoder = DateEncoder(...)
     dense = encoder.encode(value)
-else:
-    raise TypeError(...)
 ```
 
-This is exactly the Strategy pattern behavior:
-- interchangeable algorithms with a shared interface,
-- selected at runtime,
-- used via uniform invocation (`encode(...)`).
+### Why this is strategy evidence
+A context object chooses among interchangeable strategies and calls them through one stable operation.
 
-## 4) Evidence summary
+## 4) `DateEncoder` selects feature sub-strategies from configuration
 
-The encoder layer is not just "similar" to Strategy; it has the required structural parts:
+### Source files
+- `src/psu_capstone/encoder_layer/date_encoder.py`
 
-1. Abstract strategy contract: `BaseEncoder.encode(...)`.
-2. Multiple concrete strategy classes implementing that contract.
-3. A context (`EncoderHandler`) that chooses and delegates to a strategy at runtime.
+### Code example
+```python
+def _setup_feature_encoder(self, options):
+    if options.rdse_used:
+        return RandomDistributedScalarEncoder(...)
+    return ScalarEncoder(...)
+```
 
-That combination is strong, direct evidence of the Strategy pattern in production code.
+### Why this is strategy evidence
+Date feature encoding strategy is dynamically selected from configuration while usage remains uniform.
+
+## Evidence summary
+The encoder layer contains all Strategy roles: interface contract, multiple concrete algorithms, runtime selection, and uniform invocation.
