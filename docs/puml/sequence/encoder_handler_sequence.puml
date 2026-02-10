@@ -1,0 +1,42 @@
+@startuml
+' Dynamic routing inside EncoderHandler
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title EncoderHandler Field Routing and Composite SDR Assembly
+
+actor Caller
+participant "EncoderHandler" as EH
+participant "Encoder Registry" as Reg
+participant "BaseEncoder" as BE
+participant "SDR" as SDR
+
+Caller -> EH: register_encoder(field_name, encoder)
+activate EH
+EH -> Reg: store mapping field -> encoder
+EH --> Caller: None
+deactivate EH
+
+Caller -> EH: encode(input_record)
+activate EH
+EH -> SDR: create composite output SDR
+
+loop each field in input_record
+  EH -> Reg: lookup(field_name)
+  Reg --> EH: encoder or None
+
+  alt encoder configured for field
+    EH -> BE: encode(field_value, field_sdr)
+    activate BE
+    BE --> EH: populated field SDR
+    deactivate BE
+    EH -> SDR: concatenate / merge field SDR
+  else no encoder for field
+    EH -> EH: skip or fallback behavior
+  end
+end
+
+EH --> Caller: composite SDR
+deactivate EH
+@enduml
