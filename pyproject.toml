@@ -24,16 +24,27 @@ dependencies = [
 
 
 [dependency-groups]
-dev = ["mypy>=1.17.0", "snakeviz>=2.2.2", "pre-commit>=4.2.0"]
+dev = [
+    "mypy>=1.17.0",
+    "snakeviz>=2.2.2",
+    "pre-commit>=4.2.0",
+    "pdoc>=16.0.0",
+]
 tests = ["pytest>=8.4.1", "pytest-cov>=6.2.1", "pytest-mock>=3.14.0"]
 linters = ["flake8>=7.3.0", "flake8-pyproject>=1.2.3", "pep8-naming>=0.15.1"]
 formatters = ["black>=23.7.0", "isort>=6.0.1"]
+
 
 [project.scripts]
 psu-capstone = "psu_capstone:main"
 
 [tool.uv]
 package = true
+
+[tool.uv.workspace]
+members = [
+    "try-scipy",
+]
 
 ###############
 #### Tests ####

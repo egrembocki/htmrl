@@ -8,12 +8,18 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
 from psu_capstone.log import logger
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
 def date_encoder_instance() -> DateEncoder:
-    """Fixture to create a DateEncoder instance for testing."""
+    """Fixture to create a DateEncoder instance for testing. This can be used to test any defualt DateEncoder object.
+
+    Usage:
+        def test_example(date_encoder_instance):
+            # Use date_encoder_instance in your test
+            pass
+
+    """
 
     return DateEncoder()
 
@@ -424,3 +430,52 @@ def test_all_combined():
     assert (
         actual_encoding == expected_encoding
     ), "DateEncoder season_day_of_week_combined test failed!"
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, length)
+# ---------------------------------------------------------------------------
+
+
+def test_date_encode_output_only_zeros_and_ones():
+    """DateEncoder output must contain only 0 and 1."""
+    date_params = DateEncoderParameters(
+        season_size=100,
+        season_active_bits=2,
+        season_sparsity=0.0,
+        season_radius=25.0,
+        season_resolution=0.0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
+        rdse_used=False,
+    )
+    date_encoder = DateEncoder(date_params)
+    dt = datetime(2020, 1, 1, 0, 0)
+    out = date_encoder.encode(dt)
+    assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
+
+
+def test_date_encode_output_length_equals_size():
+    """DateEncoder output length must equal the configured total size."""
+    date_params = DateEncoderParameters(
+        season_size=100,
+        season_active_bits=2,
+        season_sparsity=0.0,
+        season_radius=25.0,
+        season_resolution=0.0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
+        rdse_used=False,
+    )
+    date_encoder = DateEncoder(date_params)
+    dt = datetime(2020, 1, 1, 0, 0)
+    out = date_encoder.encode(dt)
+    assert (
+        len(out) == date_encoder._size
+    ), f"Output length must equal encoder size ({date_encoder._size}), got {len(out)}"

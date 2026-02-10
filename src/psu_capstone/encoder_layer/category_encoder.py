@@ -2,33 +2,11 @@
 
 import copy
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple, cast, override
+from typing import cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
-
-
-@dataclass
-class CategoryParameters:
-
-    w: int
-    """
-    The w is the width in bits per category. So, if you have 5 categories and w=3
-    we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
-    """
-    category_list: list[str]
-    """
-    List of categories to use.
-    """
-
-    rdse_used: bool = True
-    """
-    This is an optional default true bool. The category encoder will use the
-    RDSE for each category encoded unless this is false, then it will use a
-    basic scalar encoder like the htm core implementation.
-    """
 
 
 class CategoryEncoder(BaseEncoder[str]):
@@ -48,7 +26,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: CategoryParameters, dimensions: list[int] | None = None):
+    def __init__(self, parameters: "CategoryParameters", dimensions: list[int] | None = None):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
@@ -111,7 +89,7 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    def decode(self, input_sdr: list[int]) -> Tuple[float | None, float]:
+    def decode(self, input_sdr: list[int]) -> tuple[str | None, float]:
         """
         This will decode an SDR back into its category. We use the _category_list
         again to turn the index back into a string.
@@ -120,7 +98,7 @@ class CategoryEncoder(BaseEncoder[str]):
         :param input_sdr: The list[int] of 1s and 0s that we want decoded.
         :type input_sdr: list[int]
         :return: The return is a [value, confidence] tuple.
-        :rtype: Tuple[float | None, float]
+        :rtype: tuple[float | None, float]
         """
         if self._RDSEused:
             rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
@@ -128,11 +106,12 @@ class CategoryEncoder(BaseEncoder[str]):
                 "NA"
             )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
             result_tuple = rdse_encoder.decode(input_sdr)
-            result = self._category_list[int(result_tuple[0]) - 1]
+            result: str = self._category_list[int(result_tuple[0]) - 1]
+            print(result)
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
-            return Tuple[result, result_tuple[1]]
+            return (result, result_tuple[1])
 
-    def check_parameters(self, parameters: CategoryParameters):
+    def check_parameters(self, parameters: "CategoryParameters"):
         """
         Simple checks to make sure the parameters are correct.
 
@@ -147,6 +126,28 @@ class CategoryEncoder(BaseEncoder[str]):
         if len(set(parameters.category_list)) != len(parameters.category_list):
             raise ValueError("category_list contains duplicate entries.")
         return parameters
+
+
+@dataclass
+class CategoryParameters:
+
+    w: int
+    """
+    The w is the width in bits per category. So, if you have 5 categories and w=3
+    we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
+    """
+    category_list: list[str]
+    """
+    List of categories to use.
+    """
+
+    rdse_used: bool = True
+    """
+    This is an optional default true bool. The category encoder will use the
+    RDSE for each category encoded unless this is false, then it will use a
+    basic scalar encoder like the htm core implementation.
+    """
+    encoder_class = CategoryEncoder
 
 
 if __name__ == "__main__":
