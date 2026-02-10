@@ -1,4 +1,5 @@
 @startuml sdr_layer_detailed
+!pragma layout smetana
 title SDR Layer - Sparse Distributed Representation
 
 package "SDR Layer" {

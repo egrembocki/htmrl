@@ -1,3 +1,4 @@
 @startuml classes_psu_capstone
+!pragma layout smetana
 set namespaceSeparator none
 @enduml

@@ -1,4 +1,5 @@
 @startuml
+!pragma layout smetana
 
 title psu_capstone.encoder_layer.encoder_handler
 

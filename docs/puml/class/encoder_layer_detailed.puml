@@ -1,4 +1,5 @@
 @startuml encoder_layer_detailed
+!pragma layout smetana
 title Encoder Layer - Detailed Structure
 
 package "Encoder Layer" {

@@ -1,4 +1,5 @@
 @startuml agent_layer_detailed
+!pragma layout smetana
 title Agent Layer - Detailed Structure
 
 package "Agent Layer" {

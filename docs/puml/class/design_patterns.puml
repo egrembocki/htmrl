@@ -1,6 +1,6 @@
 @startuml
+!pragma layout smetana
 skinparam shadowing false
-left to right direction
 
 rectangle "Agent" as A
 rectangle "SpatialPooler" as SP
