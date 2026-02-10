@@ -52,3 +52,11 @@ This repository contains clear examples (and a few "in-progress" uses) of the re
 ## Delegation Reference
 
 - See `docs/delegation_pattern_examples.md` for concrete code locations and call flows where delegation is used.
+
+## Pattern Example References
+
+- Factory: `docs/factory_pattern_examples.md`
+- Singleton: `docs/singleton_pattern_examples.md`
+- Strategy: `docs/strategy_pattern_examples.md`
+- Marker: `docs/marker_pattern_examples.md`
+- Delegation: `docs/delegation_pattern_examples.md`
