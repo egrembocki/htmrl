@@ -94,12 +94,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         :return: Returns a list of integers that signify an SDR.
         :rtype: list[int]
         """
-        if self._category:
-            if input_value != int(input_value) or input_value < 0:
-                raise ValueError("Input to category encoder must be an unsigned integer")
+        if self._category and input_value < 0:
+            raise ValueError("Input to category encoder must be a non-negative integer")
+
         self.encoding = True
+
+        # setup buffer of zeros to be filled in with 1s at the appropriate indices
         data = [0] * self.size
 
+        assert self._resolution > 0, "Resolution must be greater than 0 to compute encoding"
         index = int(input_value / self._resolution)
 
         for offset in range(self._active_bits):
@@ -267,10 +270,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         parameters.sparsity = float(parameters.active_bits / parameters.size)
 
         if parameters.category:
-            parameters.active_bits = 1.0
+            parameters.active_bits = 1
+            parameters.resolution = 1.0
+
         # Determine resolution.
-        if parameters.radius > 0.0:
+        elif parameters.radius > 0.0:
             parameters.resolution = parameters.radius / float(parameters.active_bits)
+
         # Determine radius.
         elif parameters.resolution > 0.0:
             parameters.radius = float(parameters.active_bits) * parameters.resolution
