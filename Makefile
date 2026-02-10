@@ -1,5 +1,9 @@
 exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 
+# SSL Certificate configuration for Zscaler/corporate proxy
+export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
+export UV_NATIVE_TLS := 1
+
 .PHONY: help install format lint puml puml-all clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
 
 help: ## Show this help message
@@ -118,7 +122,7 @@ endif
 
 update: ## Update dependencies
 	@echo "🔺 Updating dependencies..."
-	@uv lock --upgrade
+	@uv lock --upgrade --native-tls
 	@echo "✅ Dependencies updated"
 
 ## In order to run a specific test file or directory, use:

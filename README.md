@@ -120,6 +120,26 @@ Common targets:
 | Dependencies outdated     | Lockfile not upgraded              | `uv lock --upgrade && uv sync --all-groups`             |
 | Pre-commit fails          | Missing dependencies               | `make install`                                          |
 | Using wrong environment   | Stale `.venv` or external Python   | `make recreate-venv` or remove `.venv` and re-run uv steps |
+| SSL certificate errors (Zscaler) | Corporate proxy with custom certs | Run `./scripts/setup-zscaler-certs.sh` (already configured in Makefile) |
+
+### SSL Certificate Issues (Zscaler/Corporate Proxy)
+
+If you encounter SSL certificate errors like `invalid peer certificate: UnknownIssuer` when running `make update` or other `uv` commands, this is typically caused by a corporate proxy (like Zscaler) intercepting HTTPS traffic.
+
+**Quick Fix:**
+The Makefile is already configured to use the combined certificate bundle. The certificates are automatically set up in:
+- `~/.local/share/ca-certificates/combined-ca-bundle.crt`
+
+**For direct `uv` usage outside of make:**
+Run the setup script to configure your shell environment:
+```bash
+./scripts/setup-zscaler-certs.sh
+```
+
+This will:
+1. Extract and save Zscaler certificates
+2. Create a combined CA bundle with system + Zscaler certs
+3. Optionally add environment variables to your shell profile
 
 ---
 
