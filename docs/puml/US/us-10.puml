@@ -51,7 +51,7 @@ BR -> BR: encode_only(inputs)
 BR -> CF: compute(learn=True)
 activate CF
 CF --> BR: updated HTM state
-Deactivate CF
+deactivate CF
 BR --> Developer: decoded output map
 deactivate BR
 @enduml

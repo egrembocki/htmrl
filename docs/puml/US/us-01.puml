@@ -19,7 +19,6 @@ IH -> IH: cache required_columns context
 alt input_source is os.PathLike
   IH --> Developer: TypeError
   deactivate IH
-  return
 else input_source is str path
   IH -> FS: exists(path)?
   FS --> IH: true/false
@@ -33,7 +32,6 @@ else input_source is str path
   else extension indicates known file type
     IH --> Developer: FileNotFoundError
     deactivate IH
-    return
   else not a file path
     IH -> IH: _raw_to_sequence(input_source as scalar)
   end
