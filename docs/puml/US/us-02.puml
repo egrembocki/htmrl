@@ -1,0 +1,40 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-02 Validate Data (Current InputHandler._validate_data)
+
+actor Developer
+participant "InputHandler" as IH
+participant "Logger" as LOG
+
+Developer -> IH: _validate_data(required_columns?)
+activate IH
+
+alt self._data is not list[dict] or empty
+  IH -> LOG: error/warning(...)
+  IH --> Developer: ValueError
+else structure is valid
+  IH -> IH: inspect columns for duplicates/all-None
+
+  alt invalid columns detected
+    IH -> LOG: warning("invalid dataset structure")
+    IH --> Developer: ValueError
+  else column checks pass
+    opt required_columns provided
+      IH -> IH: verify required columns are present
+      alt missing required columns
+        IH -> LOG: warning("missing required columns")
+        IH --> Developer: ValueError
+      end
+    end
+
+    IH -> LOG: info("data has been validated")
+    IH --> Developer: True
+  end
+end
+
+deactivate IH
+@enduml

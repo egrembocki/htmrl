@@ -1,0 +1,25 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-08 Test Model (Current Code Reality)
+
+actor Developer
+participant "Brain" as BR
+participant "ColumnField" as CF
+
+Developer -> BR: step(inputs, learn=False)
+activate BR
+BR -> BR: encode_only(inputs)
+BR -> CF: compute(learn=False)
+CF --> BR: inference state
+BR --> Developer: decoded outputs / predictions
+deactivate BR
+
+note over BR
+No dedicated test_model API or RL evaluation
+framework is currently implemented.
+end note
+@enduml

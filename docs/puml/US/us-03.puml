@@ -1,0 +1,37 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-03 Encode Data (Current EncoderHandler)
+
+actor Developer
+participant "InputHandler" as IH
+participant "EncoderHandler" as EH
+participant "ScalarEncoder / RDSE / CategoryEncoder / DateEncoder" as ENC
+participant "SDR" as SDR
+
+Developer -> IH: input_data(...)
+activate IH
+IH --> Developer: records
+Deactivate IH
+
+Developer -> EH: build_composite_sdr(records)
+activate EH
+EH -> EH: derive column_names and column_values
+
+loop for each row
+  loop for each column value
+    EH -> ENC: instantiate encoder by runtime type
+    activate ENC
+    ENC --> EH: dense bits
+    deactivate ENC
+    EH -> SDR: set_dense(dense)
+  end
+  EH -> SDR: concatenate per-column SDRs
+end
+
+EH --> Developer: list[SDR] (one per row)
+deactivate EH
+@enduml

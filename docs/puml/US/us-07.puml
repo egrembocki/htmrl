@@ -1,0 +1,35 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-07 Use HTM Pooler (Current Brain.step Flow)
+
+actor Developer
+participant "Brain" as BR
+participant "InputField" as IF
+participant "ColumnField" as CF
+participant "OutputField" as OF
+
+Developer -> BR: step(inputs, learn=True)
+activate BR
+
+BR -> BR: encode_only(inputs)
+loop for each input field
+  BR -> IF: encode(value)
+end
+
+BR -> BR: compute_only(learn=True)
+loop for each column field
+  BR -> CF: compute(learn=True)
+end
+
+loop for each output field
+  BR -> OF: decode()
+  OF --> BR: decoded value
+end
+
+BR --> Developer: dict[name, decoded_value]
+deactivate BR
+@enduml

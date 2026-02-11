@@ -1,0 +1,44 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-01 Input Data Ingestion (Current InputHandler)
+
+actor Developer
+participant "InputHandler" as IH
+participant "Filesystem" as FS
+participant "File Parser" as Parser
+
+Developer -> IH: input_data(input_source, required_columns?)
+activate IH
+
+alt input_source is str path
+  IH -> FS: exists(path)?
+  FS --> IH: true/false
+
+  alt file exists
+    IH -> Parser: _load_from_file(path)
+    activate Parser
+    Parser --> IH: raw_data
+    deactivate Parser
+    IH -> IH: _raw_to_sequence(raw_data)
+  else extension indicates file but missing
+    IH --> Developer: FileNotFoundError
+    deactivate IH
+    return
+  end
+else input_source is in-memory payload
+  IH -> IH: _raw_to_sequence(input_source)
+end
+
+opt required_columns provided
+  IH -> IH: _apply_required_columns(required_columns)
+end
+
+IH -> IH: _validate_data(required_columns)
+IH --> Developer: normalized records
+
+deactivate IH
+@enduml
