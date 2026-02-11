@@ -4,34 +4,51 @@ skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 autonumber
 
-title US-03 Encode Data (Current EncoderHandler)
+title US-03 Encode Data (Current EncoderHandler + FourierEncoder workflow)
 
 actor Developer
 participant "InputHandler" as IH
 participant "EncoderHandler" as EH
-participant "ScalarEncoder / RDSE / CategoryEncoder / DateEncoder" as ENC
+participant "Typed Encoders\n(Scalar/RDSE/Category/Date)" as ENC
+participant "FourierEncoder" as FFT
 participant "SDR" as SDR
 
-Developer -> IH: input_data(...)
-activate IH
-IH --> Developer: records
-Deactivate IH
+group Record-based composite encoding
+  Developer -> IH: input_data(...)
+  activate IH
+  IH --> Developer: records
+  deactivate IH
 
-Developer -> EH: build_composite_sdr(records)
-activate EH
-EH -> EH: derive column_names and column_values
+  Developer -> EH: build_composite_sdr(records)
+  activate EH
+  EH -> EH: derive column_names and column_values
 
-loop for each row
-  loop for each column value
-    EH -> ENC: instantiate encoder by runtime type
-    activate ENC
-    ENC --> EH: dense bits
-    deactivate ENC
-    EH -> SDR: set_dense(dense)
+  loop for each row
+    loop for each column value
+      EH -> ENC: select encoder by runtime type
+      activate ENC
+      ENC --> EH: dense bits
+      deactivate ENC
+      EH -> SDR: set_dense(dense)
+    end
+    EH -> SDR: concatenate per-column SDRs
   end
-  EH -> SDR: concatenate per-column SDRs
+
+  EH --> Developer: list[SDR] (one per row)
+  deactivate EH
 end
 
-EH --> Developer: list[SDR] (one per row)
-deactivate EH
+group FFT/FTT sequence encoding path
+  Developer -> IH: to_encoder_sequence(input_source, column?)
+  activate IH
+  IH --> Developer: sequence list[Any]
+  deactivate IH
+
+  Developer -> FFT: encode(np.ndarray(sequence))
+  activate FFT
+  FFT -> FFT: _trim (power-of-two + zero pad)
+  FFT -> FFT: scipy.fft.fft + range bucketing
+  FFT --> Developer: SDR bits for configured frequency ranges
+  deactivate FFT
+end
 @enduml
