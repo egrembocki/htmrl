@@ -1,4 +1,5 @@
 @startuml data_flow
+skinparam style strictuml
 title Data Flow Through PSU Capstone System
 
 participant "Data Source" as source

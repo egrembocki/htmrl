@@ -1,4 +1,5 @@
 @startuml
+skinparam style strictuml
 !pragma layout smetana
 
 title psu_capstone.encoder_layer.category_encoder

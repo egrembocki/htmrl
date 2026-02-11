@@ -1,4 +1,5 @@
 @startuml input_layer_detailed
+skinparam style strictuml
 !pragma layout smetana
 title Input Layer - Detailed Structure
 
