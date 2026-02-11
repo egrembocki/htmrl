@@ -14,7 +14,7 @@ from psu_capstone.agent_layer.legacy_htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.input_layer.improved_input_handler import InputHandler
+from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -39,7 +39,7 @@ def main():
     else:
         cols = []
 
-    encoder = RandomDistributedScalarEncoder()
+    encoder = RandomDistributedScalarEncoder(RDSEParameters())
 
     def _numeric_column(records: list[dict], col: str) -> list[float]:
         out = []
@@ -64,7 +64,7 @@ def main():
     # I use a second RDSE so the first one that is already
     # trained does not train on the test sdrs.
     test_encodings = []
-    encoder2 = RandomDistributedScalarEncoder()
+    encoder2 = RandomDistributedScalarEncoder(RDSEParameters())
     for v in test_values:
         test_encodings.append(encoder2.encode(v))
 
