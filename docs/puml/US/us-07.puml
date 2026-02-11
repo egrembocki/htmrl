@@ -2,8 +2,6 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-autonumber
-
 title US-07 Use HTM Pooler (Current Brain.step Flow)
 
 actor Developer

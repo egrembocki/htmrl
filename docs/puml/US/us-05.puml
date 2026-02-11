@@ -2,8 +2,6 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-autonumber
-
 title US-05 Train Model (Not Implemented in Current Repository)
 
 actor Developer
