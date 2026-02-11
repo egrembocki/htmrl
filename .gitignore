@@ -1,4 +1,4 @@
- Executables and build outputs
+Executables and build outputs
 *.exe
 *.dll
 *.pdb
@@ -6,8 +6,9 @@
 /dist/
 /out/
 
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files / pycaches
 __pycache__/
+pyvenv
 *.py[codz]
 *$py.class
 
@@ -220,6 +221,6 @@ marimo/_lsp/
 __marimo__/
 condaenv.iw4wefqq.requirements.txt
 
-
-# pycache
-__pycache__/
+# Ignore Python virtual environment configuration file
+*.cfg
+pyvenv.cfg

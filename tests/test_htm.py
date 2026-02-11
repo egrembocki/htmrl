@@ -29,8 +29,6 @@ SEGMENT_LEARNING_THRESHOLD = 3  # For best matching segment selection (reserved)
 INITIAL_DISTAL_PERM = 0.21  # Initial permanence for new distal synapses
 NEW_SYNAPSE_MAX = 6  # New distal synapses to add on reinforcement
 
-# TODO use mock objects where appropriate as part of pytest fixtures
-
 
 class FakeSegment(segment.Segment):
     """fake segment for testing"""

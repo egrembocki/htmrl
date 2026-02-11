@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
-from scipy.fft import fft, fftfreq
+from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
@@ -13,6 +13,19 @@ from psu_capstone.sdr_layer.sdr import SDR
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 plt.style.use("seaborn-v0_8-poster")
+
+
+def _records_to_signal(records: list[dict]) -> np.ndarray:
+    """Convert list-of-dicts records into a flattened numpy signal.
+
+    Drops any 'timestamp' key and converts remaining values to floats.
+    Returns an empty array for empty input.
+    """
+    if not records:
+        return np.array([])
+    cols = [k for k in records[0].keys() if k != "timestamp"]
+    arr = np.array([[float(r.get(c, 0)) for c in cols] for r in records], dtype=float)
+    return arr.flatten()
 
 
 def plot_sdr(data: list[int]) -> None:
@@ -48,14 +61,8 @@ def plot_sdr(data: list[int]) -> None:
 def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "rec-center-hourly.csv") -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
-    hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
-    signal_values: list[float] = []
-    for record in hot_gym_records:
-        for key, value in record.items():
-            if key == "timestamp":
-                continue
-            signal_values.append(float(value))
-    signal = np.asarray(signal_values, dtype=float)
+    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
+    signal = _records_to_signal(hot_gym)
 
     # signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
     # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
@@ -143,10 +150,7 @@ if __name__ == "__main__":
     ih = InputHandler()
     hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "rec-center-hourly.csv"))
 
-    signal_values = [
-        float(value) for record in hot_gym for key, value in record.items() if key != "datetime"
-    ]
-    signal = np.asarray(signal_values, dtype=float)
+    signal = _records_to_signal(hot_gym)
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(

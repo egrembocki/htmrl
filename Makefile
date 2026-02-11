@@ -122,7 +122,7 @@ endif
 
 update: ## Update dependencies
 	@echo "🔺 Updating dependencies..."
-	@uv lock --upgrade --native-tls
+	@uv lock --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org
 	@echo "✅ Dependencies updated"
 
 ## In order to run a specific test file or directory, use:

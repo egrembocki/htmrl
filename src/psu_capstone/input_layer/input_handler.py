@@ -21,10 +21,25 @@ from psu_capstone.log import logger
 
 
 class InputHandler:
-    """Normalize raw inputs into encoder-ready records.
+    """
+    Handles the ingestion, normalization, and validation of input data for the PSU Capstone project.
 
-    The handler supports file paths (CSV, JSON, XLSX, TXT) as well as in-memory
-    payloads such as mappings, sequences, or scalars.
+    The InputHandler is responsible for:
+      - Accepting various input types (e.g., DataFrame, list of dicts, bytearray, scalar).
+      - Normalizing input data into a consistent sequence of records.
+      - Validating the normalized data for required columns, duplicates, and missing values.
+
+    Data Flow:
+      1. input_data(raw_data) is called with the raw input.
+      2. _raw_to_sequence(raw_data) normalizes the input into a list of records.
+         - Calls _coerce_iterable_for_sequence or _coerce_records_for_sequence as needed.
+      3. _validate_data() checks for required columns, duplicates, and NaNs.
+      4. The processed and validated data is stored in self._data.
+
+    Example:
+        handler = InputHandler(required_columns=['id', 'value'])
+        handler.input_data([{'id': 1, 'value': 10}, {'id': 2, 'value': 20}])
+        # Data is now normalized and validated, accessible via handler._data
     """
 
     __instance: ClassVar[InputHandler | None] = None
@@ -44,14 +59,14 @@ class InputHandler:
 
         return cls.__instance  # type: ignore
 
-    def __init__(self, data: Any = None) -> None:
+    def __init__(self, data: Any | None = None) -> None:
         """Initialize the handler with optional seed data.
 
         Args:
             data: Initial data to load into the handler. Defaults to ``None``.
         """
 
-        self._data: list[dict[str, Any]]
+        self._data: list[dict[str, Any]] = [] if data is None else self._raw_to_sequence(data)
         """The processed input data -> encoder-ready records."""
 
         self._columns: list[str] = []
@@ -90,19 +105,16 @@ class InputHandler:
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """Normalize input into record dictionaries.
+        """
+        Accepts raw input data and processes it through normalization and validation.
 
         Args:
-            input_source: A file path, mapping, sequence, or scalar input value.
+            input_source: The input data to be processed. Can be a file path, mapping, sequence,
+                          bytearray (CSV-like), or scalar.
             required_columns: Optional list of columns to enforce for all records.
 
         Returns:
             A list of record dictionaries ready for encoder ingestion.
-
-        Raises:
-            TypeError: If ``input_source`` is a path-like object (use a string path).
-            FileNotFoundError: If a file path is provided but the file does not exist.
-            ValueError: If data validation fails.
         """
 
         self._appended_required_columns.clear()
@@ -140,6 +152,39 @@ class InputHandler:
                 self._TEXT_EXTENSION,
             }:
                 raise FileNotFoundError(f"No file found at {input_source}")
+
+        if isinstance(input_source, bytearray):
+            # Heuristic: treat bytearray as CSV-like text only if it contains common
+            # text separators; otherwise treat it as a sequence of byte values.
+            if b"," in input_source or b"\n" in input_source:
+                try:
+                    text = input_source.decode("utf-8")
+                except UnicodeDecodeError:
+                    try:
+                        text = input_source.decode("latin-1")
+                    except Exception:
+                        iterable = list(input_source)
+                        normalized_records = [{"value": int(b)} for b in iterable]
+                    else:
+                        lines = text.splitlines()
+                        reader = csv.DictReader(lines)
+                        normalized_records = [row for row in reader]
+                else:
+                    lines = text.splitlines()
+                    reader = csv.DictReader(lines)
+                    normalized_records = [row for row in reader]
+            else:
+                iterable = list(input_source)
+                normalized_records = [{"value": int(b)} for b in iterable]
+
+            self._data = normalized_records
+
+            if required_columns:
+                self._apply_required_columns(required_columns)
+            elif self._data:
+                self._columns = list(self._data[0].keys())
+            self._validate_data(required_columns)
+            return self._data
 
         normalized_records = self._raw_to_sequence(input_source)
         self._data = normalized_records
@@ -189,6 +234,7 @@ class InputHandler:
 
         return filtered_sequence
 
+    # worth noting that this method may not hit any edge cases in our current dev-track
     def to_numpy(self, data: list[dict[str, Any]]) -> np.ndarray:
         """Convert record data to a ``numpy.ndarray``.
 
@@ -197,14 +243,19 @@ class InputHandler:
         Returns:
             The converted numpy array.
         """
+        if not data:
+            raise ValueError("Cannot convert empty record list to numpy array.")
+        else:
+            self._data = data
+            message, validate_data = self._validate_data()  # type: ignore
+            if not validate_data:
+                raise ValueError(
+                    f"Data validation failed; cannot convert to numpy ndarray. + {message}"
+                )
 
-        self._data = data
-        validate_data = self._validate_data()  # type: ignore
-        if not validate_data:
-            raise ValueError("Data validation failed; cannot convert to numpy ndarray.")
+            columns = self._columns or list(data[0].keys())
+            matrix = [[row.get(col) for col in columns] for row in data]
 
-        columns = self._columns or list(data[0].keys())
-        matrix = [[row.get(col) for col in columns] for row in data]
         return np.asarray(matrix, dtype=np.float64)
 
     def _load_from_file(self, filepath: str) -> Any:
@@ -251,10 +302,17 @@ class InputHandler:
             raise
 
     def _raw_to_sequence(self, data: Any) -> list[dict[str, Any]]:
-        """Turn raw payloads into record dictionaries.
+        """
+        Converts raw input data into a normalized sequence of records.
 
         The method recognizes mappings, sequences of mappings, raw arrays, and scalars.
         It normalizes date-like values into ISO-8601 timestamp strings.
+
+        Args:
+            data: The input data to be normalized.
+
+        Returns:
+            List of dictionaries, each representing a record.
         """
 
         logger.info("converting to sequence")
@@ -281,31 +339,16 @@ class InputHandler:
 
         return normalized_records
 
-    def _coerce_records_for_sequence(self, data: Any) -> tuple[list[dict[str, Any]], bool]:
+    def _coerce_iterable_for_sequence(self, data: Any) -> tuple[Sequence[Any], bool]:
         """
-        Coerce raw payloads into record lists while tracking whether the data was inherently
-        multi-dimensional.
+        Converts an iterable input (such as a bytearray or list) into a sequence of records.
+
+        Args:
+            data: The iterable input to be converted.
 
         Returns:
-            tuple[list[dict[str, Any]], bool]: The coerced records and a flag indicating whether the
-            input provided multiple columns (either originally or due to nested iterables).
+            Sequence and a flag indicating if the input was nested.
         """
-
-        if isinstance(data, list) and data and all(isinstance(item, Mapping) for item in data):
-            return self._normalize_record_keys(data), True
-
-        if isinstance(data, Mapping):
-            return self._records_from_mapping(data), True
-
-        iterable, is_nested = self._coerce_iterable_for_sequence(data)
-        if is_nested:
-            records = self._records_from_nested_iterable(iterable)
-            return records, True
-
-        return [{"value": item} for item in iterable], False
-
-    def _coerce_iterable_for_sequence(self, data: Any) -> tuple[Sequence[Any], bool]:
-        """Standardize iterables into lists and detect nested structures."""
 
         if isinstance(data, np.ndarray):
             iterable = data.tolist()
@@ -332,6 +375,30 @@ class InputHandler:
             for item in iterable
         )
         return iterable, is_nested
+
+    def _coerce_records_for_sequence(self, data: Any) -> tuple[list[dict[str, Any]], bool]:
+        """
+        Ensures that a sequence of records (dicts) is in the correct format.
+
+        Args:
+            data: The sequence of records to be checked.
+
+        Returns:
+            List of dictionaries and a flag indicating if the input was nested.
+        """
+
+        if isinstance(data, list) and data and all(isinstance(item, Mapping) for item in data):
+            return self._normalize_record_keys(data), True
+
+        if isinstance(data, Mapping):
+            return self._records_from_mapping(data), True
+
+        iterable, is_nested = self._coerce_iterable_for_sequence(data)
+        if is_nested:
+            records = self._records_from_nested_iterable(iterable)  # type: ignore
+            return records, True
+
+        return [{"value": item} for item in iterable], False
 
     def _prepend_timestamp_column(self, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Insert a leading timestamp field using the current time for each row."""
@@ -416,50 +483,76 @@ class InputHandler:
         else:
             logger.info("no missing value handling for type: %s", type(data))
 
-    def _validate_data(self, required_columns: list[str] | None = None) -> bool:
-        """Verify structure, NaN patterns, duplicates, and caller-specified schemas."""
+    def _validate_data(self, required_columns: list[str] | None = None) -> tuple[str, bool]:
+        """
+        Validates the normalized data for required columns, duplicates, and missing values.
+
+        Args:
+            required_columns: List of columns that must be present in the data.
+
+        Returns:
+            Tuple of (error_message, is_valid), where error_message is a string and is_valid is a bool.
+        """
 
         logger.info("validating data...")
-        # Check type
-        if not isinstance(self._data, list) or (
-            self._data and not all(isinstance(row, Mapping) for row in self._data)
-        ):
-            raise ValueError("data is not a list of records.")
 
-        # Check empty
-        if not self._data:
-            raise ValueError("Record list is empty")
+        columns = (
+            self._columns if self._columns else list(self._data[0].keys()) if self._data else []
+        )
 
-        columns = self._columns or list(self._data[0].keys())
-
-        # Check for duplicate columns
-        if len(set(columns)) != len(columns):
-            raise ValueError("Record list has duplicate column names.")
-
-        # Check for all-None columns
         nan_cols = [
             col
             for col in columns
             if all(row.get(col) is None for row in self._data)
             and col not in self._appended_required_columns
         ]
-        if nan_cols:
-            raise ValueError(f"Columns with all None values: {nan_cols}")
 
-        if self._appended_required_columns:
+        missing = [col for col in required_columns or [] if col not in columns]
+
+        # Check empty
+        if not self._data:
+            logger.info("Record list is empty.")
+            return ("Record list is empty", False)
+
+        # Check type
+        elif not isinstance(self._data, list) or (
+            self._data and not all(isinstance(row, Mapping) for row in self._data)
+        ):
+            logger.info("Data is not a list of records: %s", type(self._data))
+
+            return ("Data is not a list of records.", False)
+
+        # Check for duplicate columns
+        elif len(set(columns)) != len(columns):
+            logger.info(
+                "Duplicate column names detected: %s",
+                sorted(set(col for col in columns if columns.count(col) > 1)),
+            )
+            return ("Record list has duplicate column names.", False)
+
+        # Check for all-None columns
+        elif nan_cols:
+            logger.info("Columns with all None values detected: %s", sorted(nan_cols))
+            return (f"Columns with all None values: {nan_cols}", False)
+
+        elif self._appended_required_columns:
             logger.info(
                 "Appended required columns with placeholder values: %s",
                 sorted(self._appended_required_columns),
             )
 
-        # Check for required columns
-        if required_columns:
-            missing = [col for col in required_columns if col not in columns]
-            if missing:
-                raise ValueError(f"Missing required columns: {missing}")
+            return ("Appended required columns with placeholder values.", False)
 
-        logger.info("data has been validated")
-        return True
+        # Check for required columns
+        elif required_columns and missing:
+
+            logger.info("Missing required columns: %s", sorted(missing))
+            return (f"Missing required columns: {missing}", False)
+
+        else:
+            logger.info("data has been validated")
+
+            return ("Data is valid.", True)
 
     def _apply_required_columns(self, required_columns: list[str] = []) -> None:
         """Align columns to the requested order and append NA placeholders for missing names."""

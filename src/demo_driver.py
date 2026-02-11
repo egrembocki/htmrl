@@ -12,6 +12,17 @@ for demonstration and testing purposes, providing insight into how input data is
 import os
 from datetime import datetime
 
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import ListedColormap
+
+from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
+from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 
 # To force browser mode explicitly:
@@ -30,10 +41,6 @@ def visualize_sdr_all_rows(
 
     Allows interactive navigation between SDRs using left/right arrow keys.
     """
-    import matplotlib
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from matplotlib.colors import ListedColormap
 
     # Precompute grids and labels
     grids: list[np.ndarray] = []
@@ -104,12 +111,12 @@ def visualize_sdr_all_rows(
     plt.show(block=True)
 
 
-def build_demo_records() -> list[dict[str, object]]:
+def build_demo_records() -> list[dict]:
     """
-    Build a simple demonstration record set with scalar, category, and datetime columns.
+    Build a simple demonstration list-of-dicts with scalar, category, and datetime columns.
 
     Returns:
-        list[dict[str, object]]: Sample rows for encoding demonstration.
+        list[dict]: Records containing sample rows for encoding demonstration.
     """
 
     scalar_rows = [
@@ -143,6 +150,7 @@ def build_demo_records() -> list[dict[str, object]]:
 
 def main():
     """
+
     Main driver function for the demo.
 
     - Initializes encoders for scalar, category, date, and RDSE types.
@@ -153,12 +161,6 @@ def main():
     """
 
     print("Beginning Demo...")
-    from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-    from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-    from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-    from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-    from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-    from psu_capstone.input_layer.input_handler import InputHandler
 
     ih = InputHandler()
 
@@ -172,8 +174,8 @@ def main():
             periodic=False,
             category=False,
             sparsity=0.0,
-            radius=1.0,
-            resolution=0.0,
+            radius=0.0,
+            resolution=1.0,
         )
     )
 
@@ -251,10 +253,17 @@ def main():
         sdr2 = SDR([rdse_encoder.size])
         sdr3 = SDR([category_encoder.size])
         sdr4 = SDR([date_encoder.size])
-        sdr1 = scalar_encoder.encode(value)
-        sdr2 = rdse_encoder.encode(value)
-        sdr3 = category_encoder.encode(category_values[i])
-        sdr4 = date_encoder.encode(date_values[i])
+
+        dense1 = scalar_encoder.encode(value)
+        dense2 = rdse_encoder.encode(value)
+        dense3 = category_encoder.encode(category_values[i])
+        dense4 = date_encoder.encode(date_values[i])
+
+        sdr1.set_dense(dense1)
+        sdr2.set_dense(dense2)
+        sdr3.set_dense(dense3)
+        sdr4.set_dense(dense4)
+
         scalar_sdrs.append(sdr1)
         rdse_sdrs.append(sdr2)
         category_sdrs.append(sdr3)
@@ -274,11 +283,14 @@ def main():
     demo_sample_records = build_demo_records()
     sub_set_records = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
 
-    # change values to all float to trigger rdse in sub_set_df
-    for row in sub_set_records:
-        for key, value in row.items():
-            if isinstance(value, int) and not isinstance(value, bool):
-                row[key] = float(value)
+    # change integer values to float in the loaded Excel records to allow RDSE
+    for rec in sub_set_records:
+        for k, v in list(rec.items()):
+            if isinstance(v, int):
+                try:
+                    rec[k] = float(v)
+                except Exception:
+                    pass
 
     # encoder parameters are hardcoded in EncoderHandler for demo purposes
     handler = EncoderHandler(demo_sample_records)
