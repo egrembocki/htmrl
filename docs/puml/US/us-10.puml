@@ -9,6 +9,7 @@ title US-10 End-to-End Data to HTM Summary (Current Code)
 actor Developer
 participant "InputHandler" as IH
 participant "EncoderHandler" as EH
+participant "FourierEncoder" as FFT
 participant "Brain" as BR
 participant "ColumnField" as CF
 
@@ -22,14 +23,27 @@ IH -> IH: _validate_data(required_columns)
 IH --> Developer: records: list[dict[str, Any]]
 deactivate IH
 
-Developer -> EH: build_composite_sdr(records)
-activate EH
-loop for each row and column
-  EH -> EH: select encoder by value type\n(float/int/str/datetime)
-  EH -> EH: encode(value) and concatenate row SDR
+alt record/categorical pipeline
+  Developer -> EH: build_composite_sdr(records)
+  activate EH
+  loop for each row and column
+    EH -> EH: select encoder by value type
+    EH -> EH: encode(value) + concatenate row SDR
+  end
+  EH --> Developer: row_sdrs: list[SDR]
+  deactivate EH
+else frequency (FTT/FFT) pipeline
+  Developer -> IH: to_encoder_sequence(input_source, column?)
+  activate IH
+  IH --> Developer: sequence list[Any]
+  deactivate IH
+
+  Developer -> FFT: encode(np.ndarray(sequence))
+  activate FFT
+  FFT -> FFT: _trim + scipy.fft.fft + range encoding
+  FFT --> Developer: frequency SDR
+  deactivate FFT
 end
-EH --> Developer: row_sdrs: list[SDR]
-deactivate EH
 
 Developer -> BR: step(inputs, learn=True)
 activate BR

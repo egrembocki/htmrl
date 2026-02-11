@@ -13,8 +13,14 @@ participant "File Parser" as Parser
 
 Developer -> IH: input_data(input_source, required_columns?)
 activate IH
+IH -> IH: clear appended required columns
+IH -> IH: cache required_columns context
 
-alt input_source is str path
+alt input_source is os.PathLike
+  IH --> Developer: TypeError
+  deactivate IH
+  return
+else input_source is str path
   IH -> FS: exists(path)?
   FS --> IH: true/false
 
@@ -24,12 +30,20 @@ alt input_source is str path
     Parser --> IH: raw_data
     deactivate Parser
     IH -> IH: _raw_to_sequence(raw_data)
-  else extension indicates file but missing
+  else extension indicates known file type
     IH --> Developer: FileNotFoundError
     deactivate IH
     return
+  else not a file path
+    IH -> IH: _raw_to_sequence(input_source as scalar)
   end
-else input_source is in-memory payload
+else input_source is bytes/bytearray
+  alt CSV-like separators detected
+    IH -> IH: decode bytes + csv.DictReader
+  else raw bytes payload
+    IH -> IH: convert to [{"value": int(byte)}]
+  end
+else in-memory payload
   IH -> IH: _raw_to_sequence(input_source)
 end
 
@@ -38,7 +52,7 @@ opt required_columns provided
 end
 
 IH -> IH: _validate_data(required_columns)
-IH --> Developer: normalized records
+IH --> Developer: normalized records (list[dict])
 
 deactivate IH
 @enduml
