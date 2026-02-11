@@ -18,12 +18,12 @@ Developer -> IH: input_data(..., required_columns)
 activate IH
 IH -> IH: _apply_required_columns(required_columns)
 IH --> Developer: normalized records
-Deactivate IH
+deactivate IH
 
 Developer -> AG: create_pooler(...)/create_memory(...)
 activate AG
 AG --> Developer: components appended
-Deactivate AG
+deactivate AG
 
 note over Developer,AG
 No GlobalOptimizer/ParameterOptimizer class exists.

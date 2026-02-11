@@ -37,7 +37,7 @@ BR -> BR: encode_only(inputs)
 BR -> CF: compute(learn=True)
 activate CF
 CF --> BR: updated HTM state
-Deactivate CF
+deactivate CF
 BR --> Developer: decoded output map
 deactivate BR
 @enduml
@@ -71,7 +71,6 @@ alt input_source is str path
   else extension indicates file but missing
     IH --> Developer: FileNotFoundError
     deactivate IH
-    return
   end
 else input_source is in-memory payload
   IH -> IH: _raw_to_sequence(input_source)
@@ -145,7 +144,7 @@ participant "SDR" as SDR
 Developer -> IH: input_data(...)
 activate IH
 IH --> Developer: records
-Deactivate IH
+deactivate IH
 
 Developer -> EH: build_composite_sdr(records)
 activate EH
@@ -186,12 +185,12 @@ Developer -> IH: input_data(..., required_columns)
 activate IH
 IH -> IH: _apply_required_columns(required_columns)
 IH --> Developer: normalized records
-Deactivate IH
+deactivate IH
 
 Developer -> AG: create_pooler(...)/create_memory(...)
 activate AG
 AG --> Developer: components appended
-Deactivate AG
+deactivate AG
 
 note over Developer,AG
 No GlobalOptimizer/ParameterOptimizer class exists.
@@ -214,7 +213,7 @@ Developer -> AG: select_action(state) / update_policy(...)
 activate AG
 AG -> AG: method body is pass
 AG --> Developer: None
-Deactivate AG
+deactivate AG
 
 note over AG
 There is no RLModel class and no train_model API
@@ -333,7 +332,7 @@ Developer -> TS: run demo_driver.py or pytest suites
 activate TS
 TS -> OUT: print SDR stats/results
 TS --> Developer: textual outputs
-Deactivate TS
+deactivate TS
 
 note over TS
 No ReportGenerator or structured report API exists.

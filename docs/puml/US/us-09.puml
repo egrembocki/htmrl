@@ -14,7 +14,7 @@ Developer -> TS: run demo_driver.py or pytest suites
 activate TS
 TS -> OUT: print SDR stats/results
 TS --> Developer: textual outputs
-Deactivate TS
+deactivate TS
 
 note over TS
 No ReportGenerator or structured report API exists.
