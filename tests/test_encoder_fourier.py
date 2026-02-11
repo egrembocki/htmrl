@@ -71,7 +71,7 @@ def _overlap_ratio(first: list[int], second: list[int]) -> float:
     return overlap / max(sum(first), 1)
 
 
-def test_identical_frequencies_overlap_completely() -> None:
+def test_identical_frequencies_overlap() -> None:
     """A pure tone should map to the same SDR every time, proving determinism.
 
     TC-080: Identical frequencies should produce identical SDRs with high overlap.
