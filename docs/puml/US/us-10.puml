@@ -2,8 +2,6 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-autonumber
-
 title US-10 End-to-End Data to HTM Summary (Current Code)
 
 actor Developer

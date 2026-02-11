@@ -2,8 +2,6 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-autonumber
-
 title US-01 Input Data :InputHandler
 
 actor Developer

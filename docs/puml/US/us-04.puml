@@ -2,8 +2,6 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-autonumber
-
 title US-04 Input Parameters (Current Code Reality)
 
 actor Developer
