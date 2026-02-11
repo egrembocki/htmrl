@@ -1,0 +1,32 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-04 Input Parameters (Current Code Reality)
+
+actor Developer
+participant "Encoder Constructors" as EC
+participant "InputHandler" as IH
+participant "Agent" as AG
+
+Developer -> EC: pass encoder parameters\n(e.g., ScalarEncoderParameters, RDSEParameters)
+EC --> Developer: configured encoder instances
+
+Developer -> IH: input_data(..., required_columns)
+activate IH
+IH -> IH: _apply_required_columns(required_columns)
+IH --> Developer: normalized records
+Deactivate IH
+
+Developer -> AG: create_pooler(...)/create_memory(...)
+activate AG
+AG --> Developer: components appended
+Deactivate AG
+
+note over Developer,AG
+No GlobalOptimizer/ParameterOptimizer class exists.
+Parameter tuning is manual via constructor args.
+end note
+@enduml

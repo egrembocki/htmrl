@@ -1,0 +1,22 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-05 Train Model (Not Implemented in Current Repository)
+
+actor Developer
+participant "Agent" as AG
+
+Developer -> AG: select_action(state) / update_policy(...)
+activate AG
+AG -> AG: method body is pass
+AG --> Developer: None
+Deactivate AG
+
+note over AG
+There is no RLModel class and no train_model API
+in the current codebase.
+end note
+@enduml

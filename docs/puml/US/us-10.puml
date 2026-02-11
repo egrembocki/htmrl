@@ -1,0 +1,43 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-10 End-to-End Data to HTM Summary (Current Code)
+
+actor Developer
+participant "InputHandler" as IH
+participant "EncoderHandler" as EH
+participant "Brain" as BR
+participant "ColumnField" as CF
+
+Developer -> IH: input_data(input_source, required_columns?)
+activate IH
+IH -> IH: _raw_to_sequence(...)
+opt required_columns provided
+  IH -> IH: _apply_required_columns(required_columns)
+end
+IH -> IH: _validate_data(required_columns)
+IH --> Developer: records: list[dict[str, Any]]
+deactivate IH
+
+Developer -> EH: build_composite_sdr(records)
+activate EH
+loop for each row and column
+  EH -> EH: select encoder by value type\n(float/int/str/datetime)
+  EH -> EH: encode(value) and concatenate row SDR
+end
+EH --> Developer: row_sdrs: list[SDR]
+deactivate EH
+
+Developer -> BR: step(inputs, learn=True)
+activate BR
+BR -> BR: encode_only(inputs)
+BR -> CF: compute(learn=True)
+activate CF
+CF --> BR: updated HTM state
+Deactivate CF
+BR --> Developer: decoded output map
+deactivate BR
+@enduml

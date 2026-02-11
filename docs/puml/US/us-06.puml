@@ -1,0 +1,32 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-06 Train Agent (Current Agent Skeleton)
+
+actor Developer
+participant "Agent" as AG
+participant "SpatialPooler" as SP
+participant "TemporalMemory" as TM
+
+Developer -> AG: create_pooler(...)
+activate AG
+AG -> SP: SpatialPooler(...)
+SP --> AG: pooler instance
+AG --> Developer: pooler added
+
+Developer -> AG: create_memory(...)
+AG -> TM: TemporalMemory(columns, cells_per_column)
+TM --> AG: memory instance
+AG --> Developer: memory added
+
+Developer -> AG: select_action(state)
+AG --> Developer: None (pass)
+
+Developer -> AG: update_policy(state, action, reward, next_state)
+AG --> Developer: None (pass)
+
+deactivate AG
+@enduml
