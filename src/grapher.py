@@ -45,7 +45,7 @@ def plot_sdr(data: list[int]) -> None:
     plt.show(block=True)
 
 
-def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv") -> None:
+def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "rec-center-hourly.csv") -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
     hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
@@ -141,13 +141,11 @@ if __name__ == "__main__":
     print(f"Overlap between SDRs: {overlap} bits")
 
     ih = InputHandler()
-    hot_gym_records = ih.input_data(os.path.join(PROJECT_ROOT, "data", "rec-center-hourly.csv"))
-    signal_values = []
-    for record in hot_gym_records:
-        for key, value in record.items():
-            if key == "timestamp":
-                continue
-            signal_values.append(float(value))
+    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "rec-center-hourly.csv"))
+
+    signal_values = [
+        float(value) for record in hot_gym for key, value in record.items() if key != "datetime"
+    ]
     signal = np.asarray(signal_values, dtype=float)
 
     fft_encoder = FourierEncoder(

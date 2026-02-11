@@ -72,7 +72,10 @@ def _overlap_ratio(first: list[int], second: list[int]) -> float:
 
 
 def test_identical_frequencies_overlap_completely() -> None:
-    """A pure tone should map to the same SDR every time, proving determinism."""
+    """A pure tone should map to the same SDR every time, proving determinism.
+
+    TC-080: Identical frequencies should produce identical SDRs with high overlap.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -85,7 +88,10 @@ def test_identical_frequencies_overlap_completely() -> None:
 
 
 def test_close_frequencies_share_more_bits_than_far_ones() -> None:
-    """Neighbouring tones should collide more than mid or distant tones to prove locality."""
+    """Neighbouring tones should collide more than mid or distant tones to prove locality.
+
+    TC-081: SDRs for close frequencies should have higher overlap than those for mid or far frequencies.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -106,7 +112,10 @@ def test_close_frequencies_share_more_bits_than_far_ones() -> None:
 
 
 def test_identical_frequency_with_different_magnitudes_remains_similar() -> None:
-    """Amplitude changes alone should not scramble the SDR bits for a fixed frequency."""
+    """Amplitude changes alone should not scramble the SDR bits for a fixed frequency.
+
+    TC-082: SDRs for the same frequency with different amplitudes should have high overlap.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -118,7 +127,10 @@ def test_identical_frequency_with_different_magnitudes_remains_similar() -> None
 
 
 def test_far_frequencies_remain_mostly_orthogonal() -> None:
-    """Widely separated tones should produce low overlap, validating global coverage."""
+    """Widely separated tones should produce low overlap, validating global coverage.
+
+    TC-083: SDRs for widely separated frequencies should have low overlap.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -130,7 +142,10 @@ def test_far_frequencies_remain_mostly_orthogonal() -> None:
 
 
 def test_composite_signal_retains_component_information() -> None:
-    """A sum of sinusoids should overlap strongly with each constituent tone."""
+    """A sum of sinusoids should overlap strongly with each constituent tone.
+
+    TC-084: SDRs for a composite signal should have high overlap with each component frequency.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -152,7 +167,10 @@ def test_composite_signal_retains_component_information() -> None:
 
 
 def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> None:
-    """Amplitude modulation should keep the carrier SDR more intact than the slow envelope."""
+    """Amplitude modulation should keep the carrier SDR more intact than the slow envelope.
+
+    TC-085: SDRs for an amplitude-modulated signal should retain more bits from the carrier than the modulator.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -170,7 +188,10 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
 
 
 def test_decode_single_tone_returns_expected_frequency() -> None:
-    """Decode should identify the strongest frequency when candidates are provided."""
+    """Decode should identify the strongest frequency when candidates are provided.
+
+    TC-086: Decode should identify the strongest frequency when candidates are provided.
+    """
 
     # Arrange
     encoder = _build_encoder()
@@ -189,7 +210,10 @@ def test_decode_single_tone_returns_expected_frequency() -> None:
 
 
 def test_decode_rejects_incorrect_sdr_size() -> None:
-    """Decode should raise when the SDR size does not match encoder size."""
+    """Decode should raise when the SDR size does not match encoder size.
+
+    TC-087: Decode should raise when the SDR size does not match encoder size.
+    """
 
     # Arrange
     encoder = _build_encoder()

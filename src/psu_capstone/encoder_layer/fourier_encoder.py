@@ -1,5 +1,5 @@
 """
-FFT encoder implementation for HTM core
+FFT encoder implementation for HTM core --
 
 Indefinite integral proof:  g_f = integral(g_t * exp(-2*pi*i*f*t))
 
@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, cast, override
 
 import numpy as np
+import pandas as pd
 from scipy.fft import fft, fftfreq
 from sklearn.utils import deprecated
 
@@ -466,8 +467,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             results["magnitude"] = magnitude_encoder.decode(encoded, magnitude_candidates)
 
         return results
-
-    # END class FourierEncoder
 
     def _validate_params(self, parameters: FourierEncoderParameters) -> None:
         """Check if the provided parameters are valid for the Fourier encoder.

@@ -22,17 +22,6 @@ from sklearn.neighbors import KNeighborsRegressor
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 
 """
- * Parameters for the RandomDistributedScalarEncoder (RDSE)
- *
- * Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
- * of them.
- *
- * Members "radius", "resolution", & "category" are mutually exclusive, specify
- * exactly one of them.
-"""
-
-
-"""
  * Encodes a real number as a set of randomly generated activations.
  *
  * Description:
