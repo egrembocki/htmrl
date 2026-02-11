@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import itertools
 from dataclasses import dataclass
-from typing import override
+from typing import Iterable, override
 
 import mmh3
 import numpy as np
@@ -20,7 +20,6 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         self._n = self._parameters.n
         self._w = self._parameters.w
         self._seed = self._parameters.seed
-
         self._dims = self._parameters.dims
 
         enc_params = RDSEParameters(
@@ -35,6 +34,9 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
         self._encoder = RandomDistributedScalarEncoder(enc_params)
 
+        self._overlap = self._encoder._overlap
+        self._encoding_cache: dict[tuple[tuple[int, ...], int], list[int]] = {}
+
         max_neighbors = (2 * self._parameters.max_radius + 1) ** self._dims
 
         # for all neighbors use this
@@ -48,11 +50,16 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
     @override
     def encode(self, input_value: tuple[tuple[int, ...] | list[int], int]) -> list[int]:
         coordinate, radius = input_value
-
         if not isinstance(radius, int):
             raise TypeError(f"Expected integer radius, got: {radius!r} ({type(radius)})")
 
-        neighbors = self._neighbors(coordinate, radius)
+        key = (tuple(int(v) for v in coordinate), int(radius))
+
+        cached = self._encoding_cache.get(key)
+        if cached is not None:
+            return cached
+
+        neighbors = self._neighbors(key[0], key[1])
         winners = self._topWCoordinates(neighbors, self._w)
 
         out: list[int] = []
@@ -67,6 +74,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         elif len(out) > expected:
             out = out[:expected]
 
+        self._encoding_cache[key] = out
         return out
 
     @staticmethod
@@ -92,6 +100,48 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         h = mmh3.hash(s, seed=self._seed, signed=False)
         return h / 2**32
 
+    def register_encoding(
+        self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
+    ) -> list[int]:
+        coordinate, radius = input_value
+        key = (tuple(int(v) for v in coordinate), int(radius))
+        vec = encoded if encoded is not None else self.encode((key[0], key[1]))
+        if len(vec) != self.size:
+            raise ValueError("Stored encoding must match encoder size")
+        self._encoding_cache[key] = vec
+        return vec
+
+    def decode(
+        self,
+        encoded: list[int],
+        candidates: Iterable[tuple[tuple[int, ...], int]] | None = None,
+    ) -> tuple[tuple[tuple[int, ...], int] | None, float]:
+        if len(encoded) != self.size:
+            raise ValueError(
+                f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
+            )
+
+        search_keys = (
+            list(candidates) if candidates is not None else list(self._encoding_cache.keys())
+        )
+        if not search_keys:
+            raise ValueError("No candidate encodings are available for decoding")
+
+        best_key = None
+        best_overlap = -1
+
+        for key in search_keys:
+            candidate_encoding = self._encoding_cache.get(key)
+            if candidate_encoding is None:
+                candidate_encoding = self.register_encoding(key)
+
+            overlap = self._overlap(encoded, candidate_encoding)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_key = key
+
+        return best_key
+
 
 @dataclass
 class CoordinateParameters:
@@ -116,3 +166,5 @@ if __name__ == "__main__":
     print(len(a))
     print(_overlap_count(a, b))
     print(a)
+
+    print(enc.decode(a))
