@@ -7,9 +7,9 @@ autonumber
 title US-01 Input Data :InputHandler
 
 actor Developer
-participant "ih:InputHandler" as IH
-participant "os:Filesystem" as FS
-participant "os:File Parser" as Parser
+participant "<u>ih:InputHandler</u>" as IH
+participant "Filesystem:OS" as FS
+participant "File Parser:OS" as Parser
 
 Developer -> IH: input_data(input_source, required_columns?)
 activate IH
