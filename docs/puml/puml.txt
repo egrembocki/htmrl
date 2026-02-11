@@ -1,0 +1,654 @@
+@startuml
+title US-10 Summary HTM-RL Pipeline 
+actor Developer
+
+participant ih    as "ih : InputHandler"
+participant enc   as "enc : BaseEncoder"
+participant agent as "agent : Agent"
+participant htm   as "htm : HTM"
+participant env   as "env : Environment"
+participant model as "model : RLModel"
+
+' --- Top-level use case entry ---
+Developer -> ih: interface.input_data()
+
+activate ih
+ih -> ih: input_data(input_source,\nrequired_columns)
+
+' --- Input data pipeline with alt path ---
+alt [input_source is str path and file exists]
+    ih -> ih: _load_from_file(input_source)
+    ih -> ih: _to_dataframe(raw_data)
+    ih -> ih: _raw_to_sequence(dataframe)
+else [non-file / in-memory input]
+    ih -> ih: _raw_to_sequence(input_source)
+end
+
+alt [required_columns not empty]
+    ih -> ih: _apply_required_columns(required_columns)
+end
+
+ih -> ih: _validate_data(required_columns)
+' ih.data is now a normalized, validated DataFrame
+
+' --- Encoder + HTM preprocessing ---
+ih -> enc: interface.buffer_data(ih.data)
+activate enc
+deactivate ih
+
+
+loop for each dataframe.shape
+    enc -> enc: build_composite_sdr(dataframe)
+end
+enc -> agent: interface.input_pooler(sdr[]) : batch
+activate agent
+agent -> htm: spatial_pooler(sdr[])
+activate htm
+agent <-- htm: active_sdr[]
+
+deactivate htm
+
+agent -> env: interface.reset()
+
+
+' --- RL interaction loop ---
+loop for each step
+    
+   
+    agent -> env: observation() : state_vector
+    activate env
+    agent -> env: select_action() : action_space
+    env -> env: applyAction(action)
+    env -> env: step()
+    
+    env -> env: computeReward()
+    deactivate agent
+    env --> enc: reward
+    env -> enc: interface.encode(reward)
+    enc -> agent: interface.input_pooler(sdr)
+    
+    activate agent
+    activate htm
+    deactivate env
+    htm -> htm : temporal_pooler()
+    agent -> htm: spatial_pooler(sdr[])
+    
+    agent <-- htm: active_sdr
+    deactivate htm
+    
+    agent -> model: update_policy(\n  observation,\n  action,\n  reward)
+   
+    
+    model -> model: optimize_policy()
+end
+deactivate enc
+deactivate env
+deactivate agent
+
+env -> Developer: trainingComplete()
+@enduml
+
+
+------------------------------------------------------------------------------
+
+@startuml
+title US-01 Input Data — Sequence
+
+actor Developer
+participant ih  as "ih : InputHandler"
+participant enc as "enc : BaseEncoder"
+
+' Developer uses the InputInterface façade
+Developer -> ih: interface.input_data(input_source,\nrequired_columns)
+activate ih
+
+' --- Input data pipeline with alt path ---
+alt [input_source is file path and exists]
+    ih -> ih: _load_from_file(input_source)
+    ih -> ih: _to_dataframe(raw_data)
+    ih -> ih: _raw_to_sequence(dataframe)
+else [non-file / in-memory input]
+    ih -> ih: _raw_to_sequence(input_source)
+    ih -> ih: _to_dataframe(raw-data)
+end
+
+' --- Optional required column handling ---
+alt [required_columns not empty]
+    ih -> ih: _apply_required_columns(required_columns)
+end
+
+' --- Validation of normalized frame ---
+ih -> ih: _validate_data(required_columns)
+
+' At this point ih.data is a\nvalidated, timestamp-aware DataFrame
+
+' --- Hand off to encoder layer via interface ---
+ih -> enc: interface.buffer_data(ih.data)
+
+ih --> Developer: data : pd.DataFrame
+deactivate ih
+
+@enduml
+
+-------------------------------------------------------------------------------------------
+
+@startuml
+title US-02 Validate Data — InputHandler
+
+actor Developer
+participant ih  as "ih : InputHandler"
+participant log as "log : Logger"
+
+' US-02 is the validation phase at the end of input_data(...)
+Developer -> ih: input_data(input_source,\nrequired_columns)
+activate ih
+
+' US-01 covers ingestion & normalization.\nUS-02 starts at validation.
+note over ih
+  US-02 begins after ih._data has been
+  prepared from input_source (see US-01).
+end note
+
+ih -> ih: _validate_data(required_columns)
+
+' --- 1) Structural integrity checks ---
+' (is DataFrame, not empty, no all-NaN cols,\nno duplicate columns, etc.)
+alt [structural issues detected]
+    ih -> log: warning("invalid dataset structure")
+    ih --> Developer: validationFailed("invalid structure")
+    
+else [structure OK]
+    ih->ih : continue
+end
+
+' --- 2) Required columns checks (if provided) ---
+alt [required_columns provided\nand some are missing]
+    ih -> log: warning("missing required columns")
+    ih --> Developer: validationFailed("missing columns")
+    
+else [all required columns present\nor none requested]
+    ih -> ih : continue
+end
+
+' --- 3) Success path ---
+ih -> log: info("data has been validated")
+ih --> Developer: validationPassed()
+deactivate ih
+
+@enduml
+
+---------------------------------------------------------------------------------------------------------------
+
+@startuml
+title US-03 Encode Data
+actor Developer as dev
+
+participant ih    as "ih : InputHandler"
+participant enc   as "enc : BaseEncoder"
+participant agent as "agent : Agent"
+participant htm   as "htm : HTM"
+
+' --- Use case entry: start SDR encoding ---
+dev -> ih: interface.intput_data(raw_data)
+activate ih
+
+note over ih
+  US-01 (Input Data) and US-02 (Validate Data)
+  have already populated ih.data with a
+  normalized, validated DataFrame.
+end note
+
+' --- Hand off normalized data to encoder layer ---
+ih -> enc: interface.buffer_data(ih.data)
+deactivate ih
+activate enc
+
+' --- Build SDRs from each row of the DataFrame ---
+loop [for each row in ih.data]
+    enc -> enc: build_composite_sdr(row)
+    enc -> enc: encode(value,sdr)
+end
+
+' enc now holds an SDR batch representing the input sequence
+enc -> agent: interface.input_pooler(sdr_batch)
+deactivate enc
+activate agent
+
+' --- HTM inference over SDR batch ---
+agent -> htm: spatial_pooler(sdr_batch)
+activate htm
+htm -> htm: temporal_memory(activeColumns)
+htm --> agent: active_sdr_batch:sdr
+deactivate htm
+
+' --- Encode SDR data use case result ---
+agent --> dev: overlap_report(active_sdr)
+deactivate agent
+
+@enduml
+
+----------------------------------------------------------------------------------------------------------------------------
+
+
+@startuml
+title US-04 Input Parameters 
+
+actor Developer
+
+participant globalOpt as "globalOpt : GlobalOptimizer"
+participant paramOpt  as "paramOpt : ParameterOptimizer"
+participant ih       as "ih : InputHandler"
+participant enc      as "enc : BaseEncoder"
+participant htm      as "htm : HTM"
+participant model    as "model : RLModel"
+
+' --- Use case entry: developer wants to configure parameters globally ---
+Developer -> globalOpt: configure_parameters(profile)
+
+activate globalOpt
+globalOpt -> paramOpt: run_search(profile)
+activate paramOpt
+
+' --- Optimization loop over candidate parameter sets ---
+loop [for each candidate configuration]
+    ' Candidate-level parameter proposal
+    paramOpt -> paramOpt: propose_candidate()
+
+    ' Apply candidate data parameters
+    paramOpt -> ih: apply_data_config(data_params)
+
+    ' Apply candidate SDR/encoder parameters
+    paramOpt -> enc: apply_sdr_config(sdr_params)
+
+    ' Apply candidate HTM parameters
+    paramOpt -> htm: apply_htm_config(htm_params)
+
+    ' Apply candidate RL hyperparameters
+    paramOpt -> model: apply_rl_config(rl_params)
+
+    ' Run a short validation run to score this config
+    paramOpt -> model: run_validation_episodes()
+    model --> paramOpt: score
+
+    ' Report candidate score back to global optimizer
+    paramOpt -> globalOpt: record_result(candidate_id,\nscore)
+end
+
+' --- Select and apply the best configuration ---
+paramOpt -> globalOpt: select_best_configuration()
+globalOpt -> paramOpt: best_config
+
+deactivate paramOpt
+
+' Apply the chosen configuration system-wide
+globalOpt -> ih: apply_data_config(best_config.data)
+globalOpt -> enc: apply_sdr_config(best_config.sdr)
+globalOpt -> htm: apply_htm_config(best_config.htm)
+globalOpt -> model: apply_rl_config(best_config.rl)
+globalOpt --> Developer: parameters_configured(best_config_summary)
+deactivate globalOpt
+
+@enduml
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+@startuml
+title US-05 Train Model
+
+actor Developer
+
+participant agent as "agent : Agent"
+participant env   as "env : Environment"
+participant enc   as "enc : BaseEncoder"
+participant htm   as "htm : HTM"
+participant model as "model : RLModel"
+
+' --- Developer triggers model training ---
+Developer -> agent: interface.train_model()
+activate agent
+
+' --- Initialize environment before episodes ---
+agent -> env: reset()
+activate env
+env --> agent: initial_state
+
+
+' ========== Episode Loop ==========
+loop [for each episode]
+
+    ' Agent creates first action from initial observation
+    agent -> env: select_action(initial_state)
+
+    ' ========== Step Loop ==========
+    loop [for each step]
+
+        ' 1. Agent requests current observation
+        agent -> env: observation()
+        
+        env --> agent: state_vector
+
+        ' 2. Agent selects an action
+        agent -> env: select_action(state_vector)
+
+        ' 3. Environment transition
+        env -> env: apply_action(action)
+        env -> env: step()
+        env -> env: compute_reward()
+        env --> agent: reward, next_state
+        deactivate env
+
+        ' 4. Encode reward through encoder (reward SDR)
+        agent -> enc: encode(reward)
+        activate enc
+        enc --> agent: reward_sdr
+        deactivate enc
+
+        ' 5. HTM processing on reward + observation SDRs
+        agent -> htm: spatial_pooler(reward_sdr)
+        activate htm
+        htm -> htm: temporal_pooler()
+        htm --> agent: active_sdr
+        activate model
+        deactivate htm
+
+        ' 6. Update RL policy / value function
+        agent -> model: update_policy(\n  state_vector,\n  action,\n  reward,\n  next_state\n)
+        
+        model -> model: optimize_policy()
+        
+
+    end
+
+    ' End of episode
+    agent -> env: reset()
+    activate env
+    env --> agent: new_initial_state
+    deactivate env
+    deactivate model
+
+end
+
+agent --> Developer: training_complete()
+deactivate agent
+
+@enduml
+
+------------------------------------------------------------------------------------------
+
+@startuml
+title US-06 Train Agent
+
+actor Developer
+
+participant agent as "agent : HTM-Agent"
+participant env   as "env : Environment"
+participant enc   as "enc : BaseEncoder"
+participant htm   as "htm : HTM"
+
+' --- Use case entry ---
+Developer -> agent: train_agent(config)
+activate agent
+
+' --- Initialize environment ---
+agent -> env: reset()
+activate env
+env --> agent: initial_observation
+deactivate env
+
+' ===================== EPISODE LOOP =====================
+loop [for each episode]
+
+    agent -> agent: set_observation(initial_observation)
+
+    ' ===================== STEP LOOP =====================
+    loop [for each step]
+
+        ' --------------------------------------------------
+        ' 1) Agent encodes the current observation via encoder
+        ' --------------------------------------------------
+        agent -> enc: encode(observation)
+        activate enc
+        enc --> agent: obs_sdr
+        deactivate enc
+
+        ' --------------------------------------------------
+        ' 2) HTM processes observation SDR (state building)
+        ' --------------------------------------------------
+        agent -> htm: spatial_pooler(obs_sdr)
+        activate htm
+        htm -> htm: temporal_pooler()
+        htm --> agent: active_sdr
+        deactivate htm
+
+        agent -> agent: update_internal_state(active_sdr)
+
+        ' --------------------------------------------------
+        ' 3) Agent selects action (NOT the environment)
+        ' --------------------------------------------------
+        agent -> agent: select_action(active_sdr)
+        agent -> env: select_action(state_vector)
+
+        ' --------------------------------------------------
+        ' 4) Environment applies the action and transitions
+        ' --------------------------------------------------
+        activate env
+        env -> env: apply_action(action)
+        env -> env: step()
+        env -> env: compute_signal()
+        env --> agent: reward, state
+        deactivate env
+
+        ' --------------------------------------------------
+        ' 5) Encode the transition for HTM temporal learning
+        ' --------------------------------------------------
+        agent -> enc: encode(\n  observation,\n  action,\n  reward,\n  state_vector\n)
+        activate enc
+        enc --> agent: transition_sdr
+        deactivate enc
+
+        ' --------------------------------------------------
+        ' 6) HTM processes transition SDR (temporal memory update)
+        ' --------------------------------------------------
+        agent -> htm: spatial_pooler(transition_sdr)
+        activate htm
+        htm -> htm: temporal_pooler()
+        htm --> agent: updated_sdr
+        deactivate htm
+
+        agent -> agent: update_internal_state(updated_sdr)
+
+        ' --------------------------------------------------
+        ' 7) Advance to next observation
+        ' --------------------------------------------------
+        activate env
+        agent -> env: observation 
+    end
+
+    ' Reset environment for next episode
+    agent -> env: reset()
+    
+    env --> agent: initial_observation
+    deactivate env
+
+end
+
+agent --> Developer: agentTrainingComplete()
+deactivate agent
+
+@enduml
+------------------------------------------------------------------------------------------------------------
+
+@startuml
+title US-07 Use HTM Pooler
+
+actor Developer
+
+participant agent as "agent : Agent"
+participant htm   as "htm : HTM"
+participant enc   as "enc : BaseEncoder"
+
+' --- Use case entry: agent needs HTM inference for SDR input ---
+Developer -> agent: interface.spatial_pooler(sdr_input)
+activate agent
+
+' 1) Agent ensures SDR is properly encoded (optional pre-processing)
+agent -> enc: encode_observation(sdr_input)
+activate enc
+enc --> agent: obs_sdr
+deactivate enc
+
+' 2) Agent sends SDR to HTM Spatial Pooler
+agent -> htm: spatial_pooler(obs_sdr)
+activate htm
+htm --> agent: active_columns
+
+' 3) Temporal Memory updates sequence context
+htm -> htm: temporal_pooler(active_columns)
+htm -> enc: encode(state): env_sdr, state_vector
+enc --> htm: obs_sdr
+htm --> agent: active_sdr_state
+deactivate htm
+
+' 4) Agent integrates HTM output into its state model
+agent -> agent: update_internal_state(active_sdr_state)
+
+agent --> Developer: overlap_report(active_sdr_state)
+deactivate agent
+
+@enduml
+
+------------------------------------------------------------------------
+
+@startuml
+title US-08 Test Model
+
+actor Developer
+
+participant agent as "agent : Agent"
+participant htm   as "htm : HTM"
+participant env   as "env : Environment"
+participant model as "model : RLModel"
+
+' --- Use case entry: developer initiates evaluation ---
+Developer -> agent: interface.test_model(test_config)
+activate agent
+
+' Agent configures evaluation mode
+agent -> model: set_evaluation_policy(test_config)
+agent -> env: set_test_seed(test_config) : learning_off
+
+' ================= EPISODE LOOP =================
+loop [for each test episode]
+
+    ' 1) Reset environment and get first observation
+    agent -> env: reset()
+    activate env
+    env --> agent: initial_observation
+    deactivate env
+
+    agent -> agent: set_observation(initial_observation)
+    agent -> model: start_episode_metrics()
+
+    ' ================= STEP LOOP =================
+    loop [for each step]
+
+        ' 2) Agent gets next observation
+        agent -> env: observation()
+        activate env
+        env --> agent: state_vector
+        agent -> env: select_action(state_vector)
+        deactivate env
+
+        ' 3) Optional: Agent sends state through HTM for prediction/encoding
+        agent -> htm: spatial_pooler(state_vector)
+        activate htm
+        htm -> htm: temporal_pooler()
+        htm --> agent: active_state_sdr
+        deactivate htm
+
+        agent -> agent: update_internal_state(active_state)
+
+        ' 4) Agent selects next action (evaluation only; no learning)
+        activate env
+        agent -> env: select_action(state_vector)
+        env --> agent: reward_sdr
+
+        ' 5) Environment transition
+        
+        env -> env: apply_action(action)
+        env -> env: step()
+        env -> env: compute_reward()
+        env --> agent: reward, state
+        activate model
+        env -> model: step_info(reward,\n done_flag)
+        deactivate env
+
+        ' 6) Model records evaluation metrics
+        model -> model: record_step_metrics(reward,\n done_flag)
+
+        ' 7) Agent updates its observation
+        agent -> agent: set_observation(next_state)
+
+    end
+
+    ' 8) End-of-episode summary
+    agent -> model: summarize_episode_metrics()
+
+end
+
+' --- Final report returned to developer ---
+agent -> model: aggregate_test_results()
+model --> agent: test_report
+deactivate model
+
+agent --> Developer: test_report
+deactivate agent
+
+@enduml
+
+------------------------------------------------------------------------------------------------------------------
+
+@startuml
+title US-09 Generate Report
+
+actor Developer
+
+participant model  as "model : RLModel"
+participant agent  as "agent : Agent"
+participant env    as "env : Environment"
+participant report as "reportGen : ReportGenerator"
+
+' --- Developer requests a summary report ---
+Developer -> model: interface.generate_report(report_config)
+activate model
+
+' --- 1. RLModel gathers metrics from previous runs ---
+model -> agent: get_agent_metrics()
+activate agent
+agent --> model: agent_metrics
+deactivate agent
+
+model -> env: get_environment_metrics()
+activate env
+env --> model: env_metrics
+deactivate env
+
+model -> model: aggregate_rl_metrics()
+
+' --- 2. RLModel hands off to ReportGenerator ---
+model -> report: compile_report(\n agent_metrics,\n env_metrics,\n model_metrics )
+activate report
+
+' --- 3. ReportGenerator formats output ---
+report -> report: format_tables()
+report -> report: format_charts()
+report -> report: format_summary()
+
+report --> model: final_report_document
+deactivate report
+
+' --- 4. RLModel returns completed report to developer ---
+model --> Developer: report_ready(final_report_document)
+deactivate model
+
+@enduml
