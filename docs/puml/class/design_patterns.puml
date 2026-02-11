@@ -1,4 +1,6 @@
 @startuml
+skinparam style strictuml
+title Design Patterns
 !pragma layout smetana
 skinparam shadowing false
 

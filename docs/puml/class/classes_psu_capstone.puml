@@ -1,4 +1,6 @@
 @startuml classes_psu_capstone
+skinparam style strictuml
+title Classes Psu Capstone
 !pragma layout smetana
 set namespaceSeparator none
 @enduml
