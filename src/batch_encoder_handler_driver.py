@@ -32,13 +32,6 @@ def main():
     data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
     input_records = handler.input_data(input_source=data_path, required_columns=[])
 
-    # Ensure records are unique-keyed based on first record's keys
-    if input_records:
-        seen = []
-        cols = list(dict.fromkeys(input_records[0].keys()))
-    else:
-        cols = []
-
     encoder = RandomDistributedScalarEncoder(RDSEParameters())
 
     def _numeric_column(records: list[dict], col: str) -> list[float]:
