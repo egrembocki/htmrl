@@ -1,7 +1,7 @@
 """Simplified pandas-backed input handler.
 
 The handler accepts Any input, detects file-path inputs first, loads/normalizes data
-with pandas, validates core constraints, and exposes records as list[dict[Any, Any]].
+with pandas, validates core constraints, and exposes data as dict[Any, list[Any]].
 """
 
 from __future__ import annotations
@@ -71,14 +71,14 @@ class InputHandler:
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
     ) -> dict[Any, list[Any]]:
-        """Ingest data from files or in-memory payloads and return normalized records.
+        """Ingest data from files or in-memory payloads and return normalized column lists.
 
         Args:
             input_source: The raw input data, which can be a file path or an in-memory data structure.
             required_columns: Optional list of column names that must be present in the output records.
 
         Returns:
-            A dictionary of lists representing the normalized records extracted from the input data.
+            A dictionary of lists representing the normalized columns extracted from the input data.
 
             Example:
 
@@ -111,9 +111,7 @@ class InputHandler:
 
         logger.info("Validating data with %d records and columns: %s", len(df), self._columns)
 
-        data = df.to_dict(orient="records")
-
-        data = self.to_encoder_sequence(data, required_columns=required)
+        data = df.to_dict(orient="list")
 
         self._data = data
 
@@ -352,7 +350,7 @@ class InputHandler:
                 continue
 
             if pd.api.types.is_datetime64_any_dtype(series):
-                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")
+                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")  # type: ignore[union-attr]
                 continue
 
             if not (pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series)):

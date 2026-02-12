@@ -53,7 +53,7 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
             return v[0]
         return float(v)
 
-    normalized_sequence = [_to_numeric(v) for v in encoder_sequence]
+    normalized_sequence = [_to_numeric(v) for v in encoder_sequence["value"]]
     encoded_from_sequence = [encoder.encode(value) for value in normalized_sequence]
     reference_encoder = ScalarEncoder(_make_scalar_params())
     encoded_reference = [reference_encoder.encode(value) for value in normalized_sequence]
@@ -61,8 +61,8 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     # Assert
     assert isinstance(input_handler, InputInterface)
     assert isinstance(encoder, ScalarEncoder)
-    assert isinstance(records, list)
-    assert isinstance(encoder_sequence, list)
+    assert isinstance(records, dict)
+    assert isinstance(encoder_sequence, dict)
     assert isinstance(normalized_sequence, list)
     assert len(normalized_sequence) > 0
     assert all(value is not None for value in normalized_sequence)
@@ -84,13 +84,14 @@ def test_sine_wave_through_input_handler(input_handler, encoder):
     # Act: feed through the input handler and extract the encoder-ready sequence
     records = input_handler.input_data(values, required_columns=["value"])
     seq = input_handler.to_encoder_sequence(records, column="value")
+    seq_values = seq["value"]
 
     # Assert: sequence shape and encoder outputs
-    assert isinstance(seq, list)
-    assert len(seq) == n
-    assert all(isinstance(v, (int, float)) for v in seq)
+    assert isinstance(seq, dict)
+    assert len(seq_values) == n
+    assert all(isinstance(v, (int, float)) for v in seq_values)
 
-    encoded = [encoder.encode(v) for v in seq]
+    encoded = [encoder.encode(v) for v in seq_values]
     assert len(encoded) == n
     assert all(isinstance(enc, list) for enc in encoded)
     assert all(len(enc) == encoder.size for enc in encoded)

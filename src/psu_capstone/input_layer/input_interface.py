@@ -2,16 +2,14 @@
 
 from typing import Any, Protocol, runtime_checkable
 
-import pandas as pd
-
 
 @runtime_checkable
 class InputInterface(Protocol):
     """Interface for input handlers."""
 
     @property
-    def data(self) -> pd.DataFrame:
-        """Return the normalized DataFrame currently held by the handler."""
+    def data(self) -> dict[Any, list[Any]]:
+        """Return the normalized column data currently held by the handler."""
 
         ...
 
@@ -19,6 +17,6 @@ class InputInterface(Protocol):
         self,
         input_source: Any,
         required_columns: list[str] | None = None,
-    ) -> pd.DataFrame:
-        """Process input data from various sources into a standardized DataFrame."""
+    ) -> dict[Any, list[Any]]:
+        """Process input data from various sources into standardized column data."""
         ...
