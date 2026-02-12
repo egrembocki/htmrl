@@ -1,8 +1,0 @@
-batch_encoder_handler_driver
-code_level_test
-demo_driver
-grapher
-hashing
-manual_test
-psu_capstone
-utils
