@@ -1,7 +1,7 @@
 """Simplified pandas-backed input handler.
 
-The handler accepts ``Any`` input, detects file-path inputs first, loads/normalizes data
-with pandas, validates core constraints, and exposes records as ``list[dict[str, Any]]``.
+The handler accepts Any input, detects file-path inputs first, loads/normalizes data
+with pandas, validates core constraints, and exposes records as list[dict[Any, Any]].
 """
 
 from __future__ import annotations
@@ -16,15 +16,14 @@ from typing import Any, ClassVar
 import numpy as np
 import pandas as pd
 
-from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
 
 
 class InputHandler:
     """Load, clean, validate, and normalize raw input payloads for the encoding pipeline."""
 
-    __instance: ClassVar[InputHandler | None] = None
-    __interface: ClassVar[Any | None] = None
+    __instance: ClassVar[InputHandler]
+    """Singleton instance of the InputHandler class."""
 
     _SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {
         ".csv",
@@ -38,13 +37,16 @@ class InputHandler:
     def __new__(cls) -> InputHandler:
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
-        return cls.__instance  # type: ignore
+        return cls.__instance
 
     def __init__(self, data: Any | None = None) -> None:
-        self._data: list[dict[str, Any]] = []
+        """Initialize the InputHandler with optional in-memory data, and set up internal state for data management and validation."""
+        self._data: list[dict[Any, Any]] = []
         self._columns: list[str] = []
-        self._repeating_temporal_columns: list[str] = []
+        self._repeating_columns: list[str] = []
+        self._is_repeating: bool = False
         self._contains_multidimensional_data: bool = False
+
         if data is not None:
             self.input_data(data)
 
@@ -52,41 +54,67 @@ class InputHandler:
     def get_instance(cls) -> InputHandler:
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = InputHandler()
-        return cls.__instance  # type: ignore
+        return cls.__instance
 
     @property
-    def data(self) -> list[dict[str, Any]]:
+    def data(self) -> list[dict[Any, Any]]:
         return self._data
 
     @data.setter
-    def data(self, data: list[dict[str, Any]]) -> None:
+    def data(self, data: list[dict[Any, Any]]) -> None:
+
+        if not isinstance(data, list) or not all(isinstance(record, dict) for record in data):
+            raise ValueError("Data must be a list of dictionaries representing records.")
+
         self._data = data
-
-    @property
-    def interface(self) -> Any:
-        return type(self).__interface
-
-    @interface.setter
-    def interface(self, interface: Any) -> None:
-        if not isinstance(interface, InputInterface):
-            raise TypeError(f"Not all methods from Interface have been implemented in {interface}")
-        type(self).__interface = interface
 
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
-    ) -> list[dict[str, Any]]:
-        """Ingest data from files or in-memory payloads and return normalized records."""
+    ) -> list[dict[Any, Any]]:
+        """Ingest data from files or in-memory payloads and return normalized records.
 
-        self._data = []
-        required = required_columns or []
+        Args:
+            input_source: The raw input data, which can be a file path or an in-memory data structure.
+            required_columns: Optional list of column names that must be present in the output records.
+
+        Returns:
+            A list of dictionaries representing the normalized records extracted from the input data.
+
+            Example:
+
+            data = [
+                    {"name": "Alice", "age": 30, "city": "New York"},
+                    {"name": "Bob", "age": 25, "city": "Chicago"},
+                    {"name": "Charlie", "age": 35, "city": "San Francisco"}
+                   ]
+
+        Raises:
+            ValueError: If the input data is invalid, missing required columns, or contains unsupported types.
+            FileNotFoundError: If a file path is provided but the file does not exist.
+            TypeError: If the input data type is not supported for conversion to records.
+
+        """
+
+        data = [] if input_source is None else self._data
+        required = required_columns if required_columns is not None else []
+
+        # check if input_source is a file path before attempting to coerce it to a DataFrame
         if self._is_file_path(input_source):
             df = self._load_file_to_dataframe(input_source)
         else:
             df = self._coerce_non_file_to_dataframe(input_source)
 
+        # Process the DataFrame to handle required columns, normalize types, and detect temporal patterns
         df = self._process_dataframe(df, required)
+
         self._columns = list(df.columns)
-        self._data = df.to_dict(orient="records")
+
+        logger.info("Validating data with %d records and columns: %s", len(df), self._columns)
+
+        data = df.to_dict(orient="records")
+
+        self._data = data
+
         return self._data
 
     def to_encoder_sequence(
@@ -112,7 +140,7 @@ class InputHandler:
             raise ValueError("Encoder sequence contains no valid values after filtering.")
         return filtered
 
-    def to_numpy(self, data: list[dict[str, Any]]) -> np.ndarray:
+    def to_numpy(self, data: list[dict[Any, Any]]) -> np.ndarray:
         if not data:
             raise ValueError("Cannot convert empty record list to numpy array.")
         df = pd.DataFrame(data)
@@ -122,18 +150,40 @@ class InputHandler:
         return numeric_df.to_numpy(dtype=np.float64)
 
     def _is_file_path(self, input_source: Any) -> bool:
-        if isinstance(input_source, os.PathLike):
-            raise TypeError("Path-like objects must be converted to strings before ingestion.")
-        if isinstance(input_source, str):
-            path = Path(input_source)
-            suffix = path.suffix.lower()
-            if path.exists() and path.is_file():
-                return True
-            if suffix in self._SUPPORTED_EXTENSIONS:
-                raise FileNotFoundError(f"No file found at {path}")
-        return False
+        """Determine if the input source is a valid file path with a supported extension."""
+        try:
+
+            if isinstance(input_source, (os.PathLike, str)):
+                path = Path(input_source)
+                suffix = path.suffix.lower()
+                if suffix in self._SUPPORTED_EXTENSIONS:
+                    logger.info("Detected file path input: %s", path)
+                    return path.exists() and path.is_file()
+                else:
+                    logger.warning(
+                        "File extension '%s' is not supported for input: %s", suffix, path
+                    )
+                    return False
+            return False
+
+        except Exception:
+            return False
 
     def _load_file_to_dataframe(self, input_source: str | os.PathLike[str]) -> pd.DataFrame:
+        """Load data from a file path into a pandas DataFrame based on the file extension.
+
+        Args:
+            input_source: A string or os.PathLike object representing the file path to load.
+
+        Returns:
+            A pandas DataFrame containing the data loaded from the specified file.
+
+        Raises:
+            ValueError: If the file extension is not supported for loading.
+            FileNotFoundError: If the specified file does not exist.
+
+        """
+
         path = Path(input_source)
         ext = path.suffix.lower()
         logger.info("Loading data from %s", path)
@@ -143,32 +193,52 @@ class InputHandler:
         if ext == ".json":
             return pd.read_json(path)
         if ext == ".xlsx":
-            return pd.read_excel(path)
+            return pd.read_excel(
+                path
+            )  # use openpyxl engine for XLSX files, which is the default in recent pandas versions and supports modern Excel formats. For legacy XLS files, xlrd may be required but is not guaranteed to be available in all environments.
         if ext == ".xls":
-            raise ValueError("Unsupported file type: .xls (requires optional xls reader).")
+            return pd.read_excel(
+                path
+            )  # use xlrd engine for legacy XLS files if available, otherwise fallback to openpyxl which may not support XLS
         if ext == ".parquet":
             return pd.read_parquet(path)
         if ext == ".txt":
             return pd.DataFrame(
                 {"value": path.read_text(encoding="utf-8").splitlines(keepends=True)}
-            )
+            )  # build inline DataFrame for text files, treating each line as a separate record
         raise ValueError(f"Unsupported file type: {ext}")
 
     def _coerce_non_file_to_dataframe(self, input_source: Any) -> pd.DataFrame:
+        """Convert in-memory data structures into a pandas DataFrame for normalization and validation.
+
+        Args:
+            input_source: The raw input data, which can be a variety of in-memory types
+
+        Returns:
+            A pandas DataFrame representing the input data, ready for processing and validation.
+
+        Raises:
+            TypeError: If the input data type is not supported for conversion to a DataFrame.
+
+        """
+
         if isinstance(input_source, bytes):
             input_source = bytearray(input_source)
 
         if isinstance(input_source, pd.DataFrame):
             return input_source.copy()
 
-        if isinstance(input_source, np.ndarray):
+        elif isinstance(input_source, pd.Series):
+            return input_source.to_frame()
+
+        elif isinstance(input_source, np.ndarray):
             self._contains_multidimensional_data = input_source.ndim > 1
             return pd.DataFrame(input_source)
 
-        if isinstance(input_source, Mapping):
+        elif isinstance(input_source, Mapping):
             return pd.DataFrame(input_source)
 
-        if isinstance(input_source, bytearray):
+        elif isinstance(input_source, bytearray):
             if b"," in input_source or b"\n" in input_source:
                 try:
                     text_payload = input_source.decode("utf-8")
@@ -180,9 +250,10 @@ class InputHandler:
                     pass
             return pd.DataFrame({"value": list(input_source)})
 
-        if isinstance(input_source, Sequence) and not isinstance(
+        elif isinstance(input_source, Sequence) and not isinstance(
             input_source, (str, bytes, bytearray)
         ):
+            # Handle sequences of mappings (e.g., list of dicts) and sequences of sequences (e.g., list of lists)
             if not input_source:
                 return pd.DataFrame()
             first = input_source[0]
@@ -193,124 +264,244 @@ class InputHandler:
                 return pd.DataFrame([list(row) for row in input_source])
             return pd.DataFrame({"value": list(input_source)})
 
-        if isinstance(input_source, str):
+        elif isinstance(input_source, (str, int, float)):
             return pd.DataFrame({"value": [input_source]})
 
-        raise TypeError(f"Unsupported data type for conversion to sequence: {type(input_source)}")
+        else:
 
-    def _process_dataframe(self, df: pd.DataFrame, required_columns: list[str]) -> pd.DataFrame:
+            raise TypeError(f"Unsupported data type for conversion: {type(input_source)}")
+
+    def _process_dataframe(
+        self, df: pd.DataFrame, required_columns: list[str] | None = None
+    ) -> pd.DataFrame:
+        """Normalize datetime columns, enforce required columns, detect repeating temporal patterns, and handle missing values.
+
+        Args:
+            df: The input DataFrame to process and normalize.
+            required_columns: A list of column names that must be present in the output DataFrame.
+
+        Returns:
+            A processed and normalized DataFrame that meets the specified requirements.
+
+        Raises:
+            ValueError: If the DataFrame contains unsupported types, duplicate columns, or is missing required columns.
+
+
+        """
         if df.empty:
-            self._repeating_temporal_columns = []
+            self._repeating_columns = []
             return df
 
         if not df.columns.is_unique:
             duplicates = df.columns[df.columns.duplicated()].tolist()
-            raise ValueError(f"Duplicate columns detected: {duplicates}")
+            logger.info("Duplicate columns detected: %s", duplicates)
 
-        if required_columns:
+            df = df.loc[:, ~df.columns.duplicated()]
+            logger.info("Removed duplicate columns, remaining columns: %s", df.columns.tolist())
+
+        if required_columns is not None:
             missing = [col for col in required_columns if col not in df.columns]
             for col in missing:
                 df[col] = None
             df = df[required_columns]
+            logger.info("Added missing required columns: %s", missing)
 
+        # check for existing datetime
         df = self._normalize_datetime_columns(df)
+
+        # check for consistent primitive types and coerce numeric types for downstream processing
         df = self._normalize_column_types(df)
+
+        # fill missing values in numeric columns with the mean of the column
         df = self._fill_missing_values(df)
-        self._repeating_temporal_columns = self._detect_repeating_temporal_values(df)
+
+        self._isRepeating, self._repeating_columns = self._detect_repeating_values(df, threshold=3)
+
         return df
 
     def _normalize_datetime_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        result = df.copy()
-        for col in result.columns:
-            series = result[col]
-            non_null = series.dropna()
-            if non_null.empty:
+        """Detect and normalize datetime columns to ISO 8601 string format for consistent encoding downstream.
+
+        Args:
+
+            df: The input DataFrame to analyze and normalize datetime columns.
+
+        Returns:
+            A DataFrame with datetime columns normalized to ISO 8601 string format, while preserving non-datetime columns unchanged.
+
+
+        Raises:
+            ValueError: If the DataFrame contains unsupported types that cannot be normalized to datetime format.
+
+        """
+        dataframe = df.copy()
+
+        for col in dataframe.columns:
+            series = dataframe[col]
+            parsed = pd.to_datetime(series, errors="coerce")
+
+            # drop missing values
+            normal = series.dropna()
+            sample = normal.iloc[0]
+
+            if normal.empty:
                 continue
 
-            if pd.api.types.is_datetime64_any_dtype(series):
-                result[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")
+            elif not pd.api.types.is_object_dtype(series):
                 continue
 
-            if not pd.api.types.is_object_dtype(series):
+            elif not isinstance(sample, (str, datetime.datetime, datetime.date)):
                 continue
 
-            sample = non_null.iloc[0]
-            if not isinstance(sample, (str, datetime.date, datetime.datetime)):
-                continue
-
-            if isinstance(sample, str):
+            elif isinstance(sample, str):
                 looks_temporal = any(token in sample for token in ("-", ":", "T", "/"))
                 if not looks_temporal:
                     continue
 
-            parsed = pd.to_datetime(series, errors="coerce")
-            if parsed.notna().sum() == non_null.shape[0]:
-                result[col] = parsed.dt.strftime("%Y-%m-%dT%H:%M:%S")
-        return result
+            elif isinstance(sample, (datetime.datetime, datetime.date)):
+                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")  # type: ignore[union-attr]
+
+            elif pd.api.types.is_datetime64_any_dtype(normal):
+                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")  # type: ignore[union-attr]
+
+            if parsed.notna().sum() == normal.shape[0]:
+                dataframe[col] = parsed.dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+        # make sure any missing values are dropped
+        dataframe = dataframe.dropna()
+
+        return dataframe
 
     def _normalize_column_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        result = df.copy()
-        for col in result.columns:
-            non_null = result[col].dropna()
-            if non_null.empty:
-                continue
-            primitive_types = {type(value) for value in non_null}
+        """Enforce consistent primitive types across columns and coerce numeric types for downstream processing.
+
+        Args:
+            df: The input DataFrame to analyze and normalize column types.
+
+        Returns:
+            A DataFrame with consistent primitive types across columns, where numeric columns are coerced to appropriate numeric types for downstream processing, while non-numeric columns are preserved as-is.
+
+        Raises:
+            ValueError: If the DataFrame contains unsupported types or mixed primitive types within a column that cannot be normalized.
+
+
+        """
+
+        dataframe = df.copy()
+
+        for col in dataframe.columns:
+
+            normal = dataframe[col].dropna()
+
+            # store a set of types present in the column to detect unsupported or mixed types
+            primitive_types = {type(value) for value in normal}
+
+            # check for any non-primitive types that would indicate corrupt or unsupported data
+            # against the inline set of allowed primitive types (str, bool, int, float, and their numpy equivalents)
             has_non_primitive = any(
-                t not in {str, bool, int, float, np.int64, np.float64} for t in primitive_types
+                t
+                not in {
+                    str,
+                    bool,
+                    int,
+                    float,
+                    np.int64,
+                    np.float64,
+                    np.int32,
+                    np.float32,
+                    np.ndarray,
+                }
+                for t in primitive_types
             )
-            if has_non_primitive:
+
+            if normal.empty:  # go to next column if all values are None/NaN
+                continue
+
+            elif has_non_primitive:  # look for unsupported types in a mapping {key: type(value)}
+                logger.error(
+                    "Unsupported types detected in column '%s': %s",
+                    col,
+                    sorted(t.__name__ for t in primitive_types),
+                )
                 raise ValueError(f"Corrupt data detected in column '{col}': unsupported value type")
 
-            if primitive_types.issubset({int, float, np.int64, np.float64, bool}):
-                result[col] = pd.to_numeric(result[col], errors="coerce")
+            # enforce consistent primitive types across the columns, all values are the same primitive type
+            # check for more than one type in the col
             elif len(primitive_types) > 1:
-                raise ValueError(
-                    f"Mixed primitive types detected in column '{col}': {sorted(t.__name__ for t in primitive_types)}"
+                logger.warning(
+                    "Column '%s' has multiple types: %s",
+                    col,
+                    sorted(t.__name__ for t in primitive_types),
                 )
-        return result
+
+                # attempt to convert to numeric
+                if primitive_types.issubset(
+                    {int, float, np.int64, np.float64, np.int32, np.float32, np.ndarray}
+                ):
+                    dataframe[col] = pd.to_numeric(dataframe[col], errors="coerce")
+                    dataframe[col] = dataframe[col].fillna(dataframe[col].mean(skipna=True))
+
+                    primitive_types = dataframe[col].dropna().map(type).unique().tolist()
+                    primitive_types = set(primitive_types)
+
+                    if len(primitive_types) > 1:
+                        raise ValueError(
+                            f"Mixed primitive types detected in column '{col}': {sorted(t.__name__ for t in primitive_types)}"
+                        )
+
+        return dataframe
 
     def _fill_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        result = df.copy()
-        numeric_cols = result.select_dtypes(include=[np.number]).columns
+        """Fill missing values in numeric columns with the mean of the column to ensure downstream processing can handle
+          numeric data without NaN values.
+
+        Args:
+            df: The input DataFrame to analyze and fill missing values in numeric columns.
+
+        Returns:
+            A DataFrame with missing values in numeric columns filled with the mean of the respective column,
+            while non-numeric columns are left unchanged.
+
+
+        Raises:
+            ValueError: If the DataFrame contains unsupported types or if mean imputation fails due to all values being NaN in a numeric column.
+
+
+        """
+        dataframe = df.copy()
+
+        numeric_cols = dataframe.select_dtypes(include=[np.number]).columns
+
         for col in numeric_cols:
-            mean_value = result[col].mean(skipna=True)
+            mean_value = dataframe[col].mean(skipna=True)
             if pd.notna(mean_value):
-                result[col] = result[col].fillna(mean_value)
-        return result
+                dataframe[col] = dataframe[col].fillna(mean_value)
+        return dataframe
 
-    def _detect_repeating_temporal_values(self, df: pd.DataFrame) -> list[str]:
-        repeating_columns: list[str] = []
-        for col in df.columns:
-            series = df[col].dropna()
-            if series.empty:
-                continue
-            parsed = pd.to_datetime(series, errors="coerce")
-            if parsed.notna().all() and series.duplicated().any():
-                repeating_columns.append(str(col))
-        return repeating_columns
+    def _detect_repeating_values(self, df: pd.DataFrame, threshold: int) -> tuple[bool, list[str]]:
+        """Identify columns that contain repeating temporal values, which may indicate time series data with regular intervals.
+        Args:
+            df: The input DataFrame to analyze for repeating temporal patterns.
+            threshold: An integer threshold for determining when a column has enough repeating values to be considered temporal
 
-    def _validate_data(self, required_columns: list[str] | None = None) -> tuple[str, bool]:
-        required = required_columns or []
-        if not isinstance(self._data, list):
-            return ("Data is not a list of records.", False)
-        if not self._data:
-            return ("Record list is empty", False)
-        if not all(isinstance(row, Mapping) for row in self._data):
-            return ("Data is valid.", True)
+        Returns:
+            A tuple containing a boolean indicating whether any repeating temporal columns were detected, and a list of
 
-        if self._columns and len(self._columns) != len(set(self._columns)):
-            return ("Record list has duplicate column names.", False)
+            column names that exhibit repeating temporal patterns based on the specified threshold.
 
-        df = pd.DataFrame(self._data)
-        if not df.columns.is_unique:
-            return ("Record list has duplicate column names.", False)
 
-        missing_required = [col for col in required if col not in df.columns]
-        if missing_required:
-            return (f"Missing required columns: {missing_required}", False)
 
-        all_none_cols = [col for col in df.columns if df[col].isna().all()]
-        if all_none_cols:
-            return (f"Columns with all None values: {all_none_cols}", False)
 
-        return ("Data is valid.", True)
+        """
+        # detect repeating values for any mapping key value
+        dataframe = df.copy()
+        repeating_col: list[str] = []
+
+        for col in dataframe.columns:
+            value_counts = dataframe[col].value_counts()
+            if (
+                not value_counts.empty and value_counts.iloc[0] > threshold
+            ):  # arbitrary threshold for "repeating"
+                repeating_col.append(col)
+
+        return (bool(repeating_col), repeating_col)
