@@ -32,7 +32,7 @@ def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
     required = ["a", "b", "c"]
 
     # Act
-    df = handler.input_data(str(csv_path), required_columns=required)
+    df = handler.input_data(str(csv_path), columns=required)
 
     # Assert
     assert list(df.columns) == required
@@ -49,7 +49,7 @@ def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> N
     required = ["a", "b"]
 
     # Act
-    df = handler.input_data(str(xlsx_path), required_columns=required)
+    df = handler.input_data(str(xlsx_path), columns=required)
 
     # Assert
     assert list(df.columns) == required
@@ -66,7 +66,7 @@ def test_load_input_data_excel_xls(temp_path: Path, handler: InputHandler) -> No
     required = ["a", "b"]
 
     # Act
-    df = handler.input_data(str(xls_path), required_columns=required)
+    df = handler.input_data(str(xls_path), columns=required)
 
     # Assert
     assert list(df.columns) == required
@@ -83,7 +83,7 @@ def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
     required = ["a", "b"]
 
     # Act
-    df = handler.input_data(str(json_path), required_columns=required)
+    df = handler.input_data(str(json_path), columns=required)
 
     # Assert
     assert list(df.columns) == required
@@ -101,7 +101,7 @@ def test_load_input_data_txt_returns_dataframe_of_lines(
     txt_path.write_text("".join(lines))
 
     # Act
-    df = handler.input_data(str(txt_path), required_columns=["value"])
+    df = handler.input_data(str(txt_path), columns=["value"])
 
     # Assert
     assert list(df.columns) == ["value"]
@@ -129,7 +129,7 @@ def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHand
 
     # Act / Assert
     with pytest.raises(FileNotFoundError):
-        handler.input_data(str(missing_path), required_columns=["timestamp", "a"])
+        handler.input_data(str(missing_path), columns=["timestamp", "a"])
 
 
 def test_load_input_data_requires_string_path(temp_path: Path, handler: InputHandler) -> None:
@@ -161,8 +161,8 @@ def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandl
     required = ["timestamp", "a", "b"]
 
     # Act
-    df_one = handler.input_data(str(csv_path), required_columns=required)
-    df_two = handler.input_data(str(csv_path), required_columns=required)
+    df_one = handler.input_data(str(csv_path), columns=required)
+    df_two = handler.input_data(str(csv_path), columns=required)
 
     # Assert
     assert isinstance(df_one, pd.DataFrame)

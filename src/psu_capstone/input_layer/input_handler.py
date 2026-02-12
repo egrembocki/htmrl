@@ -5,12 +5,11 @@ from __future__ import annotations
 import datetime
 import os
 from collections.abc import Sequence
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, cast
 
 import numpy as np
 import pandas as pd
 
-from psu_capstone.input_layer.input_interface import InputInterface
 from psu_capstone.log import logger
 
 
@@ -19,9 +18,6 @@ class InputHandler:
 
     __instance: ClassVar[InputHandler | None] = None
     """Singleton instance"""
-
-    __interface: ClassVar[Any]  # may get removed in future updates -- sonarqube(python:S4487)
-    """Interface for future extension"""
 
     _DATAFRAME_READERS: ClassVar[dict[str, Callable[[str], pd.DataFrame]]] = {
         ".csv": pd.read_csv,
@@ -51,12 +47,15 @@ class InputHandler:
 
         """
 
-        self._data: pd.DataFrame | np.ndarray
-        """The processed input data -> encoder-ready DataFrame."""
+        self._data: Any = None if data is None else self.input_data(data)
+        """The processed input data -> encoder-safe."""
 
-        self._appended_required_columns: set[str] = set()
+        self._appended_required_columns: set[str] = (
+            set()
+        )  # no repeat columns allowed in required_columns
         """Set of required columns."""
 
+        # This context is necessary to determine whether to inject a timestamp column when no temporal data is detected.
         self._required_columns_context: list[str] = []
         """Most-recent required_columns list passed to input_data (used for timestamp behavior)"""
 
@@ -69,41 +68,83 @@ class InputHandler:
         return cls.__instance
 
     @property
-    def data(self) -> pd.DataFrame | np.ndarray:
+    def data(self) -> Any:
+        if self._data is None:
+            logger.warning("Data has not been set yet; returning None.")
+        elif isinstance(self._data, pd.DataFrame):
+            logger.info(
+                f"Data is a DataFrame with shape {self._data.shape} and columns {self._data.columns.tolist()}"
+            )
+            self._data = cast(Any, self.to_numpy(self._data))
+            logger.info(
+                f"Data converted to numpy ndarray with shape {self._data.shape} and dtype {self._data.dtype}"
+            )
+        elif isinstance(self._data, np.ndarray):
+            logger.info(
+                f"Data is a numpy ndarray with shape {self._data.shape} and dtype {self._data.dtype}"
+            )
+            self._data = cast(Any, self._data)
+        elif isinstance(self._data, (list, tuple)):
+            logger.info(f"Data is a {type(self._data).__name__} with length {len(self._data)}")
+            self._data = cast(Any, self._data)
+        elif isinstance(self._data, dict):
+            logger.info(f"Data is a dict with keys {list(self._data.keys())}")
+            self._keys = list(self._data.keys())
+            self._data = list(self._data.values())
+            self._data = cast(Any, self._data)
+        elif isinstance(self._data, str):
+            logger.info(f"Data is a string with length {len(self._data)}")
+            self._data = cast(Any, self._data)
+        elif isinstance(self._data, (bytearray, bytes)):
+            logger.info(f"Data is a {type(self._data).__name__} with length byte {len(self._data)}")
+            self._data = cast(Any, self._data)
+        elif isinstance(self._data, pd.Series):
+            logger.info(
+                f"Data is a Series with length {len(self._data)} and name {self._data.name}"
+            )
+            self._data = list(self._data)
+            logger.info(f"Data converted to list with length {len(self._data)}")
+            self._data = cast(Any, self._data)
+        elif isinstance(self._data, (int, float, bool)):
+            logger.info(
+                f"Data is a scalar of type {type(self._data).__name__} with value {self._data}"
+            )
+            self._data = cast(Any, self._data)
         return self._data
 
     @data.setter
-    def data(self, data: pd.DataFrame | np.ndarray) -> None:
+    def data(self, data: Any) -> None:
         self._data = data
 
-    @property
-    def interface(self) -> Any:
-        return type(self).__interface
+    def input_data(self, input_source: Any, columns: list[str] | None = None) -> Any:
+        """Inputing data into the handler starts here
 
-    @interface.setter
-    def interface(self, interface: Any) -> None:
-        type(self).__interface = interface
+        Args:
+            input_source (Any): The raw input data, which can be a file path, DataFrame, Series, list, dict, numpy array, string, or byte sequence.
+            columns (list[str], optional): A list of column names that can be added as dict keys.
+        Returns:
+            Any: The processed data, typically as an array ready for encoding.
 
-    def input_data(
-        self, input_source: Any, required_columns: list[str] | None = None
-    ) -> pd.DataFrame | np.ndarray:
-        """Public :: exposed method to the user. Inputing data into the handler starts here
-
-        raises:
-            TypeError: If input_source is a path-like object.
+        Raises:
             FileNotFoundError: If a file path is provided but the file does not exist.
             ValueError: If data validation fails.
+
+
         """
 
         self._appended_required_columns.clear()
 
-        # Check if input is a file path
+        # Check if input is a file path and convert to string if it's a PathLike object. This allows the handler to accept both string paths and Path objects from pathlib.
         if isinstance(input_source, os.PathLike):
-            raise TypeError("Path-like objects must be converted to strings before ingestion.")
+            input_source = os.fspath(input_source)
 
-        if isinstance(input_source, str):
-            file_extension = os.path.splitext(input_source)[1].lower()
-            if os.path.exists(input_source):
+            file = self.check_file_path(input_source)
+
+        elif isinstance(input_source, str):
+
+            file = self.check_file_path(input_source)
+
+            if file:
 
                 # Load data from file :: raw_data -> normalized_frame
                 raw_data = self._load_from_file(input_source)
@@ -111,34 +152,50 @@ class InputHandler:
 
                 self._data = normalized_frame
 
-                if required_columns:
-                    self._apply_required_columns(required_columns)
-                self._validate_data(required_columns)
+                if columns:
+                    self._apply_required_columns(columns)
+                # self._validate_data(columns)
                 return self._data
 
-            if file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION:
-                raise FileNotFoundError(f"No file found at {input_source}")
+            # if file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION:
+            # raise FileNotFoundError(f"No file found at {input_source}")
 
         normalized_frame = self._raw_to_sequence(input_source)
         self._data = normalized_frame
-        if required_columns:
-            self._apply_required_columns(required_columns)
-        self._validate_data(required_columns)
+        if columns:
+            self._apply_required_columns(columns)
+        self._validate_data(columns)
         return self._data
 
+    def check_file_path(self, input_string: str) -> bool:
+        """Check if a string is a valid file path and has a supported extension.
+
+        Args:
+            input_string (str): The string to check.
+        Returns:
+            bool: True if the string is a valid file path with a supported extension, False otherwise.
+        """
+        file_extension = os.path.splitext(input_string)[1].lower()
+        if os.path.exists(input_string) and (
+            file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION
+        ):
+            return True
+        return False
+
     # return a np.ndarray from a pd.DataFrame
-    def to_numpy(self, data: pd.DataFrame | np.ndarray) -> np.ndarray:
+    def to_numpy(self, data: pd.DataFrame) -> np.ndarray:
         """Convert a pandas DataFrame to a numpy ndarray.
 
         Args:
-            data (pd.DataFrame | np.ndarray): The input DataFrame or ndarray.
+            data (pd.DataFrame): The input DataFrame.
         Returns:
             np.ndarray: The converted numpy ndarray.
         """
+        # safety checks and conversions to ensure the DataFrame is in a suitable format for conversion to a numpy array. This includes handling duplicates, coercing non-numeric values to NaN, and filling missing values with the mean of each column before performing the conversion.
+        data = data.drop_duplicates().reset_index(drop=True)
+        data = data.apply(pd.to_numeric, errors="coerce")
+        data = data.fillna(data.mean(numeric_only=True))
 
-        validate_data = self._validate_data(data)  # type: ignore
-        if not validate_data:
-            raise ValueError("Data validation failed; cannot convert to numpy ndarray.")
         return (
             data.to_numpy(
                 copy=False,
@@ -357,7 +414,11 @@ class InputHandler:
             logger.info("no missing value handling for type: %s", type(data))
 
     def _validate_data(self, required_columns: list[str] = []) -> bool:
-        """Verify structure, NaN patterns, duplicates, and caller-specified schemas."""
+        """Verify structure, NaN patterns, duplicates, and caller-specified schemas.
+
+        #TODO: break each of these checks into separate helper methods for better readability and maintainability, and to allow for more granular error reporting. For example, we could have _check_type(), _check_empty(), _check_nan_columns(), _check_duplicates(), and _check_required_columns() methods that are called in sequence from _validate_data().
+
+        """
 
         logger.info("validating data...")
         # Check type
@@ -468,13 +529,6 @@ class InputHandler:
 if __name__ == "__main__":
 
     handler = InputHandler.get_instance()
-
-    # assert isinstance(handler, InputHandler)
-    # print("Singleton test passed.")
-    # assert isinstance(handler.data, pd.DataFrame)
-    # print("Initial data type test passed.")
-    # assert isinstance(handler, InputInterface)
-    # print("Interface conformance test passed.")
 
     sample_matrix = [
         ("List input", [1, 2, 3], ["value"]),
