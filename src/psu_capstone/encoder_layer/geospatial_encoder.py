@@ -20,11 +20,12 @@ CRS_WGS84 = CRS.from_epsg(4326)
 # Good for 3D
 CRS_GEO = CRS.from_proj4("+proj=geocent +datum=WGS84 +units=m +no_defs")
 
-# Turns GPS input into a flat metric space
-T_WGS84_TO_MERC = Transformer.from_crs(CRS_WGS84, CRS_MERC, always_xy=True)
 
-# Allows altitude to meaningfully affect the encoding
-T_MERC_TO_GEO = Transformer.from_crs(CRS_MERC, CRS_GEO, always_xy=True)
+T_WGS84_TO_GEO = Transformer.from_crs(CRS_WGS84, CRS_GEO, always_xy=True)
+T_GEO_TO_WGS84 = Transformer.from_crs(CRS_GEO, CRS_WGS84, always_xy=True)
+
+T_WGS84_TO_MERC = Transformer.from_crs(CRS_WGS84, CRS_MERC, always_xy=True)
+T_MERC_TO_WGS84 = Transformer.from_crs(CRS_MERC, CRS_WGS84, always_xy=True)
 
 
 class GeospatialEncoder(
@@ -41,13 +42,12 @@ class GeospatialEncoder(
         self._geo_params = copy.deepcopy(geo_params)
         self._coord_params = copy.deepcopy(coord_params)
 
-        self._geo_params = geo_params
-
         coord_params = CoordinateParameters(
             n=coord_params.n,
             w=coord_params.w,
             seed=coord_params.seed,
             max_radius=self._geo_params.max_radius,
+            dims=3 if self._geo_params.use_altitude else 2,
         )
 
         self._encoder = CoordinateEncoder(coord_params)
@@ -80,17 +80,18 @@ class GeospatialEncoder(
     def coordinate_for_position(
         self, lon: float, lat: float, alt: Optional[float]
     ) -> tuple[int, ...]:
-        # lon/lat to Mercator meters
-        x_m, y_m = T_WGS84_TO_MERC.transform(lon, lat)
+
+        scale = float(self._geo_params.scale)
 
         if self._geo_params.use_altitude and alt is not None:
             # Mercator meters and altitude to geocentric meters
-            x, y, z = T_MERC_TO_GEO.transform(x_m, y_m, alt)
+            x, y, z = T_WGS84_TO_GEO.transform(lon, lat, float(alt))
             coord = np.array([x, y, z], dtype=float) / float(self._geo_params.scale)
             return tuple(int(round(v)) for v in coord)
-        else:
-            coord = np.array([x_m, y_m], dtype=float) / float(self._geo_params.scale)
-            return tuple(int(round(v)) for v in coord)
+
+        x_m, y_m = T_WGS84_TO_MERC.transform(lon, lat)
+        coord = np.array([x_m, y_m], dtype=float) / scale
+        return tuple(int(round(v)) for v in coord)
 
     def radius_for_speed(self, speed_mps: float) -> int:
 
@@ -133,17 +134,13 @@ class GeospatialParameters:
 
 
 if __name__ == "__main__":
-    coord_params = CoordinateParameters(n=40, w=25, max_radius=2)
-    geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=2, use_altitude=True)
+    coord_params = CoordinateParameters(n=40, w=25)
+    geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=200, use_altitude=True)
 
     enc = GeospatialEncoder(geo_params=geo_params, coord_params=coord_params)
 
     a = enc.encode((5.0, -177.0365, 38.8977, 10.0))
     b = enc.encode((5.0, -77.0365, 38.897, 10.0))
-
-    lon = -1177.0365
-    lon1 = (lon + 180.0) % 360.0 - 180.0
-    print(lon1)
 
     def overlap_count(x: list[int], y: list[int]) -> int:
         return int(np.count_nonzero(np.array(x) == np.array(y)))

@@ -40,33 +40,26 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         max_neighbors = (2 * self._parameters.max_radius + 1) ** self._dims
 
         # for all neighbors use this
-        self._size = max_neighbors * self._n
+        # self._size = max_neighbors * self._n
 
         # for winners use this
-        # self._size = self._w * self._n
+        self._size = self._w * self._n
 
         super().__init__(dimensions, self._size)
 
     @override
     def encode(self, input_value: tuple[tuple[int, ...] | list[int], int]) -> list[int]:
-        coordinate, radius = input_value
-        if not isinstance(radius, int):
-            raise TypeError(f"Expected integer radius, got: {radius!r} ({type(radius)})")
+        return self.register_encoding(input_value)
 
-        key = (tuple(int(v) for v in coordinate), int(radius))
-
-        cached = self._encoding_cache.get(key)
-        if cached is not None:
-            return cached
-
-        neighbors = self._neighbors(key[0], key[1])
+    def _compute_encoding(self, key: tuple[tuple[int, ...], int]) -> list[int]:
+        coordinate, radius = key
+        neighbors = self._neighbors(coordinate, radius)
         winners = self._topWCoordinates(neighbors, self._w)
 
         out: list[int] = []
-        for c in neighbors:
+        for c in winners:
             v = self._coord_to_unit_float(c)
-            block = self._encoder.encode(v)
-            out.extend(int(b) for b in block)
+            out.extend(int(b) for b in self._encoder.encode(v))
 
         expected = self._size
         if len(out) < expected:
@@ -74,8 +67,21 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         elif len(out) > expected:
             out = out[:expected]
 
-        self._encoding_cache[key] = out
         return out
+
+    def register_encoding(
+        self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
+    ) -> list[int]:
+        coordinate, radius = input_value
+        key = (tuple(int(v) for v in coordinate), int(radius))
+
+        vector = encoded if encoded is not None else self._compute_encoding(key)
+
+        if len(vector) != self._size:
+            raise ValueError("Stored encoding must match encoder size")
+
+        self._encoding_cache[key] = vector
+        return vector
 
     @staticmethod
     def _neighbors(coordinate, radius):
@@ -99,17 +105,6 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         s = ",".join(str(int(v)) for v in coordinate)
         h = mmh3.hash(s, seed=self._seed, signed=False)
         return h / 2**32
-
-    def register_encoding(
-        self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
-    ) -> list[int]:
-        coordinate, radius = input_value
-        key = (tuple(int(v) for v in coordinate), int(radius))
-        vec = encoded if encoded is not None else self.encode((key[0], key[1]))
-        if len(vec) != self.size:
-            raise ValueError("Stored encoding must match encoder size")
-        self._encoding_cache[key] = vec
-        return vec
 
     def decode(
         self,
@@ -140,7 +135,9 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
                 best_overlap = overlap
                 best_key = key
 
-        return best_key
+        expected_ones = (len(encoded) // self._n) * self._w
+        confidence = best_overlap / expected_ones if expected_ones > 0 else 0.0
+        return best_key, confidence
 
 
 @dataclass
@@ -154,17 +151,28 @@ class CoordinateParameters:
 
 
 if __name__ == "__main__":
-    params = CoordinateParameters(n=40, w=25)
+    params = CoordinateParameters(n=40, w=25, max_radius=6)
     enc = CoordinateEncoder(params)
 
-    a = enc.encode(((10, 20), 2))
+    params1 = CoordinateParameters(n=2048, w=20, max_radius=2)
+    enc2 = CoordinateEncoder(params1)
+
+    a = enc2.encode(((10, 20), 2))
     b = enc.encode(((11, 20), 2))
+    c = enc.encode(((0, 0), 5))
 
-    def _overlap_count(first: list[int], second: list[int]) -> int:
-        return np.count_nonzero(first == second)
+    print(enc2.decode(a))
+    print(enc.decode(c))
 
-    print(len(a))
-    print(_overlap_count(a, b))
-    print(a)
+    print()
 
-    print(enc.decode(a))
+    test_keys = [
+        ((0, 0), 6),
+        ((10, 20), 6),
+        ((-5, 7), 6),
+        ((100, 200), 6),
+    ]
+
+    for key in test_keys:
+        encoded = enc.encode(key)
+        print(enc.decode(encoded))
