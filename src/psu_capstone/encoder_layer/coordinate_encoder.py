@@ -26,8 +26,8 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
             size=self._n,
             active_bits=self._w,
             sparsity=0.0,
-            radius=1.0,
-            resolution=0.0,
+            radius=0.0,
+            resolution=1.0 / self._n,
             category=False,
             seed=self._seed,
         )
@@ -151,7 +151,7 @@ class CoordinateParameters:
 
 
 if __name__ == "__main__":
-    params = CoordinateParameters(n=40, w=25, max_radius=6)
+    params = CoordinateParameters(n=400, w=25, max_radius=6)
     enc = CoordinateEncoder(params)
 
     params1 = CoordinateParameters(n=2048, w=20, max_radius=2)

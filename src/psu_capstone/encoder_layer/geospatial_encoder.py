@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import itertools
 import math
 from dataclasses import dataclass
 from typing import Iterable, Optional, override
@@ -118,7 +117,7 @@ class GeospatialEncoder(
             lon, lat, alt = T_GEO_TO_WGS84.transform(x, y, z)
             lon = self._wrap_lon(float(lon))
             lat = self._clamp_lat(float(lat))
-            return lon, lat, float(alt)
+            return lon, lat, alt
 
         x_m, y_m = (coord[0] * scale, coord[1] * scale)
         lon, lat = T_MERC_TO_WGS84.transform(x_m, y_m)
@@ -153,7 +152,7 @@ class GeospatialEncoder(
 @dataclass
 class GeospatialParameters:
     # meters per grid unit
-    scale: float = 10.0
+    scale: float = 5.0
 
     # seconds between readings
     timestep: float = 1.0
@@ -168,7 +167,7 @@ class GeospatialParameters:
 
 if __name__ == "__main__":
     coord_params = CoordinateParameters(n=400, w=25)
-    geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=20, use_altitude=True)
+    geo_params = GeospatialParameters(scale=0.2, timestep=2.0, max_radius=40, use_altitude=True)
 
     enc = GeospatialEncoder(geo_params=geo_params, coord_params=coord_params)
 
