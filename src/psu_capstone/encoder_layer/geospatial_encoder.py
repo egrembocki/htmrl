@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import copy
+import itertools
 import math
 from dataclasses import dataclass
-from typing import Optional, override
+from typing import Iterable, Optional, override
 
 import numpy as np
 from pyproj import CRS, Transformer
@@ -77,6 +78,20 @@ class GeospatialEncoder(
 
         return self._encoder.encode((coord, radius))
 
+    def decode(
+        self,
+        encoded: list[int],
+        candidates: Iterable[tuple[tuple[int, ...], int]] | None = None,
+    ) -> tuple[tuple[float, float, Optional[float]] | None, float]:
+
+        best_key, conf = self._encoder.decode(encoded, candidates=candidates)
+        if best_key is None:
+            return None, 0.0
+
+        grid_coord, _radius = best_key
+        pos = self.position_for_coordinate(grid_coord)
+        return pos, conf
+
     def coordinate_for_position(
         self, lon: float, lat: float, alt: Optional[float]
     ) -> tuple[int, ...]:
@@ -93,13 +108,31 @@ class GeospatialEncoder(
         coord = np.array([x_m, y_m], dtype=float) / scale
         return tuple(int(round(v)) for v in coord)
 
+    def position_for_coordinate(
+        self, coord: tuple[int, ...]
+    ) -> tuple[float, float, Optional[float]]:
+        scale = float(self._geo_params.scale)
+
+        if self._geo_params.use_altitude and len(coord) == 3:
+            x, y, z = (coord[0] * scale, coord[1] * scale, coord[2] * scale)
+            lon, lat, alt = T_GEO_TO_WGS84.transform(x, y, z)
+            lon = self._wrap_lon(float(lon))
+            lat = self._clamp_lat(float(lat))
+            return lon, lat, float(alt)
+
+        x_m, y_m = (coord[0] * scale, coord[1] * scale)
+        lon, lat = T_MERC_TO_WGS84.transform(x_m, y_m)
+        lon = self._wrap_lon(float(lon))
+        lat = self._clamp_lat(float(lat))
+        return lon, lat, None
+
     def radius_for_speed(self, speed_mps: float) -> int:
 
         overlap = 1.5
         coords_per_timestep = speed_mps * float(self._geo_params.timestep)
         r = int(round((coords_per_timestep / 2.0) * overlap))
 
-        min_r = int(math.ceil((math.sqrt(self._encoder._w) - 1.0) / 2.0))
+        min_r = int(math.ceil((math.sqrt(self._coord_params.w) - 1.0) / 2.0))
 
         r = max(r, min_r)
         r = max(0, min(r, self._geo_params.max_radius))
@@ -134,18 +167,13 @@ class GeospatialParameters:
 
 
 if __name__ == "__main__":
-    coord_params = CoordinateParameters(n=40, w=25)
-    geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=200, use_altitude=True)
+    coord_params = CoordinateParameters(n=400, w=25)
+    geo_params = GeospatialParameters(scale=10.0, timestep=1.0, max_radius=20, use_altitude=True)
 
     enc = GeospatialEncoder(geo_params=geo_params, coord_params=coord_params)
 
     a = enc.encode((5.0, -177.0365, 38.8977, 10.0))
-    b = enc.encode((5.0, -77.0365, 38.897, 10.0))
+    b = enc.encode((5.0, -77.0365, 38.897, 10.5))
 
-    def overlap_count(x: list[int], y: list[int]) -> int:
-        return int(np.count_nonzero(np.array(x) == np.array(y)))
-
-    print("len:", len(a))
-    print("overlap:", overlap_count(a, b))
-
-    print(a)
+    print(enc.decode(a))
+    print(enc.decode(b))
