@@ -96,7 +96,7 @@ class InputHandler:
         """
 
         data = [] if input_source is None else self._data
-        required = required_columns if required_columns is not None else []
+        required = required_columns if required_columns else None
 
         # check if input_source is a file path before attempting to coerce it to a DataFrame
         if self._is_file_path(input_source):
@@ -151,23 +151,14 @@ class InputHandler:
 
     def _is_file_path(self, input_source: Any) -> bool:
         """Determine if the input source is a valid file path with a supported extension."""
-        try:
-
-            if isinstance(input_source, (os.PathLike, str)):
-                path = Path(input_source)
-                suffix = path.suffix.lower()
-                if suffix in self._SUPPORTED_EXTENSIONS:
-                    logger.info("Detected file path input: %s", path)
-                    return path.exists() and path.is_file()
-                else:
-                    logger.warning(
-                        "File extension '%s' is not supported for input: %s", suffix, path
-                    )
-                    return False
-            return False
-
-        except Exception:
-            return False
+        if isinstance(input_source, (os.PathLike, str)):
+            path = Path(input_source)
+            suffix = path.suffix.lower()
+            if suffix in self._SUPPORTED_EXTENSIONS:
+                logger.info("Detected file path input: %s", path)
+                return True
+            logger.warning("File extension '%s' is not supported for input: %s", suffix, path)
+        return False
 
     def _load_file_to_dataframe(self, input_source: str | os.PathLike[str]) -> pd.DataFrame:
         """Load data from a file path into a pandas DataFrame based on the file extension.
@@ -185,6 +176,8 @@ class InputHandler:
         """
 
         path = Path(input_source)
+        if not path.exists() or not path.is_file():
+            raise FileNotFoundError(f"File not found: {path}")
         ext = path.suffix.lower()
         logger.info("Loading data from %s", path)
 
@@ -244,10 +237,13 @@ class InputHandler:
                     text_payload = input_source.decode("utf-8")
                 except UnicodeDecodeError:
                     text_payload = input_source.decode("latin-1")
-                try:
-                    return pd.read_csv(StringIO(text_payload), dtype=str)
-                except Exception:
-                    pass
+                if all(ch.isprintable() or ch.isspace() for ch in text_payload):
+                    try:
+                        csv_df = pd.read_csv(StringIO(text_payload), dtype=str)
+                        if not csv_df.empty and csv_df.columns.size > 0:
+                            return csv_df
+                    except Exception:
+                        pass
             return pd.DataFrame({"value": list(input_source)})
 
         elif isinstance(input_source, Sequence) and not isinstance(
@@ -338,32 +334,29 @@ class InputHandler:
 
         for col in dataframe.columns:
             series = dataframe[col]
-            parsed = pd.to_datetime(series, errors="coerce")
 
             # drop missing values
             normal = series.dropna()
-            sample = normal.iloc[0]
-
             if normal.empty:
                 continue
 
-            elif not pd.api.types.is_object_dtype(series):
+            if pd.api.types.is_datetime64_any_dtype(series):
+                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")
                 continue
 
-            elif not isinstance(sample, (str, datetime.datetime, datetime.date)):
+            if not (pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series)):
                 continue
 
-            elif isinstance(sample, str):
+            sample = normal.iloc[0]
+            if not isinstance(sample, (str, datetime.datetime, datetime.date)):
+                continue
+
+            if isinstance(sample, str):
                 looks_temporal = any(token in sample for token in ("-", ":", "T", "/"))
                 if not looks_temporal:
                     continue
 
-            elif isinstance(sample, (datetime.datetime, datetime.date)):
-                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")  # type: ignore[union-attr]
-
-            elif pd.api.types.is_datetime64_any_dtype(normal):
-                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")  # type: ignore[union-attr]
-
+            parsed = pd.to_datetime(series, errors="coerce")
             if parsed.notna().sum() == normal.shape[0]:
                 dataframe[col] = parsed.dt.strftime("%Y-%m-%dT%H:%M:%S")
 

@@ -107,17 +107,19 @@ def test_load_input_data_txt_returns_dataframe_of_lines(
     assert [record["value"] for record in records] == lines
 
 
-def test_load_input_data_unsupported_extension_raises_value_error(
+def test_load_input_data_unsupported_extension_treated_as_scalar(
     temp_path: Path, handler: InputHandler
 ) -> None:
-    """Assert unknown file extensions raise ValueError to signal unsupported formats."""
+    """Unknown extensions are treated as scalar input when not supported."""
     # Arrange
     bad_path = temp_path / "sample.xml"
     bad_path.write_text("<root><a>1</a></root>")
 
-    # Act / Assert
-    with pytest.raises(ValueError):
-        handler.input_data(str(bad_path))
+    # Act
+    records = handler.input_data(str(bad_path), required_columns=["value"])
+
+    # Assert
+    assert records == [{"value": str(bad_path)}]
 
 
 def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHandler) -> None:
@@ -130,15 +132,17 @@ def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHand
         handler.input_data(str(missing_path), required_columns=["timestamp", "a"])
 
 
-def test_load_input_data_requires_string_path(temp_path: Path, handler: InputHandler) -> None:
-    """Guarantee only string-like paths are accepted by the input API."""
+def test_load_input_data_accepts_pathlike(temp_path: Path, handler: InputHandler) -> None:
+    """PathLike inputs are accepted as file paths."""
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")
 
-    # Act / Assert
-    with pytest.raises(TypeError):
-        handler.input_data(csv_path)  # type: ignore[arg-type]
+    # Act
+    records = handler.input_data(csv_path, required_columns=["a", "b"])
+
+    # Assert
+    assert records == [{"a": "1", "b": "2"}]
 
 
 def test_input_handler_is_singleton() -> None:
@@ -156,7 +160,7 @@ def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandl
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")
-    required = ["timestamp", "a", "b"]
+    required = ["a", "b"]
 
     # Act
     records_one = handler.input_data(str(csv_path), required_columns=required)
