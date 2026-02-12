@@ -1,0 +1,41 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+autonumber
+
+title US-11 Decode SDR to Value (Current Code Support)
+
+actor Developer
+participant "Brain" as BR
+participant "InputField" as IF
+participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
+
+Developer -> BR: prediction()
+activate BR
+loop for each registered input field
+  BR -> IF: decode("predictive")
+  activate IF
+  IF -> IF: build bit_vector from cell.predictive
+  IF -> ENC: decode(bit_vector, candidates?)
+  activate ENC
+  ENC --> IF: decoded value + confidence
+  deactivate ENC
+  IF --> BR: tuple(value, confidence)
+  deactivate IF
+end
+BR --> Developer: dict[input_name, value/confidence]
+deactivate BR
+
+alt direct decoder usage in tests/scripts
+  Developer -> ENC: encode(input)
+  ENC --> Developer: encoded SDR bits
+  Developer -> ENC: decode(encoded, candidates?)
+  ENC --> Developer: value/confidence or decoded dict
+end
+
+note over ENC
+Decoding support is implemented across encoder classes.
+Round-trip decode behavior is validated in decoder test suites.
+end note
+@enduml
