@@ -35,9 +35,9 @@ def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
     records = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
-    assert list(records[0].keys()) == required
-    assert len(records) == 2
-    assert [records[0]["a"], records[0]["b"], records[0]["c"]] == ["1", "2", "3"]
+    assert list(records.keys()) == required
+    assert len(records["a"]) == 2
+    assert [records["a"][0], records["b"][0], records["c"][0]] == ["1", "2", "3"]
 
 
 def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> None:
@@ -56,9 +56,9 @@ def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> N
     records = handler.input_data(str(xlsx_path), required_columns=required)
 
     # Assert
-    assert list(records[0].keys()) == required
-    assert [records[0]["a"], records[1]["a"]] == [10, 20]
-    assert [records[0]["b"], records[1]["b"]] == [30, 40]
+    assert list(records.keys()) == required
+    assert records["a"] == [10, 20]
+    assert records["b"] == [30, 40]
 
 
 def test_load_input_data_excel_xls_is_unsupported(temp_path: Path, handler: InputHandler) -> None:
@@ -84,9 +84,9 @@ def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
     records = handler.input_data(str(json_path), required_columns=required)
 
     # Assert
-    assert list(records[0].keys()) == required
-    assert [records[0]["a"], records[1]["a"]] == [1, 2]
-    assert [records[0]["b"], records[1]["b"]] == [3, 4]
+    assert list(records.keys()) == required
+    assert records["a"] == [1, 2]
+    assert records["b"] == [3, 4]
 
 
 def test_load_input_data_txt_returns_dataframe_of_lines(
@@ -102,9 +102,9 @@ def test_load_input_data_txt_returns_dataframe_of_lines(
     records = handler.input_data(str(txt_path), required_columns=["value"])
 
     # Assert
-    assert list(records[0].keys()) == ["value"]
-    assert len(records) == len(lines)
-    assert [record["value"] for record in records] == lines
+    assert list(records.keys()) == ["value"]
+    assert len(records["value"]) == len(lines)
+    assert records["value"] == lines
 
 
 def test_load_input_data_unsupported_extension_treated_as_scalar(
@@ -119,7 +119,7 @@ def test_load_input_data_unsupported_extension_treated_as_scalar(
     records = handler.input_data(str(bad_path), required_columns=["value"])
 
     # Assert
-    assert records == [{"value": str(bad_path)}]
+    assert records == {"value": [str(bad_path)]}
 
 
 def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHandler) -> None:
@@ -142,7 +142,7 @@ def test_load_input_data_accepts_pathlike(temp_path: Path, handler: InputHandler
     records = handler.input_data(csv_path, required_columns=["a", "b"])
 
     # Assert
-    assert records == [{"a": "1", "b": "2"}]
+    assert records == {"a": ["1"], "b": ["2"]}
 
 
 def test_input_handler_is_singleton() -> None:
@@ -167,8 +167,8 @@ def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandl
     records_two = handler.input_data(str(csv_path), required_columns=required)
 
     # Assert
-    assert isinstance(records_one, list)
-    assert isinstance(records_two, list)
+    assert isinstance(records_one, dict)
+    assert isinstance(records_two, dict)
     assert records_two == records_one
     assert records_two is not records_one
 
@@ -177,4 +177,4 @@ def test_load_input_data_bytearray(handler: InputHandler) -> None:
     """Ensure bytearray inputs become value records that preserve byte order."""
     payload = bytearray([1, 2, 255])
     records = handler.input_data(payload, required_columns=["value"])
-    assert [record["value"] for record in records] == [1, 2, 255]
+    assert records["value"] == [1, 2, 255]

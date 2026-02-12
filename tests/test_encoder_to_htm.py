@@ -8,7 +8,7 @@ class DummyEncoder(BaseEncoder):
     def __init__(self, size: int = 8):
         super().__init__(size=size)
 
-    def attach_input(self, records: list[dict[str, float]]):
+    def attach_input(self, records: dict[str, list[float]]):
         self.input_records = records
 
     def encode(self, input_value: float) -> list[int]:
@@ -48,7 +48,7 @@ def test_encoder_to_htm_receives_sdr_object():
 
     # Act
     # Encode a single value
-    last_value = records[3]["value"]
+    last_value = records["value"][3]
     # sdr = SDR([8, 1])
     e = encoder.encode(last_value)
 
@@ -57,6 +57,6 @@ def test_encoder_to_htm_receives_sdr_object():
 
     # Assert
     # Once HTMinterface is implemented, give it some observable state
-    assert isinstance(records, list)
+    assert isinstance(records, dict)
     assert last_value == 2
-    assert len(records) == 8
+    assert len(records["value"]) == 8

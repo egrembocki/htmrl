@@ -4,6 +4,9 @@ exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
 export UV_NATIVE_TLS := 1
 
+# Ensure Java-based tools (e.g., PlantUML) run without an X11 display
+export JAVA_TOOL_OPTIONS := $(JAVA_TOOL_OPTIONS) -Djava.awt.headless=true
+
 .PHONY: help install format lint puml puml-all clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
 
 help: ## Show this help message

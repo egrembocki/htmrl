@@ -11,8 +11,14 @@ for demonstration and testing purposes, providing insight into how input data is
 
 import os
 from datetime import datetime
+from typing import Any
 
 import matplotlib
+
+# Use a non-interactive backend when DISPLAY is not available.
+if not os.environ.get("DISPLAY"):
+    matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
@@ -93,10 +99,10 @@ def visualize_sdr_all_rows(
             fig.canvas.draw_idle()
 
         def on_key(self, event):
-            if event.key in ("right"):  # next
+            if event.key == "right":  # next
                 self.idx = (self.idx + 1) % self.num_items
                 self.update()
-            elif event.key in ("left"):  # previous
+            elif event.key == "left":  # previous
                 self.idx = (self.idx - 1) % self.num_items
                 self.update()
             elif event.key in ("escape", "up"):
@@ -146,6 +152,20 @@ def build_demo_records() -> list[dict]:
         },
     ]
     return scalar_rows
+
+
+def records_from_columns(columns: dict[Any, list[Any]]) -> list[dict[str, Any]]:
+    """Convert a column-oriented dict into list-of-dict records."""
+
+    if not columns:
+        return []
+
+    keys = list(columns.keys())
+    lengths = {len(values) for values in columns.values()}
+    if len(lengths) != 1:
+        raise ValueError("Column lengths do not match; cannot build records.")
+
+    return [dict(zip(keys, row_values)) for row_values in zip(*(columns[k] for k in keys))]
 
 
 def main():
@@ -281,7 +301,8 @@ def main():
 
     # Test composite SDR building
     demo_sample_records = build_demo_records()
-    sub_set_records = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
+    sub_set_data = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
+    sub_set_records = records_from_columns(sub_set_data)
 
     # change integer values to float in the loaded Excel records to allow RDSE
     for rec in sub_set_records:
@@ -303,7 +324,7 @@ def main():
         print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
         print(f"Composite SDR {idx} Density:", composite.get_dense())
 
-    # For demo_sample_df, show all values being encoded for each row, but skip any datetime/Timestamp in the label
+    # For demo_sample_records, show all values being encoded for each row, but skip any datetime/Timestamp in the label
     def all_row_label(row, max_len=60):
         vals = list(row.values())
         # Only include non-datetime values
