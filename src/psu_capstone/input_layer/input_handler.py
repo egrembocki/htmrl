@@ -31,7 +31,7 @@ class InputHandler:
     _TEXT_EXTENSION: ClassVar[str] = ".txt"
     """File extension for text files."""
 
-    def __new__(cls) -> "InputHandler":
+    def __new__(cls) -> InputHandler:
         """Constructor ::  Singleton pattern implementation."""
 
         if cls.__instance is None:
@@ -55,12 +55,12 @@ class InputHandler:
         )  # no repeat columns allowed in required_columns
         """Set of required columns."""
 
-        # This context is necessary to determine whether to inject a timestamp column when no temporal data is detected.
+        # ?? This context is necessary to determine whether to inject a timestamp column when no temporal data is detected.
         self._required_columns_context: list[str] = []
         """Most-recent required_columns list passed to input_data (used for timestamp behavior)"""
 
     @classmethod
-    def get_instance(cls) -> "InputHandler":
+    def get_instance(cls) -> InputHandler:
         """Static access method to get the singleton instance."""
 
         if cls.__instance is None:
@@ -69,6 +69,14 @@ class InputHandler:
 
     @property
     def data(self) -> Any:
+
+        # TODO: consider caching the converted data to avoid repeated conversions on multiple accesses
+        # TODO: should we simimpy return a list of dict: [{col1: val1, col2: val2}, ...] for downstream consumption?
+        # TODO: every value in a key should be a primitive type (int, float, str, bool) or a datetime string in ISO-8601 format
+
+        """
+        Get the processed data in its most suitable form for downstream consumption.
+        """
         if self._data is None:
             logger.warning("Data has not been set yet; returning None.")
         elif isinstance(self._data, pd.DataFrame):
@@ -114,6 +122,8 @@ class InputHandler:
 
     @data.setter
     def data(self, data: Any) -> None:
+
+        # TODO: validate data before setting
         self._data = data
 
     def input_data(self, input_source: Any, columns: list[str] | None = None) -> Any:
@@ -138,36 +148,20 @@ class InputHandler:
         if isinstance(input_source, os.PathLike):
             input_source = os.fspath(input_source)
 
-            file = self.check_file_path(input_source)
+            self.check_file_path(input_source)
 
         elif isinstance(input_source, str):
 
-            file = self.check_file_path(input_source)
+            self.check_file_path(input_source)
 
-            if file:
-
-                # Load data from file :: raw_data -> normalized_frame
-                raw_data = self._load_from_file(input_source)
-                normalized_frame = self._raw_to_sequence(self._to_dataframe(raw_data))
-
-                self._data = normalized_frame
-
-                if columns:
-                    self._apply_required_columns(columns)
-                # self._validate_data(columns)
-                return self._data
-
-            # if file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION:
-            # raise FileNotFoundError(f"No file found at {input_source}")
-
-        normalized_frame = self._raw_to_sequence(input_source)
-        self._data = normalized_frame
+        # normalized_frame = self._raw_to_sequence(input_source)
+        # self._data = normalized_frame
         if columns:
             self._apply_required_columns(columns)
-        self._validate_data(columns)
+        # self._validate_data(columns)
         return self._data
 
-    def check_file_path(self, input_string: str) -> bool:
+    def check_file_path(self, input_string: str) -> Any:
         """Check if a string is a valid file path and has a supported extension.
 
         Args:
@@ -176,9 +170,32 @@ class InputHandler:
             bool: True if the string is a valid file path with a supported extension, False otherwise.
         """
         file_extension = os.path.splitext(input_string)[1].lower()
-        if os.path.exists(input_string) and (
+
+        is_valid = os.path.exists(input_string)
+
+        if is_valid and (
             file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION
         ):
+
+            # Load data from file :: raw_data -> normalized_frame
+            raw_data = self._load_from_file(input_string)
+            if raw_data is None:
+                raise ValueError(f"Failed to load data from file: {input_string}")
+            elif isinstance(raw_data, pd.DataFrame):
+                logger.info(
+                    f"Loaded DataFrame from file with shape {raw_data.shape} and columns {raw_data.columns.tolist()}"
+                )
+            data = self._raw_to_sequence(self._to_dataframe(raw_data))
+
+            self._data = data
+
+            # if columns:
+            #   self._apply_required_columns(columns)
+            # self._validate_data(columns)
+            return self._data
+
+            # if file_extension in self._DATAFRAME_READERS or file_extension == self._TEXT_EXTENSION:
+            # raise FileNotFoundError(f"No file found at {input_source}")
             return True
         return False
 
@@ -205,7 +222,7 @@ class InputHandler:
             else data
         )
 
-    def _load_from_file(self, filepath: str) -> Any:
+    def _load_from_file(self, filepath: str) -> pd.DataFrame | None:
         """Read supported files via pandas readers or wrap text files in a DataFrame."""
 
         try:
@@ -216,14 +233,17 @@ class InputHandler:
 
             if file_extension in self._DATAFRAME_READERS:
                 return self._DATAFRAME_READERS[file_extension](filepath)
-            if file_extension == self._TEXT_EXTENSION:
+            elif file_extension == self._TEXT_EXTENSION:
                 with open(filepath, "r", encoding="utf-8") as file:
                     return pd.DataFrame({"value": file.readlines()})
-            raise ValueError(f"Unsupported file type: {file_extension}")
+            else:
+                # TODO: call antoher helper to process the input ??
+                raise ValueError(f"Unsupported file type: {file_extension}")
 
         except Exception as e:
             logger.error(f"Error loading file {filepath}: {e}")
-            raise
+            # TODO: handle Exception more gracefully
+            return None
 
     def _to_dataframe(self, data: Any) -> pd.DataFrame:
         """Coerce supported containers to a DataFrame and back-fill missing numeric values."""
