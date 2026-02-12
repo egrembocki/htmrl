@@ -494,12 +494,14 @@ class InputHandler:
             Tuple of (error_message, is_valid), where error_message is a string and is_valid is a bool.
         """
 
-        logger.info("validating data...")
+        logger.info("Validating data...")
 
+        # Determine columns to check against: use self._columns if set, otherwise infer from first record keys.
         columns = (
             self._columns if self._columns else list(self._data[0].keys()) if self._data else []
         )
 
+        # Identify columns where all values are None, excluding any that were appended as required placeholders.
         nan_cols = [
             col
             for col in columns
@@ -507,6 +509,7 @@ class InputHandler:
             and col not in self._appended_required_columns
         ]
 
+        # Identify any required columns that are missing from the dataset.
         missing = [col for col in required_columns or [] if col not in columns]
 
         # Check empty
@@ -550,7 +553,7 @@ class InputHandler:
             return (f"Missing required columns: {missing}", False)
 
         else:
-            logger.info("data has been validated")
+            logger.info("Data has been validated")
 
             return ("Data is valid.", True)
 
@@ -584,9 +587,9 @@ class InputHandler:
     def _validate_sequence(self, data: Any) -> bool:
         """Placeholder sequence check that only ensures the payload is iterable."""
 
-        # New Algorithm to peek at data set and find a periodic sequence in it
+        # TODO: New Algorithm to peek at data set and find a periodic sequence in it
 
-        logger.info("validating sequence...")
+        logger.info("Validating sequence...")
 
         # Treat common containers as acceptable "sequence-like" inputs for our pipeline.
         # Record lists and numpy arrays are valid sequences of rows.

@@ -2,25 +2,26 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-01 Input Data :InputHandler
+title US-01 Input Data:InputHandler
 
 actor Developer
 participant "<u>ih:InputHandler</u>" as IH
-participant "Filesystem:OS" as FS
-participant "File Parser:OS" as Parser
+participant "Filesystem\n<os>" as FS
+participant "File Parser\n<os>" as Parser
 
-Developer -> IH: input_data(input_source, required_columns?)
 activate IH
+Developer -> IH: input_data(input_source, required_columns)
 IH -> IH: clear appended required columns
 IH -> IH: cache required_columns context
-
 alt input_source is os.PathLike
-  IH --> Developer: TypeError
-  deactivate IH
+  IH --> Developer: raise(TypeError)
+deactivate IH
 else input_source is str path
-  IH -> FS: exists(path)?
+  IH -> FS: exists(path)
+  activate FS
   FS --> IH: true/false
-
+  deactivate FS
+activate IH 
   alt file exists
     IH -> Parser: _load_from_file(path)
     activate Parser
@@ -28,11 +29,13 @@ else input_source is str path
     deactivate Parser
     IH -> IH: _raw_to_sequence(raw_data)
   else extension indicates known file type
-    IH --> Developer: FileNotFoundError
-    deactivate IH
+    IH --> Developer: raise(FileNotFoundError)
+    
   else not a file path
     IH -> IH: _raw_to_sequence(input_source as scalar)
   end
+deactivate IH
+  
 else input_source is bytes/bytearray
   alt CSV-like separators detected
     IH -> IH: decode bytes + csv.DictReader
@@ -43,12 +46,11 @@ else in-memory payload
   IH -> IH: _raw_to_sequence(input_source)
 end
 
+activate IH
 opt required_columns provided
   IH -> IH: _apply_required_columns(required_columns)
 end
-
 IH -> IH: _validate_data(required_columns)
 IH --> Developer: normalized records (list[dict])
-
 deactivate IH
 @enduml

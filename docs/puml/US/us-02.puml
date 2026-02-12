@@ -2,16 +2,16 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-02 Validate Data (Current InputHandler._validate_data)
+title US-02 Validate Data:InputHandler
 
 actor Developer
-participant "InputHandler" as IH
-participant "Logger" as LOG
+participant "<u>ih:InputHandler</u>" as IH
+participant "Logger\n<static>" as LOG
 
-Developer -> IH: _validate_data(required_columns?)
+Developer -> IH: _validate_data(required_columns)
 activate IH
 IH -> IH: resolve columns from self._columns or first record
-IH -> IH: detect all-None columns (excluding appended placeholders)
+IH -> IH: detect all-None columns 
 IH -> IH: find missing required columns
 
 alt self._data is empty
@@ -33,7 +33,7 @@ else required columns are missing
   IH -> LOG: info("Missing required columns")
   IH --> Developer: ("Missing required columns: ...", False)
 else valid dataset
-  IH -> LOG: info("data has been validated")
+  IH -> LOG: info("Data has been validated")
   IH --> Developer: ("Data is valid.", True)
 end
 
