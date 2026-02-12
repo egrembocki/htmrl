@@ -13,12 +13,14 @@ participant "ColumnField" as CF
 
 Developer -> IH: input_data(input_source, required_columns?)
 activate IH
-IH -> IH: _raw_to_sequence(...)
-opt required_columns provided
-  IH -> IH: _apply_required_columns(required_columns)
+IH -> IH: _is_file_path(input_source)
+alt supported file path
+  IH -> IH: _load_file_to_dataframe(path)
+else in-memory payload
+  IH -> IH: _coerce_non_file_to_dataframe(input_source)
 end
-IH -> IH: _validate_data(required_columns)
-IH --> Developer: records: list[dict[str, Any]]
+IH -> IH: _process_dataframe(df, required_columns)
+IH --> Developer: records: list[dict[Any, Any]]
 deactivate IH
 
 alt record/categorical pipeline
@@ -30,9 +32,11 @@ alt record/categorical pipeline
   end
   EH --> Developer: row_sdrs: list[SDR]
   deactivate EH
-else frequency (FTT/FFT) pipeline
-  Developer -> IH: to_encoder_sequence(input_source, column?)
+else frequency pipeline
+  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
   activate IH
+  IH -> IH: input_data(...)
+  IH -> IH: infer/sanitize sequence column
   IH --> Developer: sequence list[Any]
   deactivate IH
 

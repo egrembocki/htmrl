@@ -12,10 +12,14 @@ participant "Agent" as AG
 Developer -> EC: pass encoder parameters\n(e.g., ScalarEncoderParameters, RDSEParameters)
 EC --> Developer: configured encoder instances
 
-Developer -> IH: input_data(..., required_columns)
+Developer -> IH: input_data(input_source, required_columns?)
 activate IH
-IH -> IH: _apply_required_columns(required_columns)
+IH -> IH: _process_dataframe(df, required_columns)
+opt required_columns provided
+  IH -> IH: add missing columns with None + reorder
+end
 IH --> Developer: normalized records
+
 deactivate IH
 
 Developer -> AG: create_pooler(...)/create_memory(...)

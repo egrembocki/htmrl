@@ -2,55 +2,44 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-01 Input Data:InputHandler
+title US-01 Input Data: InputHandler.input_data()
 
 actor Developer
 participant "<u>ih:InputHandler</u>" as IH
-participant "Filesystem\n<os>" as FS
-participant "File Parser\n<os>" as Parser
+participant "Filesystem\n<pathlib.Path>" as FS
+participant "Pandas IO" as PD
 
+Developer -> IH: input_data(input_source, required_columns?)
 activate IH
-Developer -> IH: input_data(input_source, required_columns)
-IH -> IH: clear appended required columns
-IH -> IH: cache required_columns context
-alt input_source is os.PathLike
-  IH --> Developer: raise(TypeError)
-deactivate IH
-else input_source is str path
-  IH -> FS: exists(path)
+IH -> IH: _is_file_path(input_source)
+
+alt input_source is supported file path
+  IH -> FS: exists() and is_file()
   activate FS
   FS --> IH: true/false
   deactivate FS
-activate IH 
+
   alt file exists
-    IH -> Parser: _load_from_file(path)
-    activate Parser
-    Parser --> IH: raw_data
-    deactivate Parser
-    IH -> IH: _raw_to_sequence(raw_data)
-  else extension indicates known file type
-    IH --> Developer: raise(FileNotFoundError)
-    
-  else not a file path
-    IH -> IH: _raw_to_sequence(input_source as scalar)
-  end
-deactivate IH
-  
-else input_source is bytes/bytearray
-  alt CSV-like separators detected
-    IH -> IH: decode bytes + csv.DictReader
-  else raw bytes payload
-    IH -> IH: convert to [{"value": int(byte)}]
+    IH -> PD: read_csv/read_json/read_excel/read_parquet/read_text
+    activate PD
+    PD --> IH: df
+    deactivate PD
+  else file does not exist
+    IH --> Developer: raise FileNotFoundError
+    deactivate IH
   end
 else in-memory payload
-  IH -> IH: _raw_to_sequence(input_source)
+  IH -> IH: _coerce_non_file_to_dataframe(input_source)
+  IH --> IH: df
 end
 
-activate IH
-opt required_columns provided
-  IH -> IH: _apply_required_columns(required_columns)
-end
-IH -> IH: _validate_data(required_columns)
-IH --> Developer: normalized records (list[dict])
+IH -> IH: _process_dataframe(df, required_columns)
+IH -> IH: _normalize_datetime_columns(df)
+IH -> IH: _normalize_column_types(df)
+IH -> IH: _fill_missing_values(df)
+IH -> IH: _detect_repeating_values(df, threshold=3)
+IH -> IH: self._columns = list(df.columns)
+IH -> IH: self._data = df.to_dict(orient="records")
+IH --> Developer: list[dict[Any, Any]]
 deactivate IH
 @enduml

@@ -36,8 +36,8 @@ group Record-based composite encoding
   deactivate EH
 end
 
-group FFT/FTT sequence encoding path
-  Developer -> IH: to_encoder_sequence(input_source, column?)
+group FFT sequence encoding path
+  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
   activate IH
   IH --> Developer: sequence list[Any]
   deactivate IH
