@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -6,16 +5,14 @@ from psu_capstone.input_layer.input_handler import InputHandler
 
 
 class DummyEncoder(BaseEncoder):
+    def __init__(self, size: int = 8):
+        super().__init__(size=size)
 
-    def __init__(self, dimensions=None):
-        if dimensions is None:
-            dimensions = [8, 1]  # arbitrary SDR size for the test
+    def attach_input(self, records: list[dict[str, float]]):
+        self.input_records = records
 
-    def attach_input(self, df: pd.DataFrame):
-        self.input_df = df
-
-    def encode(self, input_value: float) -> None:
-        pass
+    def encode(self, input_value: float) -> list[int]:
+        return [0] * self.size
 
 
 # Note: This is expected to fail because we do not have an HTM interface yet
@@ -41,18 +38,17 @@ def test_encoder_to_htm_receives_sdr_object():
     # Arrange
     fib_sequence = [0, 1, 1, 2, 3, 5, 8, 13]
 
-    handler = InputHandler()
-    df = handler._to_dataframe(fib_sequence)
-
     encoder = DummyEncoder()
-    encoder.attach_input(df)
+    handler = InputHandler()
+    records = handler.input_data(fib_sequence, required_columns=["value"])
+    encoder.attach_input(records)
 
     # HTM interface (not implemented yet)
     htm = HTMinterface([8, 1])
 
     # Act
     # Encode a single value
-    last_value = df.iloc[3].values[0]
+    last_value = records[3]["value"]
     # sdr = SDR([8, 1])
     e = encoder.encode(last_value)
 
@@ -61,6 +57,6 @@ def test_encoder_to_htm_receives_sdr_object():
 
     # Assert
     # Once HTMinterface is implemented, give it some observable state
-    assert isinstance(df, pd.DataFrame)
+    assert isinstance(records, list)
     assert last_value == 2
-    assert df.shape == (8, 1)
+    assert len(records) == 8
