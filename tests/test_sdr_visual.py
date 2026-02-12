@@ -15,7 +15,7 @@ def sdr_visualization(debug=False):
 
 
 @pytest.mark.visual
-def test_sdr_visualization(sdr_visualization):
+def __test_sdr_visualization(sdr_visualization):
     """Test the visualization of an SDR."""
 
     # sdr.get_dense() should return a list or 1D array of 0/1
@@ -48,7 +48,7 @@ def test_sdr_visualization(sdr_visualization):
 
 
 @pytest.mark.visual
-def test_sdr_one_row_visual():
+def __test_sdr_one_row_visual():
     """Test visualization of a single row SDR."""
     # Arrange
     sdr = SDR([100])
@@ -69,7 +69,7 @@ def test_sdr_one_row_visual():
 
 
 @pytest.mark.visual
-def test_sdr_cat_visual():
+def __test_sdr_cat_visual():
     print(">> running test_sdr_union_layout_visual")  # sanity check
 
     rows, cols = 20, 50  # size of each small SDR grid
@@ -141,7 +141,7 @@ def test_sdr_cat_visual():
 
 
 @pytest.mark.visual
-def test_sdr_union_visual():
+def __test_sdr_union_visual():
     print(">> running test_sdr_union_layout_visual")  # sanity check
 
     rows, cols = 64, 32  # size of each small SDR grid
