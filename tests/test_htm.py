@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -7,6 +9,8 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+
+"""++++++++++Input Field Testing++++++++++"""
 
 
 def test_input_field_correct_encoder_created():
@@ -51,6 +55,22 @@ def test_input_field_with_no_parameters():
     assert isinstance(in_fi.encoder, RandomDistributedScalarEncoder)
 
 
+# originally failing
+def test_input_field_with_fake_parameters():
+    """This test enters a parameters that do not exist."""
+    parameters = 1
+    in_fi = InputField(encoder_params=parameters)
+    assert in_fi.encoder is not None
+    in_fi.encode(1)
+
+
+# originally failing
+def test_input_field_with_negative_size():
+    in_fi = InputField(size=-1)
+    assert in_fi.encoder.size != -1
+    in_fi.encode(1)
+
+
 def test_input_field_check_cells_are_active_after_encode():
     """Test that we have active cells after encoding."""
     in_fi = InputField()
@@ -82,3 +102,51 @@ def test_input_field_advance_cell_states():
     assert prev_winner == winner_cells
     prev_predictive = [i for i, cell in enumerate(cells) if cell.prev_predictive]
     assert prev_predictive == predictive_cells
+
+
+def test_input_field_can_encode_and_decode():
+    """Check RDSE encoding and decoding."""
+    parameters = RDSEParameters()
+    in_fi = InputField(parameters)
+    in_fi.encode(10)
+    a = in_fi.cells
+    b = in_fi.decode(encoded=a)[0]
+    assert b == 10
+
+    """Check Scalar encoding and decoding."""
+    parameters = ScalarEncoderParameters()
+    in_fi_scalar = InputField(parameters)
+    in_fi_scalar.encode(15)
+    a = in_fi_scalar.cells
+    b = in_fi_scalar.decode(encoded=a)[0]
+    assert b == 15
+
+    """Check Date encoding and decoding."""
+    parameters = DateEncoderParameters()
+    in_fi_date = InputField(parameters)
+    in_fi_date.encode(datetime(2025, 1, 1, 0, 0))
+    a = in_fi_date.cells
+    b = in_fi_date.decode(encoded=a)
+    # access the value and not confidence
+    assert b["season"][0] == 0.0
+    assert b["dayofweek"][0] == 2.0
+    assert b["weekend"][0] == 0.0
+    assert b["customdays"][0] == 1.0
+    assert b["holiday"][0] == 0.0
+    assert b["timeofday"][0] == 0.0
+
+    """Check Category encoding and decoding."""
+    categories = ["ES", "GB", "US"]
+    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=True)
+    in_fi_category = InputField(parameters)
+    in_fi_category.encode("US")
+    a = in_fi_category.cells
+    b = in_fi_category.decode(encoded=a)
+    assert b[0] == "US"
+
+    # TODO add fourier encoding and decoding
+
+    # TODO add geospatial encoding and decoding
+
+
+"""++++++++++Input Field Testing++++++++++"""

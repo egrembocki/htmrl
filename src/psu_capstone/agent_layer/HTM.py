@@ -4,6 +4,7 @@ from itertools import chain
 from statistics import fmean, pstdev
 from typing import Any, Iterable
 
+from psu_capstone.encoder_layer.base_encoder import ParentDataclass
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 # Constants
@@ -755,9 +756,14 @@ class InputField(Field):
     """A Field specialized for input bits."""
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        params = copy.deepcopy(encoder_params) if encoder_params is not None else RDSEParameters()
-        if size is not None and hasattr(params, "size"):
+        if encoder_params is not None and isinstance(encoder_params, ParentDataclass):
+            params = copy.deepcopy(encoder_params)
+        else:
+            params = RDSEParameters()
+
+        if size is not None and hasattr(params, "size") and size > 0:
             params.size = size
+
         self.encoder = params.encoder_class(params)  # type: ignore
         cells = {Cell() for _ in range(self.encoder.size)}
         Field.__init__(self, cells)
@@ -776,7 +782,7 @@ class InputField(Field):
         state: str = "active",
         encoded: Field = None,  # type: ignore
         candidates: Iterable[float] | None = None,
-    ) -> tuple[float | None]:
+    ) -> tuple[float | None] | dict[str, tuple[float | None]]:
         """Convert active cells back to input value using RDSE decoding."""
         if state not in ("active", "predictive"):
             raise ValueError(f"Invalid state '{state}'; must be 'active' or 'predictive'")

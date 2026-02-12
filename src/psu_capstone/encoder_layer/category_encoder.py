@@ -2,9 +2,9 @@
 
 import copy
 from dataclasses import dataclass, field
-from typing import cast, override
+from typing import Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
@@ -33,9 +33,9 @@ class CategoryEncoder(BaseEncoder[str]):
         self._category_list = self._parameters.category_list
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
-        self._size = self._num_categories * self._w
+        self.size = self._num_categories * self._w
 
-        super().__init__(dimensions, self._size)
+        super().__init__(dimensions, self.size)
         """
         If we want the RDSE to be used this will set our encoder object equal to an RDSE with the proper paremeters.
         """
@@ -89,7 +89,10 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    def decode(self, input_sdr: list[int]) -> tuple[str | None, float]:
+    # TODO add candidates to this method
+    def decode(
+        self, input_sdr: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[str | None, float]:
         """
         This will decode an SDR back into its category. We use the _category_list
         again to turn the index back into a string.
@@ -129,7 +132,7 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters:
+class CategoryParameters(ParentDataclass):
 
     w: int = 3
     """
