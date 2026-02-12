@@ -41,7 +41,7 @@ class InputHandler:
 
     def __init__(self, data: Any | None = None) -> None:
         """Initialize the InputHandler with optional in-memory data, and set up internal state for data management and validation."""
-        self._data: list[dict[Any, Any]] = []
+        self._data: dict[Any, list[Any]] = {}
         self._columns: list[str] = []
         self._repeating_columns: list[str] = []
         self._is_repeating: bool = False
@@ -57,20 +57,20 @@ class InputHandler:
         return cls.__instance
 
     @property
-    def data(self) -> list[dict[Any, Any]]:
+    def data(self) -> dict[Any, list[Any]]:
         return self._data
 
     @data.setter
-    def data(self, data: list[dict[Any, Any]]) -> None:
+    def data(self, data: dict[Any, list[Any]]) -> None:
 
-        if not isinstance(data, list) or not all(isinstance(record, dict) for record in data):
-            raise ValueError("Data must be a list of dictionaries representing records.")
+        if not isinstance(data, dict) or not all(isinstance(v, list) for v in data.values()):
+            raise ValueError("Data must be a dictionary of lists representing columns.")
 
         self._data = data
 
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
-    ) -> list[dict[Any, Any]]:
+    ) -> dict[Any, list[Any]]:
         """Ingest data from files or in-memory payloads and return normalized records.
 
         Args:
@@ -78,15 +78,15 @@ class InputHandler:
             required_columns: Optional list of column names that must be present in the output records.
 
         Returns:
-            A list of dictionaries representing the normalized records extracted from the input data.
+            A dictionary of lists representing the normalized records extracted from the input data.
 
             Example:
 
-            data = [
-                    {"name": "Alice", "age": 30, "city": "New York"},
-                    {"name": "Bob", "age": 25, "city": "Chicago"},
-                    {"name": "Charlie", "age": 35, "city": "San Francisco"}
-                   ]
+            data = {
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": [30, 25, 35],
+                "city": ["New York", "Chicago", "San Francisco"]
+            }
 
         Raises:
             ValueError: If the input data is invalid, missing required columns, or contains unsupported types.
@@ -95,7 +95,7 @@ class InputHandler:
 
         """
 
-        data = [] if input_source is None else self._data
+        data = {} if input_source is None else self._data
         required = required_columns if required_columns else None
 
         # check if input_source is a file path before attempting to coerce it to a DataFrame
@@ -113,6 +113,8 @@ class InputHandler:
 
         data = df.to_dict(orient="records")
 
+        data = self.to_encoder_sequence(data, required_columns=required)
+
         self._data = data
 
         return self._data
@@ -122,8 +124,17 @@ class InputHandler:
         input_source: Any,
         required_columns: list[str] | None = None,
         column: str | None = None,
-    ) -> list[Any]:
-        records = self.input_data(input_source, required_columns=required_columns)
+    ) -> dict[Any, list[Any]]:
+        # check if input_source is a file path before attempting to coerce it to a DataFrame
+        if self._is_file_path(input_source):
+            df = self._load_file_to_dataframe(input_source)
+        else:
+            df = self._coerce_non_file_to_dataframe(input_source)
+
+        # Process the DataFrame to handle required columns, normalize types, and detect temporal patterns
+        df = self._process_dataframe(df, required_columns)
+
+        records = df.to_dict(orient="records")
         if not records:
             raise ValueError("No records available to build encoder sequence.")
 
@@ -132,13 +143,13 @@ class InputHandler:
                 raise ValueError(
                     "Column must be specified when multiple columns are present in the input."
                 )
-            column = next(iter(records[0].keys()))
+            column = str(next(iter(records[0].keys())))
 
         sequence = [row.get(column) for row in records]
         filtered = [value for value in sequence if value is not None]
         if not filtered:
             raise ValueError("Encoder sequence contains no valid values after filtering.")
-        return filtered
+        return {column: filtered}
 
     def to_numpy(self, data: list[dict[Any, Any]]) -> np.ndarray:
         if not data:
