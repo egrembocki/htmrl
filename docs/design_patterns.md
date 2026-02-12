@@ -41,11 +41,11 @@ This repository contains clear examples (and a few "in-progress" uses) of the re
 
 ## Quick Diagram (PlantUML)
 
-`docs/puml/design_patterns.puml`
+`docs/puml/class/design_patterns.puml`
 
 ```plantuml
 @startuml
-!include docs/puml/design_patterns.puml
+!include puml/class/design_patterns.puml
 @enduml
 ```
 
