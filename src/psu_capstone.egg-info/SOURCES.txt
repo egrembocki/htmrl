@@ -4,7 +4,6 @@ src/batch_encoder_handler_driver.py
 src/code_level_test.py
 src/demo_driver.py
 src/grapher.py
-src/hashing.py
 src/manual_test.py
 src/utils.py
 src/psu_capstone/__init__.py
@@ -46,10 +45,14 @@ src/psu_capstone/sdr_layer/sdr.py
 src/psu_capstone/sdr_layer/sdr_interface.py
 tests/test_agent.py
 tests/test_base_encoder.py
+tests/test_decoder_category.py
+tests/test_decoder_date.py
+tests/test_decoder_rdse.py
 tests/test_encode_batch_sdrs.py
 tests/test_encoder_batch_handler.py
 tests/test_encoder_category.py
 tests/test_encoder_date.py
+tests/test_encoder_date_rdse.py
 tests/test_encoder_fourier.py
 tests/test_encoder_handler_suite.py
 tests/test_encoder_rdse.py

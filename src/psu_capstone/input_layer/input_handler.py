@@ -142,9 +142,8 @@ class InputHandler:
 
         """
 
-        self._appended_required_columns.clear()
-
-        # Check if input is a file path and convert to string if it's a PathLike object. This allows the handler to accept both string paths and Path objects from pathlib.
+        # Check if input is a file path and convert to string if it's a PathLike object.
+        # This allows the handler to accept both string paths and Path objects from pathlib.
         if isinstance(input_source, os.PathLike):
             input_source = os.fspath(input_source)
 
