@@ -31,8 +31,9 @@ activate IFTS
 IFTS --> B: encoder ready
 deactivate IFTS
 
-note over EC,B
 deactivate B
+
+note over EC,B
 Brain is the runtime entry point for encoder parameters.
 Parameter tuning is also entered manually via constructor args dataclass.
 end note
