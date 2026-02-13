@@ -13,16 +13,17 @@ activate IH
 
 alt df.empty
   IH -> IH: self._repeating_columns = []
-  IH --> Developer: df (empty)
+  IH --> Developer: empty df
 else dataframe has rows
-  alt duplicate column names detected
+  alt duplicate column names exist
     IH -> LOG: info("Duplicate columns detected")
-    IH -> IH: drop duplicated columns
+    IH -> IH: df = df.loc[:, ~df.columns.duplicated()]
+    IH -> LOG: info("Removed duplicate columns")
   end
 
   opt required_columns provided
     IH -> IH: add missing required columns with None
-    IH -> IH: reorder/select required columns only
+    IH -> IH: df = df[required_columns]
     IH -> LOG: info("Added missing required columns")
   end
 
@@ -30,7 +31,7 @@ else dataframe has rows
   IH -> IH: _normalize_column_types(df)
   IH -> IH: _fill_missing_values(df)
   IH -> IH: _detect_repeating_values(df, threshold=3)
-  IH -> IH: set self._isRepeating and self._repeating_columns
+  IH -> IH: set self._isRepeating + self._repeating_columns
   IH --> Developer: processed df
 end
 
