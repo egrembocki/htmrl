@@ -2,66 +2,32 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-05 Train Model (Brain/InputField/ColumnField learning loop)
+title US-05 Train Model (Boundary: orchestrates training, delegates to Brain)
 
-actor Developer
+actor Developer as D
+participant "TrainModel\n(script/service)" as TM
 participant "Brain" as B
-participant "InputField\n(timestamp)" as IFTS
-participant "InputField\n(kw_energy_consumption)" as IFKWH
-participant "ColumnField" as CF
-participant "HTM Engine\n(inside ColumnField.compute)" as H
 
-== Build brain runtime (manual_test.py) ==
-TrainModel -> B: build_brain(field_sizes)
-activate B
-B -> IFTS: create InputField(DateEncoder)
-B -> IFKWH: create InputField(RDSE)
-B -> CF: create ColumnField(input_fields)
-CF -> H: initialize columns/cells/segments
-H --> CF: ready
-B --> TrainModel: brain instance
+D -> TM: start_training(dataset, epochs)
+activate TM
 
-deactivate B
-
-== Training loop (learn=True) ==
-loop each normalized row
-  TrainModel -> B: step(row, learn=True)
+loop each training row
+  TM -> B: step(row, learn=True)
   activate B
+  note right of B
+    Brain owns encoding + HTM calls.
+    TrainModel does not call HTM directly.
+  end note
 
-  group Brain.encode_only(inputs)
-    B -> IFKWH: encode(kw_energy_consumption)
-    activate IFKWH
-    IFKWH -> IFKWH: advance_states()
-    IFKWH -> IFKWH: encoder.encode(value)
-    IFKWH --> B: encoded bits + active cells
-    deactivate IFKWH
-
-    B -> IFTS: encode(timestamp)
-    activate IFTS
-    IFTS -> IFTS: advance_states()
-    IFTS -> IFTS: encoder.encode(value)
-    IFTS --> B: encoded bits + active cells
-    deactivate IFTS
-  end
-
-  group Brain.compute_only(learn=True)
-    B -> CF: compute(learn=True)
-    activate CF
-    CF -> H: advance_states()
-    H -> H: compute_overlap() + activate_columns()
-    H -> H: activate_cells() + depolarize_cells()
-
-    loop learning updates when learn=True
-      H -> H: learn_columns()
-      H -> H: learn()\n(grow/adapt/weaken segments)
-    end
-
-    H -> H: set_prediction() + update duty cycles
-    CF --> B: column/cell states updated
-    deactivate CF
-  end
-
-  B --> TrainModel: prediction()
+  B --> TM: {
+    prediction,
+    confidence,
+    debug_stats?
+  }
   deactivate B
 end
+
+TM --> D: training summary / metrics
+
+deactivate TM
 @enduml

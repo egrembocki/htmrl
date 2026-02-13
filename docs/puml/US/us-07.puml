@@ -2,32 +2,48 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-07 Use HTM Pooler (Current Brain.step Flow)
+title US-07 Use HTM Engine (Boundary: HTM compute/learn contract)
 
-actor TrainModel
-participant "Brain" as BR
-participant "InputField" as IF
+actor "Brain" as B
 participant "ColumnField" as CF
-participant "OutputField" as OF
+participant "HTM Engine" as H
 
-TrainModel -> BR: step(inputs, learn=True)
-activate BR
-
-BR -> BR: encode_only(inputs)
-loop for each input field
-  BR -> IF: encode(value)
+group Included by higher-level user stories
+  ref over B,H
+    <<included by>> US-05 Train Model
+    <<included by>> US-06 Train Brain
+  end ref
 end
 
-BR -> BR: compute_only(learn=True)
-loop for each column field
-  BR -> CF: compute(learn=True)
+B -> CF: compute(encoded SDRs, learn=True)
+activate CF
+CF -> H: compute(learn=True)
+activate H
+
+== Calls inside HTM engine ==
+H -> H: advance_states()
+H -> H: compute_overlap(encoded SDRs)
+H -> H: activate_columns()
+H -> H: activate_cells()
+H -> H: depolarize_cells()
+
+alt learn=True
+  H -> H: learn_columns()
+  H -> H: learn_segments()
+  H -> H: update_duty_cycles()
 end
 
-loop for each output field
-  BR -> OF: decode()
-  OF --> BR: decoded value
-end
+H -> H: set_prediction()
 
-BR --> TrainModel: dict[name, decoded_value]
-deactivate BR
+H --> CF: {
+  active_columns,
+  active_cells,
+  predictive_cells,
+  anomaly_score,
+  confidence_signal
+}
+deactivate H
+CF --> B: HTM result object
+
+deactivate CF
 @enduml
