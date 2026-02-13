@@ -9,7 +9,7 @@ participant "<u>ih:InputHandler</u>" as IH
 participant "Filesystem\n<pathlib.Path>" as FS
 participant "Pandas IO" as PD
 
-Developer -> IH: input_data(input_source, required_columns?)
+Developer -> IH: input_data(input_source, required_columns)
 activate IH
 IH -> IH: _is_file_path(input_source)
 
