@@ -13,8 +13,10 @@ Developer -> IH: input_data(input_source, required_columns?)
 activate IH
 IH -> IH: _is_file_path(input_source)
 
-alt input_source is supported file path
-  IH -> FS: exists() and is_file()
+alt supported file path input
+  IH -> IH: _load_file_to_dataframe(path)
+  activate IH
+  IH -> FS: exists() + is_file()
   activate FS
   FS --> IH: true/false
   deactivate FS
@@ -24,10 +26,11 @@ alt input_source is supported file path
     activate PD
     PD --> IH: df
     deactivate PD
-  else file does not exist
+  else file missing
     IH --> Developer: raise FileNotFoundError
     deactivate IH
   end
+  deactivate IH
 else in-memory payload
   IH -> IH: _coerce_non_file_to_dataframe(input_source)
   IH --> IH: df
@@ -39,7 +42,7 @@ IH -> IH: _normalize_column_types(df)
 IH -> IH: _fill_missing_values(df)
 IH -> IH: _detect_repeating_values(df, threshold=3)
 IH -> IH: self._columns = list(df.columns)
-IH -> IH: self._data = df.to_dict(orient="records")
-IH --> Developer: list[dict[Any, Any]]
+IH -> IH: self._data = df.to_dict(orient="list")
+IH --> Developer: dict[Any, list[Any]]
 deactivate IH
 @enduml

@@ -18,7 +18,7 @@ IH -> IH: _process_dataframe(df, required_columns)
 opt required_columns provided
   IH -> IH: add missing columns with None + reorder
 end
-IH --> Developer: normalized records
+IH --> Developer: normalized dict[Any, list[Any]]
 
 deactivate IH
 
