@@ -79,6 +79,22 @@ def build_brain(field_sizes: dict[str, int]) -> Brain:
     )
 
 
+def columnar_to_records(columnar: dict[str, list[object]]) -> list[dict[str, object]]:
+    """Convert column-oriented data to a row-oriented record list."""
+    if not columnar:
+        return []
+
+    lengths = {len(values) for values in columnar.values()}
+    if len(lengths) > 1:
+        raise ValueError("Column lengths are inconsistent; cannot form records.")
+
+    record_count = lengths.pop() if lengths else 0
+    records: list[dict[str, object]] = []
+    for idx in range(record_count):
+        records.append({column: values[idx] for column, values in columnar.items()})
+    return records
+
+
 def normalize_for_brain(records: list[dict[str, object]]) -> list[dict[str, float]]:
     """Convert records into numeric values consumable by RDSE input fields."""
     sensor_ids = sorted({record["sensor_id"] for record in records})
@@ -117,7 +133,8 @@ def run_demo() -> None:
 
     input_handler = InputHandler()
     raw_payload = build_demo_payload()
-    normalized_records = input_handler.input_data(raw_payload)
+    normalized_columns = input_handler.input_data(raw_payload)
+    normalized_records = columnar_to_records(normalized_columns)
 
     print("\nInput Layer Output (normalized records):")
     print(f"Loaded {len(normalized_records)} rows from the input layer.")
