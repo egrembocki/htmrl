@@ -7,6 +7,7 @@ into a single runtime demo suitable for live presentations.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, InputField
@@ -14,116 +15,106 @@ from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 
+DEMO_DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "hot_gym_short.csv"
+REQUIRED_COLUMNS = ["timestamp", "kw_energy_consumption"]
+DEMO_ROW_LIMIT = 8
+SEQUENCE_SAMPLE = 5
 
-def build_demo_payload() -> list[dict[str, object]]:
-    """Construct a small, presentation-friendly dataset."""
-    return [
-        {
-            "timestamp": datetime(2024, 7, 4, 9, 0),
-            "sensor_id": "alpha",
-            "temp_c": 21.5,
-            "usage_kw": 3,
-        },
-        {
-            "timestamp": datetime(2024, 7, 4, 10, 0),
-            "sensor_id": "alpha",
-            "temp_c": 22.1,
-            "usage_kw": 5,
-        },
-        {
-            "timestamp": datetime(2024, 7, 4, 11, 0),
-            "sensor_id": "beta",
-            "temp_c": 23.2,
-            "usage_kw": 8,
-        },
-        {
-            "timestamp": datetime(2024, 7, 4, 12, 0),
-            "sensor_id": "beta",
-            "temp_c": 24.0,
-            "usage_kw": 13,
-        },
-    ]
+
+def load_demo_records(handler: InputHandler, limit: int | None = None) -> list[dict[str, object]]:
+    """Load and normalize demo data via the InputHandler singleton."""
+
+    handler.input_data(DEMO_DATA_FILE, required_columns=REQUIRED_COLUMNS)
+    if limit is not None and limit <= 0:
+        return []
+    return handler.to_records(limit=limit)
+
+
+def sample_usage_sequence(handler: InputHandler, sample_size: int) -> list[float]:
+    """Use InputHandler helper output to retrieve a single-column encoder sequence sample."""
+
+    if sample_size <= 0:
+        return []
+
+    sequence = handler.to_encoder_sequence(
+        handler.data,
+        required_columns=REQUIRED_COLUMNS,
+        column="kw_energy_consumption",
+    )
+    values = [float(value) for value in sequence["kw_energy_consumption"]]
+    return values[:sample_size]
 
 
 def build_brain(field_sizes: dict[str, int]) -> Brain:
-    """Create a Brain wired to four input fields and one column field."""
-    temp_field = InputField(
-        RDSEParameters(size=field_sizes["temp_c"], active_bits=8, resolution=0.5, seed=11)
-    )
+    """Create an HTM Brain wired to timestamp and energy usage input fields."""
+
     usage_field = InputField(
-        RDSEParameters(size=field_sizes["usage_kw"], active_bits=8, resolution=1.0, seed=17)
-    )
-    sensor_field = InputField(
         RDSEParameters(
-            size=field_sizes["sensor_id"], active_bits=1, category=True, resolution=0, seed=23
+            size=field_sizes["kw_energy_consumption"],
+            active_bits=16,
+            resolution=0.5,
+            seed=11,
         )
     )
     timestamp_field = InputField(
-        RDSEParameters(size=field_sizes["timestamp"], active_bits=8, resolution=3600.0, seed=29)
+        RDSEParameters(
+            size=field_sizes["timestamp"],
+            active_bits=16,
+            resolution=3600.0,
+            seed=17,
+        )
     )
 
     column_field = ColumnField(
-        input_fields=[temp_field, usage_field, sensor_field, timestamp_field],
+        input_fields=[usage_field, timestamp_field],
         num_columns=128,
         cells_per_column=4,
     )
 
     return Brain(
         {
-            "temp_c": temp_field,
-            "usage_kw": usage_field,
-            "sensor_id": sensor_field,
+            "kw_energy_consumption": usage_field,
             "timestamp": timestamp_field,
             "cortex": column_field,
         }
     )
 
 
-def columnar_to_records(columnar: dict[str, list[object]]) -> list[dict[str, object]]:
-    """Convert column-oriented data to a row-oriented record list."""
-    if not columnar:
-        return []
-
-    lengths = {len(values) for values in columnar.values()}
-    if len(lengths) > 1:
-        raise ValueError("Column lengths are inconsistent; cannot form records.")
-
-    record_count = lengths.pop() if lengths else 0
-    records: list[dict[str, object]] = []
-    for idx in range(record_count):
-        records.append({column: values[idx] for column, values in columnar.items()})
-    return records
-
-
 def normalize_for_brain(records: list[dict[str, object]]) -> list[dict[str, float]]:
     """Convert records into numeric values consumable by RDSE input fields."""
-    sensor_ids = sorted({record["sensor_id"] for record in records})
-    sensor_lookup = {sensor_id: idx for idx, sensor_id in enumerate(sensor_ids)}
 
     normalized: list[dict[str, float]] = []
     for record in records:
         timestamp = record["timestamp"]
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
+        usage = record["kw_energy_consumption"]
         normalized.append(
             {
                 "timestamp": float(timestamp.timestamp()),
-                "sensor_id": float(sensor_lookup[str(record["sensor_id"])]),
-                "temp_c": float(record["temp_c"]),
-                "usage_kw": float(record["usage_kw"]),
+                "kw_energy_consumption": float(usage),
             }
         )
+
     return normalized
 
 
 def prepare_encoder_records(records: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Ensure datetime values are restored for the encoder layer demo."""
+    """Ensure the encoder layer receives datetime timestamps and numeric values."""
+
     hydrated: list[dict[str, object]] = []
     for record in records:
         timestamp = record["timestamp"]
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
-        hydrated.append({**record, "timestamp": timestamp})
+        usage = float(record["kw_energy_consumption"])
+        hydrated.append(
+            {
+                "timestamp": timestamp,
+                "kw_energy_consumption": usage,
+            }
+        )
+
     return hydrated
 
 
@@ -132,14 +123,18 @@ def run_demo() -> None:
     print("\n=== PSU Capstone Manual Demo ===")
 
     input_handler = InputHandler()
-    raw_payload = build_demo_payload()
-    normalized_columns = input_handler.input_data(raw_payload)
-    normalized_records = columnar_to_records(normalized_columns)
+    normalized_records = load_demo_records(input_handler, limit=DEMO_ROW_LIMIT)
 
     print("\nInput Layer Output (normalized records):")
     print(f"Loaded {len(normalized_records)} rows from the input layer.")
     for row in normalized_records:
         print(f"  {row}")
+
+    usage_sequence = sample_usage_sequence(
+        input_handler, min(SEQUENCE_SAMPLE, len(normalized_records))
+    )
+    print("\nInput Handler sequence sample (kw_energy_consumption):")
+    print(f"  {usage_sequence}")
 
     encoder_records = prepare_encoder_records(normalized_records)
     encoder_handler = EncoderHandler(encoder_records)
@@ -151,10 +146,8 @@ def run_demo() -> None:
 
     brain = build_brain(
         {
-            "temp_c": 128,
-            "usage_kw": 128,
-            "sensor_id": 64,
-            "timestamp": 128,
+            "kw_energy_consumption": 256,
+            "timestamp": 256,
         }
     )
 
