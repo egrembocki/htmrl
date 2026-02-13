@@ -2,51 +2,66 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-03 Encode Data (Current EncoderHandler + FourierEncoder workflow)
+title US-03 Encode Data (Manual Demo Delegation Path)
 
 actor Developer
 participant "InputHandler" as IH
+participant "InputLayer Output\n(normalized records)" as ILO
 participant "EncoderHandler" as EH
 participant "Typed Encoders\n(Scalar/RDSE/Category/Date)" as ENC
-participant "FourierEncoder" as FFT
 participant "SDR" as SDR
+participant "Brain" as B
+participant "InputField\n(timestamp)" as IFTS
+participant "InputField\n(kw_energy_consumption)" as IFKWH
+participant "ColumnField" as CF
 
-group Record-based composite encoding
-  Developer -> IH: input_data(...)
+group Input layer produces reusable output
+  Developer -> IH: input_data(file, required_columns)
   activate IH
-  IH --> Developer: dict[Any, list[Any]]
+  IH -> IH: validate + normalize source data
+  IH --> Developer: to_records(limit)
   deactivate IH
+  Developer -> ILO: store normalized record list
+end
 
-  Developer -> EH: build_composite_sdr(records)
+group Delegate encoding to EncoderHandler (composite SDR artifacts)
+  Developer -> EH: build_composite_sdr(prepare_encoder_records(ILO))
   activate EH
-  EH -> EH: derive column_names and column_values
-
-  loop for each row
-    loop for each column value
-      EH -> ENC: select encoder by runtime type
-      activate ENC
-      ENC --> EH: dense bits
-      deactivate ENC
-      EH -> SDR: set_dense(dense)
-    end
-    EH -> SDR: concatenate per-column SDRs
+  EH -> EH: iterate rows and columns
+  loop each row / each column value
+    EH -> ENC: select encoder by runtime type
+    activate ENC
+    ENC --> EH: dense bits
+    deactivate ENC
+    EH -> SDR: set_dense(dense)
   end
-
+  EH -> SDR: concatenate per-column SDRs
   EH --> Developer: list[SDR] (one per row)
   deactivate EH
 end
 
-group FFT sequence encoding path
-  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
-  activate IH
-  IH --> Developer: dict[column, list[non-null values]]
-  deactivate IH
-
-  Developer -> FFT: encode(np.ndarray(sequence))
-  activate FFT
-  FFT -> FFT: _trim (power-of-two + zero pad)
-  FFT -> FFT: scipy.fft.fft + range bucketing
-  FFT --> Developer: SDR bits for configured frequency ranges
-  deactivate FFT
+group Delegate HTM encoding through Brain + InputFields
+  loop each normalized row
+    Developer -> B: step(normalize_for_brain(row), learn=True)
+    activate B
+    B -> B: encode_only(inputs)
+    B -> IFKWH: encode(kw_energy_consumption)
+    activate IFKWH
+    IFKWH -> IFKWH: RDSE encode -> active cells
+    IFKWH --> B: encoded bits
+    deactivate IFKWH
+    B -> IFTS: encode(timestamp)
+    activate IFTS
+    IFTS -> IFTS: RDSE encode -> active cells
+    IFTS --> B: encoded bits
+    deactivate IFTS
+    B -> B: compute_only(learn)
+    B -> CF: compute(learn)
+    activate CF
+    CF --> B: updated active/predictive state
+    deactivate CF
+    B --> Developer: prediction()
+    deactivate B
+  end
 end
 @enduml
