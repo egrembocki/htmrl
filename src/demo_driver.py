@@ -1,131 +1,44 @@
-"""
-demo_driver.py
-@Alex
-@Chris
+"""End-to-end HTM demo driver with visualization outputs.
 
-This script demonstrates the encoding and visualization of various data types using the encoder layer
-of the psu-capstone project. It showcases scalar, category, date, and RDSE encoders, builds composite
-SDRs for sample and Excel data, and visualizes the resulting SDRs as 2D grids. The script is intended
-for demonstration and testing purposes, providing insight into how input data is transformed into SDRs.
+This module builds on ``manual_test`` by running the same input -> encoder -> HTM
+pipeline and producing saved visual artifacts for:
+- Hot Gym time-wave data
+- Composite SDR encodings
+- HTM learning dynamics (active columns / active & predictive cells)
+- Column-to-input connected synapse map
 """
 
+from __future__ import annotations
+
+import argparse
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-import matplotlib
 
-# Use a non-interactive backend when DISPLAY is not available.
-if not os.environ.get("DISPLAY"):
-    matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.colors import ListedColormap
-
-from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.sdr_layer.sdr import SDR
-
-# To force browser mode explicitly:
-#   PSU_CAPSTONE_MPL=web /home/millscb/repos/psu-capstone/.venv/bin/python src/demo_driver.py
-# Set the path to the Excel file relative to the project root
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "artifacts" / "demo"
 
 
-def visualize_sdr_all_rows(
-    sdrs: list[SDR], title: str = "Composite SDR – Grid View", row_labels: list[str] | None = None
-):
-    """
-    Visualize a list of SDRs (one per row) as individual 2D square/rectangular grids.
-    Optionally display a label for each row in the plot title.
+def _import_pyplot():
+    """Import matplotlib lazily so non-visual tests can import this module."""
 
-    Allows interactive navigation between SDRs using left/right arrow keys.
-    """
-
-    # Precompute grids and labels
-    grids: list[np.ndarray] = []
-    labels: list[str] = []
-
-    for idx, sdr in enumerate(sdrs):
-        dense = np.array(sdr.get_dense())
-        n = dense.size
-
-        # Compute smallest square that fits all bits
-        side = int(np.ceil(np.sqrt(n)))
-
-        # Pad if necessary
-        padded = np.zeros(side * side, dtype=int)
-        padded[:n] = dense
-
-        # Reshape into a 2D grid
-        grid = padded.reshape(side, side)
-        grids.append(grid)
-
-        label = ""
-        if row_labels is not None and idx < len(row_labels):
-            label = f" ({row_labels[idx]})"
-        labels.append(label)
-
-    cmap = ListedColormap(["white", "blue"])
-
-    # Set up a single figure
-    fig, ax = plt.subplots(figsize=(10, 10))
-
-    # Try to move window to top-left
     try:
-        mng = plt.get_current_fig_manager()
-        mng.window.wm_geometry("+0+0")  # type: ignore # TkAgg-specific
-    except Exception:
-        pass
+        import matplotlib
 
-    class IndexTracker:
-        def __init__(self, num_items: int):
-            self.idx = 0
-            self.num_items = num_items
-
-        def update(self):
-            ax.clear()
-            ax.imshow(grids[self.idx], cmap=cmap, interpolation="nearest")
-            ax.set_title(f"{title} – Row {self.idx}{labels[self.idx]}")
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.grid(False)
-            fig.canvas.draw_idle()
-
-        def on_key(self, event):
-            if event.key == "right":  # next
-                self.idx = (self.idx + 1) % self.num_items
-                self.update()
-            elif event.key == "left":  # previous
-                self.idx = (self.idx - 1) % self.num_items
-                self.update()
-            elif event.key in ("escape", "up"):
-                plt.close(fig)
-
-    tracker = IndexTracker(len(grids))
-    tracker.update()
-
-    # Connect key-press events
-    fig.canvas.mpl_connect("key_press_event", tracker.on_key)
-
-    plt.show(block=True)
+        if not os.environ.get("DISPLAY"):
+            matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("matplotlib is required to render demo visuals.") from exc
+    return plt
 
 
-def build_demo_records() -> list[dict]:
-    """
-    Build a simple demonstration list-of-dicts with scalar, category, and datetime columns.
+def build_demo_records() -> list[dict[str, Any]]:
+    """Keep a compact sample dataset used by integration tests."""
 
-    Returns:
-        list[dict]: Records containing sample rows for encoding demonstration.
-    """
-
-    scalar_rows = [
+    return [
         {
             "temp_c": 21.5,
             "visits": 3,
@@ -151,218 +64,169 @@ def build_demo_records() -> list[dict]:
             "timestamp": datetime(2023, 12, 25, 8, 30),
         },
     ]
-    return scalar_rows
 
 
-def records_from_columns(columns: dict[Any, list[Any]]) -> list[dict[str, Any]]:
-    """Convert a column-oriented dict into list-of-dict records."""
+def _save_heatmap(matrix, path: Path, title: str, xlabel: str, ylabel: str) -> None:
+    plt = _import_pyplot()
+    fig, ax = plt.subplots(figsize=(14, 6))
+    image = ax.imshow(matrix, interpolation="nearest", aspect="auto", cmap="viridis")
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    fig.colorbar(image, ax=ax)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
 
-    if not columns:
-        return []
 
-    keys = list(columns.keys())
-    lengths = {len(values) for values in columns.values()}
-    if len(lengths) != 1:
-        raise ValueError("Column lengths do not match; cannot build records.")
+def _save_time_wave(records: list[dict[str, object]], path: Path) -> None:
+    plt = _import_pyplot()
+    times = [record["timestamp"] for record in records]
+    usage = [float(record["kw_energy_consumption"]) for record in records]
 
-    return [dict(zip(keys, row_values)) for row_values in zip(*(columns[k] for k in keys))]
+    fig, ax = plt.subplots(figsize=(14, 5))
+    ax.plot(times, usage, marker="o", linewidth=1.5)
+    ax.set_title("Hot Gym Time Wave")
+    ax.set_xlabel("Timestamp")
+    ax.set_ylabel("kw_energy_consumption")
+    ax.grid(True, alpha=0.3)
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
 
 
-def main():
-    """
+def _column_input_connectivity(column_field):
+    input_cells = list(column_field.input_field.cells)
+    cell_index = {cell: idx for idx, cell in enumerate(input_cells)}
+    import numpy as np
 
-    Main driver function for the demo.
+    connectivity = np.zeros((len(column_field.columns), len(input_cells)), dtype=int)
+    for col_idx, column in enumerate(column_field.columns):
+        for syn in column.connected_synapses:
+            connectivity[col_idx, cell_index[syn.source_cell]] = 1
+    return connectivity
 
-    - Initializes encoders for scalar, category, date, and RDSE types.
-    - Encodes sample values and visualizes their SDRs.
-    - Loads and preprocesses Excel data, builds composite SDRs for both sample and Excel data.
-    - Visualizes composite SDRs for each row, displaying relevant labels.
-    - Prints SDR statistics for inspection.
-    """
 
-    print("Beginning Demo...")
+def run_full_demo(row_limit: int = 96, output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, Path]:
+    """Run the manual-test pipeline end-to-end and emit visualization artifacts."""
 
-    ih = InputHandler()
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    scalar_encoder = ScalarEncoder(
-        ScalarEncoderParameters(
-            minimum=0,
-            maximum=100,
-            size=100,
-            active_bits=10,  # sparisty of 10% for visualization
-            clip_input=True,
-            periodic=False,
-            category=False,
-            sparsity=0.0,
-            radius=0.0,
-            resolution=1.0,
-        )
+    # 1) Start with manual_test flow (input normalization + encoder prep + brain preparation)
+    from manual_test import (
+        REQUIRED_COLUMNS,
+        build_brain,
+        load_demo_records,
+        normalize_for_brain,
+        prepare_encoder_records,
+    )
+    from psu_capstone.agent_layer.HTM import ColumnField
+    from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
+    from psu_capstone.input_layer.input_handler import InputHandler
+
+    input_handler = InputHandler()
+    records = load_demo_records(input_handler, limit=row_limit)
+    if not records:
+        raise ValueError("No records loaded for demo.")
+
+    encoder_records = prepare_encoder_records(records)
+    encoder_handler = EncoderHandler(encoder_records)
+    composite_sdrs = encoder_handler.build_composite_sdr(encoder_records)
+
+    brain = build_brain({"kw_energy_consumption": 256, "timestamp": 256})
+    brain_inputs = normalize_for_brain(records)
+    column_field = brain["cortex"]
+    if not isinstance(column_field, ColumnField):
+        raise TypeError("Brain cortex field is not a ColumnField.")
+
+    # 2) Collect HTM learning traces
+    import numpy as np
+
+    active_columns = np.zeros((len(brain_inputs), len(column_field.columns)), dtype=int)
+    active_cells = np.zeros((len(brain_inputs), len(column_field.cells)), dtype=int)
+    predictive_cells = np.zeros((len(brain_inputs), len(column_field.cells)), dtype=int)
+
+    for step_idx, row in enumerate(brain_inputs):
+        brain.step(row, learn=True)
+        for col_idx, column in enumerate(column_field.columns):
+            active_columns[step_idx, col_idx] = int(column.active)
+        for cell_idx, cell in enumerate(column_field.cells):
+            active_cells[step_idx, cell_idx] = int(cell.active)
+            predictive_cells[step_idx, cell_idx] = int(cell.predictive)
+
+    # 3) Build SDR matrix for encoder outputs
+    sdr_matrix = np.array([sdr.get_dense() for sdr in composite_sdrs], dtype=int)
+
+    # 4) Save visuals
+    outputs = {
+        "time_wave": output_dir / "hot_gym_time_wave.png",
+        "encoder_sdr": output_dir / "encoder_composite_sdr.png",
+        "htm_active_columns": output_dir / "htm_active_columns.png",
+        "htm_active_cells": output_dir / "htm_active_cells.png",
+        "htm_predictive_cells": output_dir / "htm_predictive_cells.png",
+        "column_input_map": output_dir / "htm_column_input_connectivity.png",
+    }
+
+    _save_time_wave(records, outputs["time_wave"])
+    _save_heatmap(
+        sdr_matrix,
+        outputs["encoder_sdr"],
+        title="Composite SDR Encodings (Rows x Bits)",
+        xlabel="SDR Bit Index",
+        ylabel="Row Index",
+    )
+    _save_heatmap(
+        active_columns,
+        outputs["htm_active_columns"],
+        title="HTM Active Columns Over Time",
+        xlabel="Column Index",
+        ylabel="Step",
+    )
+    _save_heatmap(
+        active_cells,
+        outputs["htm_active_cells"],
+        title="HTM Active Cells Over Time",
+        xlabel="Cell Index",
+        ylabel="Step",
+    )
+    _save_heatmap(
+        predictive_cells,
+        outputs["htm_predictive_cells"],
+        title="HTM Predictive Cells Over Time",
+        xlabel="Cell Index",
+        ylabel="Step",
     )
 
-    rdse_encoder = RandomDistributedScalarEncoder(
-        RDSEParameters(
-            active_bits=10,  # sparisty of 10% for visualization
-            size=100,
-            sparsity=0.0,
-            radius=0.1,  # small radius for demo, all us to see a float encoding
-            resolution=0.0,
-            category=False,
-            seed=42,
-        )
+    connectivity = _column_input_connectivity(column_field)
+    _save_heatmap(
+        connectivity,
+        outputs["column_input_map"],
+        title="Column Connected Synapses to Input Space",
+        xlabel="Input Bit Index",
+        ylabel="Column Index",
     )
 
-    category_encoder = CategoryEncoder(
-        CategoryParameters(w=5, category_list=["US", "CA", "MX", "UK", "FR", "DE"])
+    return outputs
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run the full HTM demo with visualization outputs.")
+    parser.add_argument("--rows", type=int, default=96, help="Number of Hot Gym rows to run.")
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help="Directory where PNG artifacts are saved.",
     )
+    args = parser.parse_args()
 
-    date_encoder = DateEncoder(
-        DateEncoderParameters(
-            season_active_bits=0,
-            season_radius=91.5,
-            day_of_week_active_bits=7,
-            day_of_week_radius=1.0,
-            weekend_active_bits=2,
-            holiday_active_bits=4,
-            holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
-            time_of_day_active_bits=24,
-            time_of_day_radius=1.0,
-            custom_active_bits=0,
-            custom_days=[],
-            rdse_used=True,
-        )
-    )
-
-    required_columns_excel = [
-        "Date",
-        "Open",
-        "High",
-        "Low",
-        "Close",
-        "RSI",
-        "MACD",
-        "MACDState",
-        "HAColor",
-        "HABodyRangeRatio",
-        "HALongWick",
-        "HAGreenConsec",
-        "HARedConsec",
-        "EMAState",
-        "HAHighToEMALong",
-        "HACloseToEMALong",
-        "HALowToEMALong",
-        "HAHighToEMAShort",
-        "HACloseToEMAShort",
-        "HALowToEMAShort",
-        "MyWAZLTTrend",
-    ]
-
-    scalar_values = [25, 50, 75, 25]
-    date_values = [
-        datetime(2024, 6, 15, 10, 30),
-        datetime(2024, 12, 25, 8, 0),
-        datetime(2024, 7, 4, 21, 15),
-        datetime(2024, 6, 15, 10, 30),
-    ]
-    category_values = ["US", "CA", "MX", "US"]  # Added two more category values
-    scalar_sdrs = []
-    rdse_sdrs = []
-    category_sdrs = []
-    date_sdrs = []
-    for i, value in enumerate(scalar_values):
-        sdr1 = SDR([scalar_encoder.size])
-        sdr2 = SDR([rdse_encoder.size])
-        sdr3 = SDR([category_encoder.size])
-        sdr4 = SDR([date_encoder.size])
-
-        dense1 = scalar_encoder.encode(value)
-        dense2 = rdse_encoder.encode(value)
-        dense3 = category_encoder.encode(category_values[i])
-        dense4 = date_encoder.encode(date_values[i])
-
-        sdr1.set_dense(dense1)
-        sdr2.set_dense(dense2)
-        sdr3.set_dense(dense3)
-        sdr4.set_dense(dense4)
-
-        scalar_sdrs.append(sdr1)
-        rdse_sdrs.append(sdr2)
-        category_sdrs.append(sdr3)
-        date_sdrs.append(sdr4)
-
-    # Visualize individual SDRs with value in title
-    visualize_sdr_all_rows(
-        scalar_sdrs, title="Scalar Encoder SDR", row_labels=[str(v) for v in scalar_values]
-    )
-    visualize_sdr_all_rows(
-        rdse_sdrs, title="RDSE Encoder SDR", row_labels=[str(v) for v in scalar_values]
-    )
-    visualize_sdr_all_rows(category_sdrs, title="Category Encoder SDR", row_labels=category_values)
-    visualize_sdr_all_rows(date_sdrs, title="Date Encoder SDR", row_labels=date_values)  # type: ignore
-
-    # Test composite SDR building
-    demo_sample_records = build_demo_records()
-    sub_set_data = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
-    sub_set_records = records_from_columns(sub_set_data)
-
-    # change integer values to float in the loaded Excel records to allow RDSE
-    for rec in sub_set_records:
-        for k, v in list(rec.items()):
-            if isinstance(v, int):
-                try:
-                    rec[k] = float(v)
-                except Exception:
-                    pass
-
-    # encoder parameters are hardcoded in EncoderHandler for demo purposes
-    handler = EncoderHandler(demo_sample_records)
-    composite_list = handler.build_composite_sdr(demo_sample_records)
-
-    print("Composite SDR count:", len(composite_list))
-    for idx, composite in enumerate(composite_list):
-        print(f"Composite SDR {idx} dimensions:", composite.dimensions)
-        print(f"Composite SDR {idx} size:", composite.size)
-        print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
-        print(f"Composite SDR {idx} Density:", composite.get_dense())
-
-    # For demo_sample_records, show all values being encoded for each row, but skip any datetime/Timestamp in the label
-    def all_row_label(row, max_len=60):
-        vals = list(row.values())
-        # Only include non-datetime values
-
-        def is_not_datetime(val):
-            return not hasattr(val, "strftime")
-
-        filtered_vals = [str(v) for v in vals if is_not_datetime(v)]
-        label = ", ".join(filtered_vals)
-        # Insert newlines every max_len characters for readability
-        if len(label) > max_len:
-            parts = []
-            current = ""
-            for v in filtered_vals:
-                if len(current) + len(v) + 2 > max_len:
-                    parts.append(current.rstrip(", "))
-                    current = ""
-                current += v + ", "
-            if current:
-                parts.append(current.rstrip(", "))
-            label = "\n".join(parts)
-        return label
-
-    row_labels = [all_row_label(row) for row in demo_sample_records]
-    visualize_sdr_all_rows(composite_list, title="Composite SDR", row_labels=row_labels)
-
-    composite_list_excel = handler.build_composite_sdr(sub_set_records)
-
-    print("Composite SDR count (Excel data):", len(composite_list_excel))
-    for idx, composite in enumerate(composite_list_excel):
-        print(f"Composite SDR {idx} dimensions:", composite.dimensions)
-        print(f"Composite SDR {idx} size:", composite.size)
-        print(f"Composite SDR {idx} Sparsity:", composite.get_sparsity())
-
-    row_labels_excel = [all_row_label(row) for row in sub_set_records]
-    visualize_sdr_all_rows(composite_list_excel, title="Composite SDR", row_labels=row_labels_excel)
+    outputs = run_full_demo(row_limit=args.rows, output_dir=args.output_dir)
+    print("\nGenerated demo visuals:")
+    for name, path in outputs.items():
+        print(f"  {name}: {path}")
+    print("\nRequired columns: [timestamp, kw_energy_consumption]")
 
 
 if __name__ == "__main__":
-
     main()
