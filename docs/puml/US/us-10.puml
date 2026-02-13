@@ -20,7 +20,7 @@ else in-memory payload
   IH -> IH: _coerce_non_file_to_dataframe(input_source)
 end
 IH -> IH: _process_dataframe(df, required_columns)
-IH --> Developer: records: list[dict[Any, Any]]
+IH --> Developer: columns_dict: dict[Any, list[Any]]
 deactivate IH
 
 alt record/categorical pipeline
@@ -35,12 +35,12 @@ alt record/categorical pipeline
 else frequency pipeline
   Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
   activate IH
-  IH -> IH: input_data(...)
-  IH -> IH: infer/sanitize sequence column
-  IH --> Developer: sequence list[Any]
+  IH -> IH: _process_dataframe(df, required_columns)
+  IH -> IH: infer/sanitize sequence column + drop None
+  IH --> Developer: sequence: dict[column, list[Any]]
   deactivate IH
 
-  Developer -> FFT: encode(np.ndarray(sequence))
+  Developer -> FFT: encode(np.ndarray(sequence_values))
   activate FFT
   FFT -> FFT: _trim + scipy.fft.fft + range encoding
   FFT --> Developer: frequency SDR

@@ -14,7 +14,7 @@ participant "SDR" as SDR
 group Record-based composite encoding
   Developer -> IH: input_data(...)
   activate IH
-  IH --> Developer: records
+  IH --> Developer: dict[Any, list[Any]]
   deactivate IH
 
   Developer -> EH: build_composite_sdr(records)
@@ -39,7 +39,7 @@ end
 group FFT sequence encoding path
   Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
   activate IH
-  IH --> Developer: sequence list[Any]
+  IH --> Developer: dict[column, list[non-null values]]
   deactivate IH
 
   Developer -> FFT: encode(np.ndarray(sequence))
