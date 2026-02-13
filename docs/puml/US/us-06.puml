@@ -2,29 +2,43 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-06 Train Agent (Current Agent Skeleton)
+title US-06 Train Brain (Include chain: Train Model -> Use HTM -> Encode/Decode)
 
 actor Developer
-participant "Agent" as AG
-participant "SpatialPooler" as SP
-participant "TemporalMemory" as TM
+participant "Brain" as B
+participant "HTM" as H
+participant "InputField" as IF
+participant "ColumnField" as CF
+participant "Encoder Decoder" as ENC
 
-Developer -> AG: create_pooler(...)
-activate AG
-AG -> SP: SpatialPooler(...)
-SP --> AG: pooler instance
-AG --> Developer: pooler added
+group <<include>> US-05 Train Model
+  ref over Developer,B
+    Include US-05 Train Model
+    (Developer iterates rows and calls Brain.step(..., learn=True))
+  end ref
+end
 
-Developer -> AG: create_memory(...)
-AG -> TM: TemporalMemory(columns, cells_per_column)
-TM --> AG: memory instance
-AG --> Developer: memory added
+group <<include>> US-07 Use HTM
+  Developer -> B: step(inputs, learn=True)
+  activate B
+  B -> H: step(inputs, learn=True)
+  activate H
+  H -> IF: encode(value)
+  IF --> H: encoded bits
+  H -> CF: compute(learn=True)
+  CF --> H: active/predictive state
+  H --> B: prediction()
+  deactivate H
+end
 
-Developer -> AG: select_action(state)
-AG --> Developer: None (pass)
+group <<include>> US-11 Encode/Decode
+  B -> IF: decode("predictive")
+  activate IF
+  IF -> ENC: decode(bit_vector, candidates?)
+  ENC --> IF: decoded value + confidence
+  deactivate IF
+  B --> Developer: prediction()/decoded output
+  deactivate B
+end
 
-Developer -> AG: update_policy(state, action, reward, next_state)
-AG --> Developer: None (pass)
-
-deactivate AG
 @enduml

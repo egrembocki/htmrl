@@ -2,12 +2,12 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-04 Input Parameters (Current Code Reality)
+title US-04 Input Parameters (Brain is the Runtime Entry Point)
 
 actor Developer
 participant "Encoder Constructors" as EC
 participant "InputHandler" as IH
-participant "Agent" as AG
+participant "Brain" as B
 
 Developer -> EC: pass encoder parameters\n(e.g., ScalarEncoderParameters, RDSEParameters)
 EC --> Developer: configured encoder instances
@@ -19,16 +19,15 @@ opt required_columns provided
   IH -> IH: add missing columns with None + reorder
 end
 IH --> Developer: normalized dict[Any, list[Any]]
-
 deactivate IH
 
-Developer -> AG: create_pooler(...)/create_memory(...)
-activate AG
-AG --> Developer: components appended
-deactivate AG
+Developer -> B: initialize Brain with configured components/params
+activate B
+B --> Developer: ready for step(inputs, learn)
+deactivate B
 
-note over Developer,AG
-No GlobalOptimizer/ParameterOptimizer class exists.
+note over Developer,B
+Brain is the runtime entry point in the current design.
 Parameter tuning is manual via constructor args.
 end note
 @enduml

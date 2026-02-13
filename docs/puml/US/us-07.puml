@@ -4,13 +4,13 @@ skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 title US-07 Use HTM Pooler (Current Brain.step Flow)
 
-actor Developer
+actor TrainModel
 participant "Brain" as BR
 participant "InputField" as IF
 participant "ColumnField" as CF
 participant "OutputField" as OF
 
-Developer -> BR: step(inputs, learn=True)
+TrainModel -> BR: step(inputs, learn=True)
 activate BR
 
 BR -> BR: encode_only(inputs)
@@ -28,6 +28,6 @@ loop for each output field
   OF --> BR: decoded value
 end
 
-BR --> Developer: dict[name, decoded_value]
+BR --> TrainModel: dict[name, decoded_value]
 deactivate BR
 @enduml
