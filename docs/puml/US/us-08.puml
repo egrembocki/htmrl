@@ -2,7 +2,8 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-08 Test Model (Current Code Reality)
+
+title US-08A Test Model (Current Code Reality)
 
 actor Developer
 participant "Brain" as BR
@@ -19,5 +20,74 @@ deactivate BR
 note over BR
 No dedicated test_model API or RL evaluation
 framework is currently implemented.
+end note
+@enduml
+
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title US-08B Planned RL Model Testing Loop (Figure 6-1 / 6-2 Alignment)
+
+actor Developer
+participant "TestModel" as TM
+participant "Brain" as BR
+participant "RL Adapter\n(planned)" as RLA
+participant "RL Model\n(Policy/Value)" as RLM
+participant "Environment" as ENV
+participant "Metrics/Checkpoint\n(planned)" as MC
+
+Developer -> TM: evaluate_with_rl(test_config, episodes)
+activate TM
+
+loop each evaluation episode
+  TM -> BR: reset episode context
+  activate BR
+  BR --> TM: initial state ready
+  deactivate BR
+
+  loop each timestep
+    TM -> BR: step(observation_t, learn=False)
+    activate BR
+    BR -> RLA: export state/action context
+    activate RLA
+    RLA -> RLM: infer_action(state_t)
+    activate RLM
+    RLM --> RLA: action_t (+ score/logits)
+    deactivate RLM
+    RLA --> BR: action_t
+    deactivate RLA
+
+    BR -> ENV: apply(action_t)
+    activate ENV
+    ENV --> BR: reward_t, next_state_t, done
+    deactivate ENV
+
+    BR --> TM: prediction_t, reward_t, done
+    deactivate BR
+
+    TM -> MC: log evaluation metrics
+    activate MC
+    MC --> TM: aggregated stats updated
+    deactivate MC
+
+    alt done == true
+      break
+    end
+  end
+
+  TM -> MC: write episode test report
+  activate MC
+  MC --> TM: report artifact/path
+  deactivate MC
+end
+
+TM --> Developer: RL evaluation summary
+deactivate TM
+
+note over BR,RLM
+Planned test flow keeps Brain as the interface boundary
+between HTM state and RL policy/value evaluation.
 end note
 @enduml

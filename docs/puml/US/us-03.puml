@@ -2,44 +2,51 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-03 Encode Data (Brain delegates encoding to HTM)
+
+title US-03 Encode Data (Single InputField Delegates to BaseEncoder)
 
 actor Developer
 participant "InputHandler" as IH
 participant "Brain" as B
-participant "HTM" as H
-participant "InputField" as IFTS
-participant "InputField" as IFKWH
+participant "InputField" as IF
+participant "BaseEncoder\n(concrete implementation)" as BE
+participant "HTM / ColumnField" as H
 
-group Input layer produces reusable output
+group Input layer prepares normalized rows
   Developer -> IH: input_data(data, required_columns)
   activate IH
-  IH -> IH: validate data
-  IH --> Developer: input_data(): dict[key:, list[value]]
-
+  IH -> IH: validate + normalize
+  IH --> Developer: normalized rows
   deactivate IH
-  Developer -> B: step(input_data, learn=True)
 end
 
-group Brain delegates encoding/computation to HTM
+group Brain orchestrates encoding and compute
   loop each normalized row
-    Developer -> B: step(normalize_for_brain(row), learn=True)
+    Developer -> B: step(row_inputs, learn=True)
     activate B
-    B -> H: step(inputs, learn)
+
+    B -> IF: encode(value)
+    activate IF
+    IF -> BE: encode(value)
+    activate BE
+    BE --> IF: encoded_bits
+    deactivate BE
+    IF -> IF: set active cells from encoded_bits
+    IF --> B: encoded_bits
+    deactivate IF
+
+    B -> H: compute(learn=True)
     activate H
+    H --> B: active/predictive state
+    deactivate H
 
-    H -> IFKWH: encode(value:Any)
-    activate IFKWH
-    IFKWH -> IFKWH: Encoder encode -> active bits
-    IFKWH --> H: encoded bits
-    deactivate IFKWH
-
-    H -> IFTS: encode(value:Any)
-    activate IFTS
-    IFTS -> IFTS: Encoder encode -> active bits
-    IFTS --> H: encoded bits
-    deactivate IFTS
-
-  
+    B --> Developer: step result
+    deactivate B
+  end
 end
+
+note over IF,BE
+InputField performs the delegation call.
+The concrete BaseEncoder implementation executes encode(value).
+end note
 @enduml
