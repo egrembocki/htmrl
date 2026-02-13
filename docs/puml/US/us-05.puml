@@ -2,7 +2,8 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-05 Train Model (Orchestrates training, delegates to Brain)
+
+title US-05A Train Model (Current Orchestration)
 
 actor Developer as D
 participant "TrainModel" as TM
@@ -19,12 +20,97 @@ loop each training row
     TrainModel does not call HTM directly.
   end note
 
-  B --> TM: prediction,confidence,debug_stats
-  
+  B --> TM: prediction, confidence, debug_stats
   deactivate B
 end
 
 TM --> D: training summary / metrics
-
 deactivate TM
+@enduml
+
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title US-05B Planned RL Training Loop (Brain as RL Interface)
+
+actor Developer as D
+participant "TrainModel" as TM
+participant "Brain" as B
+participant "RL Adapter\n(planned)" as RLA
+participant "RL Model\n(Policy/Value)" as RLM
+participant "Environment" as ENV
+participant "Replay Buffer\n(planned)" as RB
+participant "Trainer\n(planned)" as TR
+participant "Metrics/Checkpoint\n(planned)" as MC
+
+D -> TM: train_with_rl(config, episodes)
+activate TM
+
+loop each episode
+  TM -> B: reset episode context
+  activate B
+  B --> TM: initial state ready
+  deactivate B
+
+  loop each timestep
+    TM -> B: step(observation_t, learn=True)
+    activate B
+    B -> RLA: export state/action context
+    activate RLA
+    RLA -> RLM: infer_action(state_t)
+    activate RLM
+    RLM --> RLA: action_t
+    deactivate RLM
+    RLA --> B: action_t
+    deactivate RLA
+
+    B -> ENV: apply(action_t)
+    activate ENV
+    ENV --> B: reward_t, next_state_t, done
+    deactivate ENV
+
+    B -> RB: append transition(s_t, a_t, r_t, s_t+1, done)
+    activate RB
+    RB --> B: stored
+    deactivate RB
+
+    alt training interval reached
+      B -> TR: train_step(sample_from=RB)
+      activate TR
+      TR -> RB: sample(batch)
+      RB --> TR: transitions
+      TR -> RLM: update parameters
+      activate RLM
+      RLM --> TR: updated weights
+      deactivate RLM
+      TR -> MC: log loss/reward + checkpoint
+      activate MC
+      MC --> TR: persisted
+      deactivate MC
+      TR --> B: training metrics
+      deactivate TR
+    end
+
+    B --> TM: reward_t, prediction_t, done
+    deactivate B
+
+    alt done == true
+      TM -> MC: write episode summary
+      activate MC
+      MC --> TM: summary path/id
+      deactivate MC
+      break
+    end
+  end
+end
+
+TM --> D: RL training report + model refs
+deactivate TM
+
+note over B,RLM
+Planned architecture keeps Brain as the integration boundary
+between current HTM flow and future RL components (Figure 6-1 / 6-2).
+end note
 @enduml

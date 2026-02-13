@@ -4,15 +4,22 @@ skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 autonumber
 
-title US-11 Decode SDR to Value (Current Code Support)
+title US-11 Decode SDR to Value (Prediction Originates in Brain/HTM)
 
 actor "Developer" as Dev
 participant "Brain" as BR
+participant "HTM / ColumnField" as HTM
 participant "InputField" as IF
 participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
 
-Dev -> BR: prediction()
+Dev -> BR: step(inputs, learn=False)
 activate BR
+BR -> HTM: compute(learn=False)
+activate HTM
+HTM --> BR: predictive state
+deactivate HTM
+
+BR -> BR: prediction() uses predictive state
 loop for each registered input field
   BR -> IF: decode("predictive")
   activate IF
@@ -34,8 +41,8 @@ alt direct decoder usage in tests/scripts
   ENC --> Dev: value/confidence or decoded dict
 end
 
-note over ENC
-Decoding support is implemented across encoder classes.
-Round-trip decode behavior is validated in decoder test suites.
+note over BR,HTM
+Predictions are produced from Brain/HTM predictive state,
+then decoded by InputField + encoder decode APIs.
 end note
 @enduml
