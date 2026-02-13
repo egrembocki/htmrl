@@ -2,90 +2,40 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+autonumber
 
-title US-10 Summary End-to-End Pipeline (Input → Encoder → Brain/HTM → Fields)
+title US-10 Decode SDR to Value
 
-actor Developer
-participant "InputHandler" as IH
-participant "EncoderHandler" as EH
+actor "Developer" as Dev
 participant "Brain" as BR
-participant "InputField(s)" as IF
-participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)" as FE
-participant "HTM" as HTM
-participant "ColumnField(s)" as CF
+participant "InputField" as IF
+participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
 
-Developer -> IH: input_data(input_source, required_columns)
-activate IH
-IH -> IH: _is_file_path(input_source)
-alt supported file path
-  IH -> IH: _load_file_to_dataframe(path)
-else in-memory payload
-  IH -> IH: _coerce_non_file_to_dataframe(input_source)
-end
-IH -> IH: _process_dataframe(df, required_columns)
-IH --> Developer: normalized records / columns_dict
-deactivate IH
-
-Developer -> EH: encode(record)
-activate EH
-loop for each configured field
-  EH -> FE: encode(value, sdr)
-  activate FE
-  FE --> EH: field-level SDR bits
-  deactivate FE
-end
-EH --> Developer: composite input SDR
-deactivate EH
-
-Developer -> BR: step(inputs, learn=True)
+Dev -> BR: prediction()
 activate BR
-BR -> IF: encode_only(inputs)
-activate IF
-IF -> FE: encode(value) / decode(bits, candidates)
-activate FE
-FE --> IF: encoded bits or decoded value/confidence
-deactivate FE
-IF --> BR: input SDR vectors
-deactivate IF
-
-BR -> HTM: compute/step(input_sdr, learn=True)
-activate HTM
-HTM -> CF: compute(learn=True)
-activate CF
-CF --> HTM: active columns + learning state
-deactivate CF
-HTM --> BR: inference/predictive state
-deactivate HTM
-
-loop for each registered field
+loop for each registered input field
   BR -> IF: decode("predictive")
   activate IF
-  IF -> FE: decode(bit_vector, candidates)
-  activate FE
-  FE --> IF: decoded value + confidence
-  deactivate FE
-  IF --> BR: (value, confidence)
+  IF -> IF: build bit_vector from cell.predictive
+  IF -> ENC: decode(bit_vector, candidates?)
+  activate ENC
+  ENC --> IF: decoded value + confidence
+  deactivate ENC
+  IF --> BR: tuple(value, confidence)
   deactivate IF
 end
-
-BR --> Developer: decoded output map + HTM state
+BR --> Dev: dict[input_name, value/confidence]
 deactivate BR
 
-alt optional frequency-only preprocessing
-  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
-  activate IH
-  IH -> IH: infer/sanitize sequence column + drop None
-  IH --> Developer: sequence values
-  deactivate IH
-
-  Developer -> FE: FourierEncoder.encode(sequence ndarray)
-  activate FE
-  FE --> Developer: frequency SDR
-  deactivate FE
-else default mixed-field pipeline
-  note over IH,CF
-    Primary runtime path uses InputHandler + EncoderHandler +
-    Field encoders feeding Brain/HTM with field-level decode support.
-  end note
+alt direct decoder usage in tests/scripts
+  Dev -> ENC: encode(input)
+  ENC --> Dev: encoded SDR bits
+  Dev -> ENC: decode(encoded, candidates?)
+  ENC --> Dev: value/confidence or decoded dict
 end
+
+note over ENC
+Decoding support is implemented across encoder classes.
+Round-trip decode behavior is validated in decoder test suites.
+end note
 @enduml
