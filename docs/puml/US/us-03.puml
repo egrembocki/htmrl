@@ -2,65 +2,53 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-03 Encode Data (Manual Demo Delegation Path)
+title US-03 Encode Data (Brain delegates encoding to HTM)
 
-actor Developer
+actor TrainModel
 participant "InputHandler" as IH
 participant "InputLayer Output\n(normalized records)" as ILO
-participant "EncoderHandler" as EH
-participant "Typed Encoders\n(Scalar/RDSE/Category/Date)" as ENC
-participant "SDR" as SDR
 participant "Brain" as B
+participant "HTM" as H
 participant "InputField\n(timestamp)" as IFTS
 participant "InputField\n(kw_energy_consumption)" as IFKWH
 participant "ColumnField" as CF
 
 group Input layer produces reusable output
-  Developer -> IH: input_data(file, required_columns)
+  TrainModel -> IH: input_data(file, required_columns)
   activate IH
   IH -> IH: validate + normalize source data
-  IH --> Developer: to_records(limit)
+  IH --> TrainModel: to_records(limit)
   deactivate IH
-  Developer -> ILO: store normalized record list
+  TrainModel -> ILO: store normalized record list
 end
 
-group Delegate encoding to EncoderHandler (composite SDR artifacts)
-  Developer -> EH: build_composite_sdr(prepare_encoder_records(ILO))
-  activate EH
-  EH -> EH: iterate rows and columns
-  loop each row / each column value
-    EH -> ENC: select encoder by runtime type
-    activate ENC
-    ENC --> EH: dense bits
-    deactivate ENC
-    EH -> SDR: set_dense(dense)
-  end
-  EH -> SDR: concatenate per-column SDRs
-  EH --> Developer: list[SDR] (one per row)
-  deactivate EH
-end
-
-group Delegate HTM encoding through Brain + InputFields
+group Brain delegates encoding/computation to HTM
   loop each normalized row
-    Developer -> B: step(normalize_for_brain(row), learn=True)
+    TrainModel -> B: step(normalize_for_brain(row), learn=True)
     activate B
-    B -> B: encode_only(inputs)
-    B -> IFKWH: encode(kw_energy_consumption)
+    B -> H: step(inputs, learn)
+    activate H
+
+    H -> IFKWH: encode(kw_energy_consumption)
     activate IFKWH
     IFKWH -> IFKWH: RDSE encode -> active cells
-    IFKWH --> B: encoded bits
+    IFKWH --> H: encoded bits
     deactivate IFKWH
-    B -> IFTS: encode(timestamp)
+
+    H -> IFTS: encode(timestamp)
     activate IFTS
     IFTS -> IFTS: RDSE encode -> active cells
-    IFTS --> B: encoded bits
+    IFTS --> H: encoded bits
     deactivate IFTS
-    B -> B: compute_only(learn)
-    B -> CF: compute(learn)
+
+    H -> CF: compute(learn)
     activate CF
-    CF --> B: updated active/predictive state
+    CF --> H: updated active/predictive state
     deactivate CF
-    B --> Developer: prediction()
+
+    H --> B: prediction()
+    deactivate H
+    B --> TrainModel: prediction()
     deactivate B
   end
 end

@@ -2,19 +2,44 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-05 Train Model (Not Implemented in Current Repository)
+title US-05 Train Model (Manual Test: Brain delegates to HTM)
 
-actor Developer
-participant "Agent" as AG
+actor TrainModel
+participant "Brain" as B
+participant "HTM" as H
+participant "InputField\n(timestamp)" as IFTS
+participant "InputField\n(kw_energy_consumption)" as IFKWH
+participant "ColumnField" as CF
 
-Developer -> AG: select_action(state) / update_policy(...)
-activate AG
-AG -> AG: method body is pass
-AG --> Developer: None
-deactivate AG
+group Build brain runtime (manual_test.py)
+  TrainModel -> B: build_brain(field_sizes)
+  activate B
+  B -> H: initialize InputFields + ColumnField
+  H --> B: ready
+  B --> TrainModel: brain instance
+  deactivate B
+end
 
-note over AG
-There is no RLModel class and no train_model API
-in the current codebase.
-end note
+group Training loop (learn=True)
+  loop each normalized row
+    TrainModel -> B: step(row, learn=True)
+    activate B
+    B -> H: step(inputs, learn)
+    activate H
+
+    H -> IFKWH: encode(kw_energy_consumption)
+    IFKWH --> H: encoded bits
+
+    H -> IFTS: encode(timestamp)
+    IFTS --> H: encoded bits
+
+    H -> CF: compute(learn=True)
+    CF --> H: updated active/predictive state
+
+    H --> B: prediction()
+    deactivate H
+    B --> TrainModel: prediction()
+    deactivate B
+  end
+end
 @enduml
