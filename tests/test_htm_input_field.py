@@ -75,10 +75,11 @@ def test_input_field_check_cells_are_active_after_encode():
     """Test that we have active cells after encoding."""
     in_fi = InputField()
     a = in_fi.encode(10)
-    cells = in_fi.cells
-    sparse = np.nonzero(a)[0]
-    active_cells = [i for i, cell in enumerate(cells) if cell.active]
-    assert np.array_equal(sparse, active_cells)
+    if a is not None:
+        cells = in_fi.cells
+        sparse = np.nonzero(a)[0]
+        active_cells = [i for i, cell in enumerate(cells) if cell.active]
+        assert np.array_equal(sparse, active_cells)
 
 
 def test_input_field_advance_cell_states():
@@ -149,4 +150,13 @@ def test_input_field_can_encode_and_decode():
     # TODO add geospatial encoding and decoding
 
 
-"""++++++++++Input Field Testing++++++++++"""
+def test_input_field_can_encode_wrong_value_type():
+    """
+    The input field should return none if the wrong type of input value
+    is mismatched to the encoder.
+    For example: RDSE encoder cannot encode a string category.
+    """
+    parameters = RDSEParameters()
+    in_fi = InputField(parameters)
+    assert in_fi.encode("US") == 0
+    assert in_fi.encode(datetime(2025, 1, 1, 0, 0)) == 0

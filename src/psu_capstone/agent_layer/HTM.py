@@ -770,6 +770,7 @@ class InputField(Field):
 
     def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+
         self.advance_states()
         encoded_bits = self.encoder.encode(input_value)
         for idx, cell in enumerate(self.cells):
