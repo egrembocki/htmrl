@@ -2,20 +2,19 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-autonumber
 
 title US-10 Summary End-to-End Pipeline (Input → Encoder → Brain/HTM → Fields)
 
 actor Developer
 participant "InputHandler" as IH
 participant "EncoderHandler" as EH
-participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier)" as FE
-participant "InputField(s)" as IF
 participant "Brain" as BR
+participant "InputField(s)" as IF
+participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)" as FE
 participant "HTM" as HTM
 participant "ColumnField(s)" as CF
 
-Developer -> IH: input_data(input_source, required_columns?)
+Developer -> IH: input_data(input_source, required_columns)
 activate IH
 IH -> IH: _is_file_path(input_source)
 alt supported file path
@@ -42,7 +41,7 @@ Developer -> BR: step(inputs, learn=True)
 activate BR
 BR -> IF: encode_only(inputs)
 activate IF
-IF -> FE: encode(value) / decode(bits, candidates?)
+IF -> FE: encode(value) / decode(bits, candidates)
 activate FE
 FE --> IF: encoded bits or decoded value/confidence
 deactivate FE
@@ -61,7 +60,7 @@ deactivate HTM
 loop for each registered field
   BR -> IF: decode("predictive")
   activate IF
-  IF -> FE: decode(bit_vector, candidates?)
+  IF -> FE: decode(bit_vector, candidates)
   activate FE
   FE --> IF: decoded value + confidence
   deactivate FE
