@@ -2,7 +2,7 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-07 Use HTM Engine (HTM compute/learn)
+title US-07 Use HTM Engine
 
 actor "Brain" as B
 participant "ColumnField" as CF

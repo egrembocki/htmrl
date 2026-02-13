@@ -3,15 +3,12 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-11 Decode SDR to Value (Prediction Originates in Brain/HTM)
-
-actor Developer
-participant "InputHandler" as IH
-participant "EncoderHandler" as EH
+title US-11 Decode SDR to Value
+actor Developer as Dev
 participant "Brain" as BR
 participant "HTM / ColumnField" as HTM
 participant "InputField" as IF
-participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
+participant "BaseEncoder" as ENC
 
 Dev -> BR: step(inputs, learn=False)
 activate BR
@@ -24,23 +21,16 @@ BR -> BR: prediction() uses predictive state
 loop for each registered input field
   BR -> IF: decode("predictive")
   activate IF
-  IF -> FE: decode(bit_vector, candidates)
-  activate FE
-  FE --> IF: decoded value + confidence
-  deactivate FE
+  IF -> ENC: decode(bit_vector, candidates)
+  activate ENC
+  ENC --> IF: decoded value + confidence
+  deactivate ENC
   IF --> BR: (value, confidence)
   deactivate IF
 end
 
-BR --> Developer: decoded output map + HTM state
+BR --> Dev: decoded output map + HTM state
 deactivate BR
-
-alt optional frequency-only preprocessing
-  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
-  activate IH
-  IH -> IH: infer/sanitize sequence column + drop None
-  IH --> Developer: sequence values
-  deactivate IH
 
 note over BR,HTM
 Predictions are produced from Brain/HTM predictive state,

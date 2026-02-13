@@ -2,7 +2,7 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-06 Train Brain (Brain training internals)
+title US-06 Train Brain
 
 actor "Developer" as Dev
 participant "Brain" as B
