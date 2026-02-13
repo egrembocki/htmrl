@@ -2,7 +2,7 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-01 Input Data: InputHandler.input_data()
+title US-01 Input Data:InputHandler.input_data()
 
 actor Developer
 participant "<u>ih:InputHandler</u>" as IH
@@ -24,7 +24,7 @@ alt supported file path input
   alt file exists
     IH -> PD: read_csv/read_json/read_excel/read_parquet/read_text
     activate PD
-    PD --> IH: df
+    PD --> IH: DataFrame
     deactivate PD
   else file missing
     IH --> Developer: raise FileNotFoundError
@@ -33,7 +33,7 @@ alt supported file path input
   deactivate IH
 else in-memory payload
   IH -> IH: _coerce_non_file_to_dataframe(input_source)
-  IH --> IH: df
+  IH --> IH: DataFrame
 end
 
 IH -> IH: _process_dataframe(df, required_columns)
