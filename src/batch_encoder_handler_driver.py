@@ -30,16 +30,10 @@ def main():
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
-    input_records = handler.input_data(input_source=data_path, required_columns=[])
+    handler.input_data(input_source=data_path, required_columns=[])
+    input_records = handler.to_records()
 
-    # Ensure records are unique-keyed based on first record's keys
-    if input_records:
-        seen = []
-        cols = list(dict.fromkeys(input_records[0].keys()))
-    else:
-        cols = []
-
-    encoder = RandomDistributedScalarEncoder()
+    encoder = RandomDistributedScalarEncoder(RDSEParameters())
 
     def _numeric_column(records: list[dict], col: str) -> list[float]:
         out = []
@@ -64,7 +58,7 @@ def main():
     # I use a second RDSE so the first one that is already
     # trained does not train on the test sdrs.
     test_encodings = []
-    encoder2 = RandomDistributedScalarEncoder()
+    encoder2 = RandomDistributedScalarEncoder(RDSEParameters())
     for v in test_values:
         test_encodings.append(encoder2.encode(v))
 

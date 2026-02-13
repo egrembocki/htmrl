@@ -16,7 +16,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "artifacts" / "demo"
 
@@ -112,7 +111,9 @@ def _save_cell_state_map(cell_state_matrix, path: Path) -> None:
     norm = BoundaryNorm(bounds, cmap.N)
 
     fig, ax = plt.subplots(figsize=(14, 6))
-    image = ax.imshow(cell_state_matrix, interpolation="nearest", aspect="auto", cmap=cmap, norm=norm)
+    image = ax.imshow(
+        cell_state_matrix, interpolation="nearest", aspect="auto", cmap=cmap, norm=norm
+    )
     ax.set_title("HTM Per-Cell Discrete State Over Time")
     ax.set_xlabel("Cell Index")
     ax.set_ylabel("Step")
@@ -240,7 +241,9 @@ def run_full_demo(row_limit: int = 96, output_dir: Path = DEFAULT_OUTPUT_DIR) ->
                 int(syn.active) for segment in cell.segments for syn in segment.synapses
             )
         for col_idx, column in enumerate(column_field.columns):
-            synapse_state["connected_per_column"][step_idx, col_idx] = len(column.connected_synapses)
+            synapse_state["connected_per_column"][step_idx, col_idx] = len(
+                column.connected_synapses
+            )
             synapse_state["active_connected_per_column"][step_idx, col_idx] = sum(
                 int(syn.active) for syn in column.connected_synapses
             )
@@ -344,7 +347,9 @@ def run_full_demo(row_limit: int = 96, output_dir: Path = DEFAULT_OUTPUT_DIR) ->
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the full HTM demo with visualization outputs.")
+    parser = argparse.ArgumentParser(
+        description="Run the full HTM demo with visualization outputs."
+    )
     parser.add_argument("--rows", type=int, default=96, help="Number of Hot Gym rows to run.")
     parser.add_argument(
         "--output-dir",
