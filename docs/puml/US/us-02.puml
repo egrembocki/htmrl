@@ -4,16 +4,16 @@ skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 title US-02 Validate Data:InputHandler._process_dataframe()
 
-actor TrainModel
+participant InputData
 participant "<u>ih:InputHandler</u>" as IH
 participant "Logger\n<static>" as LOG
 
-TrainModel -> IH: _process_dataframe(df, required_columns)
+InputData -> IH: _process_dataframe(df, required_columns)
 activate IH
 
 alt df.empty
   IH -> IH: self._repeating_columns = []
-  IH --> TrainModel: empty DataFrame
+  IH --> InputData: empty DataFrame
 else dataframe has rows
   alt duplicate column names exist
     IH -> LOG: info("Duplicate columns detected")
@@ -32,7 +32,7 @@ else dataframe has rows
   IH -> IH: _fill_missing_values(df)
   IH -> IH: _detect_repeating_values(df, threshold=3)
   IH -> IH: tuple(self._is_repeating, self._repeating_columns)
-  IH --> TrainModel: processed DataFrame
+  IH --> InputData: processed DataFrame
 end
 
 deactivate IH

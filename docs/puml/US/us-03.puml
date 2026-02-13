@@ -4,40 +4,40 @@ skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 title US-03 Encode Data (Brain delegates encoding to HTM)
 
-actor TrainModel
+actor Developer
 participant "InputHandler" as IH
-participant "InputLayer Output\n(normalized records)" as ILO
 participant "Brain" as B
 participant "HTM" as H
-participant "InputField\n(timestamp)" as IFTS
-participant "InputField\n(kw_energy_consumption)" as IFKWH
+participant "InputField" as IFTS
+participant "InputField" as IFKWH
 participant "ColumnField" as CF
 
 group Input layer produces reusable output
-  TrainModel -> IH: input_data(file, required_columns)
+  Developer -> IH: input_data(data, required_columns)
   activate IH
-  IH -> IH: validate + normalize source data
-  IH --> TrainModel: to_records(limit)
+  IH -> IH: validate data
+  IH --> Developer: input_data(): dict[key:, list[value]]
+
   deactivate IH
-  TrainModel -> ILO: store normalized record list
+  Developer -> B: step(input_data, learn=True)
 end
 
 group Brain delegates encoding/computation to HTM
   loop each normalized row
-    TrainModel -> B: step(normalize_for_brain(row), learn=True)
+    Developer -> B: step(normalize_for_brain(row), learn=True)
     activate B
     B -> H: step(inputs, learn)
     activate H
 
-    H -> IFKWH: encode(kw_energy_consumption)
+    H -> IFKWH: encode(value:Any)
     activate IFKWH
-    IFKWH -> IFKWH: RDSE encode -> active cells
+    IFKWH -> IFKWH: Encoder encode -> active bits
     IFKWH --> H: encoded bits
     deactivate IFKWH
 
-    H -> IFTS: encode(timestamp)
+    H -> IFTS: encode(value:Any)
     activate IFTS
-    IFTS -> IFTS: RDSE encode -> active cells
+    IFTS -> IFTS: Encoder encode -> active bits
     IFTS --> H: encoded bits
     deactivate IFTS
 
@@ -48,7 +48,7 @@ group Brain delegates encoding/computation to HTM
 
     H --> B: prediction()
     deactivate H
-    B --> TrainModel: prediction()
+    B --> Developer: prediction()
     deactivate B
   end
 end

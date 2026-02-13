@@ -2,27 +2,27 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-05 Train Model (Manual Test: Brain delegates to HTM)
+title US-05 Train Model: Brain delegates to HTM
 
-actor TrainModel
+actor Developer
 participant "Brain" as B
 participant "HTM" as H
-participant "InputField\n(timestamp)" as IFTS
-participant "InputField\n(kw_energy_consumption)" as IFKWH
+participant "InputField" as IFTS
+participant "InputField" as IFKWH
 participant "ColumnField" as CF
 
-group Build brain runtime (manual_test.py)
-  TrainModel -> B: build_brain(field_sizes)
+group Build brain runtime
+  Developer -> B: build_brain(field_sizes)
   activate B
   B -> H: initialize InputFields + ColumnField
   H --> B: ready
-  B --> TrainModel: brain instance
+  B --> Developer: brain instance
   deactivate B
 end
 
 group Training loop (learn=True)
   loop each normalized row
-    TrainModel -> B: step(row, learn=True)
+    Developer -> B: step(row, learn=True)
     activate B
     B -> H: step(inputs, learn)
     activate H
@@ -38,7 +38,7 @@ group Training loop (learn=True)
 
     H --> B: prediction()
     deactivate H
-    B --> TrainModel: prediction()
+    B --> Developer: prediction()
     deactivate B
   end
 end

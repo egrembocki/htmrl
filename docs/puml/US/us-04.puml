@@ -2,21 +2,22 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-04 Input Parameters (Brain is the Runtime Entry Point)
+title US-04 Input Parameters:Encoder Constructors
 
 actor Developer
 participant "Encoder Constructors" as EC
 participant "InputHandler" as IH
 participant "Brain" as B
+participant "InputField" as IFTS
 
 Developer -> EC: pass encoder parameters\n(e.g., ScalarEncoderParameters, RDSEParameters)
 EC --> Developer: configured encoder instances
 
-Developer -> IH: input_data(input_source, required_columns?)
+Developer -> IH: input_data(input_source, required_columns)
 activate IH
 IH -> IH: _process_dataframe(df, required_columns)
 opt required_columns provided
-  IH -> IH: add missing columns with None + reorder
+  IH -> IH: add missing columns
 end
 IH --> Developer: normalized dict[Any, list[Any]]
 deactivate IH
@@ -26,8 +27,13 @@ activate B
 B --> Developer: ready for step(inputs, learn)
 deactivate B
 
-note over Developer,B
-Brain is the runtime entry point in the current design.
-Parameter tuning is manual via constructor args.
+B -> IFTS: initialize with provided encoder parameters
+activate IFTS
+IFTS --> B: encoder ready
+deactivate IFTS
+
+note over EC,B
+Brain is the runtime entry point for encoder parameters.
+Parameter tuning is also entered manually via constructor args dataclass.
 end note
 @enduml
