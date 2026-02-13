@@ -2,14 +2,18 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-10 End-to-End Data to HTM Summary (Current Code)
+autonumber
+
+title US-10 Summary End-to-End Pipeline (Input → Encoder → Brain/HTM → Fields)
 
 actor Developer
 participant "InputHandler" as IH
 participant "EncoderHandler" as EH
-participant "FourierEncoder" as FFT
+participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier)" as FE
+participant "InputField(s)" as IF
 participant "Brain" as BR
-participant "ColumnField" as CF
+participant "HTM" as HTM
+participant "ColumnField(s)" as CF
 
 Developer -> IH: input_data(input_source, required_columns?)
 activate IH
@@ -20,40 +24,69 @@ else in-memory payload
   IH -> IH: _coerce_non_file_to_dataframe(input_source)
 end
 IH -> IH: _process_dataframe(df, required_columns)
-IH --> Developer: columns_dict: dict[Any, list[Any]]
+IH --> Developer: normalized records / columns_dict
 deactivate IH
 
-alt record/categorical pipeline
-  Developer -> EH: build_composite_sdr(records)
-  activate EH
-  loop for each row and column
-    EH -> EH: select encoder by value type
-    EH -> EH: encode(value) + concatenate row SDR
-  end
-  EH --> Developer: row_sdrs: list[SDR]
-  deactivate EH
-else frequency pipeline
-  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
-  activate IH
-  IH -> IH: _process_dataframe(df, required_columns)
-  IH -> IH: infer/sanitize sequence column + drop None
-  IH --> Developer: sequence: dict[column, list[Any]]
-  deactivate IH
-
-  Developer -> FFT: encode(np.ndarray(sequence_values))
-  activate FFT
-  FFT -> FFT: _trim + scipy.fft.fft + range encoding
-  FFT --> Developer: frequency SDR
-  deactivate FFT
+Developer -> EH: encode(record)
+activate EH
+loop for each configured field
+  EH -> FE: encode(value, sdr)
+  activate FE
+  FE --> EH: field-level SDR bits
+  deactivate FE
 end
+EH --> Developer: composite input SDR
+deactivate EH
 
 Developer -> BR: step(inputs, learn=True)
 activate BR
-BR -> BR: encode_only(inputs)
-BR -> CF: compute(learn=True)
+BR -> IF: encode_only(inputs)
+activate IF
+IF -> FE: encode(value) / decode(bits, candidates?)
+activate FE
+FE --> IF: encoded bits or decoded value/confidence
+deactivate FE
+IF --> BR: input SDR vectors
+deactivate IF
+
+BR -> HTM: compute/step(input_sdr, learn=True)
+activate HTM
+HTM -> CF: compute(learn=True)
 activate CF
-CF --> BR: updated HTM state
+CF --> HTM: active columns + learning state
 deactivate CF
-BR --> Developer: decoded output map
+HTM --> BR: inference/predictive state
+deactivate HTM
+
+loop for each registered field
+  BR -> IF: decode("predictive")
+  activate IF
+  IF -> FE: decode(bit_vector, candidates?)
+  activate FE
+  FE --> IF: decoded value + confidence
+  deactivate FE
+  IF --> BR: (value, confidence)
+  deactivate IF
+end
+
+BR --> Developer: decoded output map + HTM state
 deactivate BR
+
+alt optional frequency-only preprocessing
+  Developer -> IH: to_encoder_sequence(input_source, required_columns?, column?)
+  activate IH
+  IH -> IH: infer/sanitize sequence column + drop None
+  IH --> Developer: sequence values
+  deactivate IH
+
+  Developer -> FE: FourierEncoder.encode(sequence ndarray)
+  activate FE
+  FE --> Developer: frequency SDR
+  deactivate FE
+else default mixed-field pipeline
+  note over IH,CF
+    Primary runtime path uses InputHandler + EncoderHandler +
+    Field encoders feeding Brain/HTM with field-level decode support.
+  end note
+end
 @enduml
