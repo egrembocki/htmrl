@@ -10,7 +10,6 @@ participant "Brain" as B
 participant "HTM" as H
 participant "InputField" as IFTS
 participant "InputField" as IFKWH
-participant "ColumnField" as CF
 
 group Input layer produces reusable output
   Developer -> IH: input_data(data, required_columns)
@@ -41,15 +40,6 @@ group Brain delegates encoding/computation to HTM
     IFTS --> H: encoded bits
     deactivate IFTS
 
-    H -> CF: compute(learn)
-    activate CF
-    CF --> H: updated active/predictive state
-    deactivate CF
-
-    H --> B: prediction()
-    deactivate H
-    B --> Developer: prediction()
-    deactivate B
-  end
+  
 end
 @enduml

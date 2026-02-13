@@ -6,12 +6,12 @@ autonumber
 
 title US-11 Decode SDR to Value (Current Code Support)
 
-actor TrainModel
+actor "Developer" as Dev
 participant "Brain" as BR
 participant "InputField" as IF
 participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
 
-TrainModel -> BR: prediction()
+Dev -> BR: prediction()
 activate BR
 loop for each registered input field
   BR -> IF: decode("predictive")
@@ -24,14 +24,14 @@ loop for each registered input field
   IF --> BR: tuple(value, confidence)
   deactivate IF
 end
-BR --> TrainModel: dict[input_name, value/confidence]
+BR --> Dev: dict[input_name, value/confidence]
 deactivate BR
 
 alt direct decoder usage in tests/scripts
-  TrainModel -> ENC: encode(input)
-  ENC --> TrainModel: encoded SDR bits
-  TrainModel -> ENC: decode(encoded, candidates?)
-  ENC --> TrainModel: value/confidence or decoded dict
+  Dev -> ENC: encode(input)
+  ENC --> Dev: encoded SDR bits
+  Dev -> ENC: decode(encoded, candidates?)
+  ENC --> Dev: value/confidence or decoded dict
 end
 
 note over ENC

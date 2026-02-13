@@ -2,10 +2,10 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-05 Train Model (Boundary: orchestrates training, delegates to Brain)
+title US-05 Train Model (Orchestrates training, delegates to Brain)
 
 actor Developer as D
-participant "TrainModel\n(script/service)" as TM
+participant "TrainModel" as TM
 participant "Brain" as B
 
 D -> TM: start_training(dataset, epochs)
@@ -19,11 +19,8 @@ loop each training row
     TrainModel does not call HTM directly.
   end note
 
-  B --> TM: {
-    prediction,
-    confidence,
-    debug_stats?
-  }
+  B --> TM: prediction,confidence,debug_stats
+  
   deactivate B
 end
 

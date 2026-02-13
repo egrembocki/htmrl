@@ -25,7 +25,6 @@ deactivate IH
 Developer -> B: initialize Brain with configured components/params
 activate B
 B --> Developer: ready for step(inputs, learn)
-deactivate B
 
 B -> IFTS: initialize with provided encoder parameters
 activate IFTS
@@ -33,6 +32,7 @@ IFTS --> B: encoder ready
 deactivate IFTS
 
 note over EC,B
+deactivate B
 Brain is the runtime entry point for encoder parameters.
 Parameter tuning is also entered manually via constructor args dataclass.
 end note

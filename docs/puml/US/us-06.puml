@@ -2,16 +2,16 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-06 Train Brain (Boundary: Brain training internals)
+title US-06 Train Brain (Brain training internals)
 
-actor "TrainModel" as TM
+actor "Developer" as Dev
 participant "Brain" as B
 participant "InputField(s)" as IF
 participant "ColumnField" as CF
 participant "HTM Engine" as H
 participant "OutputField(s)" as OF
 
-TM -> B: step(inputs, learn=True)
+Dev -> B: step(inputs, learn=True)
 activate B
 
 == 1) Encode inputs ==
@@ -30,12 +30,8 @@ H -> H: advance_states()
 H -> H: spatial pooling overlap + inhibition
 H -> H: temporal memory activation + prediction
 H -> H: learning updates (grow/adapt/weaken)
-H --> CF: {
-  active_columns,
-  predictive_cells,
-  anomaly_score,
-  learning_state
-}
+H --> CF: active_columns,predictive_cells, anomaly_score,learning_state
+
 deactivate H
 CF --> B: HTM state package
 
@@ -47,7 +43,7 @@ activate OF
 OF --> B: decoded value + confidence
 
 deactivate OF
-B --> TM: prediction payload
+B --> Dev: prediction payload
 
 deactivate B
 @enduml

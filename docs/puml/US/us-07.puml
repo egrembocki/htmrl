@@ -2,7 +2,7 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-07 Use HTM Engine (Boundary: HTM compute/learn contract)
+title US-07 Use HTM Engine (HTM compute/learn)
 
 actor "Brain" as B
 participant "ColumnField" as CF
@@ -35,13 +35,7 @@ end
 
 H -> H: set_prediction()
 
-H --> CF: {
-  active_columns,
-  active_cells,
-  predictive_cells,
-  anomaly_score,
-  confidence_signal
-}
+H --> CF: active_columns,active_cells,predictive_cells,anomaly_score,confidence_signal
 deactivate H
 CF --> B: HTM result object
 
