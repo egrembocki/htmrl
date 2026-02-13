@@ -3,61 +3,25 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-11 Summary End-to-End Pipeline (Input → Encoder → Brain/HTM → Fields)
+title US-11 Decode SDR to Value (Prediction Originates in Brain/HTM)
 
 actor Developer
 participant "InputHandler" as IH
 participant "EncoderHandler" as EH
 participant "Brain" as BR
-participant "InputField(s)" as IF
-participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)" as FE
-participant "HTM" as HTM
-participant "ColumnField(s)" as CF
+participant "HTM / ColumnField" as HTM
+participant "InputField" as IF
+participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
 
-Developer -> IH: input_data(input_source, required_columns)
-activate IH
-IH -> IH: _is_file_path(input_source)
-alt supported file path
-  IH -> IH: _load_file_to_dataframe(path)
-else in-memory payload
-  IH -> IH: _coerce_non_file_to_dataframe(input_source)
-end
-IH -> IH: _process_dataframe(df, required_columns)
-IH --> Developer: normalized records / columns_dict
-deactivate IH
-
-Developer -> EH: encode(record)
-activate EH
-loop for each configured field
-  EH -> FE: encode(value, sdr)
-  activate FE
-  FE --> EH: field-level SDR bits
-  deactivate FE
-end
-EH --> Developer: composite input SDR
-deactivate EH
-
-Developer -> BR: step(inputs, learn=True)
+Dev -> BR: step(inputs, learn=False)
 activate BR
-BR -> IF: encode_only(inputs)
-activate IF
-IF -> FE: encode(value) / decode(bits, candidates)
-activate FE
-FE --> IF: encoded bits or decoded value/confidence
-deactivate FE
-IF --> BR: input SDR vectors
-deactivate IF
-
-BR -> HTM: compute/step(input_sdr, learn=True)
+BR -> HTM: compute(learn=False)
 activate HTM
-HTM -> CF: compute(learn=True)
-activate CF
-CF --> HTM: active columns + learning state
-deactivate CF
-HTM --> BR: inference/predictive state
+HTM --> BR: predictive state
 deactivate HTM
 
-loop for each registered field
+BR -> BR: prediction() uses predictive state
+loop for each registered input field
   BR -> IF: decode("predictive")
   activate IF
   IF -> FE: decode(bit_vector, candidates)
@@ -78,14 +42,8 @@ alt optional frequency-only preprocessing
   IH --> Developer: sequence values
   deactivate IH
 
-  Developer -> FE: FourierEncoder.encode(sequence ndarray)
-  activate FE
-  FE --> Developer: frequency SDR
-  deactivate FE
-else default mixed-field pipeline
-  note over IH,CF
-    Primary runtime path uses InputHandler + EncoderHandler +
-    Field encoders feeding Brain/HTM with field-level decode support.
-  end note
-end
+note over BR,HTM
+Predictions are produced from Brain/HTM predictive state,
+then decoded by InputField + encoder decode APIs.
+end note
 @enduml

@@ -4,12 +4,15 @@ skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 autonumber
 
-title US-10 Decode SDR to Value
+title US-10A End-to-End Pipeline (Current + RL Integration Entry Points)
 
 actor "Developer" as Dev
 participant "Brain" as BR
-participant "InputField" as IF
-participant "RDSE / Scalar / Date / Category / Fourier Encoder" as ENC
+participant "InputField(s)" as IF
+participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)" as FE
+participant "HTM" as HTM
+participant "ColumnField(s)" as CF
+participant "RL Adapter\n(planned)" as RLA
 
 Dev -> BR: prediction()
 activate BR
@@ -24,18 +27,89 @@ loop for each registered input field
   IF --> BR: tuple(value, confidence)
   deactivate IF
 end
-BR --> Dev: dict[input_name, value/confidence]
+
+BR -> RLA: export state/action context
+activate RLA
+RLA --> BR: features for RL policy/value model
+deactivate RLA
+
+BR --> Developer: decoded output map + HTM state
 deactivate BR
 
-alt direct decoder usage in tests/scripts
-  Dev -> ENC: encode(input)
-  ENC --> Dev: encoded SDR bits
-  Dev -> ENC: decode(encoded, candidates?)
-  ENC --> Dev: value/confidence or decoded dict
-end
+note over RLA
+RL Adapter is the planned bridge between
+HTM/decoded state and the RL training loop.
+end note
+@enduml
 
-note over ENC
-Decoding support is implemented across encoder classes.
-Round-trip decode behavior is validated in decoder test suites.
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title US-10B Planned RL Loop (Figure 6-1 / 6-2 Alignment)
+
+actor Developer
+participant "Brain + HTM State" as BR
+participant "RL Adapter" as RLA
+participant "RL Model\n(Policy/Value Network)" as RLM
+participant "Environment" as ENV
+participant "Replay Buffer\n(planned)" as RB
+participant "Trainer\n(planned)" as TR
+participant "Metrics/Checkpoint\n(planned)" as MC
+
+Developer -> BR: run_episode(step_limit)
+activate BR
+loop each timestep t
+  BR -> RLA: state_t, prediction_t
+  activate RLA
+  RLA -> RLM: infer_action(state_t)
+  activate RLM
+  RLM --> RLA: action_t (+ confidence / logits)
+  deactivate RLM
+  RLA --> BR: action_t
+  deactivate RLA
+
+  BR -> ENV: apply(action_t)
+  activate ENV
+  ENV --> BR: reward_t, next_state_t, done
+  deactivate ENV
+
+  BR -> RB: append(state_t, action_t, reward_t, next_state_t, done)
+  activate RB
+  RB --> BR: stored transition
+  deactivate RB
+
+  alt scheduled training step
+    BR -> TR: train_step(sample_from=RB)
+    activate TR
+    TR -> RB: sample(batch)
+    RB --> TR: transitions
+    TR -> RLM: update policy/value weights
+    activate RLM
+    RLM --> TR: updated parameters
+    deactivate RLM
+    TR -> MC: log loss/reward + checkpoint
+    activate MC
+    MC --> TR: persisted artifacts
+    deactivate MC
+    TR --> BR: training metrics
+    deactivate TR
+  end
+
+  alt done == true
+    BR -> MC: write episode summary
+    activate MC
+    MC --> BR: summary id/path
+    deactivate MC
+    break
+  end
+end
+BR --> Developer: episode report + updated model refs
+deactivate BR
+
+note over RLA,MC
+This diagram captures planned RL-only components that
+extend the current end-to-end pipeline in US-10A.
 end note
 @enduml
