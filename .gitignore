@@ -1,4 +1,17 @@
- Executables and build outputs
+# archive files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.doc
+*.pdf
+archive/
+
+#Executables and build outputs
 *.exe
 *.dll
 *.pdb
@@ -30,6 +43,7 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+*.egg-info
 .installed.cfg
 *.egg
 MANIFEST
@@ -151,7 +165,6 @@ celerybeat.pid
 # Environments
 #.env
 .venv
-.venv/*
 .vscode
 .requirements.txt
 .flake8

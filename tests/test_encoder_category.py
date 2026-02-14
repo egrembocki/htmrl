@@ -3,7 +3,6 @@
 import pytest
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -34,7 +33,6 @@ def test_encode_us():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    # a = SDR([1, 12])
     a = e.encode("US")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
     assert a == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
@@ -48,7 +46,6 @@ def test_unknown_category():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    # a = SDR([1, 12])
     a = e.encode("NA")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
     assert a == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -62,7 +59,6 @@ def test_encode_es():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
     e = CategoryEncoder(parameters=parameters)
-    # a = SDR([1, 12])
     a = e.encode("ES")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
     assert a == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
@@ -84,7 +80,6 @@ def test_with_width_one():
     i = 0
     """The respective category should equal their index of expected results."""
     for cat in categories:
-        # a = SDR([1, 6])
         a = e.encode(cat)
         assert a == expected[i]
         i = i + 1
@@ -99,8 +94,6 @@ def test_rdse_used():
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories)
     e1 = CategoryEncoder(parameters=parameters)
-    # a1 = SDR([1, 12])
-    # a2 = SDR([1, 12])
     """These asserts just check that both SDRs are identical when the same category is encoded."""
     a1 = e1.encode("ES")
     a2 = e1.encode("ES")
@@ -114,3 +107,34 @@ def test_rdse_used():
     a1 = e1.encode("NA")
     a2 = e1.encode("NA")
     assert a1 == a2
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, length)
+# ---------------------------------------------------------------------------
+
+
+def test_category_encode_output_only_zeros_and_ones():
+    """CategoryEncoder output must contain only 0 and 1."""
+    categories = ["ES", "GB", "US"]
+    for rdse_used in (False, True):
+        parameters = CategoryParameters(w=3, category_list=categories, rdse_used=rdse_used)
+        encoder = CategoryEncoder(parameters)
+        for cat in categories + ["NA"]:
+            out = encoder.encode(cat)
+            assert all(
+                b in (0, 1) for b in out
+            ), f"Output must be binary (0/1), rdse_used={rdse_used}, cat={cat!r}, got {set(out)}"
+
+
+def test_category_encode_output_length_equals_size():
+    """CategoryEncoder output length must equal (num_categories + 1) * w."""
+    categories = ["ES", "GB", "US"]
+    w = 4
+    parameters = CategoryParameters(w=w, category_list=categories, rdse_used=False)
+    encoder = CategoryEncoder(parameters)
+    expected_size = (len(categories) + 1) * w  # +1 for unknown
+    out = encoder.encode("US")
+    assert (
+        len(out) == expected_size
+    ), f"Output length must equal (1+len(categories))*w = {expected_size}, got {len(out)}"

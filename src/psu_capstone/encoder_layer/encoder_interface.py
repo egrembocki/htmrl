@@ -15,7 +15,7 @@ class EncoderInterface(Protocol):
 
         ...
 
-    def encode(self, input_value: Any, output_sdr: Any) -> None:
+    def encode(self, input_value: Any) -> list[int]:
         """Encodes a single input value and returns the encoded output.
 
         Args:

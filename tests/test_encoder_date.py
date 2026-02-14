@@ -8,12 +8,18 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
 from psu_capstone.log import logger
-from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
 def date_encoder_instance() -> DateEncoder:
-    """Fixture to create a DateEncoder instance for testing."""
+    """Fixture to create a DateEncoder instance for testing. This can be used to test any defualt DateEncoder object.
+
+    Usage:
+        def test_example(date_encoder_instance):
+            # Use date_encoder_instance in your test
+            pass
+
+    """
 
     return DateEncoder()
 
@@ -27,11 +33,11 @@ def test_season():
         season_sparsity=0.0,
         season_radius=91.5,
         season_resolution=0.0,
-        day_of_week_size=0,
-        weekend_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -67,7 +73,8 @@ def test_season():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     # Assert
@@ -78,16 +85,16 @@ def test_day_of_week():
 
     # Arrange
     date_params = DateEncoderParameters(
-        season_size=0,
+        season_active_bits=0,
         day_of_week_size=2048,
         day_of_week_active_bits=2,
         day_of_week_radius=292.57,
         day_of_week_resolution=0.0,
         day_of_week_sparsity=0.0,
-        weekend_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -111,7 +118,8 @@ def test_day_of_week():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder day_of_week test failed!"
@@ -125,11 +133,11 @@ def test_weekend():
         weekend_radius=39.38,
         weekend_resolution=0.0,
         weekend_sparsity=0.0,
-        season_size=0,
-        day_of_week_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -166,7 +174,8 @@ def test_weekend():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder weekend test failed!"
@@ -180,11 +189,11 @@ def test_holiday():
         holiday_radius=186.18,
         holiday_resolution=0.0,
         holiday_sparsity=0.0,
-        season_size=0,
-        day_of_week_size=0,
-        weekend_size=0,
-        time_of_day_size=0,
-        custom_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
     date_encoder = DateEncoder(date_params)
@@ -224,7 +233,8 @@ def test_holiday():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder holiday test failed!"
@@ -237,11 +247,11 @@ def test_time_of_day():
         time_of_day_radius=42.67,
         time_of_day_resolution=0.0,
         time_of_day_sparsity=0.0,
-        season_size=0,
-        day_of_week_size=0,
-        weekend_size=0,
-        holiday_size=0,
-        custom_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        custom_active_bits=0,
         rdse_used=False,
     )
 
@@ -278,7 +288,8 @@ def test_time_of_day():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder time_of_day test failed!"
@@ -292,11 +303,11 @@ def test_custom_day():
         custom_resolution=0.0,
         custom_sparsity=0.0,
         custom_days=["Monday", "Mon, Wed, Fri"],
-        season_size=0,
-        day_of_week_size=0,
-        weekend_size=0,
-        holiday_size=0,
-        time_of_day_size=0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
         rdse_used=False,
     )
 
@@ -333,7 +344,8 @@ def test_custom_day():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     assert actual_encoding == expected_encoding, "DateEncoder custom_day test failed!"
@@ -410,10 +422,60 @@ def test_all_combined():
     for test in test_case:
         dt = datetime(test[0], test[1], test[2], test[3], test[4])
         encoding = date_encoder.encode(dt)
-        actual_encoding.append(encoding)
+        sparsity = [i for i, x in enumerate(encoding) if x == 1]
+        actual_encoding.append(sparsity)
         logger.info(f"Date: {dt} -> Encoding: {encoding}")
 
     # Assert
     assert (
         actual_encoding == expected_encoding
     ), "DateEncoder season_day_of_week_combined test failed!"
+
+
+# ---------------------------------------------------------------------------
+# Output format and parameter conformance (binary 0/1 only, length)
+# ---------------------------------------------------------------------------
+
+
+def test_date_encode_output_only_zeros_and_ones():
+    """DateEncoder output must contain only 0 and 1."""
+    date_params = DateEncoderParameters(
+        season_size=100,
+        season_active_bits=2,
+        season_sparsity=0.0,
+        season_radius=25.0,
+        season_resolution=0.0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
+        rdse_used=False,
+    )
+    date_encoder = DateEncoder(date_params)
+    dt = datetime(2020, 1, 1, 0, 0)
+    out = date_encoder.encode(dt)
+    assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
+
+
+def test_date_encode_output_length_equals_size():
+    """DateEncoder output length must equal the configured total size."""
+    date_params = DateEncoderParameters(
+        season_size=100,
+        season_active_bits=2,
+        season_sparsity=0.0,
+        season_radius=25.0,
+        season_resolution=0.0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
+        rdse_used=False,
+    )
+    date_encoder = DateEncoder(date_params)
+    dt = datetime(2020, 1, 1, 0, 0)
+    out = date_encoder.encode(dt)
+    assert (
+        len(out) == date_encoder._size
+    ), f"Output length must equal encoder size ({date_encoder._size}), got {len(out)}"

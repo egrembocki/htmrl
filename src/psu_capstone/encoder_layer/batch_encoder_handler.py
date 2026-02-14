@@ -35,7 +35,7 @@ class RdseThread(Thread):
         Args:
             column_data (pd.Series): The input data column to encode.
             params (RDSEParameters): Parameters for RDSE encoding.
-            output (List[SDR]): A list to store the encoded SDRs.
+            output (list[SDR]): A list to store the encoded SDRs.
             row_offset (int): Offset to place encoded SDRs in the output list.
         """
         super().__init__()
@@ -85,7 +85,7 @@ class ScalarThread(Thread):
         Args:
             column_data (pd.Series): The input data column to encode.
             params (ScalarEncoderParameters): Parameters for RDSE encoding.
-            output (List[SDR]): A list to store the encoded SDRs.
+            output (list[SDR]): A list to store the encoded SDRs.
             row_offset (int): Offset to place encoded SDRs in the output list.
         """
         super().__init__()
@@ -134,7 +134,7 @@ class DateThread(Thread):
         Args:
             column_data (pd.Series): The input data column to encode.
             params (DateEncoderParameters): Parameters for RDSE encoding.
-            output (List[SDR]): A list to store the encoded SDRs.
+            output (list[SDR]): A list to store the encoded SDRs.
             row_offset (int): Offset to place encoded SDRs in the output list.
         """
         super().__init__()
@@ -180,7 +180,7 @@ class CategoryThread(Thread):
         Args:
             column_data (pd.Series): The input data column to encode.
             params (CategoryEncoder): Parameters for RDSE encoding.
-            output (List[SDR]): A list to store the encoded SDRs.
+            output (list[SDR]): A list to store the encoded SDRs.
             row_offset (int): Offset to place encoded SDRs in the output list.
         """
         super().__init__()

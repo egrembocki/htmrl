@@ -1,16 +1,25 @@
+"""
+@Nemunta - NuPic
+* Parameters for the RandomDistributedScalarEncoder (RDSE)
+*
+* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+* of them.
+*
+* Members "radius", "resolution", & "category" are mutually exclusive, specify
+* exactly one of them.
+"""
+
 import copy
-import math
 import random
 import struct
 from dataclasses import dataclass
-from typing import override
+from typing import Iterable, override
 
 import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.sdr_layer.sdr import SDR
 
 """
  * Parameters for the RandomDistributedScalarEncoder (RDSE)
@@ -21,51 +30,6 @@ from psu_capstone.sdr_layer.sdr import SDR
  * Members "radius", "resolution", & "category" are mutually exclusive, specify
  * exactly one of them.
 """
-
-
-@dataclass
-class RDSEParameters:
-
-    size: int = 2048
-    """
-    * Member "size" is the total number of bits in the encoded output SDR.
-    """
-    active_bits: int = 40
-    """
-    * Member "activeBits" is the number of true bits in the encoded output SDR.
-    """
-    sparsity: float = 0.0
-    """
-    * Member "sparsity" is the fraction of bits in the encoded output which this
-    * encoder will activate. This is an alternative way to specify the member
-    * "activeBits".
-    """
-    radius: float = 1.0
-    """
-    * Member "radius" Two inputs separated by more than the radius have
-    * non-overlapping representations. Two inputs separated by less than the
-    * radius will in general overlap in at least some of their bits. You can
-    * think of this as the radius of the input.
-    """
-    resolution: float = 0.0
-    """
-    * Member "resolution" Two inputs separated by greater than, or equal to the
-    * resolution will in general have different representations.
-    """
-    category: bool = False
-    """
-    * Member "category" means that the inputs are enumerated categories.
-    * If true then this encoder will only encode unsigned integers, and all
-    * inputs will have unique / non-overlapping representations.
-    """
-    seed: int = 42
-    """
-    * Member "seed" forces different encoders to produce different outputs, even
-    * if the inputs and all other parameters are the same.  Two encoders with the
-    * same seed, parameters, and input will produce identical outputs.
-    *
-    * The seed 0 is special.  Seed 0 is replaced with a random number.
-    """
 
 
 """
@@ -84,9 +48,7 @@ class RDSEParameters:
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
 
-    def __init__(
-        self, parameters: RDSEParameters = RDSEParameters(), dimensions: list[int] | None = None
-    ):
+    def __init__(self, parameters: "RDSEParameters", dimensions: list[int] | None = None):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -97,8 +59,8 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._resolution = self._parameters.resolution
         self._category = self._parameters.category
         self._seed = self._parameters.seed
-        self._sdrs_encoded: list[np.ndarray] = []
-        self._input_values_encoded: list[float] = []
+        self._encoding_cache: dict[float, list[int]] = {}
+        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
@@ -106,27 +68,38 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     @override
     def encode(self, input_value: float) -> list[int]:
-        """Encode the input value into an dense SDR.
+        """Encode the input value into a binary vector."""
+        self.register_encoding(input_value)
+        return self._compute_encoding(input_value)
 
-        Args:
-            input_value (float): The input value to encode.
-        Returns:
-            list[int]: The dense SDR representation as a list of integers (0s and 1s).
-        Raises:
-            ValueError: If the input value is invalid for category encoding.
+    def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
+        """Caches an encoding so decode_closest can compare against it."""
+        vector = encoded if encoded is not None else self._compute_encoding(input_value)
+        if len(vector) != self.size:
+            raise ValueError("Stored encoding must be the same length as encoder size")
+        self._encoding_cache[input_value] = vector
+        return vector
 
+    def clear_registered_encodings(self) -> None:
+        """Clears cached encodings used for nearest-neighbor decoding."""
+        self._encoding_cache.clear()
+
+    def _compute_encoding(self, input_value: float) -> list[int]:
         """
+        Uses murmurhash3 algorithm to encode a float value.
 
+        :param self: Description
+        :param input_value: The value we want encoded.
+        :type input_value: float
+        :return: Returns a list of integers that signify an SDR.
+        :rtype: list[int]
+        """
         if self._category:
             if input_value != int(input_value) or input_value < 0:
                 raise ValueError("Input to category encoder must be an unsigned integer")
-
-        # I am appendding every successful input_value to the local list for knn regressor use.
-        self._input_values_encoded.append(input_value)
         self.encoding = True
+        data = [0] * self.size
 
-        sdr_output = [0] * self.size  # pad zeros into a dense list
-        assert self._resolution > 0.0, "Resolution must be greater than 0."
         index = int(input_value / self._resolution)
 
         for offset in range(self._active_bits):
@@ -148,38 +121,94 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
                 deviations in the sparsity or semantic similarity, depending on how
                 they're handled.
             """
-            sdr_output[bucket] = 1  # dense
+            data[bucket] = 1
+        return data
 
-        # add the density to the sdrs encoder list for knn regressor use
+    @staticmethod
+    def _overlap(first: list[int], second: list[int]) -> int:
+        """
+        Checks for overlapping bits in two Lists of integers.
 
-        data_array = np.array(sdr_output, dtype=np.uint8)
+        :param first: The first list in checking.
+        :type first: list[int]
+        :param second: The second list in checking.
+        :type second: list[int]
+        :return: Returns the overlapping bits.
+        :rtype: int
+        """
+        if len(first) != len(second):
+            raise ValueError("Vectors must be the same length to compute overlap")
+        return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
 
-        self._sdrs_encoded.append(data_array)
+    def sparsify(self, vector: list[int]) -> list[int]:
+        """Converts a sparse activity vector to a activation list."""
+        return [i for i, bit in enumerate(vector) if bit == 1]
 
-        # output_sdr.set_dense(data)
-        return sdr_output
+    def decode(
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[float | None, float]:
+        """Returns the value whose encoding overlaps the most with the provided SDR."""
+        if len(encoded) != self.size:
+            raise ValueError(
+                f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
+            )
 
-    def make_knn(self):
-        x = np.array(self._sdrs_encoded, dtype=np.uint8)
-        y = np.array(self._input_values_encoded, dtype=np.float32)
-        knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
+        search_values = (
+            list(candidates) if candidates is not None else list(self._encoding_cache.keys())
+        )
+        if not search_values:
+            raise ValueError("No candidate encodings available for decoding")
+
+        best_value: float | None = None
+        best_overlap = -1
+
+        for candidate in search_values:
+            candidate_encoding = self._encoding_cache.get(candidate)
+            if candidate_encoding is None:
+                candidate_encoding = self.register_encoding(candidate)
+            overlap = self._overlap(encoded, candidate_encoding)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_value = candidate
+
+        confidence = (
+            best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
+        )
+        return best_value, confidence
+
+    def make_knn(self) -> None:
+        """
+        Alternate method to decode where it employs a knn regressor model.
+
+        :param self: Description
+        """
+        if not self._encoding_cache:
+            raise ValueError("No registered encodings available to build KNN")
+
+        x = np.array(list(self._encoding_cache.values()), dtype=np.uint8)
+        y = np.array(list(self._encoding_cache.keys()), dtype=np.float32)
+
+        knn = KNeighborsRegressor(
+            n_neighbors=min(2, len(y)),
+            weights="distance",
+            metric="hamming",
+        )
         knn.fit(x, y)
         self.knn = knn
 
-    def decode(self, input_sdr: SDR) -> float:
-        # x = np.array(self._sdrs_encoded, dtype=np.uint8)
-        # y = np.array(self._input_values_encoded, dtype=np.float32)
-        # knn = KNeighborsRegressor(n_neighbors=2, weights="distance", metric="hamming")
-        # knn.fit(x, y)
+    def decode_knn(self, encoded: list[int]) -> float:
+        """Returns the value whose encoding overlaps the most with the provided SDR."""
+        if len(encoded) != self.size:
+            raise ValueError("Encoded input must match encoder size")
         if self.encoding:
-            self.makeKnn()
+            self.make_knn()
             self.encoding = False
-        query = np.asarray(input_sdr.get_dense(), dtype=np.int8).reshape(1, -1)
+        query = np.asarray(encoded, dtype=np.int8).reshape(1, -1)
         result = self.knn.predict(query)
         return result.item()
 
     # After encode we may need a check_parameters method since most of the encoders have this
-    def check_parameters(self, parameters: RDSEParameters):
+    def check_parameters(self, parameters: "RDSEParameters"):
         """Method to check mutually exclusive parameters and fill in missing values.
 
         Args:
@@ -187,15 +216,15 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         Returns:
             RDSEParameters: The checked and filled in parameters.
         Raises:
-            AssertionError: If the parameters are invalid.
+            ValueError: If the parameters are invalid.
 
         """
-
-        assert parameters.size > 0
+        # Check size parameter
+        if not parameters.size > 0:
+            raise ValueError("You have no size set.")
 
         num_active_args = 0
 
-        # sparisty XOR active bits
         # Check active bits / sparsity mutual exclusivity
 
         if parameters.active_bits > 0:
@@ -203,12 +232,11 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if parameters.sparsity > 0.0:
             num_active_args += 1
 
-        assert num_active_args != 0, "Missing argument, need one of: 'activeBits' or 'sparsity'."
-        assert (
-            num_active_args == 1
-        ), "Too many arguments, choose only one of: 'activeBits' or 'sparsity'."
+        if num_active_args == 0:
+            raise ValueError("Missing argument, need one of: 'activeBits' or 'sparsity'.")
+        if num_active_args != 1:
+            raise ValueError("Too many arguments, choose only one of: 'activeBits' or 'sparsity'.")
 
-        # radius XOR resolution XOR category
         # Check radius / resolution / category mutual exclusivity
         num_resolution_args = 0
         if parameters.radius > 0.0:
@@ -218,56 +246,105 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if parameters.resolution > 0.0:
             num_resolution_args += 1
 
-        assert (
-            num_resolution_args != 0
-        ), "Missing argument, need one of: 'radius', 'resolution', 'category'."
-        assert (
-            num_resolution_args == 1
-        ), "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+        if num_resolution_args == 0:
+            raise ValueError("Missing argument, need one of: 'radius', 'resolution', 'category'.")
+        if num_resolution_args != 1:
+            raise ValueError(
+                "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+            )
 
-        # Fill in missing active bits / sparsity
+        # Finish filling in all of parameters.
 
-        if parameters.sparsity > 0 and parameters.active_bits == 0:
-            assert 0 <= parameters.sparsity <= 1
+        # Determine number of activeBits.
+        if parameters.sparsity > 0:
+            if not 0 <= parameters.sparsity <= 1:
+                raise ValueError("Sparsity is not between 0 and 1 inclusive.")
             parameters.active_bits = int(round(parameters.size * parameters.sparsity))
-            assert parameters.active_bits > 0
-            assert parameters.sparsity > 0.0
+            if not parameters.active_bits > 0:
+                raise ValueError("Active bits are not greater than 0.")
 
-        # category XOR radius XOR resolution
-        # Fill in missing radius / resolution / category
-        if parameters.category and parameters.radius <= 0.0 and parameters.resolution <= 0.0:
-            parameters.radius = 1.0
+        # Determine sparsity. Always calculate this even if it was given, to correct for rounding error.
+        parameters.sparsity = float(parameters.active_bits / parameters.size)
 
-            assert parameters.radius > 0.0
-            assert parameters.resolution <= 0.0
-            assert parameters.category
-
-        if parameters.radius > 0.0 and parameters.resolution <= 0.0 and not parameters.category:
-            assert parameters.active_bits > 0
-            parameters.resolution = parameters.radius / parameters.active_bits
-            parameters.category = False
-
-            assert parameters.resolution > 0.0
-            assert not parameters.category
-            assert parameters.radius > 0.0
-
-        if parameters.resolution > 0.0 and parameters.radius <= 0.0 and not parameters.category:
-            assert parameters.active_bits > 0
+        if parameters.category:
+            parameters.active_bits = 1.0
+        # Determine resolution.
+        if parameters.radius > 0.0:
+            parameters.resolution = parameters.radius / float(parameters.active_bits)
+        # Determine radius.
+        elif parameters.resolution > 0.0:
             parameters.radius = float(parameters.active_bits) * parameters.resolution
-            parameters.category = False
 
-            assert parameters.radius > 0.0
-            assert not parameters.category
-            assert parameters.resolution > 0.0
-
-        # Handle seed == 0 case
         while parameters.seed == 0:
             parameters.seed = random.getrandbits(32)
-
         return parameters
 
 
+@dataclass
+class RDSEParameters:
+
+    size: int = 2048
+    """
+    * Member "size" is the total number of bits in the encoded output SDR.
+    """
+    active_bits: int = 40
+    """
+    * Member "activeBits" is the number of true bits in the encoded output SDR.
+    """
+    sparsity: float = 0.0
+    """
+    * Member "sparsity" is the fraction of bits in the encoded output which this
+    * encoder will activate. This is an alternative way to specify the member
+    * "activeBits".
+    """
+    radius: float = 0.0
+    """
+    * Member "radius" Two inputs separated by more than the radius have
+    * non-overlapping representations. Two inputs separated by less than the
+    * radius will in general overlap in at least some of their bits. You can
+    * think of this as the radius of the input.
+    """
+    resolution: float = 1.0
+    """
+    * Member "resolution" Two inputs separated by greater than, or equal to the
+    * resolution will in general have different representations.
+    """
+    category: bool = False
+    """
+    * Member "category" means that the inputs are enumerated categories.
+    * If true then this encoder will only encode unsigned integers, and all
+    * inputs will have unique / non-overlapping representations.
+    """
+    seed: int = 42
+    """
+    * Member "seed" forces different encoders to produce different outputs, even
+    * if the inputs and all other parameters are the same.  Two encoders with the
+    * same seed, parameters, and input will produce identical outputs.
+    *
+    * The seed 0 is special.  Seed 0 is replaced with a random number.
+    """
+    encoder_class = RandomDistributedScalarEncoder
+
+
 if __name__ == "__main__":
+    params = RDSEParameters(
+        size=2048,
+        sparsity=0.02,
+        radius=1.0,
+        active_bits=0,
+        category=False,
+        seed=12345,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    a = encoder.encode(0.1)
+    b = encoder.encode(5.1)
+
+    def _overlap_count(first: list[int], second: list[int]) -> int:
+        return int(np.count_nonzero(first == second))
+
+    print(_overlap_count(a, b))
+    print(encoder.decode(a))
+    print(encoder.decode(b))
     # Tests
     """
     params = RDSEParameters(

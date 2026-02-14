@@ -13,6 +13,7 @@ Requires-Dist: openpyxl>=3.1.2
 Requires-Dist: mmh3>=3.0
 Requires-Dist: matplotlib>=3.7
 Requires-Dist: scikit-learn>=1.7.2
+Requires-Dist: xlrd>=2.0.2
 
 # PSU Capstone Project
 
