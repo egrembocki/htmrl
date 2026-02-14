@@ -1,6 +1,7 @@
 """Tests for the Fourier encoder's frequency locality behavior."""
 
 import numpy as np
+import pytest
 
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.sdr_layer.sdr import SDR
@@ -166,3 +167,40 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
     # Assert
     assert overlap_carrier >= 0.55
     assert overlap_carrier > overlap_modulator
+
+    def test_decode_single_tone_returns_expected_frequency() -> None:
+        """Decode should identify the strongest frequency when candidates are provided.
+
+        TC-086: Decode should identify the strongest frequency when candidates are provided.
+
+        """
+
+    # Arrange
+    encoder = _build_encoder()
+    encoded = _encode_frequency(encoder, 60)
+    candidates = [20.0, 60.0, 120.0]
+
+    # Act
+    decoded = encoder.decode(encoded, candidates=candidates)
+
+    # Assert
+    assert "frequencies" in decoded
+    freq_range, decoded_value, confidence = decoded["frequencies"][0]
+    assert freq_range == (0, 200)
+    assert decoded_value == 60.0
+    assert confidence > 0.0
+
+
+def test_decode_rejects_incorrect_sdr_size() -> None:
+    """Decode should raise when the SDR size does not match encoder size.
+
+    TC-087: Decode should raise when the SDR size does not match encoder size.
+    """
+
+    # Arrange
+    encoder = _build_encoder()
+    encoded = _encode_frequency(encoder, 60)
+
+    # Act / Assert
+    with pytest.raises(ValueError):
+        encoder.decode(encoded[:-1])
