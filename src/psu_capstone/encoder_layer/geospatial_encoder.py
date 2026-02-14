@@ -55,7 +55,9 @@ class GeospatialEncoder(
         super().__init__(dimensions, self._encoder.size)
 
     @override
-    def encode(self, input_value):
+    def encode(
+        self, input_value: tuple[float, float, float] | tuple[float, float, float, float]
+    ) -> list[int]:
         if len(input_value) == 3:
             speed, lon, lat = input_value
             alt = None
