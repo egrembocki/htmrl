@@ -26,7 +26,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: "CategoryParameters", dimensions: list[int] | None = None):
+    def __init__(self, parameters: "CategoryParameters"):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
@@ -35,7 +35,7 @@ class CategoryEncoder(BaseEncoder[str]):
         self._num_categories = len(self._category_list) + 1
         self._size = self._num_categories * self._w
 
-        super().__init__(dimensions, self._size)
+        super().__init__(self._size)
         """
         If we want the RDSE to be used this will set our encoder object equal to an RDSE with the proper paremeters.
         """
@@ -49,8 +49,7 @@ class CategoryEncoder(BaseEncoder[str]):
                 category=False,
                 seed=0,
             )
-            self.encoder = RandomDistributedScalarEncoder(self.rdsep, dimensions=[self.rdsep.size])
-            self._dimensions = [self.rdsep.size]
+            self.encoder = RandomDistributedScalarEncoder(self.rdsep)
             """
             This means we want the scalar encoder to be used and this sets our encoder object to a Scalar encoder with proper parameters.
             """
@@ -67,8 +66,7 @@ class CategoryEncoder(BaseEncoder[str]):
                 radius=0.0,
                 resolution=1.0,
             )
-            self.encoder = ScalarEncoder(self.sp, dimensions=[self.sp.size])
-            self._dimensions = [self.sp.size]
+            self.encoder = ScalarEncoder(self.sp)
 
     @override
     def encode(self, input_value: str) -> list[int]:

@@ -251,7 +251,7 @@ def main():
     for i, value in enumerate(scalar_values):
         sdr1 = SDR([scalar_encoder.size])
         sdr2 = SDR([rdse_encoder.size])
-        sdr3 = SDR(category_encoder.dimensions)
+        sdr3 = SDR([category_encoder.size])
         sdr4 = SDR([date_encoder.size])
         scalar_encoder.encode(value, sdr1)
         rdse_encoder.encode(value, sdr2)
