@@ -10,6 +10,7 @@ import pytest
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
+# TC-104
 def test_rdse_decode_returns_tuple_value_confidence():
     """decode() returns (value, confidence) tuple."""
     params = RDSEParameters(
@@ -31,6 +32,7 @@ def test_rdse_decode_returns_tuple_value_confidence():
     assert 0 <= confidence <= 1
 
 
+# TC-105
 def test_rdse_decode_round_trip_same_value():
     """decode(encode(x)) returns (x, high confidence) for same encoder instance."""
     params = RDSEParameters(
@@ -50,6 +52,7 @@ def test_rdse_decode_round_trip_same_value():
         assert confidence >= 0.9, f"Round-trip confidence should be high, got {confidence}"
 
 
+# TC-106
 def test_rdse_decode_wrong_size_raises():
     """decode() with wrong-length SDR raises ValueError."""
     params = RDSEParameters(
@@ -69,6 +72,7 @@ def test_rdse_decode_wrong_size_raises():
         encoder.decode([0] * 300)
 
 
+# TC-107
 def test_rdse_decode_no_candidates_raises():
     """decode() with no prior encode (empty cache) raises ValueError."""
     params = RDSEParameters(

@@ -112,8 +112,7 @@ def test_rdse_used():
 # ---------------------------------------------------------------------------
 # Output format and parameter conformance (binary 0/1 only, length)
 # ---------------------------------------------------------------------------
-
-
+# TC-096
 def test_category_encode_output_only_zeros_and_ones():
     """CategoryEncoder output must contain only 0 and 1."""
     categories = ["ES", "GB", "US"]
@@ -127,6 +126,7 @@ def test_category_encode_output_only_zeros_and_ones():
             ), f"Output must be binary (0/1), rdse_used={rdse_used}, cat={cat!r}, got {set(out)}"
 
 
+# TC-097
 def test_category_encode_output_length_equals_size():
     """CategoryEncoder output length must equal (num_categories + 1) * w."""
     categories = ["ES", "GB", "US"]
