@@ -186,12 +186,12 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
     assert overlap_carrier >= 0.55
     assert overlap_carrier > overlap_modulator
 
+    def test_decode_single_tone_returns_expected_frequency() -> None:
+        """Decode should identify the strongest frequency when candidates are provided.
 
-def test_decode_single_tone_returns_expected_frequency() -> None:
-    """Decode should identify the strongest frequency when candidates are provided.
+        TC-086: Decode should identify the strongest frequency when candidates are provided.
 
-    TC-086: Decode should identify the strongest frequency when candidates are provided.
-    """
+        """
 
     # Arrange
     encoder = _build_encoder()

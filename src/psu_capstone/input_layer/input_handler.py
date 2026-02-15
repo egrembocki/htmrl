@@ -68,33 +68,6 @@ class InputHandler:
 
         self._data = data
 
-    def to_records(self, limit: int | None = None) -> list[dict[str, Any]]:
-        """Return the normalized column data as a list of per-row records."""
-
-        if not self._data:
-            return []
-
-        lengths = {len(values) for values in self._data.values()}
-        if len(lengths) > 1:
-            raise ValueError("Normalized column lengths are inconsistent; cannot build records.")
-
-        record_count = next(iter(lengths)) if lengths else 0
-        if limit is not None:
-            record_count = min(record_count, max(0, limit))
-
-        column_order = self._columns or list(self._data.keys())
-        records: list[dict[str, Any]] = []
-        for idx in range(record_count):
-            row: dict[str, Any] = {}
-            for column in column_order:
-                values = self._data.get(column)
-                if values is None:
-                    continue
-                row[column] = values[idx]
-            records.append(row)
-
-        return records
-
     def input_data(
         self, input_source: Any, required_columns: list[str] | None = None
     ) -> dict[Any, list[Any]]:

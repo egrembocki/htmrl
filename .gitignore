@@ -1,4 +1,17 @@
-Executables and build outputs
+# archive files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.doc
+*.pdf
+archive/
+
+#Executables and build outputs
 *.exe
 *.dll
 *.pdb

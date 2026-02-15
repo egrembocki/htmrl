@@ -20,6 +20,33 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "artifacts" / "demo"
 
 
+def _columnar_to_records(
+    columns: dict[str, list[Any]], limit: int | None = None
+) -> list[dict[str, Any]]:
+    """Convert InputHandler columnar data into per-row dictionaries."""
+
+    if not columns:
+        return []
+
+    lengths = {len(values) for values in columns.values()}
+    if not lengths:
+        return []
+    if len(lengths) != 1:
+        raise ValueError("Input columns do not share a consistent length.")
+
+    row_count = lengths.pop()
+    if limit is not None:
+        if limit <= 0:
+            return []
+        row_count = min(row_count, limit)
+
+    ordered_columns = list(columns.keys())
+    return [
+        {column: columns[column][row_idx] for column in ordered_columns}
+        for row_idx in range(row_count)
+    ]
+
+
 def _import_pyplot():
     """Import matplotlib lazily so non-visual tests can import this module."""
 
@@ -190,9 +217,9 @@ def run_full_demo(row_limit: int = 96, output_dir: Path = DEFAULT_OUTPUT_DIR) ->
 
     # 1) Start with manual_test flow (input normalization + encoder prep + brain preparation)
     from manual_test import (
+        DEMO_DATA_FILE,
         REQUIRED_COLUMNS,
         build_brain,
-        load_demo_records,
         normalize_for_brain,
         prepare_encoder_records,
     )
@@ -201,7 +228,8 @@ def run_full_demo(row_limit: int = 96, output_dir: Path = DEFAULT_OUTPUT_DIR) ->
     from psu_capstone.input_layer.input_handler import InputHandler
 
     input_handler = InputHandler()
-    records = load_demo_records(input_handler, limit=row_limit)
+    columnar_payload = input_handler.input_data(DEMO_DATA_FILE, required_columns=REQUIRED_COLUMNS)
+    records = _columnar_to_records(columnar_payload, limit=row_limit)
     if not records:
         raise ValueError("No records loaded for demo.")
 
