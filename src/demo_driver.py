@@ -274,7 +274,7 @@ def main():
 
     # Test composite SDR building
     demo_sample_df = build_demo_dataframe()
-    sub_set_df = ih.input_data(DATA_PATH, required_columns=required_columns_excel)
+    sub_set_df = ih.input_data(DATA_PATH, columns=required_columns_excel)
 
     # change values to all float to trigger rdse in sub_set_df
     for col in sub_set_df.columns:
