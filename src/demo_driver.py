@@ -228,8 +228,8 @@ def run_full_demo(row_limit: int = 96, output_dir: Path = DEFAULT_OUTPUT_DIR) ->
     from psu_capstone.input_layer.input_handler import InputHandler
 
     input_handler = InputHandler()
-    columnar_payload = input_handler.input_data(DEMO_DATA_FILE, required_columns=REQUIRED_COLUMNS)
-    records = _columnar_to_records(columnar_payload, limit=row_limit)
+    input_handler.input_data(DEMO_DATA_FILE, required_columns=REQUIRED_COLUMNS)
+    records = input_handler.to_records(limit=row_limit)
     if not records:
         raise ValueError("No records loaded for demo.")
 
