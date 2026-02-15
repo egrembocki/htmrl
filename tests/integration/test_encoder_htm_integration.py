@@ -352,11 +352,6 @@ class TestInputFieldToColumnFieldIntegration:
         input_field.encode(99.0)
         column_field.compute(learn=False)
 
-        # Should have bursting columns (unexpected input)
-        bursting_columns = column_field.bursting_columns
-        # Note: Bursting may or may not occur depending on overlap
-        # This is more of a behavioral observation test
-
 
 class TestMultipleInputFieldsIntegration:
     """Test multiple InputFields feeding into single ColumnField."""
@@ -507,12 +502,6 @@ class TestEncodeComputeDecodePipeline:
 
         input_field.encode(10.0)
         column_field.compute(learn=False)
-
-        # Check if there are predictive cells
-        predictive_cells_in_input = input_field.predictive_cells
-
-        # In non-spatial mode, predictions should propagate back to input field
-        # The test is more about verifying the pipeline works without errors
 
 
 class TestEncoderSizeAndSparsity:
@@ -771,9 +760,6 @@ class TestBranchingSequences:
         input_field.encode(20.0)  # A
         column_field.compute(learn=False)
 
-        # Should have predictions (ideally for B)
-        predictive_cells_after_XA = len(column_field.predictive_cells)
-
         # Present Y→A and check predictions
         column_field.clear_states()
         input_field.clear_states()
@@ -782,9 +768,6 @@ class TestBranchingSequences:
         column_field.compute(learn=False)
         input_field.encode(20.0)  # A
         column_field.compute(learn=False)
-
-        # Should have predictions (ideally for C)
-        predictive_cells_after_YA = len(column_field.predictive_cells)
 
         # Context-dependent predictions may not emerge with limited training
         # This test validates the system doesn't crash with branching sequences
