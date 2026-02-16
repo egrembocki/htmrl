@@ -37,7 +37,6 @@ class ScalarEncoder(BaseEncoder[int]):
     def __init__(
         self,
         parameters: "ScalarEncoderParameters",
-        dimensions: list[int] | None = None,
     ):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
@@ -54,7 +53,7 @@ class ScalarEncoder(BaseEncoder[int]):
         self._resolution = self._parameters.resolution
         self._encoding_cache: dict[float, list[int]] = {}
 
-        super().__init__(dimensions, self._size)
+        super().__init__(self._size)
 
     """
         Encodes an input value into an SDR with a block of 1's.

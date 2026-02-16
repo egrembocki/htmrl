@@ -57,7 +57,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
     def __init__(
         self,
         date_params: "DateEncoderParameters",
-        dimensions: list[int] | None = None,
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.
@@ -102,7 +101,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
         # call initialize
         self._initialize(self._date_params)
-        super().__init__(dimensions, self._size)
+        super().__init__(self._size)
 
     def _setup_feature_encoder(
         self,
@@ -299,6 +298,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             size += self._timeofday_encoder.size
 
         self._size = size
+        if self._size <= 0:
+            raise RuntimeError("DateEncoder misconfigured: no sub-encoders enabled.")
         self.size = self._size
 
     @override

@@ -295,7 +295,7 @@ def test_rdse_encode_rejects_unsupported_type():
 
 
 def test_rdse_no_encoders_enabled_raises():
-    """DateEncoder with all features disabled raises when encoding."""
+    """DateEncoder with all features disabled raises during initialization."""
     params = DateEncoderParameters(
         season_active_bits=0,
         day_of_week_active_bits=0,
@@ -305,9 +305,8 @@ def test_rdse_no_encoders_enabled_raises():
         custom_active_bits=0,
         rdse_used=True,
     )
-    encoder = DateEncoder(params)
     with pytest.raises(RuntimeError, match="no sub-encoders enabled"):
-        encoder.encode(datetime(2020, 1, 1, 0, 0))
+        DateEncoder(params)
 
 
 # ---------------------------------------------------------------------------

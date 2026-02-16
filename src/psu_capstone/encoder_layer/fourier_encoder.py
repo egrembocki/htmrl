@@ -42,7 +42,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             parameters = FourierEncoderParameters()
 
         # set the size of the base encoder
-        super().__init__(dimensions=[], size=parameters.size)
+        super().__init__(parameters.size)
 
         self._params = copy.deepcopy(parameters)
         """Fourier encoder local copy of passed parameters."""
