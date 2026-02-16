@@ -492,8 +492,6 @@ class InputHandler:
             column names that exhibit repeating temporal patterns based on the specified threshold.
 
 
-
-
         """
         # detect repeating values for any mapping key value
         dataframe = df.copy()
