@@ -24,6 +24,7 @@
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
@@ -62,3 +63,8 @@ class BaseEncoder(ABC, Generic[T]):
     def encode(self, input_value: T) -> list[int]:
         """Encodes the input value into a binary vector."""
         raise NotImplementedError("Subclasses must implement this method")
+
+
+@dataclass
+class ParentDataclass:
+    encoder_class = BaseEncoder

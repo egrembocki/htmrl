@@ -19,7 +19,7 @@ import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 
 """
  * Parameters for the RandomDistributedScalarEncoder (RDSE)
@@ -281,7 +281,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 @dataclass
-class RDSEParameters:
+class RDSEParameters(ParentDataclass):
 
     size: int = 2048
     """
