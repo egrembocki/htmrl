@@ -17,7 +17,7 @@ import math
 from dataclasses import dataclass
 from typing import Iterable, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 
 
 class ScalarEncoder(BaseEncoder[int]):
@@ -297,7 +297,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
 
 @dataclass
-class ScalarEncoderParameters:
+class ScalarEncoderParameters(ParentDataclass):
 
     minimum: int = 0
     """Min and Max
