@@ -149,6 +149,7 @@ if __name__ == "__main__":
     ih = InputHandler()
     hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
 
+    # TODO: fix to match dict data structure
     signal = (
         cast(pd.DataFrame, hot_gym)
         .drop(columns="timestamp")
@@ -169,9 +170,3 @@ if __name__ == "__main__":
             total_sparsity=0.02,
         )
     )
-
-    print(signal)
-
-    sdr_hot_gym = fft_encoder.encode(signal)
-
-    plot_sdr(sdr_hot_gym)
