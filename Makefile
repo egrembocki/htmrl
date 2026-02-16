@@ -72,7 +72,7 @@ format: ## Format code with isort and black
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
 	@uv run --active flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
-	@uv run --active flake8 . --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics --exclude=$(exclude)
+	@uv run --active flake8 . --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
 puml: ## Generate PlantUML diagrams from entire project

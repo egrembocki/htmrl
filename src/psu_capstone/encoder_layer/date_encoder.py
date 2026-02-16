@@ -19,7 +19,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Iterable, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+import pandas as pd
+
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
@@ -425,7 +427,7 @@ class DateEncoder(BaseEncoder[datetime | time.struct_time | None]):
         :param candidates: Iterable candidates, no function yet.
         :type candidates: Iterable[float] | None
         :return: Returns a Tuple of [value, confidence]....n times/the number of encoders that had been used.
-        :rtype: Tuple[Tuple[float | None], Tuple[float | None], Tuple[float | None], Tuple[float | None], Tuple[float | None], Tuple[float | None]]
+        :rtype: dict[str, tuple[float | None]]
         """
         decoded_floats = {}
         if self._season_encoder is not None and isinstance(
@@ -515,7 +517,7 @@ class DateEncoder(BaseEncoder[datetime | time.struct_time | None]):
 
 
 @dataclass
-class DateEncoderParameters:
+class DateEncoderParameters(ParentDataclass):
     """Configuration parameters for DateEncoder.
 
     Each field controls the encoding of a specific temporal feature.
@@ -765,7 +767,7 @@ if __name__ == "__main__":
         custom_days=["Monday", "Mon, Wed, Fri"],
         rdse_used=True,
     )
-
+    date_params = DateEncoderParameters()
     date_encoder = DateEncoder(date_params)
 
     test_case = [

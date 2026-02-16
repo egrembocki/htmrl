@@ -1,10 +1,10 @@
 """Category Encoder implementation"""
 
 import copy
-from dataclasses import dataclass
-from typing import cast, override
+from dataclasses import dataclass, field
+from typing import Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
@@ -33,7 +33,7 @@ class CategoryEncoder(BaseEncoder[str]):
         self._category_list = self._parameters.category_list
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
-        self._size = self._num_categories * self._w
+        self.size = self._num_categories * self._w
 
         super().__init__(self._size)
         """
@@ -87,7 +87,10 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    def decode(self, input_sdr: list[int]) -> tuple[str | None, float]:
+    # TODO add candidates to this method
+    def decode(
+        self, input_sdr: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[str | None, float]:
         """
         This will decode an SDR back into its category. We use the _category_list
         again to turn the index back into a string.
@@ -127,14 +130,14 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters:
+class CategoryParameters(ParentDataclass):
 
-    w: int
+    w: int = 3
     """
     The w is the width in bits per category. So, if you have 5 categories and w=3
     we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
     """
-    category_list: list[str]
+    category_list: list[str] = field(default_factory=list)
     """
     List of categories to use.
     """

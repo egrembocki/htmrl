@@ -11,7 +11,11 @@ Reference: https://arxiv.org/pdf/1602.05925.pdf
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from dataclasses import dataclass
+from math import prod
+from typing import Any, Generic, TypeVar
+
+import pandas as pd
 
 from psu_capstone.agent_layer.agent_interface import AgentInterface
 
@@ -71,3 +75,8 @@ class BaseEncoder(ABC, Generic[T]):
             The indices of active bits in the SDR.
         """
         raise NotImplementedError("Subclasses must implement this method")
+
+
+@dataclass
+class ParentDataclass:
+    encoder_class = BaseEncoder
