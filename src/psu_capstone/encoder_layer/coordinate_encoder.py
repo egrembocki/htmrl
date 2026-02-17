@@ -21,6 +21,8 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         self._w = self._parameters.w
         self._seed = self._parameters.seed
         self._dims = self._parameters.dims
+        self._max_radius = self._parameters.max_radius
+        self._use_all_neighbors = self._parameters.use_all_neighbors
 
         enc_params = RDSEParameters(
             size=self._n,
@@ -33,17 +35,16 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         )
 
         self._encoder = RandomDistributedScalarEncoder(enc_params)
-
         self._overlap = self._encoder._overlap
         self._encoding_cache: dict[tuple[tuple[int, ...], int], list[int]] = {}
+        self._max_neighbors = (2 * self._parameters.max_radius + 1) ** self._dims
 
-        max_neighbors = (2 * self._parameters.max_radius + 1) ** self._dims
-
-        # for all neighbors use this
-        # self._size = max_neighbors * self._n
-
-        # for winners use this
-        self._size = self._w * self._n
+        if self._parameters.use_all_neighbors:
+            # all neighbors
+            self._size = self._max_neighbors * self._n
+        else:
+            # all winners
+            self._size = self._w * self._n
 
         super().__init__(dimensions, self._size)
 
@@ -53,18 +54,35 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
     def _compute_encoding(self, key: tuple[tuple[int, ...], int]) -> list[int]:
         coordinate, radius = key
-        neighbors = self._neighbors(coordinate, radius)
-        winners = self._topWCoordinates(neighbors, self._w)
+
+        if len(coordinate) != self._dims:
+            raise ValueError(f"Expected coordinate with dims={self._dims}, got {len(coordinate)}")
+
+        r = int(radius)
+        if r < 0 or r > self._max_radius:
+            raise ValueError(f"Radius must be in [0, {self._max_radius}], got {r}")
+
+        neighbors = self._neighbors(coordinate, r)
 
         out: list[int] = []
-        for c in winners:
-            v = self._coord_to_unit_float(c)
-            out.extend(int(b) for b in self._encoder.encode(v))
+        if self._use_all_neighbors:
+            for c in neighbors:
+                v = self._coord_to_unit_float(c)
+                out.extend(int(b) for b in self._encoder.encode(v))
 
-        expected = self._size
+            expected = self._max_neighbors * self._n
+        else:
+            winners = self._topWCoordinates(neighbors, self._w)
+
+            for c in winners:
+                v = self._coord_to_unit_float(c)
+                out.extend(int(b) for b in self._encoder.encode(v))
+
+            expected = self._w * self._n
+
         if len(out) < expected:
             out.extend([0] * (expected - len(out)))
-        elif len(out) > expected:
+        else:
             out = out[:expected]
 
         return out
@@ -73,8 +91,8 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
     ) -> list[int]:
         coordinate, radius = input_value
-        key = (tuple(int(v) for v in coordinate), int(radius))
 
+        key = (tuple(int(v) for v in coordinate), int(radius))
         vector = encoded if encoded is not None else self._compute_encoding(key)
 
         if len(vector) != self._size:
@@ -86,7 +104,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
     @staticmethod
     def _neighbors(coordinate, radius):
         ranges = (range(int(n) - radius, int(n) + radius + 1) for n in coordinate)
-        return list(itertools.product(*ranges))
+        return itertools.product(*ranges)
 
     @classmethod
     def _topWCoordinates(cls, coordinates, w):
@@ -135,7 +153,11 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
                 best_overlap = overlap
                 best_key = key
 
-        expected_ones = (len(encoded) // self._n) * self._w
+        if self._use_all_neighbors:
+            blocks = (2 * self._max_radius + 1) ** self._dims
+        else:
+            blocks = self._w
+        expected_ones = blocks * self._w
         confidence = best_overlap / expected_ones if expected_ones > 0 else 0.0
         return best_key, confidence
 
@@ -147,6 +169,7 @@ class CoordinateParameters:
     seed: int = 42
     max_radius: int = 2
     dims: int = 2
+    use_all_neighbors: bool = False
     encoder_class = CoordinateEncoder
 
 
@@ -176,3 +199,10 @@ if __name__ == "__main__":
     for key in test_keys:
         encoded = enc.encode(key)
         print(enc.decode(encoded))
+
+    params2 = CoordinateParameters(n=400, w=20, max_radius=3, dims=3)
+
+    enc3 = CoordinateEncoder(params2)
+
+    d = enc3.encode(((10, 20, 30), 2))
+    e = enc3.encode(((10, 20, 30), 2))

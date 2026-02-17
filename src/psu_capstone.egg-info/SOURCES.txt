@@ -4,7 +4,6 @@ src/batch_encoder_handler_driver.py
 src/code_level_test.py
 src/demo_driver.py
 src/grapher.py
-src/hashing.py
 src/manual_test.py
 src/utils.py
 src/psu_capstone/__init__.py
