@@ -8,7 +8,7 @@ from typing import Iterable, Optional, override
 import numpy as np
 from pyproj import CRS, Transformer
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 # Good for 2D
@@ -52,7 +52,7 @@ class GeospatialEncoder(
 
         self._encoder = CoordinateEncoder(coord_params)
 
-        super().__init__(dimensions, self._encoder.size)
+        super().__init__(self._encoder.size)
 
     @override
     def encode(
@@ -152,7 +152,7 @@ class GeospatialEncoder(
 
 
 @dataclass
-class GeospatialParameters:
+class GeospatialParameters(ParentDataclass):
     # meters per grid unit
     scale: float = 5.0
 
