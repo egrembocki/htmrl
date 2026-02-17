@@ -72,7 +72,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
             expected = self._max_neighbors * self._n
         else:
-            winners = self._topWCoordinates(neighbors, self._w)
+            winners = self._topwcoordinates(neighbors, self._w)
 
             for c in winners:
                 v = self._coord_to_unit_float(c)
@@ -107,14 +107,14 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         return itertools.product(*ranges)
 
     @classmethod
-    def _topWCoordinates(cls, coordinates, w):
-        scored = [(cls._orderForCoordinate(c), c) for c in coordinates]
+    def _topwcoordinates(cls, coordinates, w):
+        scored = [(cls._order_for_coordinate(c), c) for c in coordinates]
 
         scored.sort(key=lambda x: x[0])
         return [c for _, c in scored[-w:]]
 
     @staticmethod
-    def _orderForCoordinate(coordinate) -> float:
+    def _order_for_coordinate(coordinate) -> float:
         s = ",".join(str(int(v)) for v in coordinate)
         h = mmh3.hash(s, signed=False)
         return h / 2**32

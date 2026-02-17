@@ -18,7 +18,7 @@ def test_rdse_initialization():
         size=1000, active_bits=0, sparsity=0.05, radius=0.0, resolution=1.23, category=False, seed=0
     )
 
-    encoder = RandomDistributedScalarEncoder(parameters, [1, 1000])
+    encoder = RandomDistributedScalarEncoder(parameters)
     """Makes sure it is the correct instance"""
     assert isinstance(encoder, RandomDistributedScalarEncoder)
 
@@ -29,36 +29,34 @@ def test_size():
         size=1000, active_bits=0, sparsity=0.05, radius=0.0, resolution=1.23, category=False, seed=0
     )
 
-    encoder = RandomDistributedScalarEncoder(parameters, [1, 1000])
+    encoder = RandomDistributedScalarEncoder(parameters)
     """Checks that the size is correct."""
     assert encoder._size == 1000
 
 
 def test_dimensions():
-    """Test to make sure the encoder dimensions is correct."""
+    """Ensure the encoder reports the configured size."""
     parameters = RDSEParameters(
         size=1000, active_bits=0, sparsity=0.05, radius=0.0, resolution=1.23, category=False, seed=0
     )
 
-    encoder = RandomDistributedScalarEncoder(parameters, [1, 1000])
-    RandomDistributedScalarEncoder(parameters, [1, 1000])
-    """Checks that the dimensions are correct in the encoder."""
-    assert encoder.dimensions == [1, 1000]
+    encoder = RandomDistributedScalarEncoder(parameters)
+    RandomDistributedScalarEncoder(parameters)
+    """Checks that the size is correct via the public property."""
+    assert encoder.size == 1000
 
 
 def test_encode_active_bits():
-    """Checks to make sure the proper active bit range is set, the density of the SDR is correct,
-    and the size plus dimensions are correct for the SDR after the RDSE encodes it.
-    """
+    """Checks to make sure the proper active bit range is set and SDR size stays consistent."""
     parameters = RDSEParameters(
         size=1000, active_bits=50, sparsity=0.0, radius=0.0, resolution=1.5, category=False, seed=0
     )
-    encoder = RandomDistributedScalarEncoder(parameters, [1, 1000])
+    encoder = RandomDistributedScalarEncoder(parameters)
     a = encoder.encode(10)
     """Is the SDR the correct size?"""
     assert len(a) == 1000
-    """Is the SDR the correct dimensions?"""
-    assert [1, len(a)] == [1, 1000]
+    """Is the SDR length equal to encoder size?"""
+    assert len(a) == encoder.size
     sparse_indices = [i for i, x in enumerate(a) if x == 1]
     sparse_size = len(sparse_indices)
     """Since we have hash collision we are making sure between 45 and 50 bits are encoded."""
@@ -80,13 +78,13 @@ def test_resolution_plus_radius_plus_category():
     not be used together.
     """
     with pytest.raises(Exception):
-        RandomDistributedScalarEncoder(parameters, [1, 1000])
+        RandomDistributedScalarEncoder(parameters)
         parameters.radius = 0
         parameters.category = True
-        RandomDistributedScalarEncoder(parameters, [1, 1000])
+        RandomDistributedScalarEncoder(parameters)
         parameters.resolution = 0
         parameters.radius = 1
-        RandomDistributedScalarEncoder(parameters, [1, 1000])
+        RandomDistributedScalarEncoder(parameters)
 
 
 def test_sparsity_or_activebits():
@@ -96,13 +94,13 @@ def test_sparsity_or_activebits():
     )
     """Make sure an exception is thrown here since both sparsity and active bits are set."""
     with pytest.raises(Exception):
-        RandomDistributedScalarEncoder(parameters, [1, 1000])
+        RandomDistributedScalarEncoder(parameters)
     """These should be able to run without an exception or assert since both are not set at once."""
     parameters.sparsity = 0.0
-    RandomDistributedScalarEncoder(parameters, [1, 1000])
+    RandomDistributedScalarEncoder(parameters)
     parameters.sparsity = 1.0
     parameters.active_bits = 0
-    RandomDistributedScalarEncoder(parameters, [1, 1000])
+    RandomDistributedScalarEncoder(parameters)
 
 
 def test_one_of_resolution_radius_category_should_be_entered():
@@ -112,7 +110,7 @@ def test_one_of_resolution_radius_category_should_be_entered():
     )
     """Make sure an exception is thrown here since neither radius, resolution, or category were entered."""
     with pytest.raises(Exception):
-        RandomDistributedScalarEncoder(parameters, [1, 1000])
+        RandomDistributedScalarEncoder(parameters)
 
 
 def test_one_of_activebit_or_sparsity_is_entered():
@@ -122,7 +120,7 @@ def test_one_of_activebit_or_sparsity_is_entered():
     )
     """Make sure an exception is thrown here since neither active bits or sparsity was entered"""
     with pytest.raises(Exception):
-        RandomDistributedScalarEncoder(parameters, [1, 1000])
+        RandomDistributedScalarEncoder(parameters)
 
 
 def test_2048_bits_40_active_bits():
@@ -130,7 +128,7 @@ def test_2048_bits_40_active_bits():
     parameters = RDSEParameters(
         size=2048, active_bits=40, sparsity=0.0, radius=1.0, resolution=0.0, category=False, seed=0
     )
-    rdse = RandomDistributedScalarEncoder(parameters, [1, 2048])
+    rdse = RandomDistributedScalarEncoder(parameters)
 
     a = rdse.encode(10)
     sparse = [i for i, x in enumerate(a) if x == 1]

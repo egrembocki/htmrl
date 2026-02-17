@@ -22,7 +22,7 @@ import pandas as pd
 from scipy.fft import fft, fftfreq, ifft
 from sklearn.utils import deprecated
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.log import logger
 
@@ -42,7 +42,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             parameters = FourierEncoderParameters()
 
         # set the size of the base encoder
-        super().__init__(dimensions=[], size=parameters.size)
+        super().__init__(parameters.size)
 
         self._params = copy.deepcopy(parameters)
         """Fourier encoder local copy of passed parameters."""
@@ -557,7 +557,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
 
 @dataclass
-class FourierEncoderParameters:
+class FourierEncoderParameters(ParentDataclass):
     """Class to hold fourier encodder parameters
 
     parameters:

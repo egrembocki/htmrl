@@ -124,7 +124,7 @@ def test_segment_activations_set_parent_predictive():
 
 # Needs table
 def test_segment_does_not_activate_when_synapses_not_connected():
-    CONNECTED_PERM = 0.5
+    perm = 0.5
     distal_cells = [Cell() for _ in range(20)]
     distal_field = Field(distal_cells)
 
@@ -133,7 +133,7 @@ def test_segment_does_not_activate_when_synapses_not_connected():
     sources = distal_cells[:10]
 
     # Permanence is just below CONNECTED_PERM, so seg.active should be False
-    synapses = [DistalSynapse(source_cell=s, permanence=CONNECTED_PERM - 1e-6) for s in sources]
+    synapses = [DistalSynapse(source_cell=s, permanence=perm - 1e-6) for s in sources]
 
     seg = Segment(parent_cell=parent, synapses=synapses)
 

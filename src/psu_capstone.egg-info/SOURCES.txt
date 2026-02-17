@@ -61,8 +61,13 @@ tests/test_encoder_handler_suite.py
 tests/test_encoder_rdse.py
 tests/test_encoder_scalar.py
 tests/test_encoder_to_htm.py
-tests/test_htm.py
+tests/test_htm_brain.py
 tests/test_htm_cell.py
+tests/test_htm_column.py
+tests/test_htm_input_field.py
+tests/test_htm_output_field.py
+tests/test_htm_segments.py
+tests/test_htm_synapses.py
 tests/test_input_handler_load_data.py
 tests/test_input_handler_validate_data.py
 tests/test_input_to_encoder.py

@@ -30,9 +30,3 @@ repos:
         types: [python]
         language: system
         exclude: ^htmrl_env/
-      # - id: shellcheck
-      #   name: Shell Linter
-      #   entry: scripts/run-shellcheck.sh
-      #   pass_filenames: true
-      #   language: system
-      #   types: [shell]
