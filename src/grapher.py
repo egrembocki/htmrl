@@ -107,23 +107,25 @@ if __name__ == "__main__":
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
-            resolutions_in_ranges=[1.0],
+            resolutions_in_ranges=[1.0, 1.0],
             # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 100)],
+            frequency_ranges=[(0, 20), (100, 400)],
             # every contributing frequency gets 40 active bits, this divides up from total active bits
             size=2048,
             # active bits in range times number of ranges
-            sparsity_in_ranges=[0.02],
-            total_sparsity=0.02,
+            sparsity_in_ranges=[0.02, 0.02],
+            total_sparsity=0.04,  # TODO fix logic for totals
+            total_resolution=2.0,
         )
     )
 
-    a, b, c, d = 1, 90, 3, 40
-
+    a, b, c, d, e, g = 10, 2, 3, 10, 2, 300
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    y1 *= np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
+    # y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * g * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)

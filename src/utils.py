@@ -11,12 +11,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data")
 
 
-def hamming_distance(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+def hamming_distance(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
 
     return int(np.count_nonzero(sdr1 != sdr2))
 
 
-def overlap(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+def overlap(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
 
     return int(np.sum(np.logical_and(sdr1, sdr2)))
 
