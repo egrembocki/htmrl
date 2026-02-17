@@ -35,7 +35,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         dimensions (list[int], optional): List of dimensions for the encoder. Defaults to [].
     """
 
-    def __init__(self, parameters: FourierEncoderParameters | None = None):
+    def __init__(self, parameters: FourierEncoderParameters):
         """Initialize the encoder with optional Fourier parameters and encoder dimensions."""
 
         if parameters is None:
@@ -280,14 +280,26 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             f"Active bits for range {self._frequency_ranges[range_index]} set to: {active_bits}"
         )
 
+    def _trim_to_power_of_two(self, input: int) -> int:
+        """Trim the input integer to the nearest power of 2 less than or equal to it."""
+
+        if input <= 0:
+            raise ValueError("Input must be a positive integer.")
+
+        power = 1
+        while power * 2 <= input:
+            power *= 2
+
+        return power
+
     @override
-    def encode(self, input_value: Any) -> list[int]:
+    def encode(self, input_value: np.ndarray) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
 
         Encodes a single frequency peak into a SDR as list[int].
 
         Args:
-            input_value: Any: The input time-domain signal to be encoded.
+            input_value: np.ndarray: The input time-domain signal to be encoded.
 
         Returns:
             list[int]: List of active bit indices in the encoded SDR.
@@ -309,7 +321,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         freq_ranges = self._frequency_ranges
 
         #  padd dense list with zeros to set dense bits by index later
-        dense_bits = [0] * size
+        dense_bits = []  # * size
 
         #  list to hold values if we want to perform a mean later
         magnitudes = []
@@ -329,6 +341,9 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         # LOOP THROUGH FREQUENCY RANGES !!
         print("Looping through frequency ranges:")
         for freq_range in freq_ranges:
+            # reset total size
+            size = self._size
+
             start_freq = freq_range[0]
             stop_freq = freq_range[1]
 
@@ -341,7 +356,9 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
             # find peak frequency in the current interval
             peak_index = np.argmax(np.abs(freq_slice))
-            if freq_slice[peak_index] < 0.1:
+            if (
+                freq_slice[peak_index] < 0.01
+            ):  # TODO: make this threshold a parameter (sensitivity to noise)
                 peak_freq = 0
             else:
                 peak_freq = float(freq_buckets[peak_index])
@@ -358,15 +375,20 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             current_interval_size = self._bucket_sizes[self._frequency_ranges.index(freq_range)]
             current_sparsity = self._sparsity_in_ranges[self._frequency_ranges.index(freq_range)]
 
-            # size = size // 2
-
             num_peaks = self._find_num_peaks(freq_slice)
             logger.info(f"Number of peaks found in range {freq_range}: {num_peaks}")
+
+            size = (
+                size // num_peaks if num_peaks >= 1 else size
+            )  # take the floor of the division to ensure size is an integer
+            size = self._trim_to_power_of_two(
+                size
+            )  # trim size to a power of 2 for efficient encoding
 
             # build each encoder for frequency and magnitude :: thank you GC
             freq_encoder = RandomDistributedScalarEncoder(
                 RDSEParameters(
-                    size=size,  # // num_peaks if num_peaks >= 1 else size
+                    size=size,
                     sparsity=current_sparsity,  # sparisity requested by user
                     active_bits=0,
                     resolution=current_res,
@@ -377,7 +399,9 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             for f in range(current_interval_size):
 
                 # find frequencies that contributed to the fft output by magnitude threshold
-                if freq_slice[f] < 0.1:
+                if (
+                    freq_slice[f] < 0.01
+                ):  # TODO: make this threshold a parameter (sensitivity to noise)
                     continue
 
                 else:
@@ -388,15 +412,23 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                     sdr_freq = freq_encoder.encode(freq_value)
                     magnitudes.append(freq_slice[f])
                     frequencies.append(f + start_freq)
-                    for ids in range(len(sdr_freq)):
-                        if sdr_freq[ids] == 1:
-                            dense_bits[ids] = 1
+
+                    dense_bits.extend(sdr_freq)
+
+                    # for ids in range(len(sdr_freq)):
+                    #    if sdr_freq[ids] == 1:
+                    #        dense_bits[ids] = 1
 
             # END of INNER for loop :: freq intervals
 
             #
             magnitude_encoder = RandomDistributedScalarEncoder(
-                RDSEParameters(size=size, sparsity=time_step, active_bits=0, resolution=time_step)
+                RDSEParameters(
+                    size=self._trim_to_power_of_two(len(dense_bits)),
+                    sparsity=time_step,
+                    active_bits=0,
+                    resolution=time_step,
+                )
             )
 
             magnitude = float(np.mean(magnitudes))

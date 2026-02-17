@@ -56,7 +56,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
     def __init__(
         self,
-        date_params: "DateEncoderParameters",
+        date_params: DateEncoderParameters,
     ) -> None:
         """
         Initialize the DateEncoder with the given parameters.

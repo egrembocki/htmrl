@@ -9,6 +9,8 @@
 * exactly one of them.
 """
 
+from __future__ import annotations
+
 import copy
 import random
 import struct
@@ -48,7 +50,7 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
 
-    def __init__(self, parameters: "RDSEParameters"):
+    def __init__(self, parameters: RDSEParameters):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -267,7 +269,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         parameters.sparsity = float(parameters.active_bits / parameters.size)
 
         if parameters.category:
-            parameters.active_bits = 1.0
+            parameters.active_bits = 1
         # Determine resolution.
         if parameters.radius > 0.0:
             parameters.resolution = parameters.radius / float(parameters.active_bits)

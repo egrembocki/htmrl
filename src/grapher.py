@@ -111,21 +111,19 @@ if __name__ == "__main__":
             # search for frequencies peaks between 0 and 200 Hz
             frequency_ranges=[(0, 100)],
             # every contributing frequency gets 40 active bits, this divides up from total active bits
-            size=4096,
+            size=2048,
             # active bits in range times number of ranges
-            sparsity_in_ranges=[0.01],
-            total_sparsity=0.01,
+            sparsity_in_ranges=[0.02],
+            total_sparsity=0.02,
         )
     )
 
-    a, b, c, d = 1, 2, 3, 4
+    a, b, c, d = 1, 90, 3, 40
 
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
     y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
     y2 = np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
     y2 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
@@ -145,28 +143,3 @@ if __name__ == "__main__":
     print(f"Hamming distance between SDRs: {hamming} bits")
     overlap = overlap(fft_one, fft_two)
     print(f"Overlap between SDRs: {overlap} bits")
-
-    ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
-
-    # TODO: fix to match dict data structure
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
-
-    fft_encoder = FourierEncoder(
-        FourierEncoderParameters(
-            resolutions_in_ranges=[0.10],
-            total_resolution=0.1,
-            # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 128)],
-            # every contributing frequency gets 40 active bits, this divides up from total active bits
-            size=2048,
-            # active bits in range times number of ranges
-            sparsity_in_ranges=[0.02],
-            total_sparsity=0.02,
-        )
-    )
