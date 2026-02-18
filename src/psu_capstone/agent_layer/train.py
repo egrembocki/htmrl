@@ -7,6 +7,7 @@ without needing to interact with the Brain's internal fields directly.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from psu_capstone.agent_layer.brain import Brain
@@ -25,7 +26,7 @@ class Trainer:
 
     def __init__(self, brain: Brain) -> None:
 
-        self._handler: InputHandler = InputHandler()
+        # self._handler: InputHandler = InputHandler()
         self._main_brain: Brain = brain
         self._brains: list[Brain] = []
         self._input_fields: list[Field] = []
@@ -162,3 +163,19 @@ class Trainer:
         if brain is None:
             brain = self._main_brain
         logger.info(f"Saving Brain state to: {path}")
+
+    @dataclass
+    class BrainConfig:
+        """Configuration for building and training a Brain.
+
+        Example usage:
+        config = BrainConfig(
+            fields=[
+                ("consumption_input", 12288, RDSEParameters(size=12288, sparsity=0.02, resolution=0.001, category=False, seed=5)),
+                ("date_input", 12288, DateEncoderParameters(size=12288)),
+            ],
+            num_columns=12288,
+            cells_per_column=32,
+            training_steps=1000,
+
+        """
