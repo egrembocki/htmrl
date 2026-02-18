@@ -119,29 +119,14 @@ if __name__ == "__main__":
         )
     )
 
-    a, b, c, d, e, g = 10, 2, 3, 10, 2, 300
+    a, b, c = 10, 12, 300
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    y1 *= np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    # y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * g * np.linspace(0, 1, 2048, endpoint=False))
+    y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
+    y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
-    fft_two = fft_encoder.encode(y2)
 
     print(f"SDR One: {len(fft_one)}")
     print(f"SDR active bits One: {sum(fft_one)}")
-    print(f"SDR Two: {len(fft_two)}")
-    print(f"SDR active bits Two: {sum(fft_two)}")
 
     plot_sdr(fft_one)
-    plot_sdr(fft_two)
-
-    fft_one = np.array(fft_one)
-    fft_two = np.array(fft_two)
-
-    hamming = hamming_distance(fft_one, fft_two)
-    print(f"Hamming distance between SDRs: {hamming} bits")
-    overlap = overlap(fft_one, fft_two)
-    print(f"Overlap between SDRs: {overlap} bits")
