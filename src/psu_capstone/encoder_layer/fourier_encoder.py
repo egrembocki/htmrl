@@ -504,6 +504,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             Returns:
             FourierEncoderParameters: The validated Fourier encoder parameters."""
 
+        # TODO: add more checks for parameter validity such as checking for negative frequencies, zero or negative size, etc.
+        # TODO: add checks for consistency between active bits and sparsity if both are provided, or enforce that only one can be provided.
+        # TODO: allow for global sparsity or active bits if user does not want to specify per range, and add checks for that as well.
+        # TODO: add checks for frequency range overlaps and ensure that they are within the Nyquist limit based on the sample rate.
+        # TODO: add checks for shape predictions based on the number of frequency ranges so that two sdrs can still be compared for similarity if they are encoding the same signal with different parameters.
+
         params = copy.deepcopy(parameters)
 
         # xor active bits or sparsity checks
