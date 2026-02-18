@@ -2,6 +2,12 @@
 
 Encapsulates InputFields and ColumnFields to provide a unified API
 for encoding inputs and computing temporal memory in a single step.
+
+    HTM implementation for column spatial pooling and temporal memory.
+    inspired by Sungar Thesis: http://etd.lib.metu.edu.tr/upload/12621275/index.pdf
+
+    Developed by: Dr. Pullin Agrawal Penn State University, Capstone Advisor
+
 """
 
 from typing import Any
@@ -29,7 +35,14 @@ class Brain:
             })
     """
 
-    def __init__(self, fields: dict[str, Field]) -> None:
+    def __init__(self, fields: dict[str, Field] | None = None) -> None:
+        """Initialize the Brain with optional fields."""
+
+        if fields is None:
+            fields = {}
+
+        # Separate fields into input, output, and column fields for easy access
+        # ensure that values are instances of the correct type
         self._input_fields: dict[str, InputField] = {
             k: v for k, v in fields.items() if isinstance(v, InputField)
         }

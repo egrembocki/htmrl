@@ -1,3 +1,9 @@
+"""HTM implementation for column spatial pooling and temporal memory.
+inspired by Sungar Thesis: http://etd.lib.metu.edu.tr/upload/12621275/index.pdf
+
+Developed by: Dr. Pullin Agrawal Penn State Univ
+"""
+
 import copy
 import random
 from itertools import chain
@@ -75,6 +81,7 @@ class Field:
 
     def __init__(self, cells: Iterable["Cell"]) -> None:
         self.cells: list["Cell"] = list(cells)
+        self._name: str = ""
 
     def __iter__(self):
         return iter(self.cells)
@@ -85,6 +92,16 @@ class Field:
         if n > len(self.cells):
             raise ValueError("Cannot sample more cells than are in the field.")
         return set(random.sample(self.cells, n))
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        if not isinstance(value, str):
+            raise ValueError("Field name must be a string.")
+        self._name = value
 
     @property
     def active_cells(self) -> set["Cell"]:
@@ -801,8 +818,12 @@ class InputField(Field):
             cell.clear_state()
 
 
-class OutputField(InputField):
-    pass
+class OutputField(Field):
+    """A Field specialized for output bits."""
+
+    def __init__(self, size: int, motor_action: tuple) -> None:
+        cells = {Cell() for _ in range(size)}
+        Field.__init__(self, cells)
 
 
 input_field = Field(cells={Cell() for _ in range(10)})

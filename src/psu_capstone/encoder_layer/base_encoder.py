@@ -25,7 +25,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, override
 
 T = TypeVar("T")
 
@@ -67,4 +67,10 @@ class BaseEncoder(ABC, Generic[T]):
 
 @dataclass
 class ParentDataclass:
+    """Parent Class to mark all Parameter Classes for encoders."""
+
     encoder_class = BaseEncoder
+    """Class variable to specify the associated encoder class. Subclasses should override this."""
+
+    size: int = 12288
+    """Size of the output SDR. Must be a positive integer."""
