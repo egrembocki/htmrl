@@ -3,37 +3,97 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-10 Decode SDR to Value
-actor Developer as Dev
-participant "Brain" as BR
-participant "HTM / ColumnField" as HTM
-participant "InputField" as IF
-participant "BaseEncoder" as ENC
+title US-11 Summary
 
-Dev -> BR: step(inputs, learn=False)
-activate BR
-BR -> HTM: compute(learn=False)
-activate HTM
-HTM --> BR: predictive state
-deactivate HTM
+actor "Developer" as Dev
+participant "Brain + HTM State" as BR
+participant "InputField(s)" as IF
+participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)" as FE
+participant "RL Adapter" as RLA
+participant "RL Model\n(Policy/Value Network)" as RLM
+participant "Environment" as ENV
+participant "Replay Buffer\n(planned)" as RB
+participant "Trainer\n(planned)" as TR
+participant "Metrics/Checkpoint\n(planned)" as MC
 
-BR -> BR: prediction() uses predictive state
-loop for each registered input field
-  BR -> IF: decode("predictive")
-  activate IF
-  IF -> ENC: decode(bit_vector, candidates)
-  activate ENC
-  ENC --> IF: decoded value + confidence
-  deactivate ENC
-  IF --> BR: (value, confidence)
-  deactivate IF
+group US-10A Current End-to-End Pipeline
+  Dev -> BR: prediction()
+  activate BR
+  loop for each registered input field
+    BR -> IF: decode("predictive")
+    activate IF
+    IF -> IF: build bit_vector from cell.predictive
+    IF -> FE: decode(bit_vector, candidates?)
+    activate FE
+    FE --> IF: decoded value + confidence
+    deactivate FE
+    IF --> BR: tuple(value, confidence)
+    deactivate IF
+  end
+
+  BR -> RLA: export state/action context
+  activate RLA
+  RLA --> BR: features for RL policy/value model
+  deactivate RLA
+
+  BR --> Dev: decoded output map + HTM state
+  deactivate BR
 end
 
-BR --> Dev: decoded output map + HTM state
-deactivate BR
+group US-10B Planned RL Loop (Figure 6-1/6-2 Alignment)
+  Dev -> BR: run_episode(step_limit)
+  activate BR
+  loop each timestep t
+    BR -> RLA: state_t, prediction_t
+    activate RLA
+    RLA -> RLM: infer_action(state_t)
+    activate RLM
+    RLM --> RLA: action_t (+ confidence / logits)
+    deactivate RLM
+    RLA --> BR: action_t
+    deactivate RLA
 
-note over BR,HTM
-Predictions are produced from Brain/HTM predictive state,
-then decoded by InputField + encoder decode APIs.
+    BR -> ENV: apply(action_t)
+    activate ENV
+    ENV --> BR: reward_t, next_state_t, done
+    deactivate ENV
+
+    BR -> RB: append(state_t, action_t, reward_t, next_state_t, done)
+    activate RB
+    RB --> BR: stored transition
+    deactivate RB
+
+    alt scheduled training step
+      BR -> TR: train_step(sample_from=RB)
+      activate TR
+      TR -> RB: sample(batch)
+      RB --> TR: transitions
+      TR -> RLM: update policy/value weights
+      activate RLM
+      RLM --> TR: updated parameters
+      deactivate RLM
+      TR -> MC: log loss/reward + checkpoint
+      activate MC
+      MC --> TR: persisted artifacts
+      deactivate MC
+      TR --> BR: training metrics
+      deactivate TR
+    end
+
+    alt done == true
+      BR -> MC: write episode summary
+      activate MC
+      MC --> BR: summary id/path
+      deactivate MC
+      break
+    end
+  end
+  BR --> Dev: episode report + updated model refs
+  deactivate BR
+end
+
+note over RLA,MC
+RL Adapter connects the decoded HTM state to the RL-only
+components (replay buffer, trainer, metrics) shown above.
 end note
 @enduml
