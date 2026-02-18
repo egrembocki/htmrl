@@ -48,7 +48,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Fourier encoder local copy of passed parameters."""
 
         # encoder params
-        self._sensitiviy = self._params.sensitivity_threshold
+        self._sensitivity = self._params.sensitivity_threshold
         """Magnitude threshold for considering a frequency component as a peak."""
         self._frequency_ranges = self._params.frequency_ranges
         """List of frequency ranges to find."""
@@ -56,10 +56,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Size of the encoder."""
         self._total_active_bits = self._params.total_active_bits  # default to 40
         """Total number of active bits in the encoder output SDR."""
-        self._total_sparsity = self._params.total_sparsity  # default to 0.02
-        """Total sparsity of the encoder."""
-        self._total_resolution = self._params.total_resolution  # default to 1.0
-        """Total resolution of the encoder."""
         self._active_bits_in_ranges = self._params.active_bits_in_ranges
         """The number of active bits per frequency range in the encoder output SDR."""
         self._sparsity_in_ranges = self._params.sparsity_in_ranges
@@ -222,23 +218,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Find the number of peaks in the given frequency data."""
 
         num_peaks = 0
+        threshold = self._sensitivity
 
         for i in range(len(freq_data)):
-            if freq_data[i] > 0.1:
+            if freq_data[i] > threshold:
                 num_peaks += 1
         return num_peaks
-
-    def _set_equal_sparsity_in_ranges(self) -> None:
-        """Set the sparsity in each frequency range based on total sparsity."""
-
-        total_sparsity = self._total_sparsity
-        num_ranges = len(self._frequency_ranges)
-
-        if len(self._sparsity_in_ranges) != num_ranges:
-            equal_sparsity = total_sparsity / num_ranges
-            self._sparsity_in_ranges = [equal_sparsity] * num_ranges
-
-        logger.info(f"Sparsity in ranges set to: {self._sparsity_in_ranges}")
 
     def _set_sparsity_at_range(self, range_index: int, sparsity: float) -> None:
         """Set the sparsity for a specific frequency range.
@@ -253,18 +238,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         self._sparsity_in_ranges[range_index] = sparsity
         logger.info(f"Sparsity for range {self._frequency_ranges[range_index]} set to: {sparsity}")
-
-    def _set_active_bits_equal_in_ranges(self) -> None:
-        """Set the active bits in each frequency range based on total active bits."""
-
-        total_active_bits = self._total_active_bits
-        num_ranges = len(self._frequency_ranges)
-
-        if len(self._active_bits_in_ranges) != num_ranges:
-            equal_active_bits = total_active_bits // num_ranges
-            self._active_bits_in_ranges = [equal_active_bits] * num_ranges
-
-        logger.info(f"Active bits in ranges set to: {self._active_bits_in_ranges}")
 
     def _set_active_bits_at_range(self, range_index: int, active_bits: int) -> None:
         """Set the active bits for a specific frequency range.
@@ -310,8 +283,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
             ValueError: If the input signal is not a 1D array or if the encoder parameters are invalid.
 
-
-
         """
 
         # validate parameters
@@ -323,7 +294,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         samples = self._total_samples
         time_step = self._time_step
         freq_ranges = self._frequency_ranges
-        threshold = self._sensitiviy
+        threshold = self._sensitivity
 
         dense_bits: list[int] = []
 
@@ -342,11 +313,17 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         # Nyquist frequency limit and store freq buckets as indexes
         freq_data = freq_data[: samples // 2]
 
+        all_freqs = np.real(np.abs(freq_data))
+        all_peaks = self._find_num_peaks(all_freqs)
+        logger.info(f"Total peaks found in signal: {all_peaks}")
+
         # LOOP THROUGH FREQUENCY RANGES !!
         print("Looping through frequency ranges:")
         for freq_range in freq_ranges:
             # reset total size
             size = self._size
+
+            current_dense_bits: list[int] = []
 
             start_freq = freq_range[0]
             stop_freq = freq_range[1]
@@ -361,16 +338,15 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             # find peak frequency in the current interval
             peak_index = np.argmax(np.abs(freq_slice))
             if freq_slice[peak_index] < threshold:
-                peak_freq = 0
-            else:
-                peak_freq = float(freq_buckets[peak_index])
-
-            # if no peaks are present return empty SDR :: early exit
-            if peak_freq <= 0:
-
                 logger.info(f"No significant peaks found in range {freq_range}.")
 
                 continue
+
+            else:
+                peak_freq = float(freq_buckets[peak_index])
+                logger.info(
+                    f"FFT Peak Frequency in range {freq_range}: {peak_freq} Hz with magnitude {freq_slice[peak_index]}"
+                )
 
             # current resolution for this frequency range
             current_res = self._resolutions_in_ranges[self._frequency_ranges.index(freq_range)]
@@ -405,7 +381,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                     continue
 
                 else:
-                    logger.info(f"Encoding frequency bucket: {f + start_freq}")
                     # freq is the current bucket being evaluated
                     freq_value = float(f + start_freq)
 
@@ -413,7 +388,9 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                     magnitudes.append(freq_slice[f])
                     frequencies.append(f + start_freq)
 
-                    dense_bits.extend(sdr_freq)
+                    logger.info(f"Encoding frequency bucket: {f + start_freq}")
+                    logger.info(f" with magnitude: {freq_slice[f]}")
+                    current_dense_bits.extend(sdr_freq)
 
                     # for ids in range(len(sdr_freq)):
                     #    if sdr_freq[ids] == 1:
@@ -438,25 +415,25 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
             sdr_magnitude = magnitude_encoder.encode(magnitude)
 
-            dense_bits.extend(sdr_magnitude)
+            current_dense_bits.extend(sdr_magnitude)
 
-            if len(dense_bits) > self._size:
+            if len(current_dense_bits) > self._size:
                 logger.warning(
-                    f"Encoded SDR size {len(dense_bits)} exceeds specified encoder size {self._size}. Consider increasing encoder size or adjusting sparsity/resolution parameters."
+                    f"Encoded SDR size {len(current_dense_bits)} exceeds specified encoder size {self._size}. Consider increasing encoder size or adjusting sparsity/resolution parameters."
                 )
-                dense_bits = dense_bits[: self._size]
+                current_dense_bits = current_dense_bits[: self._size]
 
-            elif len(dense_bits) < self._size:
+            elif len(current_dense_bits) < self._size:
                 # pad with zeros if we have less bits than the encoder size
-                dense_bits.extend([0] * (self._size - len(dense_bits)))
+                current_dense_bits.extend([0] * (self._size - len(current_dense_bits)))
             # for idx in range(len(sdr_magnitude)):
             #    if sdr_magnitude[idx] == 1:
-            #        dense_bits[idx] = 1
+            #        current_dense_bits[idx] = 1
+
+            # dense_bits = np.logical_or(dense_bits, current_dense_bits).astype(int).tolist()
+            dense_bits.extend(current_dense_bits)
 
         # END of OUTER for loop
-
-        # freq that are closer together will have collissions in the SDR giving less active bits than expected
-        # freq that are further apart will have less collissions giving more active bits than expected
         return dense_bits
         # END def encode
 
@@ -533,27 +510,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             raise ValueError(
                 "Cannot specify both active_bits_in_ranges and sparsity_in_ranges. Choose one."
             )
-        elif params.total_active_bits <= 0 and params.total_sparsity <= 0:
-            raise ValueError(
-                "Must specify either total_active_bits or total_sparsity greater than zero."
-            )
-        elif params.total_active_bits > 0 and params.total_sparsity > 0:
-            raise ValueError(
-                "Cannot specify both total_active_bits and total_sparsity. Choose one."
-            )
-
-        # total sparsity checks TODO: More edge cases to cover here
-        if params.equal_sparsity and len(params.sparsity_in_ranges) <= 0:
-            self._set_equal_sparsity_in_ranges()
-
-        else:
-
-            total_sparsity = sum(params.sparsity_in_ranges)
-
-            if not np.isclose(self._total_sparsity, total_sparsity, atol=1e-3):
-                raise ValueError(
-                    f"Total sparsity {params.total_sparsity} does no` match sum of sparsities in ranges {total_sparsity}."
-                )
 
         if (
             len(params.sparsity_in_ranges)
@@ -563,17 +519,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             raise ValueError(
                 "All lengths of sparsity_in_ranges, frequency_ranges, and resolutions_in_ranges must be equal."
             )
-
-        # total active bits checks
-        if len(params.active_bits_in_ranges) <= 0 and len(params.sparsity_in_ranges) <= 0:
-            self._set_active_bits_equal_in_ranges()
-        else:
-            total_active_bits = sum(params.active_bits_in_ranges)
-
-            if self._total_active_bits != total_active_bits:
-                raise ValueError(
-                    f"Total active bits {params.total_active_bits} does not match sum of active bits in ranges {total_active_bits}."
-                )
 
         # frequency range checks
         for freq_range in params.frequency_ranges:
@@ -586,18 +531,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                 raise ValueError(
                     f"Frequency range end {freq_range[1]} exceeds Nyquist frequency {self._sample_rate / 2} Hz."
                 )
-
-        # resolution checks
-        total_resolution = sum(params.resolutions_in_ranges)
-
-        for resolution in params.resolutions_in_ranges:
-            if resolution <= 0:
-                raise ValueError("Resolutions must be positive.")
-
-        if not np.isclose(self._total_resolution, total_resolution, atol=1e-3):
-            raise ValueError(
-                f"Total resolution {params.total_resolution} does not match sum of resolutions in ranges {total_resolution}."
-            )
 
 
 @dataclass
@@ -625,14 +558,8 @@ class FourierEncoderParameters(ParentDataclass):
     size: int = 2048
     """The size the encoder"""
 
-    total_active_bits: int = 0
+    total_active_bits: int = 40
     """Total number of active bits in the encoder output SDR."""
-
-    total_sparsity: float = 0.02
-    """Total sparsity of the encoder."""
-
-    total_resolution: float = 1.0
-    """Total resolution of the encoder."""
 
     frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(1, 100)])
     """List of frequency ranges to find."""

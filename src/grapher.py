@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
-from matplotlib.pylab import f
 from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -96,7 +95,7 @@ def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv")
     plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
     plt.show()
 
-    fft_encoder = FourierEncoder()
+    fft_encoder = FourierEncoder(FourierEncoderParameters())
 
     sdr_hot_gym = fft_encoder.encode(signal)
 
@@ -108,25 +107,36 @@ if __name__ == "__main__":
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
             resolutions_in_ranges=[1.0, 1.0],
-            # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 20), (100, 400)],
-            # every contributing frequency gets 40 active bits, this divides up from total active bits
+            frequency_ranges=[(0, 100), (100, 500)],
             size=2048,
             # active bits in range times number of ranges
             sparsity_in_ranges=[0.02, 0.02],
-            total_sparsity=0.04,  # TODO fix logic for totals
-            total_resolution=2.0,
+            sensitivity_threshold=0.001,
         )
     )
 
-    a, b, c = 10, 12, 300
+    a, b, c, d, e, f = 10, 20, 30, 40, 50, 60
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
     y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
     y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
+    y1 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
+    y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
+    fft_two = fft_encoder.encode(y2)
 
     print(f"SDR One: {len(fft_one)}")
     print(f"SDR active bits One: {sum(fft_one)}")
+    print(f"SDR Two: {len(fft_two)}")
+    print(f"SDR active bits Two: {sum(fft_two)}")
+
+    overlap_bits = overlap(fft_one, fft_two)
+    hamming_dist = hamming_distance(fft_one, fft_two)
+    print(f"Overlap: {overlap_bits} bits")
+    print(f"Hamming Distance: {hamming_dist} bits")
 
     plot_sdr(fft_one)
+    plot_sdr(fft_two)

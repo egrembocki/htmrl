@@ -13,10 +13,20 @@ DATA_PATH = os.path.join(PROJECT_ROOT, "data")
 
 def hamming_distance(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
 
+    sdr1 = np.asarray(sdr1, dtype=bool)
+    sdr2 = np.asarray(sdr2, dtype=bool)
+    if sdr1.shape != sdr2.shape:
+        raise ValueError("SDRs must have the same shape for Hamming distance calculation.")
+
     return int(np.count_nonzero(sdr1 != sdr2))
 
 
 def overlap(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
+
+    sdr1 = np.asarray(sdr1, dtype=bool)
+    sdr2 = np.asarray(sdr2, dtype=bool)
+    if sdr1.shape != sdr2.shape:
+        raise ValueError("SDRs must have the same shape for overlap calculation.")
 
     return int(np.sum(np.logical_and(sdr1, sdr2)))
 
