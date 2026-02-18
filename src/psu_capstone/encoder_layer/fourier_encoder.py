@@ -388,8 +388,9 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                     magnitudes.append(freq_slice[f])
                     frequencies.append(f + start_freq)
 
-                    logger.info(f"Encoding frequency bucket: {f + start_freq}")
-                    logger.info(f" with magnitude: {freq_slice[f]}")
+                    logger.info(
+                        f"Encoding frequency bucket: {f + start_freq} with magnitude: {freq_slice[f]}"
+                    )
                     current_dense_bits.extend(sdr_freq)
 
                     # for ids in range(len(sdr_freq)):

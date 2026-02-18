@@ -115,15 +115,15 @@ if __name__ == "__main__":
         )
     )
 
-    a, b, c, d, e, f = 10, 20, 30, 40, 50, 60
+    a, b, c, d, e, f = 10, 2, 30, 2, 50, 60
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    y1 *= np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
+    # y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
+    # y1 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
     y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
 
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
