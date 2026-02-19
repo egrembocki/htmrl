@@ -358,8 +358,6 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             current_interval_size = self._bucket_sizes[self._frequency_ranges.index(freq_range)]
             current_sparsity = self._sparsity_in_ranges[self._frequency_ranges.index(freq_range)]
 
-            # size = size // 2
-
             num_peaks = self._find_num_peaks(freq_slice)
             logger.info(f"Number of peaks found in range {freq_range}: {num_peaks}")
 

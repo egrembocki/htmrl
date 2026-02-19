@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from joblib import dump, load
+
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.base_encoder import ParentDataclass
@@ -21,12 +23,11 @@ from psu_capstone.log import logger
 
 
 class Trainer:
-    """Build a Trainer for training Brains on a datasets."""
+    """Build a Trainer for training Brains on a dataset."""
 
     def __init__(self, brain: Brain) -> None:
 
-        self._handler: InputHandler = InputHandler()
-        self._main_brain: Brain = brain
+        self._main_brain: Brain = Brain()
         self._brains: list[Brain] = []
         self._input_fields: list[Field] = []
         self._output_fields: list[Field] = []
@@ -136,6 +137,11 @@ class Trainer:
 
         logger.info(f"Training on dataset: {dataset}")
 
+        if steps > len(dataset):
+            logger.warning(
+                f"Steps ({steps}) exceed dataset size ({len(dataset)}). Will loop over dataset."
+            )
+
         if not self._input_fields:
             raise ValueError("No input fields defined for training.")
         elif not self._column_fields:
@@ -144,11 +150,13 @@ class Trainer:
         for step in range(steps):
             # Get the current data point from the dataset
             data_point = dataset[step % len(dataset)]
+            # avoid index out of range by looping over dataset if steps exceed its size
             logger.debug(f"Step {step + 1}/{steps}, Data Point: {data_point}")
 
             # Prepare the input dictionary for the Brain
             input_dict = {}
             for field in self._input_fields:
+                # Check if the field name exists in the data point and add it to the input dictionary
                 if field.name in data_point:
                     input_dict[field.name] = data_point[field.name]
                 else:
@@ -157,8 +165,19 @@ class Trainer:
             # Step the Brain with the prepared inputs
             brain.step(inputs=input_dict, learn=True)
 
+            self.save_brain_state(brain, f"./model/brain_state_step_{step + 1}.joblib")
+
     def save_brain_state(self, brain: Brain | None, path: str) -> None:
         """Save the Brain's state to the specified path."""
         if brain is None:
             brain = self._main_brain
         logger.info(f"Saving Brain state to: {path}")
+
+        dump(brain, path)
+
+    def load_brain_state(self, path: str) -> Brain:
+        """Load the Brain's state from the specified path."""
+        logger.info(f"Loading Brain state from: {path}")
+        brain = load(path)
+        self._main_brain = brain
+        return brain

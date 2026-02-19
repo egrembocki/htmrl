@@ -51,27 +51,19 @@ def plot_sdr(data: list[int]) -> None:
     plt.show(block=True)
 
 
-def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv") -> None:
+def plot_hot_gym_fft(sample_rate: int = 2048, dataset: str = "hot_gym_short.csv") -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
+
     hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
-
-    # signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
-    # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
-
+    signal = pd.to_numeric(hot_gym["kw_energy_consumption"], errors="coerce")
+    # signal = pd.DataFrame(signal).to_numpy().flatten()  # handle non-numeric values and flatten to 1D array
     sample_rate = len(signal)  # samples per second
 
-    time_axis = np.arange(signal.size, dtype=float) / sample_rate
-    plt.figure(figsize=(16, 8))
+    time_axis = np.arange(len(signal), dtype=float)
     plt.plot(time_axis, signal, "r")
-    plt.title("Sine Wave in Time Domain")
+    plt.title("Hit Gym Short Dataset - Energy Consumption")
     plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
     plt.grid()
@@ -135,8 +127,8 @@ if __name__ == "__main__":
     print(f"SDR Two: {len(fft_two)}")
     print(f"SDR active bits Two: {sum(fft_two)}")
 
-    plot_sdr(fft_one)
-    plot_sdr(fft_two)
+    # plot_sdr(fft_one)
+    # plot_sdr(fft_two)
 
     fft_one = np.array(fft_one)
     fft_two = np.array(fft_two)
@@ -146,32 +138,4 @@ if __name__ == "__main__":
     overlap = overlap(fft_one, fft_two)
     print(f"Overlap between SDRs: {overlap} bits")
 
-    ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "hot_gym_short.csv"))
-
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
-
-    fft_encoder = FourierEncoder(
-        FourierEncoderParameters(
-            resolutions_in_ranges=[0.10],
-            total_resolution=0.1,
-            # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 128)],
-            # every contributing frequency gets 40 active bits, this divides up from total active bits
-            size=2048,
-            # active bits in range times number of ranges
-            sparsity_in_ranges=[0.02],
-            total_sparsity=0.02,
-        )
-    )
-
-    print(signal)
-
-    sdr_hot_gym = fft_encoder.encode(signal)
-
-    plot_sdr(sdr_hot_gym)
+    plot_hot_gym_fft()
