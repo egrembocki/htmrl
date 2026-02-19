@@ -337,7 +337,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         freq_data = self._normalize(freq_data)
 
         # Nyquist frequency limit and store freq buckets as indexes
-        freq_data = freq_data[1 : samples // 2]
+        freq_data = freq_data[: samples // 2]
 
         all_freqs = np.real(np.abs(freq_data))
         all_peaks = self._find_num_peaks(all_freqs)
@@ -414,7 +414,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             for f in range(current_interval_size):
 
                 # find frequencies that contributed to the fft output by magnitude threshold
-                if freq_slice[f] < threshold or f == 0:
+                if freq_slice[f] < threshold:
 
                     continue
 
@@ -606,7 +606,7 @@ class FourierEncoderParameters(ParentDataclass):
     total_active_bits: int = 0
     """Total number of active bits in the encoder output SDR."""
 
-    frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(0, 100)])
+    frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(0, 1024)])
     """List of frequency ranges to find."""
 
     active_bits_in_ranges: list[int] = field(default_factory=lambda: [])

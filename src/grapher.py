@@ -69,6 +69,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     for column in columns:
         values = signal[column]
         values = np.array(values, dtype=float)
+        values[0] = 0.0  # remove DC component by zeroing the first value
         # values = values - np.mean(values)  # remove DC component
         values = values[:4096]
 
@@ -149,4 +150,4 @@ if __name__ == "__main__":
     #plot_sdr(fft_two)
 
     """
-    visualize_signal_fft("ES_full_1day_Test.csv", sample_rate=365)
+    visualize_signal_fft("fin_test.csv", sample_rate=4096)
