@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
+from scipy import signal as sig
 from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -50,56 +51,61 @@ def plot_sdr(data: list[int]) -> None:
     plt.show(block=True)
 
 
-def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "hot_gym_short.csv") -> None:
+def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
-    signal = (
-        cast(pd.DataFrame, hot_gym)
-        .drop(columns="timestamp")
-        .to_numpy(dtype=float, copy=False)
-        .flatten()
-    )
+    signal = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
-    # signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
-    # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    columns: list[str] = []
 
-    sample_rate = len(signal)  # samples per second
+    for k in signal.keys():
+        if k.lower() == "timestamp":
+            continue
+        columns.append(k)
 
-    time_axis = np.arange(signal.size, dtype=float) / sample_rate
-    plt.figure(figsize=(16, 8))
-    plt.plot(time_axis, signal, "r")
-    plt.title("Sine Wave in Time Domain")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Amplitude")
-    plt.grid()
-    plt.show()
+        print(f"Columns: {columns}")
 
-    # frequency domain
+    for column in columns:
+        values = signal[column]
+        values = np.array(values, dtype=float)
+        # values = values - np.mean(values)  # remove DC component
+        values = values[:4096]
 
-    freq_data = cast(np.ndarray, fft(signal))
-    samples = len(freq_data)
-    freq_data = freq_data[: samples // 2]
-    freq_bin = fftfreq(samples, 1 / sample_rate)[: samples // 2]
-    plt.figure(figsize=(16, 8))
-    plt.plot(freq_bin, np.abs(freq_data))
-    peak_index = np.argmax(np.abs(freq_data))
-    peak_freq = freq_bin[peak_index]
-    print(f"FFT Peak Frequency: {peak_freq} Hz")
+        print(f"Plotting column: {column}")
 
-    plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(len(freq_data) // 10 or 1))
-    plt.title("FFT Magnitude Spectrum")
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Magnitude")
-    plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
-    plt.show()
+        time_axis = np.arange(len(values), dtype=float)
+        plt.figure(figsize=(16, 8))
+        plt.plot(time_axis, values, "r")
+        plt.title(f"Sine Wave in Time Domain - {column}")
+        plt.xlabel("Time")
+        plt.ylabel("Amplitude")
+        plt.grid()
+        plt.show()
 
-    fft_encoder = FourierEncoder(FourierEncoderParameters())
+        # frequency domain
+        freq_data = cast(np.ndarray, fft(values))
+        samples = len(freq_data)
+        freq_data = freq_data[1 : samples // 2]
+        freq_bin = fftfreq(samples, 1 / sample_rate)[1 : samples // 2]
+        plt.figure(figsize=(16, 8))
+        plt.plot(freq_bin, np.abs(freq_data))
+        peak_index = np.argmax(np.abs(freq_data))
+        peak_freq = freq_bin[peak_index]
+        print(f"Plot Peak Frequency: {peak_freq} Hz")
 
-    sdr_hot_gym = fft_encoder.encode(signal)
+        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(nbins=10))
+        plt.title(f"FFT Magnitude Spectrum - {column}")
+        plt.xlabel("Frequency")
+        plt.ylabel("Magnitude")
+        plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
+        plt.show()
 
-    plot_sdr(sdr_hot_gym)
+        fft_encoder = FourierEncoder(FourierEncoderParameters())
+
+        sdr = fft_encoder.encode(values)
+
+        plot_sdr(sdr)
 
 
 if __name__ == "__main__":
@@ -111,7 +117,7 @@ if __name__ == "__main__":
             size=2048,
             # active bits in range times number of ranges
             sparsity_in_ranges=[0.02, 0.02],
-            sensitivity_threshold=0.001,
+            sensitivity_threshold=0.01,
         )
     )
 
@@ -125,6 +131,7 @@ if __name__ == "__main__":
     # y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
     # y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
 
+    """
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
 
@@ -138,5 +145,8 @@ if __name__ == "__main__":
     print(f"Overlap: {overlap_bits} bits")
     print(f"Hamming Distance: {hamming_dist} bits")
 
-    plot_sdr(fft_one)
-    plot_sdr(fft_two)
+    #plot_sdr(fft_one)
+    #plot_sdr(fft_two)
+
+    """
+    visualize_signal_fft("ES_full_1day_Test.csv", sample_rate=365)

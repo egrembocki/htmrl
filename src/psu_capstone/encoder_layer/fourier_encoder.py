@@ -20,6 +20,7 @@ from typing import Any, Iterable, cast, override
 import numpy as np
 import pandas as pd
 from scipy.fft import fft, fftfreq, ifft
+from scipy.signal import butter, filtfilt
 from sklearn.utils import deprecated
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
@@ -137,22 +138,15 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         return unit_vector
 
-    def _trim(self, input_data: np.ndarray | pd.DataFrame | list[float]) -> np.ndarray:
+    def _trim(self, input_data: np.ndarray | list[float]) -> np.ndarray:
         """Trim input array into a power of 2 size"""
 
         # verify sizes of input data
-        self._total_samples = len(input_data)  # MIGHT NOT BE TRUE IN ALL CASES
+        self._total_samples = len(input_data)
         self._time_step = self._period_size / self._total_samples
         self._sample_rate = float(1 / self._time_step)  # samples per second
 
-        if isinstance(input_data, pd.DataFrame):
-
-            # convert all pd.DataFrame columns to float types
-            input_data = (
-                input_data.select_dtypes(include=[np.number]).astype(float).to_numpy(copy=False)
-            )
-
-        elif isinstance(input_data, np.ndarray):
+        if isinstance(input_data, np.ndarray):
             input_data = input_data.astype(float, copy=False)
 
         else:
@@ -267,14 +261,31 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         return power
 
+    def _high_pass_filter(self, data: np.ndarray, cutoff_freq: float, order: int) -> np.ndarray:
+        """Apply a high-pass Butterworth filter to the input data.
+
+        Args:
+            data (np.ndarray): The input time-domain signal to be filtered.
+            cutoff_freq (float): The cutoff frequency for the high-pass filter in Hz.
+            order (int): The order of the Butterworth filter.
+        """
+        nyquist = 0.5 * self._sample_rate
+        normal_cutoff = cutoff_freq / nyquist
+        b, a = cast(
+            tuple[np.ndarray, np.ndarray], butter(order, normal_cutoff, btype="high", analog=False)
+        )
+        filtered_data = filtfilt(b, a, data)
+
+        return np.asarray(filtered_data, dtype=float)
+
     @override
-    def encode(self, input_value: np.ndarray) -> list[int]:
+    def encode(self, input_value: np.ndarray | list[float]) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
 
         Encodes a single frequency peak into a SDR as list[int].
 
         Args:
-            input_value: np.ndarray: The input time-domain signal to be encoded.
+            input_value: np.ndarray | list[float]: The input time-domain signal to be encoded.
 
         Returns:
             list[int]: List of active bit indices in the encoded SDR.
@@ -289,8 +300,19 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         self._validate_params(self._params)
 
+        if not isinstance(input_value, (np.ndarray, list)):
+            raise ValueError("Input value must be a numpy array or a list of floats.")
+
         #  trim input data into a power of 2 size and reset internal params
         input_value = self._trim(cast(np.ndarray, input_value))
+
+        # subtract mean to center the signal around zero
+        input_value = input_value - np.mean(input_value)
+
+        # highpass filter to remove DC component and low frequency noise
+        # cutoff_freq = 0.5  # Hz, adjust as needed
+        # input_value = self._high_pass_filter(input_value, cutoff_freq=0.25, order=5)
+
         samples = self._total_samples
         time_step = self._time_step
         freq_ranges = self._frequency_ranges
@@ -308,10 +330,14 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
         #  perform FFT on input time data and normalize
         freq_data = cast(np.ndarray, fft(input_value))
+
+        # Remove the DC bucket so normalization is not dominated by zero Hz energy
+        if freq_data.size > 0:
+            freq_data[0] = 0
         freq_data = self._normalize(freq_data)
 
         # Nyquist frequency limit and store freq buckets as indexes
-        freq_data = freq_data[: samples // 2]
+        freq_data = freq_data[1 : samples // 2]
 
         all_freqs = np.real(np.abs(freq_data))
         all_peaks = self._find_num_peaks(all_freqs)
@@ -322,21 +348,30 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         for freq_range in freq_ranges:
             # reset total size
             size = self._size
+            peak_freq = 0
 
             current_dense_bits: list[int] = []
 
             start_freq = freq_range[0]
             stop_freq = freq_range[1]
 
-            peak_freq = 0
+            if stop_freq > (self._sample_rate / 2):
+                logger.warning(
+                    f"Frequency range end {stop_freq} exceeds Nyquist frequency {self._sample_rate / 2} Hz. Adjusting to Nyquist limit."
+                )
+                stop_freq = int(self._sample_rate // 2)
+
             freq_buckets = fftfreq(samples, time_step)[start_freq:stop_freq]
 
-            # slice freq data to current frequency range  :: assuming freq ranges are int in Hz
+            # slice freq data to current frequency range  :: assuming freq ranges are in Hz
             freq_slice = freq_data[start_freq:stop_freq]
             freq_slice = np.real(np.abs(freq_slice))
 
             # find peak frequency in the current interval
             peak_index = np.argmax(np.abs(freq_slice))
+            if peak_index == 0:
+                logger.warning(f"!!-ZERO Peak Found in range--!! {freq_range}.")
+
             if freq_slice[peak_index] < threshold:
                 logger.info(f"No significant peaks found in range {freq_range}.")
 
@@ -352,6 +387,8 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             current_res = self._resolutions_in_ranges[self._frequency_ranges.index(freq_range)]
             current_interval_size = self._bucket_sizes[self._frequency_ranges.index(freq_range)]
             current_sparsity = self._sparsity_in_ranges[self._frequency_ranges.index(freq_range)]
+
+            current_interval_size = min(current_interval_size, len(freq_slice))
 
             num_peaks = self._find_num_peaks(freq_slice)
             logger.info(f"Number of peaks found in range {freq_range}: {num_peaks}")
@@ -377,11 +414,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             for f in range(current_interval_size):
 
                 # find frequencies that contributed to the fft output by magnitude threshold
-                if freq_slice[f] < threshold:
+                if freq_slice[f] < threshold or f == 0:
+
                     continue
 
                 else:
-                    # freq is the current bucket being evaluated
+
                     freq_value = float(f + start_freq)
 
                     sdr_freq = freq_encoder.encode(freq_value)
@@ -565,10 +603,10 @@ class FourierEncoderParameters(ParentDataclass):
     size: int = 2048
     """The size the encoder"""
 
-    total_active_bits: int = 40
+    total_active_bits: int = 0
     """Total number of active bits in the encoder output SDR."""
 
-    frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(1, 100)])
+    frequency_ranges: list[tuple[int, int]] = field(default_factory=lambda: [(0, 100)])
     """List of frequency ranges to find."""
 
     active_bits_in_ranges: list[int] = field(default_factory=lambda: [])
