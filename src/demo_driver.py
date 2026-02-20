@@ -38,14 +38,15 @@ def sine_wave_demo() -> None:
     # Generate a sine wave dataset
     x = np.linspace(0, 1, 2048, endpoint=False)
     y = np.sin(2 * np.pi * 1 * x)
-    data = {"sine_wave": y}
+    data = {"sine_wave_input": y}
     brain = Brain()
     trainer = Trainer(brain)
-    brain = trainer.build_brain([("sine_wave", 2048, RDSEParameters())])
+    brain = trainer.build_brain([("sine_wave_input", 2048, RDSEParameters())])
 
     for name, value in data.items():
         logger.info("Data column '%s': %d records", name, len(value))
-    column = {"sine_wave": y.tolist()}
+
+    column = {"sine_wave_input": y.tolist()}
 
     trainer.train_column(brain, column, steps=1000)
 
