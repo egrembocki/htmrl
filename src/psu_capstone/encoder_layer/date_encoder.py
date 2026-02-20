@@ -112,6 +112,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         radius: float,
         resolution: float,
         sparsity: float,
+        seed: int = 42,
     ) -> RandomDistributedScalarEncoder | ScalarEncoder | None:
         """Instantiate and register a sub-encoder, keeping _initialize readable.
 
@@ -121,6 +122,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             active_bits: Number of active bits for the encoder.
             radius: Radius for the encoder.
             resolution: Resolution for the encoder.
+            seed: Random seed for the encoder.
             sparsity: Sparsity for the encoder (not used).
             -- must define either active_bits  > 0 or sparsity > 0.0 --
             -- must define eihter radius > 0.0 or resolution > 0.0 --
@@ -136,6 +138,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             "radius": radius,
             "resolution": resolution,
             "sparsity": sparsity,
+            "seed": seed,
         }
 
         if self._rdse_used:
@@ -146,6 +149,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             encoder = RandomDistributedScalarEncoder(params)
         else:
             scalar_params = encoder_params.copy()
+            scalar_params.pop("seed")  # ScalarEncoder doesn't use seed
             if active_bits <= 0:
                 return None
             params = ScalarEncoderParameters(**scalar_params)
@@ -721,9 +725,10 @@ class DateEncoderParameters(ParentDataclass):
     custom_days: list[str] = field(default_factory=lambda: ["mon,tue,wed,thu,fri"])
     """List of custom day group strings (e.g., ["mon,wed,fri"])."""
 
-    # --------------------------------------------------------------------------
+    # seed for encoders
+    seed: int = 42
+    """Random seed for encoder initialization."""
 
-    # leave for now
     rdse_used: bool = True
     """Enable RDSE usage for date encoder."""
 

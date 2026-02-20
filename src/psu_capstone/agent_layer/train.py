@@ -29,16 +29,37 @@ class Trainer:
 
     def __init__(self, brain: Brain) -> None:
         """Initializes the Trainer with a Brain instance."""
+
         self._main_brain: Brain = brain
         self._brains: list[Brain] = []
-        self._input_fields: list[Field] = []
-        self._output_fields: list[Field] = []
-        self._column_fields: list[Field] = []
+        self._trainer_input_fields: list[Field] = []
+        self._trainer_output_fields: list[Field] = []
+        self._trainer_column_fields: list[Field] = []
 
     @property
     def brains(self) -> list[Brain]:
         """Access the Brains being trained."""
+
         return self._brains
+
+    @property
+    def main_brain(self) -> Brain:
+        """Access the main Brain being trained."""
+        if self._main_brain is None:
+            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+        return self._main_brain
+
+    @main_brain.setter
+    def main_brain(self, brain: Brain) -> None:
+        """Set the main Brain being trained."""
+        if brain is None:
+            raise ValueError("Cannot set main Brain to None.")
+        elif not isinstance(brain, Brain):
+            raise ValueError("main_brain must be an instance of Brain.")
+
+        self._main_brain = brain
+        if brain not in self._brains:
+            self._brains.append(brain)
 
     def _setup_io_fields(self, fields: list[tuple[str, int, ParentDataclass]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
@@ -56,9 +77,7 @@ class Trainer:
             Note: Field names ending with '_input' will automatically be treated as InputFields.
         """
 
-        logger.info("Setting up fields for the Brain.")
-
-        self._input_fields = []
+        logger.info(f"Setting up field: {fields} for the Brain.")
 
         for name, size, param in fields:
             if isinstance(param, RDSEParameters):
@@ -71,6 +90,7 @@ class Trainer:
                 )
             elif isinstance(param, DateEncoderParameters):
                 encoder_params = DateEncoderParameters(size=param.size)
+
             elif isinstance(param, CategoryParameters):
                 encoder_params = CategoryParameters(size=param.size)
             elif isinstance(param, FourierEncoderParameters):
@@ -88,28 +108,34 @@ class Trainer:
                 raise ValueError("Unsupported field type: {}".format(name))
 
             if isinstance(field, InputField):
-                self._input_fields.append(field)
+                self._trainer_input_fields.append(field)
             elif isinstance(field, OutputField):
-                self._output_fields.append(field)
+                self._trainer_output_fields.append(field)
 
     def _setup_column_fields(self, num_columns: int, cells_per_column: int) -> None:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
-            input_fields=self._input_fields,
+            input_fields=self._trainer_input_fields,
             non_spatial=True,
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )
         column_field.name = "column"
-        self._column_fields.append(column_field)
+        self._trainer_column_fields.append(column_field)
 
     def _create_brain(self) -> Brain:
         """Create a Brain instance with the configured fields."""
+
+        if not self._trainer_input_fields:
+            raise ValueError("No input fields defined for the Brain.")
+        if not self._trainer_column_fields:
+            raise ValueError("No column fields defined for the Brain.")
+
         brain = Brain(
             {
-                **{field.name: field for field in self._input_fields if field is not None},
-                **{field.name: field for field in self._output_fields if field is not None},
-                **{field.name: field for field in self._column_fields if field is not None},
+                **{field.name: field for field in self._trainer_input_fields if field is not None},
+                **{field.name: field for field in self._trainer_output_fields if field is not None},
+                **{field.name: field for field in self._trainer_column_fields if field is not None},
             }
         )
 
@@ -153,7 +179,7 @@ class Trainer:
         if name.endswith("_input"):
             field = InputField(size=size, encoder_params=encoder_params)
             field.name = name
-            self._input_fields.append(field)
+            self._trainer_input_fields.append(field)
             self._main_brain.fields[name] = field
         else:
             raise ValueError("Input field name must end with '_input'.")
@@ -167,7 +193,7 @@ class Trainer:
         if name.endswith("_output"):
             field = OutputField(size=size, motor_action=motor_action)
             field.name = name
-            self._output_fields.append(field)
+            self._trainer_output_fields.append(field)
             self._main_brain.fields[name] = field
         else:
             raise ValueError("Output field name must end with '_output'.")
@@ -180,13 +206,13 @@ class Trainer:
 
         if name.endswith("_column"):
             field = ColumnField(
-                input_fields=self._input_fields,
+                input_fields=self._trainer_input_fields,
                 non_spatial=True,
                 num_columns=num_columns,
                 cells_per_column=cells_per_column,
             )
             field.name = name
-            self._column_fields.append(field)
+            self.trainer_column_fields.append(field)
             self._main_brain.fields[name] = field
         else:
             raise ValueError("Column field name must end with '_column'.")
@@ -205,9 +231,9 @@ class Trainer:
                 f"Steps ({steps}) exceed dataset size ({len(dataset)}). Will loop over dataset."
             )
 
-        if not self._input_fields:
+        if not self._trainer_input_fields:
             raise ValueError("No input fields defined for training.")
-        elif not self._column_fields:
+        elif not self.trainer_column_fields:
             raise ValueError("No column fields defined for training.")
 
         for step in range(steps):
@@ -218,7 +244,7 @@ class Trainer:
 
             # Prepare the input dictionary for the Brain
             input_dict = {}
-            for field in self._input_fields:
+            for field in self._trainer_input_fields:
                 # Check if the field name exists in the data point and add it to the input dictionary
                 if field.name in data_point:
                     input_dict[field.name] = data_point[field.name]
