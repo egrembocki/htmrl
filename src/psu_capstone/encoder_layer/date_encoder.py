@@ -19,15 +19,16 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Iterable, override
 
+import numpy as np
 import pandas as pd
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, MarkerDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import logger
 
 
-class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]):
+class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
     """
     Python port of the HTM DateEncoder, using the existing scalar encoders with default parameters.
     Encodes up to 6 attributes using six different encoders of a timestamp into one SDR:
@@ -307,7 +308,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self.size = self._size
 
     @override
-    def encode(self, input_value: datetime | pd.Timestamp | time.struct_time | None) -> list[int]:
+    def encode(
+        self, input_value: datetime | pd.Timestamp | time.struct_time | np.datetime64 | None
+    ) -> list[int]:
         """
         Encode a timestamp-like value into `output` SDR.
 
@@ -316,9 +319,10 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
           - int/float     -> UNIX epoch seconds
           - datetime      -> datetime (naive treated as local)
           - struct_time   -> used directly
+          - np.datetime64 -> numpy datetime64
 
         Args:
-                input_value: datetime, pd.Timestamp, struct_time, or None for current time.
+                input_value: datetime, pd.Timestamp, struct_time, np.datetime64, or None for current time.
 
         Raises:
                 TypeError: If input_value is of unsupported type.
@@ -328,7 +332,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
         """
 
-        # output_sdr = SDR(dimensions=[self._size])
         output_sdr: list[int] = []
 
         if input_value is None:
@@ -340,6 +343,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
             t = time.localtime(ts)
         elif isinstance(input_value, time.struct_time):
             t = input_value
+        elif isinstance(input_value, np.datetime64):
+            ts = input_value.astype("datetime64[s]").astype("int")
+            t = time.localtime(ts)
         else:
             raise TypeError(f"Unsupported type for DateEncoder.encode: {type(input_value)}")
 
@@ -524,7 +530,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
 
 
 @dataclass
-class DateEncoderParameters(MarkerDataClass):
+class DateEncoderParameters(ParentDataClass):
     """Configuration parameters for DateEncoder.
 
     Each field controls the encoding of a specific temporal feature.

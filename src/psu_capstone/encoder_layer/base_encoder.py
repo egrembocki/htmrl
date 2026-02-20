@@ -37,7 +37,7 @@ class BaseEncoder(ABC, Generic[T]):
         """Initializes the BaseEncoder with given size."""
 
         self._size: int = size if size is not None else 0
-        self._parameters: MarkerDataClass | None = None
+        self._parameters: ParentDataClass | None = None
 
     @property
     def size(self) -> int:
@@ -67,7 +67,7 @@ class BaseEncoder(ABC, Generic[T]):
 
 
 @dataclass
-class MarkerDataClass:
+class ParentDataClass:
     """Parent Class to mark all Parameter Classes for encoders."""
 
     encoder_class = BaseEncoder

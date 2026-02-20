@@ -1,7 +1,7 @@
 import os
 from importlib.metadata import PackageNotFoundError, version
 
-from .encoder_layer.base_encoder import BaseEncoder, MarkerDataClass
+from .encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from .encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from .encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from .encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
@@ -17,7 +17,7 @@ DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
 
 __all__ = [
     "BaseEncoder",
-    "MarkerDataClass",
+    "ParentDataClass",
     "CategoryEncoder",
     "CategoryParameters",
     "RDSEParameters",

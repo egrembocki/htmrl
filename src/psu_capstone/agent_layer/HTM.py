@@ -10,7 +10,7 @@ from itertools import chain
 from statistics import fmean, pstdev
 from typing import Any, Iterable
 
-from psu_capstone.encoder_layer.base_encoder import MarkerDataClass
+from psu_capstone.encoder_layer.base_encoder import ParentDataClass
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 # Constants
@@ -773,7 +773,7 @@ class InputField(Field):
     """A Field specialized for input bits."""
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        if encoder_params is not None and isinstance(encoder_params, MarkerDataClass):
+        if encoder_params is not None and isinstance(encoder_params, ParentDataClass):
             params = copy.deepcopy(encoder_params)
         else:
             params = RDSEParameters()

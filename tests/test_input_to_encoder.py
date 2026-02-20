@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
@@ -42,7 +43,8 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     data_stream = bytearray(int(value) for value in values)
     # Act
     records = input_handler.input_data(data_stream, required_columns=["value"])
-    encoder_sequence = input_handler.to_encoder_sequence(records, column="value")
+    dataframe = pd.DataFrame(records)
+    encoder_sequence = input_handler._to_encoder_one_col(dataframe, column="value")
 
     # Normalize values coming from the input handler. The handler may yield
     # single-character strings for raw bytes (e.g. '\x0f'), or numeric types.
@@ -53,7 +55,7 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
             return v[0]
         return float(v)
 
-    normalized_sequence = [_to_numeric(v) for v in encoder_sequence["value"]]
+    normalized_sequence = [_to_numeric(v) for v in encoder_sequence]
     encoded_from_sequence = [encoder.encode(value) for value in normalized_sequence]
     reference_encoder = ScalarEncoder(_make_scalar_params())
     encoded_reference = [reference_encoder.encode(value) for value in normalized_sequence]
@@ -62,7 +64,7 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     assert isinstance(input_handler, InputInterface)
     assert isinstance(encoder, ScalarEncoder)
     assert isinstance(records, dict)
-    assert isinstance(encoder_sequence, dict)
+    assert isinstance(encoder_sequence, list)
     assert isinstance(normalized_sequence, list)
     assert len(normalized_sequence) > 0
     assert all(value is not None for value in normalized_sequence)
@@ -83,11 +85,11 @@ def test_sine_wave_through_input_handler(input_handler, encoder):
 
     # Act: feed through the input handler and extract the encoder-ready sequence
     records = input_handler.input_data(values, required_columns=["value"])
-    seq = input_handler.to_encoder_sequence(records, column="value")
-    seq_values = seq["value"]
+    dataframe = pd.DataFrame(records)
+    seq_values = input_handler._to_encoder_one_col(dataframe, column="value")
 
     # Assert: sequence shape and encoder outputs
-    assert isinstance(seq, dict)
+    assert isinstance(seq_values, list)
     assert len(seq_values) == n
     assert all(isinstance(v, (int, float)) for v in seq_values)
 

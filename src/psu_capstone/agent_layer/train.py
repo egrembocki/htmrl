@@ -15,13 +15,13 @@ from joblib import dump, load
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import MarkerDataClass
+from psu_capstone.encoder_layer.base_encoder import ParentDataClass
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
+from psu_capstone.log import get_logger, logger
 
 
 class Trainer:
@@ -29,12 +29,13 @@ class Trainer:
 
     def __init__(self, brain: Brain) -> None:
         """Initializes the Trainer with a Brain instance."""
-
+        self.logger = get_logger(self)
         self._main_brain: Brain = brain
         self._brains: list[Brain] = []
         self._trainer_input_fields: list[Field] = []
         self._trainer_output_fields: list[Field] = []
         self._trainer_column_fields: list[Field] = []
+        self._values: list[Any] = []
 
     @property
     def brains(self) -> list[Brain]:
@@ -61,7 +62,7 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, MarkerDataClass]]) -> None:
+    def _setup_io_fields(self, fields: list[tuple[str, int, ParentDataClass]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -77,9 +78,13 @@ class Trainer:
             Note: Field names ending with '_input' will automatically be treated as InputFields.
         """
 
-        logger.info(f"Setting up field: {fields} for the Brain.")
-
         for name, size, param in fields:
+            self.logger.info(
+                "Setting up field %-24s size=%5d encoder=%-28s",
+                name,
+                size,
+                type(param).__name__,
+            )
             if isinstance(param, RDSEParameters):
                 encoder_params = RDSEParameters(
                     size=param.size,
@@ -139,9 +144,29 @@ class Trainer:
             }
         )
 
+        self.logger.info("Brain created with fields: %s", list(brain.fields.keys()))
+
         return brain
 
-    def build_brain(self, fields: list[tuple[str, int, MarkerDataClass]]) -> Brain:
+    def _build_values_list(self, dataset: dict[str, list[Any]]) -> None:
+        """Build a list of values from the dataset for training."""
+
+        for column_name, column_data in dataset.items():
+            self.logger.debug(
+                f"Processing column '{column_name}' with {len(column_data)} data points."
+            )
+            for value in column_data:
+                self._values.append(value)
+        self.logger.info(
+            f"Built values list with {len(self._values)} total data points from dataset."
+        )
+
+    def print_train_stats(self) -> None:
+        """Print statistics about the training dataset."""
+        self.logger.info("Training dataset statistics:")
+        self._main_brain.print_stats()
+
+    def build_brain(self, fields: list[tuple[str, int, ParentDataClass]]) -> Brain:
         """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.
 
         Args:
@@ -168,9 +193,11 @@ class Trainer:
         self._main_brain = brain
         self._brains.append(brain)
 
+        self.save_brain_state(brain, "./model/initial_brain_state.joblib")
+
         return brain
 
-    def add_input_field(self, name: str, size: int, encoder_params: MarkerDataClass) -> None:
+    def add_input_field(self, name: str, size: int, encoder_params: ParentDataClass) -> None:
         """Add an input field to the Brain."""
 
         if self._main_brain is None:
@@ -212,49 +239,80 @@ class Trainer:
                 cells_per_column=cells_per_column,
             )
             field.name = name
-            self.trainer_column_fields.append(field)
+            self._trainer_column_fields.append(field)
             self._main_brain.fields[name] = field
         else:
             raise ValueError("Column field name must end with '_column'.")
 
-    def train(self, brain: Brain | None, dataset: Any, steps: int) -> None:
+    def train_column(self, brain: Brain | None, column: dict[str, list[Any]], steps: int) -> None:
+        """Train the Brain on the specified dataset."""
+
+        if brain is None:
+            brain = self._main_brain
+        if steps <= 1:
+            steps = len(column)
+
+        if len(column.keys()) == 0:
+            raise ValueError("Dataset is empty. Cannot train on an empty dataset.")
+        elif len(column.keys()) > 1:
+            raise ValueError(
+                "Dataset has more than one column. Use train_brain() to train on multiple columns."
+            )
+        else:
+
+            self.logger.info(f"Training one column with {steps} data points.")
+
+        for step in range(steps):
+            # Get the current data point from the column
+            name = list(column.keys())[0]
+            value = column[name][step % len(column[name])]
+
+            for field in self._trainer_input_fields:
+                if field.name == f"{name}_input":
+                    input_dict = {field.name: value}
+                    break
+            else:
+                raise ValueError(f"No matching input field found for column '{name}'.")
+
+            # Step the Brain with the prepared inputs
+            brain.step(inputs=input_dict, learn=True)
+
+    def train_brain(self, brain: Brain | None, dataset: dict[str, list[Any]], steps: int) -> None:
         """Train the Brain on the specified dataset."""
         if brain is None:
             brain = self._main_brain
         if steps <= 1:
-            steps = len(dataset)
+            steps = min(len(column) for column in dataset.values())
 
-        logger.info(f"Training on dataset: {dataset}")
+        self.logger.info(f"Training on dataset with columns: {list(dataset.keys())}")
 
-        if steps > len(dataset):
-            logger.warning(
-                f"Steps ({steps}) exceed dataset size ({len(dataset)}). Will loop over dataset."
-            )
-
-        if not self._trainer_input_fields:
-            raise ValueError("No input fields defined for training.")
-        elif not self.trainer_column_fields:
-            raise ValueError("No column fields defined for training.")
+        for column_name, column_data in dataset.items():
+            self.logger.debug(f"Column '{column_name}' has {len(column_data)} data points.")
 
         for step in range(steps):
             # Get the current data point from the dataset
-            data_point = dataset[step % len(dataset)]
+            column_data = {key: dataset[key][step % len(dataset[key])] for key in dataset}
             # avoid index out of range by looping over dataset if steps exceed its size
-            logger.debug(f"Step {step + 1}/{steps}, Data Point: {data_point}")
+            self.logger.debug(f"Step {step + 1}/{steps}, Data Point: {column_data}")
 
             # Prepare the input dictionary for the Brain
             input_dict = {}
             for field in self._trainer_input_fields:
                 # Check if the field name exists in the data point and add it to the input dictionary
-                if field.name in data_point:
-                    input_dict[field.name] = data_point[field.name]
+                if field.name in column_data:
+                    input_dict[field.name] = column_data[field.name]
                 else:
                     raise ValueError(f"Data point is missing required input field: {field.name}")
 
             # Step the Brain with the prepared inputs
             brain.step(inputs=input_dict, learn=True)
 
-            self.save_brain_state(brain, f"./model/brain_state_step_{step + 1}.joblib")
+            # self.save_brain_state(brain, f"./model/brain_state_step_{step + 1}.joblib")
+
+    def test(self, brain: Brain, test_dataset: Any, expected_data: Any) -> None:
+        """Test the Brain on the specified dataset."""
+        self.logger.info(f"Testing on dataset: {test_dataset}")
+        # Implement testing logic as needed, e.g., evaluating predictions against expected outputs
 
     def build_full_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
         """Build a full Brain with all fields based on the dataset."""
@@ -286,13 +344,13 @@ class Trainer:
         """Save the Brain's state to the specified path."""
         if brain is None:
             brain = self._main_brain
-        logger.info(f"Saving Brain state to: {path}")
+        self.logger.info(f"Saving Brain state to: {path}")
 
         dump(brain, path)
 
     def load_brain_state(self, path: str) -> Brain:
         """Load the Brain's state from the specified path."""
-        logger.info(f"Loading Brain state from: {path}")
+        self.logger.info(f"Loading Brain state from: {path}")
         brain = load(path)
         self._main_brain = brain
         return brain
