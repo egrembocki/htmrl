@@ -15,7 +15,7 @@ from joblib import dump, load
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import MarkerDataClass
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
@@ -61,7 +61,7 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParentDataClass]]) -> None:
+    def _setup_io_fields(self, fields: list[tuple[str, int, MarkerDataClass]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -141,7 +141,7 @@ class Trainer:
 
         return brain
 
-    def build_brain(self, fields: list[tuple[str, int, ParentDataClass]]) -> Brain:
+    def build_brain(self, fields: list[tuple[str, int, MarkerDataClass]]) -> Brain:
         """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.
 
         Args:
@@ -170,7 +170,7 @@ class Trainer:
 
         return brain
 
-    def add_input_field(self, name: str, size: int, encoder_params: ParentDataClass) -> None:
+    def add_input_field(self, name: str, size: int, encoder_params: MarkerDataClass) -> None:
         """Add an input field to the Brain."""
 
         if self._main_brain is None:
