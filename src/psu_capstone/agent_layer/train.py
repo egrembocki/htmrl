@@ -168,6 +168,10 @@ class Trainer:
 
             self.save_brain_state(brain, f"./model/brain_state_step_{step + 1}.joblib")
 
+    def build_full_brain(self, dataset: dict[Any, list[Any]]) -> Brain:
+        """Build a full Brain with all fields based on the dataset."""
+        pass
+
     def save_brain_state(self, brain: Brain | None, path: str) -> None:
         """Save the Brain's state to the specified path."""
         if brain is None:
