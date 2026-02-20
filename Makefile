@@ -85,14 +85,9 @@ else
 endif
 	@echo "✅ Cleanup complete"
 
-update: ## Update dependencies (refresh lockfile and synced environment)
+update: ## Update dependencies
 	@echo "🔺 Updating dependencies..."
-	@uv lock --upgrade --native-tls 2>/dev/null \
-		|| uv lock --upgrade 2>/dev/null \
-		|| (echo "⚠️ Could not reach PyPI, using existing lock file" && uv lock)
-	@uv sync --all-groups --offline 2>/dev/null \
-		|| uv sync --all-groups --native-tls 2>/dev/null \
-		|| (echo "⚠️ Could not fully sync dependencies; environment may be stale" && uv sync --all-groups)
+	@uv lock --upgrade
 	@echo "✅ Dependencies updated"
 
 ## In order to run a specific test file or directory, use:
