@@ -1,7 +1,10 @@
 import os
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
-__version__ = version("psu_capstone")
+try:
+    __version__ = version("psu_capstone")
+except PackageNotFoundError:
+    __version__ = "0.0.1"
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

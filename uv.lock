@@ -1574,7 +1574,7 @@ wheels = [
 [[package]]
 name = "psu-capstone"
 version = "0.0.1"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "matplotlib" },
     { name = "mmh3" },

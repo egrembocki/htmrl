@@ -129,6 +129,20 @@ class Trainer:
 
         return brain
 
+    def add_input_field(self, name: str, size: int, encoder_params: ParentDataclass) -> None:
+        """Add an input field to the Brain."""
+
+        if self._main_brain is None:
+            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+
+        if name.endswith("_input"):
+            field = InputField(size=size, encoder_params=encoder_params)
+            field.name = name
+            self._input_fields.append(field)
+            self._main_brain.fields[name] = field
+        else:
+            raise ValueError("Input field name must end with '_input'.")
+
     def train(self, brain: Brain | None, dataset: Any, steps: int) -> None:
         """Train the Brain on the specified dataset."""
         if brain is None:
