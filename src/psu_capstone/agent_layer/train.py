@@ -7,9 +7,10 @@ without needing to interact with the Brain's internal fields directly.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
+import numpy as np
 from joblib import dump, load
 
 from psu_capstone.agent_layer.brain import Brain
@@ -27,8 +28,8 @@ class Trainer:
     """Build a Trainer for training Brains on a dataset."""
 
     def __init__(self, brain: Brain) -> None:
-
-        self._main_brain: Brain = Brain()
+        """Initializes the Trainer with a Brain instance."""
+        self._main_brain: Brain = brain
         self._brains: list[Brain] = []
         self._input_fields: list[Field] = []
         self._output_fields: list[Field] = []
@@ -102,20 +103,8 @@ class Trainer:
         column_field.name = "column"
         self._column_fields.append(column_field)
 
-    def build_brain(self, fields: list[tuple[str, int, ParentDataclass]]) -> Brain:
-        """Build the Brain for training.
-        Args:
-            fields: A list of tuples containing field name, field size, and encoder parameters.
-
-        Returns:
-            The built Brain instance ready for training.
-
-        """
-        # Build the Brain with the specified fields and append it to the list of brains
-
-        self._setup_io_fields(fields)
-        self._setup_column_fields(num_columns=12288, cells_per_column=32)
-
+    def _create_brain(self) -> Brain:
+        """Create a Brain instance with the configured fields."""
         brain = Brain(
             {
                 **{field.name: field for field in self._input_fields if field is not None},
@@ -124,6 +113,32 @@ class Trainer:
             }
         )
 
+        return brain
+
+    def build_brain(self, fields: list[tuple[str, int, ParentDataclass]]) -> Brain:
+        """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.
+
+        Args:
+            fields: A list of tuples containing field name, field size, and encoder parameters.
+
+                Example:
+                fields = [
+                    ("consumption_input", 2048, RDSEParameters(size=2048, sparsity=0.02, resolution=1.0, category=False, seed=5)),
+                    ("date_input", 2048, DateEncoderParameters(size=2048, resolution=1.0, seed=5)),
+                ]
+        Returns:
+            The built Brain instance ready for training.
+
+        """
+        # build a brain based on the provided fields, using the maximum size from the fields to determine the number of columns in the column field and the size of the output SDR. This ensures that the column field can accommodate the largest input field
+
+        size = max(field[1] for field in fields)  # Get the maximum size from the fields
+        # make the input/output fields
+        self._setup_io_fields(fields)
+        # make column fields
+        self._setup_column_fields(num_columns=size, cells_per_column=32)
+        # create the Brain with fields
+        brain = self._create_brain()
         self._main_brain = brain
         self._brains.append(brain)
 
@@ -142,6 +157,39 @@ class Trainer:
             self._main_brain.fields[name] = field
         else:
             raise ValueError("Input field name must end with '_input'.")
+
+    def add_output_field(self, name: str, size: int, motor_action: tuple[Any, ...]) -> None:
+        """Add an output field to the Brain."""
+
+        if self._main_brain is None:
+            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+
+        if name.endswith("_output"):
+            field = OutputField(size=size, motor_action=motor_action)
+            field.name = name
+            self._output_fields.append(field)
+            self._main_brain.fields[name] = field
+        else:
+            raise ValueError("Output field name must end with '_output'.")
+
+    def add_column_field(self, name: str, num_columns: int, cells_per_column: int) -> None:
+        """Add a column field to the Brain."""
+
+        if self._main_brain is None:
+            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+
+        if name.endswith("_column"):
+            field = ColumnField(
+                input_fields=self._input_fields,
+                non_spatial=True,
+                num_columns=num_columns,
+                cells_per_column=cells_per_column,
+            )
+            field.name = name
+            self._column_fields.append(field)
+            self._main_brain.fields[name] = field
+        else:
+            raise ValueError("Column field name must end with '_column'.")
 
     def train(self, brain: Brain | None, dataset: Any, steps: int) -> None:
         """Train the Brain on the specified dataset."""
@@ -182,9 +230,31 @@ class Trainer:
 
             self.save_brain_state(brain, f"./model/brain_state_step_{step + 1}.joblib")
 
-    def build_full_brain(self, dataset: dict[Any, list[Any]]) -> Brain:
+    def build_full_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
         """Build a full Brain with all fields based on the dataset."""
-        pass
+
+        for key, values in dataset.items():
+            if isinstance(values[0], (int, float)):
+                encoder_params = RDSEParameters(size=size)
+            elif isinstance(values[0], str):
+                encoder_params = CategoryParameters(size=size)
+            elif isinstance(values[0], (list, tuple, np.ndarray)):
+                encoder_params = FourierEncoderParameters(size=size)
+            elif isinstance(values[0], datetime):
+                encoder_params = DateEncoderParameters(size=size)
+            else:
+                raise ValueError(f"Unsupported data type for field '{key}': {type(values[0])}")
+
+            self._setup_io_fields([(f"{key}_input", size, encoder_params)])
+
+        self._setup_column_fields(num_columns=size, cells_per_column=32)
+
+        brain = self._create_brain()
+
+        self._main_brain = brain
+        self._brains.append(brain)
+
+        return brain
 
     def save_brain_state(self, brain: Brain | None, path: str) -> None:
         """Save the Brain's state to the specified path."""

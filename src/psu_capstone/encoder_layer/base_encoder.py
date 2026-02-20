@@ -72,5 +72,5 @@ class ParentDataclass:
     encoder_class = BaseEncoder
     """Class variable to specify the associated encoder class. Subclasses should override this."""
 
-    size: int = 12288
+    size: int = 2048
     """Size of the output SDR. Must be a positive integer."""
