@@ -39,7 +39,8 @@ formatters = ["black>=23.7.0", "isort>=6.0.1"]
 psu-capstone = "psu_capstone:main"
 
 [tool.uv]
-package = true
+# package = true  # Disabled for offline environments
+
 
 [tool.uv.workspace]
 members = [
