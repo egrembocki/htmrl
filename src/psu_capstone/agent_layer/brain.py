@@ -124,11 +124,26 @@ class Brain:
 
     def print_stats(self) -> None:
         """Print statistics from the column field."""
-        for name, column_field in self._column_fields.items():
-            self.logger.info("Statistics for ColumnField '%s':", name)
+        for column_field in self._column_fields.values():
+            self.logger.info("Statistics for ColumnField '%s':", column_field.name)
             column_field.print_stats()
 
     def reset(self) -> None:
         """Clear all states in the column field."""
-        for field in self.fields:
+        for field in self.fields.values():
             field.reset()  # type: ignore
+
+    @property
+    def input_fields(self) -> list[InputField]:
+        """Return list of input fields."""
+        return list(self._input_fields.values())
+
+    @property
+    def column_fields(self) -> list[ColumnField]:
+        """Return list of column fields."""
+        return list(self._column_fields.values())
+
+    @property
+    def output_fields(self) -> list[OutputField]:
+        """Return list of output fields."""
+        return list(self._output_fields.values())

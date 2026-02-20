@@ -4,6 +4,8 @@ inspired by Sungar Thesis: http://etd.lib.metu.edu.tr/upload/12621275/index.pdf
 Developed by: Dr. Pullin Agrawal Penn State Univ
 """
 
+from __future__ import annotations
+
 import copy
 import random
 from itertools import chain
@@ -540,7 +542,7 @@ class ColumnField(Field):
 
     @property
     def active_columns(self) -> list[Column]:
-        """Return list of currently bursting columns."""
+        """Return list of currently active columns."""
         return [column for column in self.columns if column.active]
 
     @property

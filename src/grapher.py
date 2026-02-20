@@ -21,7 +21,7 @@ from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 plt.style.use("seaborn-v0_8-poster")
 
 
-def plot_sdr(data: list[int]) -> None:
+def plot_sdr(data: list[int], title: str | None = None) -> None:
     """Plot a visual representation of the given SDR data."""
 
     sdr = SDR([len(data)])
@@ -43,8 +43,8 @@ def plot_sdr(data: list[int]) -> None:
 
     plt.figure(figsize=(10, 10))
     plt.imshow(grid, cmap=cmap, interpolation="nearest")
-    title = "SDR Visualization"
-    plt.title(title)
+    plot_title = title or "SDR Visualization"
+    plt.title(plot_title)
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)

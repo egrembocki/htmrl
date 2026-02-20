@@ -11,8 +11,8 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
-from joblib import dump, load
 
+import grapher
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
@@ -21,7 +21,7 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import get_logger, logger
+from psu_capstone.log import get_logger
 
 
 class Trainer:
@@ -193,8 +193,6 @@ class Trainer:
         self._main_brain = brain
         self._brains.append(brain)
 
-        self.save_brain_state(brain, "./model/initial_brain_state.joblib")
-
         return brain
 
     def add_input_field(self, name: str, size: int, encoder_params: ParentDataClass) -> None:
@@ -268,7 +266,7 @@ class Trainer:
             value = column[name][step % len(column[name])]
 
             for field in self._trainer_input_fields:
-                if field.name == f"{name}_input":
+                if field.name == name:
                     input_dict = {field.name: value}
                     break
             else:
@@ -277,7 +275,9 @@ class Trainer:
             # Step the Brain with the prepared inputs
             brain.step(inputs=input_dict, learn=True)
 
-    def train_brain(self, brain: Brain | None, dataset: dict[str, list[Any]], steps: int) -> None:
+    def train_full_brain(
+        self, brain: Brain | None, dataset: dict[str, list[Any]], steps: int
+    ) -> None:
         """Train the Brain on the specified dataset."""
         if brain is None:
             brain = self._main_brain
@@ -307,14 +307,12 @@ class Trainer:
             # Step the Brain with the prepared inputs
             brain.step(inputs=input_dict, learn=True)
 
-            # self.save_brain_state(brain, f"./model/brain_state_step_{step + 1}.joblib")
-
     def test(self, brain: Brain, test_dataset: Any, expected_data: Any) -> None:
         """Test the Brain on the specified dataset."""
         self.logger.info(f"Testing on dataset: {test_dataset}")
         # Implement testing logic as needed, e.g., evaluating predictions against expected outputs
 
-    def build_full_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
+    def fast_build_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
         """Build a full Brain with all fields based on the dataset."""
 
         for key, values in dataset.items():
@@ -340,17 +338,29 @@ class Trainer:
 
         return brain
 
-    def save_brain_state(self, brain: Brain | None, path: str) -> None:
-        """Save the Brain's state to the specified path."""
-        if brain is None:
-            brain = self._main_brain
-        self.logger.info(f"Saving Brain state to: {path}")
+    def show_active_columns(self, brain: Brain) -> None:
+        """Show the active columns in the Brain."""
 
-        dump(brain, path)
+        for column_field in brain.column_fields:
+            # self.logger.info(f"Active columns in '{column_field.name}': {column_field.active_columns}")
 
-    def load_brain_state(self, path: str) -> Brain:
-        """Load the Brain's state from the specified path."""
-        self.logger.info(f"Loading Brain state from: {path}")
-        brain = load(path)
-        self._main_brain = brain
-        return brain
+            sdr = [
+                (1 if column in column_field.active_columns else 0)
+                for column in column_field.columns
+            ]
+
+        grapher.plot_sdr(sdr, title=f"Active Columns in '{column_field.name}'")
+
+    def show_heat_map(self, brain: Brain) -> None:
+        """Show a heat map of the Brain's activity."""
+        # Implement heat map visualization logic as needed, e.g., using matplotlib or seaborn
+
+    # TODO: Implement save_brain and load_brain methods for persistence of trained Brains
+    def save_brain(self, brain: Brain, filename: str) -> None:
+        """Save the Brain to a file."""
+        # Implement saving logic, e.g., using joblib or pickle
+
+    def load_brain(self, filename: str) -> Brain:
+        """Load a Brain from a file."""
+        # Implement loading logic, e.g., using joblib or pickle
+        return Brain()  # Placeholder return
