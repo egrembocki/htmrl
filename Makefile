@@ -16,8 +16,8 @@ install: ## Install package and pre-commit hooks (Windows)
 		echo "🚀 Creating new uv environment..."; \
 		uv python install 3.12 && uv python pin 3.12; \
 	)
-	@uv lock --upgrade --native-tls 2>/dev/null || uv lock --native-tls 2>/dev/null || true
-	@uv sync --all-groups --offline 2>/dev/null || uv sync --all-groups --native-tls 2>/dev/null || (echo "⚠️ Could not sync packages, using existing environment" && true)
+	@uv lock --upgrade
+	@uv sync --all-groups
 	@git rev-parse --git-dir >nul 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
 	@uv run --active pre-commit install
@@ -31,8 +31,8 @@ install: ## Install package and pre-commit hooks (Unix)
 		echo "🚀 Creating new uv environment..."; \
 		uv python install 3.12 && uv python pin 3.12; \
 	fi
-	@uv lock --upgrade --native-tls 2>/dev/null || uv lock --native-tls 2>/dev/null || true
-	@uv sync --all-groups --offline 2>/dev/null || uv sync --all-groups --native-tls 2>/dev/null || (echo "⚠️ Could not sync packages, using existing environment" && true)
+	@uv lock --upgrade
+	@uv sync --all-groups
 	@git rev-parse --git-dir >/dev/null 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
 	@uv run --active pre-commit install
@@ -48,7 +48,7 @@ else
 endif
 	@uv python install 3.12
 	@uv python pin 3.12
-	@uv sync --all-groups --offline 2>/dev/null || uv sync --all-groups --native-tls 2>/dev/null || (echo "⚠️ Could not sync packages, environment may be incomplete" && true)
+	@uv sync --all-groups
 	@echo "✅ Environment recreated"
 
 setup-dev: ## Setup development environment
@@ -85,9 +85,15 @@ else
 endif
 	@echo "✅ Cleanup complete"
 
-update: ## Update dependencies (uses existing lock if network unavailable)
+update: ## Update dependencies (refresh lockfile and synced environment)
 	@echo "🔺 Updating dependencies..."
-	@uv lock --upgrade 2>/dev/null || (echo "⚠️ Could not reach PyPI, using existing lock file"; uv lock)
+	@uv lock --upgrade --native-tls 2>/dev/null \
+		|| uv lock --upgrade 2>/dev/null \
+		|| (echo "⚠️ Could not reach PyPI, using existing lock file" && uv lock)
+	@uv sync --all-groups --offline 2>/dev/null \
+		|| uv sync --all-groups --native-tls 2>/dev/null \
+		|| (echo "⚠️ Could not fully sync dependencies; environment may be stale" && uv sync --all-groups)
+	@echo "✅ Dependencies updated"
 
 ## In order to run a specific test file or directory, use:
 ## make test ARGS="-v tests/test_file_or_directory"

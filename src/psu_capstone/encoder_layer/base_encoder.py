@@ -66,7 +66,7 @@ class BaseEncoder(ABC, Generic[T]):
 
 
 @dataclass
-class ParentDataclass:
+class ParentDataClass:
     """Parent Class to mark all Parameter Classes for encoders."""
 
     encoder_class = BaseEncoder
