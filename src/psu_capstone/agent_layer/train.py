@@ -8,6 +8,7 @@ without needing to interact with the Brain's internal fields directly.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -166,10 +167,84 @@ class Trainer:
             f"Built values list with {len(self._values)} total data points from dataset."
         )
 
-    def print_train_stats(self) -> None:
-        """Print statistics about the training dataset."""
+    def print_train_stats(
+        self,
+        save_path: str | None = None,
+        test_results: dict[str, Any] | None = None,
+        training_steps: int | None = None,
+    ) -> None:
+        """Print statistics about the training dataset.
+
+        Args:
+            save_path: Optional file path to append the brain report to. If provided,
+                      the report will be appended to the file.
+            test_results: Optional test/prediction results dictionary to include in the report.
+            training_steps: Optional number of training steps to include in the report.
+        """
         self.logger.info("Training dataset statistics:")
         self._main_brain.print_stats()
+
+        if save_path:
+            # Create parent directories if they don't exist
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+
+            with open(save_path, "a") as f:
+                f.write("\n" + "=" * 80 + "\n")
+                f.write(f"Brain Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("=" * 80 + "\n")
+
+                # Include training steps if provided
+                if training_steps is not None:
+                    f.write(f"Training Steps: {training_steps}\n")
+                    f.write("-" * 80 + "\n")
+
+                # Capture the brain stats
+                import io
+                import sys
+
+                old_stdout = sys.stdout
+                sys.stdout = buffer = io.StringIO()
+                self._main_brain.print_stats()
+                sys.stdout = old_stdout
+                f.write(buffer.getvalue())
+                f.write("\n")
+
+                # Include test results if provided
+                if test_results:
+                    f.write("\n" + "-" * 80 + "\n")
+                    f.write("PREDICTION TEST RESULTS\n")
+                    f.write("-" * 80 + "\n\n")
+
+                    # Write summary metrics
+                    f.write("Prediction Summary:\n")
+                    f.write(f"  Global MSE: {test_results.get('mean_squared_error', 0.0):.6f}\n")
+                    f.write(
+                        f"  Total prediction failures: {test_results.get('total_prediction_failures', 0)}\n"
+                    )
+                    f.write(
+                        f"  Avg bursting columns: {test_results.get('avg_bursting_columns', 0.0):.3f}\n\n"
+                    )
+
+                    # Write per-field metrics table
+                    if "errors" in test_results and "prediction_failures" in test_results:
+                        f.write("  Per-field metrics:\n")
+                        f.write("    +----------------------------+---------------+-----------+\n")
+                        f.write("    | Field                      |     MSE       | Failures |\n")
+                        f.write("    +----------------------------+---------------+-----------+\n")
+
+                        field_errors = test_results["errors"]
+                        failures = test_results["prediction_failures"]
+
+                        for field_name, errors in field_errors.items():
+                            mse = sum(errors) / len(errors) if errors else 0.0
+                            failure_count = failures.get(field_name, 0)
+                            f.write(
+                                f"    | {field_name:<26} | {mse:>11.6f} | {failure_count:>9} |\n"
+                            )
+
+                        f.write("    +----------------------------+---------------+-----------+\n")
+
+                    f.write("\n")
 
     def build_brain(self, fields: list[tuple[str, int, ParentDataClass]]) -> Brain:
         """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.

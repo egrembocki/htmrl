@@ -191,7 +191,9 @@ def sine_wave_demo(steps: int = 100) -> None:
     data = {"sine_wave_input": y}
     brain = Brain()
     trainer = Trainer(brain)
-    trainer.main_brain = trainer.build_brain([("sine_wave_input", 2048, RDSEParameters())])
+    trainer.main_brain = trainer.build_brain(
+        [("sine_wave_input", 2048, RDSEParameters(resolution=0.001))]
+    )
     brain = trainer.main_brain
 
     for name, value in data.items():
@@ -202,12 +204,13 @@ def sine_wave_demo(steps: int = 100) -> None:
     trainer.train_column(brain, column, steps)
 
     # show predicted vs actual values for the last 100 steps
-    trainer.test(brain, column, steps)
+    test_results = trainer.test(brain, column, steps)
 
     trainer.show_active_columns(brain, dataset_name="sine wave")
     trainer.show_heat_map(brain, dataset_name="sine wave")
 
-    trainer.print_train_stats()
+    report_path = os.path.join(PROJECT_ROOT, "docs/reports/sine_wave_training_stats.txt")
+    trainer.print_train_stats(report_path, test_results=test_results, training_steps=steps)
 
 
 def show_field_single_encoding_demo() -> None:
@@ -219,12 +222,12 @@ def show_field_single_encoding_demo() -> None:
     input_fields: list[tuple[str, int, ParentDataClass]] = []
     # Create a simple brain with one input field and one column field
     input_fields = [
-        ("temperature_input", 2048, RDSEParameters()),
+        ("temperature_input", 2048, RDSEParameters(resolution=0.1)),
     ]
     trainer.main_brain = trainer.build_brain(input_fields)
 
     # Example input value to encode
-    sample_input = {"temperature_input": 25.0}
+    sample_input = {"temperature_input": 25.8}
 
     # Step the brain with the sample input
     output = trainer.main_brain._input_fields["temperature_input"].encode(
@@ -237,12 +240,19 @@ def show_field_single_encoding_demo() -> None:
 
 
 if __name__ == "__main__":
+    # Ensure we're in the project root directory for consistent file operations
+    os.chdir(PROJECT_ROOT)
+
     # Example usage of the Brain and Trainer classes
 
-    show_input_data_demo()
-    show_input_to_encoder_demo(3)
-    show_brain_creation_demo()
-    show_field_single_encoding_demo()
-    sine_wave_demo(128)
-    rec_center_demo(128)
-    fin_data_demo(steps=3)
+    # show_input_data_demo()
+    # show_input_to_encoder_demo(3)
+    # show_brain_creation_demo()
+    # show_field_single_encoding_demo()
+    # sine_wave_demo(100)
+    # rec_center_demo(128)
+    # fin_data_demo(steps=3)
+
+    for i in range(2, 25):
+        print(f"Running sine wave demo with {i} steps...")
+        sine_wave_demo(steps=i * 100)
