@@ -4,7 +4,7 @@ from psu_capstone.agent_layer.HTM import OutputField
 
 
 def test_outputfield_creation():
-    o = OutputField()
+    o = OutputField(size=16, motor_action=(None,))
     assert isinstance(o, OutputField)
 
 

@@ -12,7 +12,7 @@ def create_brain_helper_multi_field() -> Brain:
         category=False,
         seed=5,
     )
-    out_fi = OutputField()
+    out_fi = OutputField(size=512, motor_action=(None,))
     input_field = InputField(size=512, encoder_params=rdse_params)
     column_field = ColumnField(
         input_fields=[input_field],

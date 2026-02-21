@@ -147,6 +147,7 @@ def test_deterministic_same_seed():
     params = RDSEParameters(
         size=2048,
         active_bits=40,
+        sparsity=0.0,
         seed=40,
     )
 
@@ -167,11 +168,13 @@ def test_different_seed_produces_different_sdr_with_same_input_value():
     params = RDSEParameters(
         size=2048,
         active_bits=40,
+        sparsity=0.0,
         seed=40,
     )
     params1 = RDSEParameters(
         size=2048,
         active_bits=40,
+        sparsity=0.0,
         seed=39,
     )
     encoder1 = RandomDistributedScalarEncoder(params)
@@ -193,6 +196,7 @@ def test_resolution_boundary():
     params = RDSEParameters(
         size=2048,
         active_bits=40,
+        sparsity=0.0,
         resolution=1.0,
         radius=0,
         seed=42,
@@ -230,6 +234,7 @@ def test_locality_checking_mmh3():
     params = RDSEParameters(
         size=2048,
         active_bits=40,
+        sparsity=0.0,
         resolution=1.0,
         radius=0.0,
         category=False,

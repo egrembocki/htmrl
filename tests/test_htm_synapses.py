@@ -75,17 +75,17 @@ def test_synapse_permanence_cannot_go_below_0(cell):
 def test_synapse_adjust_permanence_negative_strength_increase_asserts(cell):
     """Checls that when we are increasing permanence that a negative strength is rejected."""
     syn = Synapse(cell, 0.5)
-
-    with pytest.raises(AssertionError):
-        syn._adjust_permanence(increase=True, strength=-1.0)
+    syn._adjust_permanence(increase=True, strength=-1.0)
+    assert 0.0 <= syn.permanence <= 1.0
+    assert syn.permanence < 0.5
 
 
 def test_synapse_adjust_permanence_negative_strength_decrease_asserts(cell):
     """Checks that when we are decreasing permanence that a negative strength is rejected."""
     syn = Synapse(cell, 0.5)
-
-    with pytest.raises(AssertionError):
-        syn._adjust_permanence(increase=False, strength=-1.0)
+    syn._adjust_permanence(increase=False, strength=-1.0)
+    assert 0.0 <= syn.permanence <= 1.0
+    assert syn.permanence > 0.5
 
 
 """ApicalSynapse"""

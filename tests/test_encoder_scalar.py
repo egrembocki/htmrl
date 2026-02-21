@@ -347,19 +347,13 @@ def test_scalar_encoder_serialization():
 
     for encoder in inputs:
         if type(encoder) is ScalarEncoder:
-            p1 = encoder._parameters
-            p2 = encoder._parameters
-
-            assert p1.size == p2.size
-            assert getattr(p1, "category", None) == getattr(p2, "category", None)
-            assert p1.active_bits == p2.active_bits
-            assert p1.periodic == p2.periodic
-            assert p1.clip_input == p2.clip_input
-            assert nearly_equal(p1.minimum, p2.minimum)
-            assert nearly_equal(p1.maximum, p2.maximum)
-            assert nearly_equal(p1.resolution, p2.resolution)
-            assert nearly_equal(p1.sparsity, p2.sparsity)
-            assert nearly_equal(p1.radius, p2.radius)
+            assert encoder.size > 0
+            assert encoder._active_bits > 0
+            assert encoder._active_bits < encoder.size
+            assert encoder._minimum <= encoder._maximum
+            assert encoder._resolution > 0
+            assert encoder._radius > 0
+            assert encoder._sparsity > 0
 
 
 # ---------------------------------------------------------------------------

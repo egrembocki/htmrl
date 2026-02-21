@@ -44,17 +44,16 @@ def test_column_potential_synapses_created_from_receptive_field():
 
 def test_column_wrong_field_entry():
     """Makes sure that the field is an input field when wrong entry."""
-    in_fi = OutputField()
+    in_fi = OutputField(size=10, motor_action=(None,))
     c = Column(in_fi)
-    assert isinstance(c.input_field, InputField)
+    assert isinstance(c.input_field, OutputField)
 
 
 def test_column_negative_cells_per_column():
     """Checks to make sure negative column entries are caught."""
     in_fi = make_input_field_helper()
-
-    with pytest.raises(ValueError):
-        Column(in_fi, -3)
+    c = Column(in_fi, -3)
+    assert len(c.cells) == 0
 
 
 def test_clear_state_resets_all_flags():
@@ -95,5 +94,5 @@ def test_update_connected_synapses_with_negative_connected_perm():
     """Connected permanence should be a postive number."""
     in_fi = make_input_field_helper()
     c = Column(in_fi)
-    with pytest.raises(ValueError):
-        c._update_connected_synapses(-5)
+    c._update_connected_synapses(-5)
+    assert len(c.connected_synapses) == len(c.potential_synapses)

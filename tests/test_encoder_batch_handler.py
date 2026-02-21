@@ -72,7 +72,7 @@ def test_dataframe_composite():
 
     rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
     handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
+    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
         season_active_bits=0,
@@ -147,7 +147,7 @@ def test_individual_column_sdrs():
 
     rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
     handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
+    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
         season_active_bits=0,

@@ -43,19 +43,9 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     data_stream = bytearray(int(value) for value in values)
     # Act
     records = input_handler.input_data(data_stream, required_columns=["value"])
-    dataframe = pd.DataFrame(records)
-    encoder_sequence = input_handler._to_encoder_one_col(dataframe, column="value")
+    encoder_sequence = input_handler.get_column_data("value")
 
-    # Normalize values coming from the input handler. The handler may yield
-    # single-character strings for raw bytes (e.g. '\x0f'), or numeric types.
-    def _to_numeric(v):
-        if isinstance(v, str) and len(v) == 1:
-            return ord(v)
-        if isinstance(v, bytes) and len(v) == 1:
-            return v[0]
-        return float(v)
-
-    normalized_sequence = [_to_numeric(v) for v in encoder_sequence]
+    normalized_sequence = [float(v) for v in encoder_sequence]
     encoded_from_sequence = [encoder.encode(value) for value in normalized_sequence]
     reference_encoder = ScalarEncoder(_make_scalar_params())
     encoded_reference = [reference_encoder.encode(value) for value in normalized_sequence]
@@ -84,9 +74,8 @@ def test_sine_wave_through_input_handler(input_handler, encoder):
     values = ((np.sin(2 * np.pi * t / n) + 1.0) * 50.0).tolist()
 
     # Act: feed through the input handler and extract the encoder-ready sequence
-    records = input_handler.input_data(values, required_columns=["value"])
-    dataframe = pd.DataFrame(records)
-    seq_values = input_handler._to_encoder_one_col(dataframe, column="value")
+    input_handler.input_data(values, required_columns=["value"])
+    seq_values = input_handler.get_column_data("value")
 
     # Assert: sequence shape and encoder outputs
     assert isinstance(seq_values, list)
