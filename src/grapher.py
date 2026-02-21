@@ -51,7 +51,20 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     plt.show(block=True)
 
 
-def plot_hot_gym_fft(sample_rate: int = 2048, dataset: str = "hot_gym_short.csv") -> None:
+def plot_heat_map(heat_map: np.ndarray, title: str | None = None) -> None:
+    """Plot a heat map of the given 2D array."""
+    plt.figure(figsize=(10, 8))
+    plt.imshow(heat_map, cmap="hot", interpolation="nearest")
+    plot_title = title or "Heat Map"
+    plt.title(plot_title)
+    plt.colorbar(label="Activity Level")
+    plt.xlabel("Column Index")
+    plt.ylabel("Column Index")
+    plt.grid(False)
+    plt.show(block=True)
+
+
+def visualize_fft(sample_rate: int = 2048, dataset: str = "hot_gym_short.csv") -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
 
@@ -137,5 +150,3 @@ if __name__ == "__main__":
     print(f"Hamming distance between SDRs: {hamming} bits")
     overlap = overlap(fft_one, fft_two)
     print(f"Overlap between SDRs: {overlap} bits")
-
-    plot_hot_gym_fft()

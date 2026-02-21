@@ -809,7 +809,7 @@ class InputField(Field):
         if encoded is None:
             encoded = self.cells
         bit_vector = [getattr(cell, state) for cell in encoded]
-        return self.encoder.decode(bit_vector, candidates)
+        return self.encoder.decode(bit_vector, candidates)  # type: ignore
 
     def advance_states(self) -> None:
         for cell in self.cells:

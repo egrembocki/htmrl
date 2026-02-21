@@ -352,8 +352,21 @@ class Trainer:
         grapher.plot_sdr(sdr, title=f"Active Columns in '{column_field.name}'")
 
     def show_heat_map(self, brain: Brain) -> None:
-        """Show a heat map of the Brain's activity."""
-        # Implement heat map visualization logic as needed, e.g., using matplotlib or seaborn
+        """Show a heat map of the Brain's column duty cycle activity."""
+        if not brain.column_fields:
+            raise ValueError("No column fields available to visualize.")
+
+        column_field = brain.column_fields[0]
+        duty_cycles = np.array([column.active_duty_cycle for column in column_field.columns])
+
+        if duty_cycles.size == 0:
+            raise ValueError("Column field has no columns to visualize.")
+
+        side = int(np.ceil(np.sqrt(duty_cycles.size)))
+        heat_map = np.zeros((side, side))
+        heat_map.flat[: duty_cycles.size] = duty_cycles
+
+        grapher.plot_heat_map(heat_map, title="Column Duty Cycle Heat Map")
 
     # TODO: Implement save_brain and load_brain methods for persistence of trained Brains
     def save_brain(self, brain: Brain, filename: str) -> None:
