@@ -39,7 +39,7 @@ def show_input_data_demo() -> None:
         logger.info(DATA_COLUMN_LOG_MESSAGE, name, len(value))
 
 
-def show_input_to_encoder_demo(slice: int = 5) -> None:
+def show_input_to_encoder_demo(s: int = 5) -> None:
     """Demonstrate the InputHandler's ability to convert raw input data to encoder-ready format."""
 
     ih = InputHandler()
@@ -60,7 +60,7 @@ def show_input_to_encoder_demo(slice: int = 5) -> None:
         [(f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.01))]
     )  # fin markets
 
-    values = encoder_sequence[:slice]  # Take the first 'slice' values for demonstration
+    values = encoder_sequence[:s]  # Take the first 's' values for demonstration
 
     field = trainer.main_brain._input_fields[f"{columns[1]}_input"]
     encoder = field.encoder
@@ -156,6 +156,7 @@ def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
 
     brain = Brain()
     trainer = Trainer(brain)
+    # resolution changes the spatial pooler representation
     trainer.main_brain = trainer.build_full_brain(data, 2048, RDSEParameters(resolution=0.01))
     brain = trainer.main_brain
 
@@ -238,10 +239,10 @@ def show_field_single_encoding_demo() -> None:
 if __name__ == "__main__":
     # Example usage of the Brain and Trainer classes
 
-    # show_input_data_demo()
+    show_input_data_demo()
     show_input_to_encoder_demo(3)
-    # show_brain_creation_demo()
-    # show_field_single_encoding_demo()
-    # sine_wave_demo(128)
-    # rec_center_demo(128)
-    # fin_data_demo(steps=3)
+    show_brain_creation_demo()
+    show_field_single_encoding_demo()
+    sine_wave_demo(128)
+    rec_center_demo(128)
+    fin_data_demo(steps=3)
