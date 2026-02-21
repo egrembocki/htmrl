@@ -1,5 +1,17 @@
 """
 tests.test_input_handler_load_data
+
+Test suite for InputHandler data loading functionality.
+
+Validates that InputHandler correctly parses CSV and XLSX files into record dictionaries,
+properly handles required columns, and extracts data in the expected format. Tests cover:
+- CSV file parsing with header row and data rows
+- XLSX workbook ingestion with sheet selection
+- Required columns validation and filtering
+- Data type preservation and record dictionary structure
+
+These tests ensure the input data pipeline correctly loads external data sources (CSV/XLSX)
+before downstream encoder processing.
 """
 
 from pathlib import Path

@@ -1,3 +1,28 @@
+"""
+Test suite for Synapse class.
+
+Synapse represents a connection from one Cell to another Cell. Each synapse
+has a permanence value (strength) that is updated during learning.
+
+Key Properties:
+  - presynaptic_cell: source cell of the connection
+  - postsynaptic_cell: target cell of the connection
+  - permanence: strength (0.0 to 1.0), higher = stronger connection
+  - connected: whether permanence >= connected_threshold (~0.5)
+
+Learning Rules:
+  - Reward (positive reinforcement): increase permanence
+  - Punishment (negative reinforcement): decrease permanence
+  - Permanence clamped to [0.0, 1.0]
+
+Tests validate:
+  1. Synapse initialization with proper cell references
+  2. Connected state computation based on permanence
+  3. Learning updates (increase/decrease permanence)
+  4. Clamping to valid range [0.0, 1.0]
+  5. Synapse strength tracking
+"""
+
 import pytest
 
 from psu_capstone.agent_layer.HTM import (

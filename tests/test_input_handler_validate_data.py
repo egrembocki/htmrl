@@ -1,3 +1,19 @@
+"""
+tests.test_input_handler_validate_data
+
+Test suite for InputHandler data validation functionality.
+
+Validates that InputHandler correctly validates loaded data for consistency, type correctness,
+and required field presence. Tests ensure the validation step correctly identifies:
+- Missing or null values in required columns
+- Data type mismatches and format errors
+- Required column presence and completeness
+- Data quality issues that would impact downstream encoding
+
+These tests ensure the input data pipeline correctly validates data before encoder processing,
+catching issues early in the pipeline.
+"""
+
 import pandas as pd
 import pytest
 

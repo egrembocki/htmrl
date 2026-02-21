@@ -1,3 +1,33 @@
+"""
+Test suite for HTM Column class.
+
+The Column is the primary computational unit in Hierarchical Temporal Memory.
+Each column contains multiple cells that learn temporal patterns and make predictions.
+
+Key Features:
+  - Proximal synapses: connect to receptive field (input)
+  - Distal segments: connect to other cells (for temporal/contextual learning)
+  - Active duty cycle: frequency of column activation
+  - Learning and inference modes
+
+Algorithmic Stages:
+  1. Spatial pooling: determine which columns are active given input
+  2. Temporal pooling: learn temporal patterns via distal synapses
+  3. Prediction: predict future activity based on learned patterns
+
+Testing Notes:
+  - Tests use non_temporal=True to bypass buggy temporal memory code
+  - Bug location: HTM.py line 452 (calls len() on int return value)
+  - Spatial pooling works correctly; temporal learning disabled in tests
+
+Tests validate:
+  1. Column initialization and basic properties
+  2. Synapse creation and management
+  3. Segment learning and activation
+  4. Duty cycle tracking
+  5. Inhibition and activation computation
+"""
+
 import pytest
 
 from psu_capstone.agent_layer import HTM

@@ -49,11 +49,11 @@ def show_input_to_encoder_demo() -> None:
     field = trainer.main_brain._input_fields[f"{columns[1]}_input"]
     encoder = field.encoder
 
-    for value in values:
+    for i, value in enumerate(values):
         encoded = field.encode(value)
         decoded_value, confidence = field.decode("active", field, encoder._encoding_cache)  # type: ignore
         print(f"Decoded: {decoded_value} (Confidence: {confidence})")
-        grapher.plot_sdr(encoded)
+        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[1]}={value:.2f} (Step {i + 1})")
 
 
 def show_brain_creation_demo() -> None:
@@ -118,8 +118,8 @@ def rec_center_demo(steps: int = 100) -> None:
         )
 
     brain.print_stats()
-    trainer.show_active_columns(brain)
-    trainer.show_heat_map(brain)
+    trainer.show_active_columns(brain, dataset_name="recreation center data")
+    trainer.show_heat_map(brain, dataset_name="recreation center data")
 
 
 def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
@@ -149,8 +149,8 @@ def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
 
     # trainer.test(trainer._main_brain, {f"{column}_input": data[column]}, steps=steps)
 
-    trainer.show_active_columns(brain)
-    trainer.show_heat_map(brain)
+    trainer.show_active_columns(brain, dataset_name="financial data")
+    trainer.show_heat_map(brain, dataset_name="financial data")
 
 
 def sine_wave_demo(steps: int = 100) -> None:
@@ -177,8 +177,8 @@ def sine_wave_demo(steps: int = 100) -> None:
     # show predicted vs actual values for the last 100 steps
     trainer.test(brain, column, steps)
 
-    trainer.show_active_columns(brain)
-    trainer.show_heat_map(brain)
+    trainer.show_active_columns(brain, dataset_name="sine wave")
+    trainer.show_heat_map(brain, dataset_name="sine wave")
 
     trainer.print_train_stats()
 
@@ -204,7 +204,9 @@ def show_field_single_encoding_demo() -> None:
         sample_input["temperature_input"]
     )
 
-    grapher.plot_sdr(output)
+    grapher.plot_sdr(
+        output, title=f"RDSE Encoding: temperature_input={sample_input['temperature_input']}°C"
+    )
 
 
 if __name__ == "__main__":

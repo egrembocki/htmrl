@@ -1,3 +1,21 @@
+"""
+tests.test_encoder_batch_handler
+
+Test suite for BatchEncoderHandler functionality.
+
+Validates that BatchEncoderHandler correctly processes entire datasets of records,
+encoding each field according to its encoder type (RDSE for floats, Scalar for ints,
+Category for strings, DateEncoder for dates). Tests ensure:
+- Multiple encoders are attached and coordinated for different data types
+- Batch processing iterates through all records correctly
+- Union SDR generation combines individual field encodings properly
+- Data type detection and encoder mapping work correctly
+- Edge cases (missing values, type mismatches) are handled appropriately
+
+These tests validate the critical batch processing path that transforms tabular data
+(DataFrames) into SDR representations for HTM processing.
+"""
+
 import copy
 import os
 import warnings

@@ -1,8 +1,21 @@
 """
-Tests for CategoryEncoder decode (RDSE path).
+tests.test_decoder_category
 
-CategoryEncoder.decode is only implemented when rdse_used=True; it returns (value, confidence)
-where value is the decoded category string (or "NA" for unknown).
+Test suite for CategoryEncoder decoding functionality.
+
+Validates that CategoryEncoder correctly decodes SDRs back to original category strings.
+Tests cover:
+- decode() returns (value, confidence) tuple for RDSE-based encoders
+- Decoded values match original encoded categories
+- Confidence scores reflect encoding strength
+- Unknown/undecodable SDRs return "NA" for value
+- decode() is only implemented when rdse_used=True parameter is set
+
+Note: CategoryEncoder.decode() follows the standard decoder interface where decode()
+returns a tuple of (decoded_value, confidence) where decoded_value is the category string.
+
+These tests validate the reverse transformation from SDR representations back to
+interpretable category values.
 """
 
 import pytest

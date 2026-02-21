@@ -428,7 +428,7 @@ class Trainer:
 
         return brain
 
-    def show_active_columns(self, brain: Brain) -> None:
+    def show_active_columns(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show the active columns in the Brain."""
 
         for column_field in brain.column_fields:
@@ -439,9 +439,15 @@ class Trainer:
                 for column in column_field.columns
             ]
 
-        grapher.plot_sdr(sdr, title=f"Active Columns in '{column_field.name}'")
+            num_active = sum(sdr)
+            sparsity = (num_active / len(sdr)) * 100 if sdr else 0
+            dataset_info = f" - {dataset_name}" if dataset_name else ""
+            grapher.plot_sdr(
+                sdr,
+                title=f"Active Columns: {column_field.name}{dataset_info}\n({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)",
+            )
 
-    def show_heat_map(self, brain: Brain) -> None:
+    def show_heat_map(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show a heat map of the Brain's column duty cycle activity."""
         if not brain.column_fields:
             raise ValueError("No column fields available to visualize.")
@@ -457,20 +463,25 @@ class Trainer:
         heat_map.flat[: duty_cycles.size] = duty_cycles
 
         positive = duty_cycles[duty_cycles > 0]
+        active_columns = len(positive)
+        max_duty = float(positive.max()) if positive.size > 0 else 0.0
         norm = None
+
+        dataset_info = f" - {dataset_name}" if dataset_name else ""
+        title = f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
+
         if positive.size > 0:
-            vmax = float(positive.max())
-            vmax = max(vmax, 1e-6)
+            vmax = max(max_duty, 1e-6)
             norm = PowerNorm(gamma=0.35, vmin=0.0, vmax=vmax)
             grapher.plot_heat_map(
                 heat_map,
-                title="Column Duty Cycle Heat Map",
+                title=title,
                 norm=norm,
             )
         else:
             grapher.plot_heat_map(
                 heat_map,
-                title="Column Duty Cycle Heat Map",
+                title=title,
                 vmin=0.0,
                 vmax=1.0,
             )

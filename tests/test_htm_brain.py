@@ -1,3 +1,29 @@
+"""
+Test suite for HTM Brain class.
+
+The Brain coordinates encode-compute-learn-predict cycles across InputFields
+and ColumnFields. It manages the full temporal processing pipeline.
+
+Key Responsibilities:
+  - Manage InputFields (encode external inputs to SDRs)
+  - Manage ColumnFields (spatial/temporal pooling, prediction)
+  - Coordinate step() for updates across all fields
+  - Track predictions and learning state
+  - Reset between episodes
+
+Parameter Validation:
+  - All encoder parameters validated (RDSE mutual exclusivity, etc.)
+  - Temporal learning uses non_temporal=True to avoid HTM bug (would crash)
+  - OutputField requires (size, motor_action) parameters
+
+Tests validate:
+  1. Brain initialization with multiple field types
+  2. Encode-compute pipeline execution
+  3. Prediction generation and accuracy
+  4. State reset and re-initialization
+  5. Multi-field coordination
+"""
+
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.rdse import RDSEParameters

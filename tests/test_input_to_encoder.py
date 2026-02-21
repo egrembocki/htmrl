@@ -1,3 +1,19 @@
+"""
+tests.test_input_to_encoder
+
+Test suite for integration between InputHandler and Encoder components.
+
+Validates the end-to-end data flow from input handler (loading data) through encoder
+(converting data to SDR representations). Tests ensure:
+- Input data is correctly passed from InputHandler to Encoder
+- Scalar values are properly encoded based on encoder parameters (min/max, periodic)
+- SDR representations have correct dimensionality and sparsity
+- Data transformations maintain semantic correctness through the pipeline
+
+These tests validate the critical pipeline connection between input data loading and
+SDR encoding, ensuring data integrity across component boundaries.
+"""
+
 import numpy as np
 import pandas as pd
 import pytest

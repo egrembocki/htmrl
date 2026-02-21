@@ -67,7 +67,7 @@ def plot_heat_map(
         vmin: Minimum value for color mapping (if norm is None)
         vmax: Maximum value for color mapping (if norm is None)
     """
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(12, 12))
     plt.imshow(heat_map, cmap="hot", interpolation="nearest", norm=norm, vmin=vmin, vmax=vmax)
     if title:
         plt.title(title)

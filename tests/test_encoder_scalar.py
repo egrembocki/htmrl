@@ -1,4 +1,31 @@
-"""Test suite for the SDR Encoder-Scalar."""
+"""
+Test suite for Scalar Encoder.
+
+The Scalar Encoder encodes numeric values in a limited range into sparse SDRs.
+It uses the Cortical Learning Algorithm to create semantic representations where
+nearby values have overlapping encodings.
+
+Key Features:
+  - Range-limited input (minimum/maximum bounds)
+  - Optional input clipping
+  - Supports both periodic (cyclical) and non-periodic ranges
+  - Deterministic encoding (same input → same SDR)
+  - Semantic similarity: close values → high overlap
+
+Parameter Validation:
+  - Like RDSE, uses mutual exclusivity: exactly one of {active_bits, sparsity}
+  - All tests explicitly set sparsity=0.0 when using active_bits
+  - Supports radius/resolution specification for input coverage
+  - Handles both real numbers and periodic values
+
+Tests validate:
+  1. Initialization with valid parameters
+  2. Input clipping to min/max bounds
+  3. Output format (binary 0/1 only, correct length)
+  4. Active bits/sparsity conformance
+  5. Semantic similarity (neighboring values overlap)
+  6. Determinism and periodicity handling
+"""
 
 import pytest
 
@@ -16,7 +43,19 @@ def do_scalar_value_cases(encoder: ScalarEncoder, cases):
 
 
 def test_scalar_encoder_initialization():
-    """Test the initialization of the ScalarEncoder."""
+    """
+    Test ScalarEncoder initialization with valid parameters.
+
+    Validates:
+      - Encoder instantiates successfully with proper parameters
+      - Size property matches configured size
+      - Encoder is correct type (ScalarEncoder)
+
+    Why it passes:
+      - active_bits=5 with sparsity=0.0 satisfies mutual exclusivity
+      - Range parameters (minimum=0, maximum=100) are valid
+      - encoder.size accessible and equals configured size
+    """
 
     # Arrange
     parameters = ScalarEncoderParameters(
