@@ -20,6 +20,7 @@ dependencies = [
  "matplotlib>=3.7",
  "scikit-learn>=1.7.2",
  "xlrd>=2.0.2",
+ "pyproj>=3.7.1",
 ]
 
 
@@ -103,7 +104,7 @@ warn_unused_ignores = true
 
 [tool.flake8]
 max-line-length = 100
-ignore = ["E501", "F401", "W503", "C901", "N803"]
+ignore = ["E501", "F401", "W503", "E203", "C901", "N803"]
 exclude = [
   ".venv",
   ".git",

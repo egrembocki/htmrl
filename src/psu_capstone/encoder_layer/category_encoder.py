@@ -1,5 +1,7 @@
 """Category Encoder implementation"""
 
+from __future__ import annotations
+
 import copy
 from dataclasses import dataclass, field
 from typing import Iterable, cast, override
@@ -26,7 +28,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: "CategoryParameters"):
+    def __init__(self, parameters: CategoryParameters):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
