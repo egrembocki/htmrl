@@ -207,7 +207,8 @@ class Segment(Active, Learning, Matching):
 
     def potential_prev_active_synapses(self) -> int:
         """Return count of previously active synapses, regardless of permanence."""
-        return [syn for syn in self.synapses if syn.source_cell.prev_active]  # type: ignore
+        # return [syn for syn in self.synapses if syn.source_cell.prev_active]  # type: ignore
+        return sum(1 for syn in self.synapses if syn.source_cell.prev_active)  # type: ignore
 
     def activate_segment(self) -> None:
         if self.is_potentially_active():

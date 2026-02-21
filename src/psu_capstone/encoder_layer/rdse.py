@@ -332,7 +332,7 @@ if __name__ == "__main__":
     params = RDSEParameters(
         size=2048,
         sparsity=0.02,
-        radius=1.0,
+        radius=0.0,
         active_bits=0,
         category=False,
         seed=12345,
