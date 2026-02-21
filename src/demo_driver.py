@@ -249,6 +249,6 @@ if __name__ == "__main__":
     # show_input_to_encoder_demo(3)
     # show_brain_creation_demo()
     # show_field_single_encoding_demo()
-    # sine_wave_demo(128)
-    # rec_center_demo(128)
+    # sine_wave_demo(200)
+    # rec_center_demo(200)
     fin_data_demo(steps=2000)
