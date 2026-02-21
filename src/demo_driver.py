@@ -251,8 +251,4 @@ if __name__ == "__main__":
     # show_field_single_encoding_demo()
     # sine_wave_demo(128)
     # rec_center_demo(128)
-    # fin_data_demo(steps=2000)
-
-    for i in range(2, 25):
-        print(f"Running sine wave demo with {i} steps...")
-        sine_wave_demo(steps=i * 100)
+    fin_data_demo(steps=2000)
