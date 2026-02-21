@@ -249,9 +249,9 @@ if __name__ == "__main__":
     # show_input_to_encoder_demo(3)
     # show_brain_creation_demo()
     # show_field_single_encoding_demo()
-    # sine_wave_demo(100)
+    # sine_wave_demo(128)
     # rec_center_demo(128)
-    # fin_data_demo(steps=3)
+    # fin_data_demo(steps=2000)
 
     for i in range(2, 25):
         print(f"Running sine wave demo with {i} steps...")
