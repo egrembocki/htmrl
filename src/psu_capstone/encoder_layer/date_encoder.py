@@ -22,10 +22,11 @@ from typing import Iterable, override
 import numpy as np
 import pandas as pd
 
+import grapher
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.log import logger
+from psu_capstone.log import get_logger, logger
 
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
@@ -70,6 +71,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
             ValueError: If custom_days is specified but empty, or if no widths are provided.
         """
 
+        self._logger = get_logger("DateEncoder")
         self._date_params: DateEncoderParameters = (
             copy.deepcopy(date_params) if date_params is not None else DateEncoderParameters()
         )
@@ -597,10 +599,10 @@ class DateEncoderParameters(ParentDataClass):
 
     # Season: day of year (0..366)
     # season size
-    season_size: int = 2048
+    season_size: int = 342
     """Size of the season encoder (total bits)."""
 
-    season_active_bits: int = 40
+    season_active_bits: int = 7
     """Set to greater than zero to enable season encoding. Number of active bits for season (day of year). how many bits to apply to season
        Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
 
@@ -608,8 +610,8 @@ class DateEncoderParameters(ParentDataClass):
     season_sparsity: float = 0.0
     """Sparsity for season encoding (not used)."""
 
-    # seaon radius in days
-    season_radius: float = 91.5
+    # season radius in days
+    season_radius: float = 85.5
     """Radius for season encoding, in days (default ~4 seasons) days per season."""
 
     # season  resoulation
@@ -619,11 +621,11 @@ class DateEncoderParameters(ParentDataClass):
     # --------------------------------------------------------------------------
 
     # day of week size
-    day_of_week_size: int = 2048
+    day_of_week_size: int = 342
     """Size of the day of week encoder (total bits)."""
 
     # day of week active bits
-    day_of_week_active_bits: int = 40
+    day_of_week_active_bits: int = 7
     """Set to greater than zero to enable day of week encoding. Number of active bits for day of week, how many bits to apply to day of week."""
 
     # day of week sparsity
@@ -641,11 +643,11 @@ class DateEncoderParameters(ParentDataClass):
     # --------------------------------------------------------------------------
 
     # Weekend flag (0/1, Fri 6pm through Sun midnight)
-    weekend_size: int = 2048
+    weekend_size: int = 342
     """Size of the weekend encoder (total bits)."""
 
     # weekend active bits
-    weekend_active_bits: int = 40
+    weekend_active_bits: int = 7
     """Set to greater than zero to enable weekend encoding. Number of active bits for weekend flag."""
     # weekend sparsity
     weekend_sparsity: float = 0.0
@@ -662,10 +664,10 @@ class DateEncoderParameters(ParentDataClass):
     # --------------------------------------------------------------------------
 
     # holiday active bits
-    holiday_size: int = 2048
+    holiday_size: int = 342
     """Size of the holiday encoder (total bits)."""
 
-    holiday_active_bits: int = 40
+    holiday_active_bits: int = 7
     """Set to greater than zero to enable holiday encoding. Number of active bits for holiday encoding."""
 
     # holiday sparsity
@@ -687,18 +689,18 @@ class DateEncoderParameters(ParentDataClass):
 
     # Time of day: 0..24 hours
     # time of day size
-    time_of_day_size: int = 2048
+    time_of_day_size: int = 342
     """Size of the time of day encoder (total bits)."""
 
     # time of day active bits
-    time_of_day_active_bits: int = 24
+    time_of_day_active_bits: int = 7
     """Set to greater than zero to enable time of day encoding. Number of active bits for time of day."""
     # time of day sparsity
     time_of_day_sparsity: float = 0.0
     """Sparsity for time of day encoding (not used)."""
 
     # time of day radius
-    time_of_day_radius: float = 1.0
+    time_of_day_radius: float = 14.25
     """Radius for time of day encoding, in hours."""
 
     # time of day resolution
@@ -710,10 +712,10 @@ class DateEncoderParameters(ParentDataClass):
     # custom days active bits
     # Custom day groups (e.g. ["mon,wed,fri"])
     # custom days size
-    custom_size: int = 2048
+    custom_size: int = 342
     """Size of the custom days encoder (total bits)."""
 
-    custom_active_bits: int = 40
+    custom_active_bits: int = 7
     """Set to greater than zero to enable custom days encoding. Number of active bits for custom day groups."""
 
     # custom days sparsity
@@ -807,4 +809,4 @@ if __name__ == "__main__":
 
     for output in actual_encoding:
         decode_tuple = date_encoder.decode(output)
-        logger.info(decode_tuple)
+        date_encoder._logger.info(decode_tuple)

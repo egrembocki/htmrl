@@ -28,6 +28,8 @@ from psu_capstone.log import get_logger
 class Trainer:
     """Build a Trainer for training Brains on a dataset."""
 
+    _BRAIN_NOT_INITIALIZED_ERROR = "Main Brain is not initialized. Please build the Brain first."
+
     def __init__(self, brain: Brain) -> None:
         """Initializes the Trainer with a Brain instance."""
         self.logger = get_logger(self)
@@ -40,7 +42,7 @@ class Trainer:
 
     @property
     def brains(self) -> list[Brain]:
-        """Access the Brains being trained."""
+        """Access the list of cached Brains."""
 
         return self._brains
 
@@ -48,7 +50,7 @@ class Trainer:
     def main_brain(self) -> Brain:
         """Access the main Brain being trained."""
         if self._main_brain is None:
-            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+            raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
         return self._main_brain
 
     @main_brain.setter
@@ -200,7 +202,7 @@ class Trainer:
         """Add an input field to the Brain."""
 
         if self._main_brain is None:
-            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+            raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
 
         if name.endswith("_input"):
             field = InputField(size=size, encoder_params=encoder_params)
@@ -214,7 +216,7 @@ class Trainer:
         """Add an output field to the Brain."""
 
         if self._main_brain is None:
-            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+            raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
 
         if name.endswith("_output"):
             field = OutputField(size=size, motor_action=motor_action)
@@ -228,7 +230,7 @@ class Trainer:
         """Add a column field to the Brain."""
 
         if self._main_brain is None:
-            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+            raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
 
         if name.endswith("_column"):
             field = ColumnField(
@@ -243,13 +245,10 @@ class Trainer:
         else:
             raise ValueError("Column field name must end with '_column'.")
 
-    def train_column(self, brain: Brain | None, column: dict[str, list[Any]], steps: int) -> None:
+    def train_column(self, brain: Brain, column: dict[str, list[Any]], steps: int) -> None:
         """Train the Brain on the specified dataset."""
 
-        if brain is None:
-            brain = self._main_brain
-        if steps <= 1:
-            steps = len(column)
+        self.main_brain = brain
 
         if len(column.keys()) == 0:
             raise ValueError("Dataset is empty. Cannot train on an empty dataset.")
@@ -276,14 +275,10 @@ class Trainer:
             # Step the Brain with the prepared inputs
             brain.step(inputs=input_dict, learn=True)
 
-    def train_full_brain(
-        self, brain: Brain | None, dataset: dict[str, list[Any]], steps: int
-    ) -> None:
+    def train_full_brain(self, brain: Brain, dataset: dict[str, list[Any]], steps: int) -> None:
         """Train the Brain on the specified dataset."""
-        if brain is None:
-            brain = self._main_brain
-        if steps <= 1:
-            steps = min(len(column) for column in dataset.values())
+
+        self.main_brain = brain
 
         self.logger.info(f"Training on dataset with columns: {list(dataset.keys())}")
 
@@ -316,7 +311,7 @@ class Trainer:
         if brain is None:
             brain = self._main_brain
         if brain is None:
-            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+            raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
 
         if not isinstance(dataset, dict) or not dataset:
             raise ValueError("Dataset must be a non-empty dict mapping field names to data.")
@@ -404,7 +399,7 @@ class Trainer:
             "errors": field_errors,
         }
 
-    def fast_build_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
+    def build_full_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
         """Build a full Brain with all fields based on the dataset."""
 
         for key, values in dataset.items():

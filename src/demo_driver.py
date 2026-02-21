@@ -13,7 +13,7 @@ ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
 DATA_COLUMN_LOG_MESSAGE = "Data column '%s': %d records"
 
 
-def fin_data_demo(column: str, steps: int = 100) -> None:
+def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
     """Demonstrate loading and visualizing data from the dataset."""
 
     ih = InputHandler()
@@ -21,13 +21,14 @@ def fin_data_demo(column: str, steps: int = 100) -> None:
 
     brain = Brain()
     trainer = Trainer(brain)
-    brain = trainer.fast_build_brain(data, 2048)
+    trainer.main_brain = trainer.build_full_brain(data, 2048)
+    brain = trainer.main_brain
 
     if not column:
         for name, value in data.items():
             logger.info(DATA_COLUMN_LOG_MESSAGE, name, len(value))
 
-            trainer.train_column(brain, column={name: value}, steps=steps)
+            trainer.train_column(brain, column={f"{name}_input": value}, steps=steps)
 
     elif column not in data:
         logger.error("Specified column '%s' not found in dataset.", column)
@@ -35,7 +36,7 @@ def fin_data_demo(column: str, steps: int = 100) -> None:
     else:
         trainer.train_column(brain, column={f"{column}_input": data[column]}, steps=steps)
 
-    trainer._main_brain.print_stats()
+    brain.print_stats()
 
     # trainer.test(trainer._main_brain, {f"{column}_input": data[column]}, steps=steps)
 
@@ -55,21 +56,22 @@ def sine_wave_demo(steps: int = 100) -> None:
     brain = Brain()
     trainer = Trainer(brain)
     trainer.main_brain = trainer.build_brain([("sine_wave_input", 2048, RDSEParameters())])
+    brain = trainer.main_brain
 
     for name, value in data.items():
         logger.info(DATA_COLUMN_LOG_MESSAGE, name, len(value))
 
     column = {"sine_wave_input": y.tolist()}
 
-    trainer.train_column(trainer.main_brain, column, steps)
+    trainer.train_column(brain, column, steps)
 
     # show predicted vs actual values for the last 100 steps
-    trainer.test(trainer.main_brain, column, steps)
+    trainer.test(brain, column, steps)
 
-    trainer.show_active_columns(trainer._main_brain)
-    trainer.show_heat_map(trainer._main_brain)
+    trainer.show_active_columns(brain)
+    trainer.show_heat_map(brain)
 
-    trainer.main_brain.print_stats()
+    brain.print_stats()
 
 
 def show_input_data_demo() -> None:
@@ -168,5 +170,5 @@ if __name__ == "__main__":
     # show_input_to_encoder_demo()
     # show_field_encoding_demo()
     # show_brain_creation_demo()
-    # sine_wave_demo(100)
-    fin_data_demo("Open", 100)
+    # sine_wave_demo(10)
+    fin_data_demo(steps=1000)
