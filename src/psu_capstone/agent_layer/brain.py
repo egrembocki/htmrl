@@ -77,7 +77,9 @@ class Brain:
             inputs: Dict mapping field names to input values.
             learn: Whether to enable learning during this step.
         """
-        self.logger.info("Processing step with inputs: %s", inputs)
+        if learn:
+            self.logger.info("Processing step with inputs: %s", inputs)
+
         self.encode_only(inputs)
         self.compute_only(learn=learn)
         return {name: field.decode() for name, field in self._output_fields.items()}
@@ -112,7 +114,6 @@ class Brain:
             if name not in self._input_fields:
                 raise KeyError(f"Unknown input field: '{name}'")
             self._input_fields[name].encode(value)
-        self.logger.info("Encoded inputs: %s", inputs)
 
     def compute_only(self, learn: bool = True) -> None:
         """Compute column field without encoding (inputs already encoded).

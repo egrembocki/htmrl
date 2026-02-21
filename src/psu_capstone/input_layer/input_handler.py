@@ -192,7 +192,20 @@ class InputHandler:
         self.logger.info("Loading data from %s", path)
 
         if ext == ".csv":
-            return pd.read_csv(path, dtype=str)
+            # Try to read CSV and detect metadata rows
+            df = pd.read_csv(path)
+
+            # Check if first row contains type information (metadata)
+            if len(df) > 0 and all(
+                isinstance(val, str) and val in ["datetime", "float", "int", "str", "T", ""]
+                for val in df.iloc[0].values
+                if pd.notna(val)
+            ):
+                # Skip metadata rows and re-read
+                self.logger.info("Detected metadata rows in CSV, skipping them")
+                df = pd.read_csv(path, skiprows=[1, 2])
+
+            return df
         if ext == ".json":
             return pd.read_json(path)
         if ext == ".xlsx":

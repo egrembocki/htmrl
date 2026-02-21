@@ -4,13 +4,52 @@ import grapher
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
 from utils import DATA_PATH, PROJECT_ROOT
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
+REC_CENTER = os.path.join(DATA_PATH, "rec_center.csv")
 DATA_COLUMN_LOG_MESSAGE = "Data column '%s': %d records"
+
+
+def rec_center_demo(steps: int = 100) -> None:
+    """Demonstrate loading and visualizing the rec_center dataset."""
+
+    columns: list[str] = []
+    ih = InputHandler()
+    brain = Brain()
+    trainer = Trainer(brain)
+    data = ih.input_data(REC_CENTER)
+
+    for key in data.keys():
+        logger.debug(DATA_COLUMN_LOG_MESSAGE, key, len(data[key]))
+
+        columns.append(key)
+
+    trainer.main_brain = trainer.build_brain(
+        [
+            (f"{columns[0]}_input", 2048, DateEncoderParameters()),
+            (f"{columns[1]}_input", 2048, RDSEParameters()),
+        ]
+    )
+
+    brain = trainer.main_brain
+
+    for field in brain._input_fields.values():
+        logger.debug(
+            f"Brain input field: {field.name} with encoder: {type(field.encoder).__name__}"
+        )
+
+        trainer.train_column(
+            brain, column={field.name: data[field.name.replace("_input", "")]}, steps=steps
+        )
+
+    brain.print_stats()
+    trainer.show_active_columns(brain)
+    trainer.show_heat_map(brain)
 
 
 def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
@@ -26,7 +65,7 @@ def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
 
     if not column:
         for name, value in data.items():
-            logger.info(DATA_COLUMN_LOG_MESSAGE, name, len(value))
+            logger.debug(DATA_COLUMN_LOG_MESSAGE, name, len(value))
 
             trainer.train_column(brain, column={f"{name}_input": value}, steps=steps)
 
@@ -59,7 +98,7 @@ def sine_wave_demo(steps: int = 100) -> None:
     brain = trainer.main_brain
 
     for name, value in data.items():
-        logger.info(DATA_COLUMN_LOG_MESSAGE, name, len(value))
+        logger.debug(DATA_COLUMN_LOG_MESSAGE, name, len(value))
 
     column = {"sine_wave_input": y.tolist()}
 
@@ -71,7 +110,7 @@ def sine_wave_demo(steps: int = 100) -> None:
     trainer.show_active_columns(brain)
     trainer.show_heat_map(brain)
 
-    brain.print_stats()
+    trainer.print_train_stats()
 
 
 def show_input_data_demo() -> None:
@@ -168,7 +207,8 @@ if __name__ == "__main__":
 
     # show_input_data_demo()
     # show_input_to_encoder_demo()
-    # show_field_encoding_demo()
     # show_brain_creation_demo()
-    # sine_wave_demo(10)
+    # show_field_encoding_demo()
+    # sine_wave_demo(100)
+    # rec_center_demo(10)
     fin_data_demo(steps=1000)

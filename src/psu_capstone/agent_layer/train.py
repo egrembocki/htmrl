@@ -194,7 +194,9 @@ class Trainer:
         # create the Brain with fields
         brain = self._create_brain()
         self._main_brain = brain
-        self._brains.append(brain)
+
+        if brain not in self._brains:
+            self._brains.append(brain)
 
         return brain
 
@@ -264,6 +266,7 @@ class Trainer:
             # Get the current data point from the column
             name = list(column.keys())[0]
             value = column[name][step % len(column[name])]
+            self.logger.info(f"Step {step + 1}/{steps}, Data Point: {name}={value}")
 
             for field in self._trainer_input_fields:
                 if field.name == name:
@@ -407,7 +410,7 @@ class Trainer:
                 encoder_params = RDSEParameters(size=size)
             elif isinstance(values[0], str):
                 encoder_params = CategoryParameters(size=size)
-            elif isinstance(values[0], (list, tuple, np.ndarray)):
+            elif isinstance(values[0], (list, np.ndarray)):
                 encoder_params = FourierEncoderParameters(size=size)
             elif isinstance(values[0], datetime):
                 encoder_params = DateEncoderParameters(size=size)
