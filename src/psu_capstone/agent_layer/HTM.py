@@ -449,7 +449,7 @@ class Column(Active, Predictive, Bursting):  # type: ignore
         best_score = -1
         for segment in self.segments:
             if segment.prev_matching:
-                if score := len(segment.potential_prev_active_synapses()) > best_score:  # type: ignore
+                if (score := segment.potential_prev_active_synapses()) > best_score:  # type: ignore
                     best_score = score
                     best_segment = segment
         return best_segment  # type: ignore

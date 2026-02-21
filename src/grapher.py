@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import ticker
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, PowerNorm
 from scipy import signal as sig
 from scipy.fft import fft, fftfreq, ifft
 
@@ -48,6 +48,32 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
+    plt.show(block=True)
+
+
+def plot_heat_map(
+    heat_map: np.ndarray,
+    title: str | None = None,
+    norm: Any = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> None:
+    """Plot a heat map visualization of the given 2D array data.
+
+    Args:
+        heat_map: 2D numpy array of values to visualize
+        title: Title for the plot
+        norm: Matplotlib normalization object (e.g., PowerNorm)
+        vmin: Minimum value for color mapping (if norm is None)
+        vmax: Maximum value for color mapping (if norm is None)
+    """
+    plt.figure(figsize=(10, 10))
+    plt.imshow(heat_map, cmap="hot", interpolation="nearest", norm=norm, vmin=vmin, vmax=vmax)
+    if title:
+        plt.title(title)
+    plt.colorbar(label="Duty Cycle")
+    plt.xticks([])
+    plt.yticks([])
     plt.show(block=True)
 
 
