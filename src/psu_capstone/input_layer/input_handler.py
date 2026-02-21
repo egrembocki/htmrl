@@ -135,7 +135,7 @@ class InputHandler:
         return numeric_df.to_numpy(dtype=np.float64)
 
     def get_column_data(self, column: str | None = None) -> list[Any]:
-        """Return the filtered values for a single column in the normalized DataFrame."""
+        """Return the from internal data a list of Any for the specified column."""
 
         if not self._data:
             raise ValueError("No records available to build encoder sequence.")

@@ -827,6 +827,19 @@ class OutputField(Field):
         cells = {Cell() for _ in range(size)}
         Field.__init__(self, cells)
 
+    def encode(self, input_value: Any) -> list[int]:
+        """Encode the input value into a binary vector."""
+        raise NotImplementedError("OutputField does not support encoding")
+
+    def decode(
+        self,
+        state: str = "active",
+        encoded: Field = None,  # type: ignore
+        candidates: Iterable[float] | None = None,
+    ) -> dict[str, tuple[float | None]]:
+        """Convert active cells back to output value using RDSE decoding."""
+        raise NotImplementedError("OutputField does not support decoding")
+
 
 input_field = Field(cells={Cell() for _ in range(10)})
 

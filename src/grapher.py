@@ -1,11 +1,11 @@
 import os
-from typing import cast
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import ticker
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, Normalize
 from matplotlib.pylab import f
 from scipy.fft import fft, fftfreq, ifft
 
@@ -51,10 +51,25 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     plt.show(block=True)
 
 
-def plot_heat_map(heat_map: np.ndarray, title: str | None = None) -> None:
+def plot_heat_map(
+    heat_map: np.ndarray,
+    title: str | None = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    norm: Normalize | None = None,
+) -> None:
     """Plot a heat map of the given 2D array."""
     plt.figure(figsize=(10, 8))
-    plt.imshow(heat_map, cmap="hot", interpolation="nearest")
+    kwargs: dict[str, Any] = {"cmap": "hot", "interpolation": "nearest"}
+    if norm is not None:
+        kwargs["norm"] = norm
+    else:
+        if vmin is not None:
+            kwargs["vmin"] = vmin
+        if vmax is not None:
+            kwargs["vmax"] = vmax
+
+    plt.imshow(heat_map, **kwargs)
     plot_title = title or "Heat Map"
     plt.title(plot_title)
     plt.colorbar(label="Activity Level")

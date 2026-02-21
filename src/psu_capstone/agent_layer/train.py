@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
+from matplotlib.colors import PowerNorm
 
 import grapher
 from psu_capstone.agent_layer.brain import Brain
@@ -125,7 +126,7 @@ class Trainer:
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )
-        column_field.name = "column"
+        column_field.name = "Column_Field"
         self._trainer_column_fields.append(column_field)
 
     def _create_brain(self) -> Brain:
@@ -307,10 +308,101 @@ class Trainer:
             # Step the Brain with the prepared inputs
             brain.step(inputs=input_dict, learn=True)
 
-    def test(self, brain: Brain, test_dataset: Any, expected_data: Any) -> None:
-        """Test the Brain on the specified dataset."""
-        self.logger.info(f"Testing on dataset: {test_dataset}")
-        # Implement testing logic as needed, e.g., evaluating predictions against expected outputs
+    def test(
+        self, brain: Brain | None, dataset: dict[str, list[Any]], steps: int | None = None
+    ) -> dict[str, Any]:
+        """Replay inputs without learning and report prediction accuracy metrics."""
+
+        if brain is None:
+            brain = self._main_brain
+        if brain is None:
+            raise ValueError("Main Brain is not initialized. Please build the Brain first.")
+
+        if not isinstance(dataset, dict) or not dataset:
+            raise ValueError("Dataset must be a non-empty dict mapping field names to data.")
+
+        steps = steps or min(len(values) for values in dataset.values())
+        field_errors: dict[str, list[float]] = {name: [] for name in dataset}
+        prediction_failures: dict[str, int] = dict.fromkeys(dataset, 0)
+        evaluation_bursts: list[int] = []
+        missing_prediction_penalty = 1.0
+
+        self.logger.info(
+            "Testing predictions for %d steps on fields: %s",
+            steps,
+            list(dataset.keys()),
+        )
+
+        for step in range(steps):
+            predictions = brain.prediction()
+
+            for field_name, series in dataset.items():
+                expected_value = series[step % len(series)]
+                predicted_value = (
+                    predictions.get(field_name) if isinstance(predictions, dict) else None
+                )
+                if predicted_value is None:
+                    prediction_failures[field_name] += 1
+                    field_errors[field_name].append(missing_prediction_penalty)
+                    continue
+
+                try:
+                    diff = float(expected_value) - float(predicted_value)
+                    field_errors[field_name].append(diff * diff)
+                except (TypeError, ValueError):
+                    field_errors[field_name].append(
+                        0.0 if expected_value == predicted_value else missing_prediction_penalty
+                    )
+
+            inputs = {name: series[step % len(series)] for name, series in dataset.items()}
+            brain.step(inputs, learn=False)
+
+            bursts = sum(len(column_field.bursting_columns) for column_field in brain.column_fields)
+            evaluation_bursts.append(bursts)
+
+        flattened_errors = [err for errors in field_errors.values() for err in errors]
+        mean_squared_error = (
+            sum(flattened_errors) / len(flattened_errors) if flattened_errors else 0.0
+        )
+        avg_bursting_columns = (
+            sum(evaluation_bursts) / len(evaluation_bursts) if evaluation_bursts else 0.0
+        )
+        total_failures = sum(prediction_failures.values())
+
+        field_rows = []
+        for field_name, errors in field_errors.items():
+            mse = sum(errors) / len(errors) if errors else 0.0
+            failures = prediction_failures[field_name]
+            field_rows.append((field_name, mse, failures))
+
+        table_lines = [
+            "+----------------------------+---------------+-----------+",
+            "| Field                      |     MSE       | Failures |",
+            "+----------------------------+---------------+-----------+",
+        ]
+        for name, mse, failures in field_rows:
+            table_lines.append(f"| {name:<26} | {mse:>11.6f} | {failures:>9} |")
+        table_lines.append("+----------------------------+---------------+-----------+")
+
+        summary_lines = [
+            "Prediction Summary:",
+            f"  Global MSE: {mean_squared_error:.6f}",
+            f"  Total prediction failures: {total_failures}",
+            f"  Avg bursting columns: {avg_bursting_columns:.3f}",
+            "  Per-field metrics:",
+        ]
+        summary_lines.extend(f"    {line}" for line in table_lines)
+
+        self.logger.info("\n".join(summary_lines))
+
+        return {
+            "mean_squared_error": mean_squared_error,
+            "prediction_failures": prediction_failures,
+            "total_prediction_failures": total_failures,
+            "avg_bursting_columns": avg_bursting_columns,
+            "evaluation_bursts": evaluation_bursts,
+            "errors": field_errors,
+        }
 
     def fast_build_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
         """Build a full Brain with all fields based on the dataset."""
@@ -366,7 +458,24 @@ class Trainer:
         heat_map = np.zeros((side, side))
         heat_map.flat[: duty_cycles.size] = duty_cycles
 
-        grapher.plot_heat_map(heat_map, title="Column Duty Cycle Heat Map")
+        positive = duty_cycles[duty_cycles > 0]
+        norm = None
+        if positive.size > 0:
+            vmax = float(positive.max())
+            vmax = max(vmax, 1e-6)
+            norm = PowerNorm(gamma=0.35, vmin=0.0, vmax=vmax)
+            grapher.plot_heat_map(
+                heat_map,
+                title="Column Duty Cycle Heat Map",
+                norm=norm,
+            )
+        else:
+            grapher.plot_heat_map(
+                heat_map,
+                title="Column Duty Cycle Heat Map",
+                vmin=0.0,
+                vmax=1.0,
+            )
 
     # TODO: Implement save_brain and load_brain methods for persistence of trained Brains
     def save_brain(self, brain: Brain, filename: str) -> None:

@@ -56,6 +56,8 @@ class Brain:
         self.fields = fields
         self.logger = get_logger(self)
 
+        self.logger.info("Brain initialized with fields: %s", list(fields.keys()))
+
     def __getitem__(self, name: str) -> Field:
         return self.fields[name]
 
