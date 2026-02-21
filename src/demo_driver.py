@@ -1,3 +1,17 @@
+"""Driver script to demonstrate the capabilities of the Brain and Trainer classes.
+Author: Chris Mills @millscb
+TODO: - Add more demo functions to showcase different aspects of the Brain and Trainer, such as multi-field coordination, temporal learning, and prediction capabilities.
+
+Date: 2025-02-21
+
+This script includes several demonstration functions that can be run to visualize and understand different components of the Brain and Trainer classes. Each function focuses on a specific aspect, such as data ingestion, encoding, brain structure, and training on datasets. The main function at the bottom can be modified to call any of these demonstration functions as needed.
+
+Note: Some of the demonstration functions may require specific datasets to be available in the DATA_PATH directory. Ensure that the necessary datasets are in place before running those demos.
+
+"""
+
+# TODO: @millscb - Add more demo functions to showcase different aspects of the Brain and Trainer, such as multi-field coordination, temporal learning, and prediction capabilities.
+
 import os
 
 import grapher
@@ -8,7 +22,7 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
-from utils import DATA_PATH, PROJECT_ROOT
+from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
 REC_CENTER = os.path.join(DATA_PATH, "rec_center.csv")
@@ -25,7 +39,7 @@ def show_input_data_demo() -> None:
         logger.info(DATA_COLUMN_LOG_MESSAGE, name, len(value))
 
 
-def show_input_to_encoder_demo() -> None:
+def show_input_to_encoder_demo(slice: int = 5) -> None:
     """Demonstrate the InputHandler's ability to convert raw input data to encoder-ready format."""
 
     ih = InputHandler()
@@ -42,18 +56,30 @@ def show_input_to_encoder_demo() -> None:
 
     encoder_sequence = ih.get_column_data(column=columns[1])
 
-    trainer.main_brain = trainer.build_brain([(f"{columns[1]}_input", 2048, RDSEParameters())])
+    trainer.main_brain = trainer.build_brain(
+        [(f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.01))]
+    )  # fin markets
 
-    values = encoder_sequence[:5]  # Take the first 5 values for demonstration
+    values = encoder_sequence[:slice]  # Take the first 'slice' values for demonstration
 
     field = trainer.main_brain._input_fields[f"{columns[1]}_input"]
     encoder = field.encoder
 
+    sdr = []
+
     for i, value in enumerate(values):
-        encoded = field.encode(value)
+        encoded: list[int] = field.encode(value)
         decoded_value, confidence = field.decode("active", field, encoder._encoding_cache)  # type: ignore
         print(f"Decoded: {decoded_value} (Confidence: {confidence})")
-        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[1]}={value:.2f} (Step {i + 1})")
+        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[0]}={value:.2f} (Step {i + 1})")
+
+        sdr.append(encoded)
+
+    for i, encoded in enumerate(sdr):
+        print(
+            f"Hamming distance from first SDR: {hamming_distance(sdr[0], encoded)} (Step {i + 1})"
+        )
+        print(f"Overlap with first SDR: {overlap(sdr[0], encoded)} (Step {i + 1})")
 
 
 def show_brain_creation_demo() -> None:
@@ -102,7 +128,7 @@ def rec_center_demo(steps: int = 100) -> None:
     trainer.main_brain = trainer.build_brain(
         [
             (f"{columns[0]}_input", 2048, DateEncoderParameters()),
-            (f"{columns[1]}_input", 2048, RDSEParameters()),
+            (f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.1)),
         ]
     )
 
@@ -130,7 +156,7 @@ def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
 
     brain = Brain()
     trainer = Trainer(brain)
-    trainer.main_brain = trainer.build_full_brain(data, 2048)
+    trainer.main_brain = trainer.build_full_brain(data, 2048, RDSEParameters(resolution=0.01))
     brain = trainer.main_brain
 
     if not column:
@@ -212,10 +238,10 @@ def show_field_single_encoding_demo() -> None:
 if __name__ == "__main__":
     # Example usage of the Brain and Trainer classes
 
-    show_input_data_demo()
-    show_input_to_encoder_demo()
-    show_brain_creation_demo()
-    show_field_single_encoding_demo()
-    sine_wave_demo(5)
-    rec_center_demo(5)
-    fin_data_demo(steps=5)
+    # show_input_data_demo()
+    show_input_to_encoder_demo(3)
+    # show_brain_creation_demo()
+    # show_field_single_encoding_demo()
+    # sine_wave_demo(128)
+    # rec_center_demo(128)
+    # fin_data_demo(steps=3)

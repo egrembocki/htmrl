@@ -18,8 +18,10 @@ from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
+from psu_capstone.encoder_layer.coordinate_encoder import CoordinateParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
+from psu_capstone.encoder_layer.geospatial_encoder import GeospatialParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
@@ -402,18 +404,115 @@ class Trainer:
             "errors": field_errors,
         }
 
-    def build_full_brain(self, dataset: dict[Any, list[Any]], size: int) -> Brain:
-        """Build a full Brain with all fields based on the dataset."""
+    def build_full_brain(
+        self, dataset: dict[Any, list[Any]], size: int = 2048, params: ParentDataClass | None = None
+    ) -> Brain:
+        """Build a full Brain with all fields based on the dataset.
+
+        Args:
+            dataset: A dictionary mapping field names to lists of data points.
+            size: The size of the input and column fields (default: 2048).
+            params: Optional ParentDataClass instance containing encoder parameters to use for all fields. If not provided, default parameters will be used based on field type.
+
+        Returns:
+            A fully built Brain instance with input fields, column fields, and output fields configured based on the dataset and specified parameters.
+
+            Example usage:
+            brain = trainer.build_full_brain(
+                dataset={
+                    "temperature": [20.5, 21.0, 19.8, ...],
+                    "humidity": [0.45, 0.50, 0.40, ...],
+                    "date": [datetime(2023, 1, 1), datetime(2023, 1, 2), datetime(2023, 1, 3), ...],
+                }, size=2048, params=RDSEParameters(size=2048, sparsity=0.02, resolution=0.01, category=False, seed=5)
+            )
+
+        This method automatically determines the appropriate encoder type for each field based on the data type of the values in the dataset. It then builds the Brain with input fields for each column, a column field that connects to all input fields, and output fields as needed.
+
+        # TODO: add dict of ParentDataClass to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
+
+        Mapping of data types to encoder parameters:
+        - Numerical (int, float): RDSEParameters
+        - Categorical (str): CategoryParameters
+        - Date/Time (datetime): DateEncoderParameters
+        - Spatial (list, np.ndarray): FourierEncoderParameters
+        - Tuple of (numerical, numerical): GeospatialParameters
+        - Other types will raise a ValueError indicating unsupported data type.
+
+        """
 
         for key, values in dataset.items():
             if isinstance(values[0], (int, float)):
-                encoder_params = RDSEParameters(size=size)
+                encoder_params = (
+                    RDSEParameters(
+                        size=params.size,
+                        sparsity=params.sparsity,
+                        resolution=params.resolution,
+                        category=False,
+                        seed=params.seed,
+                    )
+                    if isinstance(params, RDSEParameters)
+                    else RDSEParameters(size=size)
+                )
             elif isinstance(values[0], str):
-                encoder_params = CategoryParameters(size=size)
+                encoder_params = (
+                    CategoryParameters(
+                        size=params.size,
+                        category_list=list(set(values)),
+                        rdse_used=params.rdse_used,
+                    )
+                    if isinstance(params, CategoryParameters)
+                    else CategoryParameters(
+                        size=size, category_list=list(set(values)), rdse_used=False
+                    )
+                )
             elif isinstance(values[0], (list, np.ndarray)):
-                encoder_params = FourierEncoderParameters(size=size)
+                encoder_params = (
+                    FourierEncoderParameters(
+                        size=params.size,
+                        frequency_ranges=params.frequency_ranges,
+                        sparsity_in_ranges=params.sparsity_in_ranges,
+                        resolutions_in_ranges=params.resolutions_in_ranges,
+                        seed=params.seed,
+                    )
+                    if isinstance(params, FourierEncoderParameters)
+                    else FourierEncoderParameters(size=size)
+                )
             elif isinstance(values[0], datetime):
-                encoder_params = DateEncoderParameters(size=size)
+                encoder_params = (
+                    DateEncoderParameters(
+                        size=params.size,
+                        season_active_bits=params.season_active_bits,
+                        season_radius=params.season_radius,
+                        day_of_week_active_bits=params.day_of_week_active_bits,
+                        day_of_week_radius=params.day_of_week_radius,
+                        weekend_active_bits=params.weekend_active_bits,
+                        holiday_active_bits=params.holiday_active_bits,
+                        holiday_dates=params.holiday_dates,
+                        time_of_day_active_bits=params.time_of_day_active_bits,
+                        time_of_day_radius=params.time_of_day_radius,
+                        custom_active_bits=params.custom_active_bits,
+                        custom_days=params.custom_days,
+                        rdse_used=params.rdse_used,
+                    )
+                    if isinstance(params, DateEncoderParameters)
+                    else DateEncoderParameters(size=size)
+                )
+            elif (
+                isinstance(values[0], tuple)
+                and len(values[0]) >= 2
+                and all(isinstance(v, (int, float)) for v in values[0])
+            ):
+                encoder_params = (
+                    GeospatialParameters(
+                        size=params.size,
+                        max_radius=params.max_radius,
+                        scale=params.scale,
+                        timestep=params.timestep,
+                        use_altitude=params.use_altitude,
+                    )
+                    if isinstance(params, GeospatialParameters)
+                    else GeospatialParameters(size=size)
+                )
             else:
                 raise ValueError(f"Unsupported data type for field '{key}': {type(values[0])}")
 

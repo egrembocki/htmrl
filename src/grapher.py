@@ -16,7 +16,7 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
-from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
+from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
