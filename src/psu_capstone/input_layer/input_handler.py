@@ -6,9 +6,10 @@ with pandas, validates core constraints, and exposes data as dict[Any, list[Any]
 
 from __future__ import annotations
 
-import datetime
 import os
+import time
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 from typing import Any, ClassVar
@@ -16,7 +17,7 @@ from typing import Any, ClassVar
 import numpy as np
 import pandas as pd
 
-from psu_capstone.log import logger
+from psu_capstone.log import get_logger, logger
 
 
 class InputHandler:
@@ -41,6 +42,9 @@ class InputHandler:
 
     def __init__(self, data: Any | None = None) -> None:
         """Initialize the InputHandler with optional in-memory data, and set up internal state for data management and validation."""
+
+        self.logger = get_logger(self)
+
         self._data: dict[Any, list[Any]] = {}
         self._columns: list[str] = []
         self._repeating_columns: list[str] = []
@@ -94,8 +98,6 @@ class InputHandler:
             TypeError: If the input data type is not supported for conversion to records.
 
         """
-
-        data = {} if input_source is None else self._data
         required = required_columns if required_columns else None
 
         # check if input_source is a file path before attempting to coerce it to a DataFrame
@@ -109,45 +111,19 @@ class InputHandler:
 
         self._columns = list(df.columns)
 
-        logger.info("Validating data with %d records and columns: %s", len(df), self._columns)
+        column_listing = "\n    ".join(self._columns)
+        self.logger.info(
+            "Validating data:\n  rows=%d\n  columns=%d\n    %s",
+            len(df),
+            len(self._columns),
+            column_listing,
+        )
 
         data = df.to_dict(orient="list")
 
         self._data = data
 
         return self._data
-
-    def to_encoder_sequence(
-        self,
-        input_source: Any,
-        required_columns: list[str] | None = None,
-        column: str | None = None,
-    ) -> dict[Any, list[Any]]:
-        # check if input_source is a file path before attempting to coerce it to a DataFrame
-        if self._is_file_path(input_source):
-            df = self._load_file_to_dataframe(input_source)
-        else:
-            df = self._coerce_non_file_to_dataframe(input_source)
-
-        # Process the DataFrame to handle required columns, normalize types, and detect temporal patterns
-        df = self._process_dataframe(df, required_columns)
-
-        records = df.to_dict(orient="records")
-        if not records:
-            raise ValueError("No records available to build encoder sequence.")
-
-        if column is None:
-            if len(records[0]) != 1:
-                raise ValueError(
-                    "Column must be specified when multiple columns are present in the input."
-                )
-            column = str(next(iter(records[0].keys())))
-
-        sequence = [row.get(column) for row in records]
-        filtered = [value for value in sequence if value is not None]
-        if not filtered:
-            raise ValueError("Encoder sequence contains no valid values after filtering.")
-        return {column: filtered}
 
     def to_numpy(self, data: list[dict[Any, Any]]) -> np.ndarray:
         if not data:
@@ -158,15 +134,40 @@ class InputHandler:
             raise ValueError("Data validation failed; cannot convert to numpy ndarray.")
         return numeric_df.to_numpy(dtype=np.float64)
 
+    def get_column_data(self, column: str | None = None) -> list[Any]:
+        """Return the from internal data a list of Any for the specified column."""
+
+        if not self._data:
+            raise ValueError("No records available to build encoder sequence.")
+
+        dataframe = pd.DataFrame(self._data)
+
+        if column is None and len(dataframe.columns) == 1:
+            column = str(dataframe.columns[0])
+        elif column is None and len(dataframe.columns) > 1:
+            raise ValueError(
+                "Column must be specified when multiple columns are present in the input."
+            )
+
+        if column not in dataframe.columns:
+            raise ValueError(f"Requested column '{column}' not found in normalized data.")
+
+        sequence = dataframe[column].tolist()
+        filtered = [value for value in sequence if value is not None]
+        if not filtered:
+            raise ValueError("Encoder sequence contains no valid values after filtering.")
+
+        return filtered
+
     def _is_file_path(self, input_source: Any) -> bool:
         """Determine if the input source is a valid file path with a supported extension."""
         if isinstance(input_source, (os.PathLike, str)):
             path = Path(input_source)
             suffix = path.suffix.lower()
             if suffix in self._SUPPORTED_EXTENSIONS:
-                logger.info("Detected file path input: %s", path)
+                self.logger.info("Detected file path input: %s", path)
                 return True
-            logger.warning("File extension '%s' is not supported for input: %s", suffix, path)
+            self.logger.warning("File extension '%s' is not supported for input: %s", suffix, path)
         return False
 
     def _load_file_to_dataframe(self, input_source: str | os.PathLike[str]) -> pd.DataFrame:
@@ -188,10 +189,23 @@ class InputHandler:
         if not path.exists() or not path.is_file():
             raise FileNotFoundError(f"File not found: {path}")
         ext = path.suffix.lower()
-        logger.info("Loading data from %s", path)
+        self.logger.info("Loading data from %s", path)
 
         if ext == ".csv":
-            return pd.read_csv(path, dtype=str)
+            # Try to read CSV and detect metadata rows
+            df = pd.read_csv(path)
+
+            # Check if first row contains type information (metadata)
+            if len(df) > 0 and all(
+                isinstance(val, str) and val in ["datetime", "float", "int", "str", "T", ""]
+                for val in df.iloc[0].values
+                if pd.notna(val)
+            ):
+                # Skip metadata rows and re-read
+                self.logger.info("Detected metadata rows in CSV, skipping them")
+                df = pd.read_csv(path, skiprows=[1, 2])
+
+            return df
         if ext == ".json":
             return pd.read_json(path)
         if ext == ".xlsx":
@@ -325,51 +339,31 @@ class InputHandler:
         return df
 
     def _normalize_datetime_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect and normalize datetime columns to ISO 8601 string format for consistent encoding downstream.
+        """Detect and normalize datetime columns while preserving datetimelike objects."""
 
-        Args:
-
-            df: The input DataFrame to analyze and normalize datetime columns.
-
-        Returns:
-            A DataFrame with datetime columns normalized to ISO 8601 string format, while preserving non-datetime columns unchanged.
-
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types that cannot be normalized to datetime format.
-
-        """
         dataframe = df.copy()
 
         for col in dataframe.columns:
             series = dataframe[col]
-
-            # drop missing values
             normal = series.dropna()
             if normal.empty:
                 continue
 
-            if pd.api.types.is_datetime64_any_dtype(series):
-                dataframe[col] = series.dt.strftime("%Y-%m-%dT%H:%M:%S")  # type: ignore[union-attr]
-                continue
-
-            if not (pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series)):
-                continue
-
             sample = normal.iloc[0]
-            if not isinstance(sample, (str, datetime.datetime, datetime.date)):
-                continue
+            parsed: pd.Series | None = None
 
-            if isinstance(sample, str):
-                looks_temporal = any(token in sample for token in ("-", ":", "T", "/"))
-                if not looks_temporal:
-                    continue
+            if isinstance(sample, (datetime, pd.Timestamp, time.struct_time, np.datetime64)):
 
-            parsed = pd.to_datetime(series, errors="coerce")
-            if parsed.notna().sum() == normal.shape[0]:
-                dataframe[col] = parsed.dt.strftime("%Y-%m-%dT%H:%M:%S")
+                continue  # already a datetimelike type, no parsing needed
 
-        # make sure any missing values are dropped
+            elif isinstance(sample, str):
+                maybe_time = any(token in sample for token in ("-", ":", "T", "/", " "))
+                if maybe_time:
+                    parsed = pd.to_datetime(series)
+
+            if parsed is not None and parsed.notna().sum() == normal.shape[0]:
+                dataframe[col] = parsed
+
         dataframe = dataframe.dropna()
 
         return dataframe
@@ -395,6 +389,13 @@ class InputHandler:
 
             normal = dataframe[col].dropna()
 
+            logger.info(
+                "Analyzing column %-24s dtype=%-12s non-null=%5d",
+                col,
+                str(normal.dtype),
+                normal.shape[0],
+            )
+
             # store a set of types present in the column to detect unsupported or mixed types
             primitive_types = {type(value) for value in normal}
 
@@ -407,10 +408,13 @@ class InputHandler:
                     bool,
                     int,
                     float,
+                    datetime,
+                    pd.Timestamp,
                     np.int64,
                     np.float64,
                     np.int32,
                     np.float32,
+                    np.datetime64,
                     np.ndarray,
                 }
                 for t in primitive_types

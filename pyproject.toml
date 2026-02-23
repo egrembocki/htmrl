@@ -21,6 +21,8 @@ dependencies = [
  "matplotlib>=3.7",
  "scikit-learn>=1.7.2",
  "xlrd>=2.0.2",
+ "pyproj>=3.7.1",
+ "scipy>=1.15.3",
 ]
 
 
@@ -46,8 +48,8 @@ formatters = ["black>=23.7.0", "isort>=6.0.1"]
 psu-capstone = "psu_capstone:main"
 
 [tool.uv]
-package = true
-native-tls = true
+# package = true  # Disabled for offline environments
+
 
 [tool.uv.workspace]
 members = [
@@ -110,7 +112,7 @@ warn_unused_ignores = true
 
 [tool.flake8]
 max-line-length = 100
-ignore = ["E501", "F401", "W503", "C901", "N803"]
+ignore = ["E501", "F401", "W503", "E203", "C901", "N803"]
 exclude = [
   ".venv",
   ".git",

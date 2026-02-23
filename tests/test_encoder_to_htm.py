@@ -1,3 +1,21 @@
+"""
+tests.test_encoder_to_htm
+
+Test suite for integration between Encoder and HTM components.
+
+Validates the data flow from input data through encoders to HTM processing. Tests ensure:
+- InputHandler correctly loads and prepares data for encoding
+- Encoders process loaded data and generate SDR representations
+- SDR dimensions and sparsity are within expected ranges
+- End-to-end pipeline maintains data integrity from input to encoding
+
+Note: HTM interface integration tests are not yet available (awaiting HTMinterface
+implementation). This suite focuses on encoder-level processing and SDR generation.
+
+These tests validate the critical pipeline connection from input processing through
+SDR encoding that feeds into the HTM temporal memory engine.
+"""
+
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder

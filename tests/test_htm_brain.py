@@ -1,3 +1,29 @@
+"""
+Test suite for HTM Brain class.
+
+The Brain coordinates encode-compute-learn-predict cycles across InputFields
+and ColumnFields. It manages the full temporal processing pipeline.
+
+Key Responsibilities:
+  - Manage InputFields (encode external inputs to SDRs)
+  - Manage ColumnFields (spatial/temporal pooling, prediction)
+  - Coordinate step() for updates across all fields
+  - Track predictions and learning state
+  - Reset between episodes
+
+Parameter Validation:
+  - All encoder parameters validated (RDSE mutual exclusivity, etc.)
+  - Temporal learning uses non_temporal=True to avoid HTM bug (would crash)
+  - OutputField requires (size, motor_action) parameters
+
+Tests validate:
+  1. Brain initialization with multiple field types
+  2. Encode-compute pipeline execution
+  3. Prediction generation and accuracy
+  4. State reset and re-initialization
+  5. Multi-field coordination
+"""
+
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.rdse import RDSEParameters
@@ -12,7 +38,7 @@ def create_brain_helper_multi_field() -> Brain:
         category=False,
         seed=5,
     )
-    out_fi = OutputField()
+    out_fi = OutputField(size=512, motor_action=(None,))
     input_field = InputField(size=512, encoder_params=rdse_params)
     column_field = ColumnField(
         input_fields=[input_field],
@@ -59,8 +85,7 @@ def test_initialize_brain():
     """Test initialize the brain with all field types."""
     b = create_brain_helper_multi_field()
     """
-    Note: failing test, the output field is being counted as an output
-    field and input field.
+    Refactored output field to require motor action, so this test is no longer failing. The test is still here to make sure that the brain can be initialized with all field types, and to make sure that the output field is properly initialized with the required motor action parameter.
     """
     assert len(b._input_fields) == 1
     assert len(b._output_fields) == 1

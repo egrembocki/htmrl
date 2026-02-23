@@ -9,6 +9,8 @@
 * exactly one of them.
 """
 
+from __future__ import annotations
+
 import copy
 import random
 import struct
@@ -19,7 +21,7 @@ import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 
 """
  * Encodes a real number as a set of randomly generated activations.
@@ -37,7 +39,7 @@ from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
     """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
 
-    def __init__(self, parameters: "RDSEParameters"):
+    def __init__(self, parameters: RDSEParameters):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
 
@@ -260,8 +262,6 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
         if parameters.category:
             parameters.active_bits = 1
-            parameters.resolution = 1.0
-
         # Determine resolution.
         elif parameters.radius > 0.0:
             parameters.resolution = parameters.radius / float(parameters.active_bits)
@@ -276,17 +276,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 @dataclass
-class RDSEParameters(ParentDataclass):
+class RDSEParameters(ParentDataClass):
 
     size: int = 2048
     """
     * Member "size" is the total number of bits in the encoded output SDR.
     """
-    active_bits: int = 40
+    active_bits: int = 0
     """
     * Member "activeBits" is the number of true bits in the encoded output SDR.
     """
-    sparsity: float = 0.0
+    sparsity: float = 0.02
     """
     * Member "sparsity" is the fraction of bits in the encoded output which this
     * encoder will activate. This is an alternative way to specify the member
@@ -325,7 +325,7 @@ if __name__ == "__main__":
     params = RDSEParameters(
         size=2048,
         sparsity=0.02,
-        resolution=1.0,
+        radius=0.0,
         active_bits=0,
         category=False,
         seed=12345,
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     # Tests
     """
     params = RDSEParameters(
-        size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
+        size=2048, active_bits=0, sparsity=0.02, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e1 = RandomDistributedScalarEncoder(params)
     o1 = SDR([e1.size])
@@ -358,7 +358,7 @@ if __name__ == "__main__":
     print("Sparse is: \n")
 
     params2 = RDSEParameters(
-        size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
+        size=2048, active_bits=0, sparsity=0.02, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e3 = RandomDistributedScalarEncoder(params2)
     o3 = SDR([e3.size])

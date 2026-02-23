@@ -1,3 +1,22 @@
+"""
+tests.test_encoder_batch_handler
+
+Test suite for BatchEncoderHandler functionality.
+
+Validates that BatchEncoderHandler correctly processes entire datasets of records,
+encoding each field according to its encoder type (RDSE for floats, Scalar for ints,
+Category for strings, DateEncoder for dates). Tests ensure:
+- Multiple encoders are attached and coordinated for different data types
+- Batch processing iterates through all records correctly
+- Union SDR generation combines individual field encodings properly
+- Data type detection and encoder mapping work correctly
+- Edge cases (missing values, type mismatches) are handled appropriately
+
+These tests validate the critical batch processing path that transforms tabular data
+(DataFrames) into SDR representations for HTM processing.
+"""
+
+import copy
 import os
 import warnings
 from datetime import datetime
@@ -65,7 +84,7 @@ def test_dataframe_composite():
 
     rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
     handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
+    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
         season_active_bits=0,
@@ -137,7 +156,7 @@ def test_individual_column_sdrs():
 
     rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
     handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
+    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
         season_active_bits=0,

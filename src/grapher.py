@@ -1,34 +1,21 @@
 import os
-from typing import cast
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
-from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
+from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
 
-def _records_to_signal(records: list[dict]) -> np.ndarray:
-    """Convert list-of-dicts records into a flattened numpy signal.
-
-    Drops any 'timestamp' key and converts remaining values to floats.
-    Returns an empty array for empty input.
-    """
-    if not records:
-        return np.array([])
-    cols = [k for k in records[0].keys() if k != "timestamp"]
-    arr = np.array([[float(r.get(c, 0)) for c in cols] for r in records], dtype=float)
-    return arr.flatten()
-
-
-def plot_sdr(data: list[int]) -> None:
+def plot_sdr(data: list[int], title: str | None = None) -> None:
     """Plot a visual representation of the given SDR data."""
 
     sdr = SDR([len(data)])
@@ -50,84 +37,122 @@ def plot_sdr(data: list[int]) -> None:
 
     plt.figure(figsize=(10, 10))
     plt.imshow(grid, cmap=cmap, interpolation="nearest")
-    title = "SDR Visualization"
-    plt.title(title)
+    plot_title = title or "SDR Visualization"
+    plt.title(plot_title)
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
     plt.show(block=True)
 
 
-def plot_hot_gym_fft(sample_rate: int = 256, dataset: str = "rec-center-hourly.csv") -> None:
+def plot_heat_map(
+    heat_map: np.ndarray,
+    title: str | None = None,
+    norm: Any = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> None:
+    """Plot a heat map visualization of the given 2D array data.
+
+    Args:
+        heat_map: 2D numpy array of values to visualize
+        title: Title for the plot
+        norm: Matplotlib normalization object (e.g., PowerNorm)
+        vmin: Minimum value for color mapping (if norm is None)
+        vmax: Maximum value for color mapping (if norm is None)
+    """
+    plt.figure(figsize=(12, 12))
+    plt.imshow(heat_map, cmap="hot", interpolation="nearest", norm=norm, vmin=vmin, vmax=vmax)
+    if title:
+        plt.title(title)
+    plt.colorbar(label="Duty Cycle")
+    plt.xticks([])
+    plt.yticks([])
+    plt.show(block=True)
+
+
+def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
     ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
-    signal = _records_to_signal(hot_gym)
 
-    # signal = 0.5 * np.sin(2 * np.pi * (100) * np.linspace(0, 1, 2048, endpoint=False) + phase_shift)
-    # signal = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 2048, endpoint=False))
+    signal = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
-    sample_rate = len(signal)  # samples per second
+    columns: list[str] = []
 
-    time_axis = np.arange(signal.size, dtype=float) / sample_rate
-    plt.figure(figsize=(16, 8))
-    plt.plot(time_axis, signal, "r")
-    plt.title("Sine Wave in Time Domain")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Amplitude")
-    plt.grid()
-    plt.show()
+    for k in signal.keys():
+        if k.lower() == "timestamp":
+            continue
+        columns.append(k)
 
-    # frequency domain
+        print(f"Columns: {columns}")
 
-    freq_data = cast(np.ndarray, fft(signal))
-    samples = len(freq_data)
-    freq_data = freq_data[: samples // 2]
-    freq_bin = fftfreq(samples, 1 / sample_rate)[: samples // 2]
-    plt.figure(figsize=(16, 8))
-    plt.plot(freq_bin, np.abs(freq_data))
-    peak_index = np.argmax(np.abs(freq_data))
-    peak_freq = freq_bin[peak_index]
-    print(f"FFT Peak Frequency: {peak_freq} Hz")
+    for column in columns:
+        values = signal[column]
+        values = np.array(values, dtype=float)
+        values[0] = 0.0  # remove DC component by zeroing the first value
+        # values = values - np.mean(values)  # remove DC component
+        values = values[:4096]
 
-    plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(len(freq_data) // 10 or 1))
-    plt.title("FFT Magnitude Spectrum")
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Magnitude")
-    plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
-    plt.show()
+        print(f"Plotting column: {column}")
 
-    fft_encoder = FourierEncoder()
+        time_axis = np.arange(len(values), dtype=float)
+        plt.figure(figsize=(16, 8))
+        plt.plot(time_axis, values, "r")
+        plt.title(f"Sine Wave in Time Domain - {column}")
+        plt.xlabel("Time")
+        plt.ylabel("Amplitude")
+        plt.grid()
+        plt.show()
 
-    sdr_hot_gym = fft_encoder.encode(signal)
+        # frequency domain
+        freq_data = cast(np.ndarray, fft(values))
+        samples = len(freq_data)
+        freq_data = freq_data[1 : samples // 2]
+        freq_bin = fftfreq(samples, 1 / sample_rate)[1 : samples // 2]
+        plt.figure(figsize=(16, 8))
+        plt.plot(freq_bin, np.abs(freq_data))
+        peak_index = np.argmax(np.abs(freq_data))
+        peak_freq = freq_bin[peak_index]
+        print(f"Plot Peak Frequency: {peak_freq} Hz")
 
-    plot_sdr(sdr_hot_gym)
+        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(nbins=10))
+        plt.title(f"FFT Magnitude Spectrum - {column}")
+        plt.xlabel("Frequency")
+        plt.ylabel("Magnitude")
+        plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
+        plt.show()
+
+        fft_encoder = FourierEncoder(FourierEncoderParameters())
+
+        sdr = fft_encoder.encode(values)
+
+        plot_sdr(sdr)
 
 
 if __name__ == "__main__":
 
     fft_encoder = FourierEncoder(
         FourierEncoderParameters(
-            resolutions_in_ranges=[1.0],
-            # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 100)],
-            # every contributing frequency gets 40 active bits, this divides up from total active bits
-            size=4096,
+            resolutions_in_ranges=[1.0, 1.0],
+            frequency_ranges=[(0, 100), (100, 500)],
+            size=2048,
             # active bits in range times number of ranges
-            sparsity_in_ranges=[0.01],
-            total_sparsity=0.01,
+            sparsity_in_ranges=[0.02, 0.02],
+            sensitivity_threshold=0.01,
         )
     )
 
-    a, b, c, d = 1, 2, 3, 4
-
+    a, b, c, d, e, f = 10, 2, 30, 2, 50, 60
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    y2 = np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
-    y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
+    y1 *= np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
+    # y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
+    # y1 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
+    # y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
 
+    """
     fft_one = fft_encoder.encode(y1)
     fft_two = fft_encoder.encode(y2)
 
@@ -136,36 +161,13 @@ if __name__ == "__main__":
     print(f"SDR Two: {len(fft_two)}")
     print(f"SDR active bits Two: {sum(fft_two)}")
 
-    plot_sdr(fft_one)
-    plot_sdr(fft_two)
+    overlap_bits = overlap(fft_one, fft_two)
+    hamming_dist = hamming_distance(fft_one, fft_two)
+    print(f"Overlap: {overlap_bits} bits")
+    print(f"Hamming Distance: {hamming_dist} bits")
 
-    fft_one = np.array(fft_one)
-    fft_two = np.array(fft_two)
+    #plot_sdr(fft_one)
+    #plot_sdr(fft_two)
 
-    hamming = hamming_distance(fft_one, fft_two)
-    print(f"Hamming distance between SDRs: {hamming} bits")
-    overlap = overlap(fft_one, fft_two)
-    print(f"Overlap between SDRs: {overlap} bits")
-
-    ih = InputHandler()
-    hot_gym = ih.input_data(os.path.join(PROJECT_ROOT, "data", "rec-center-hourly.csv"))
-
-    signal = _records_to_signal(hot_gym)
-
-    fft_encoder = FourierEncoder(
-        FourierEncoderParameters(
-            resolutions_in_ranges=[0.10],
-            total_resolution=0.1,
-            # search for frequencies peaks between 0 and 200 Hz
-            frequency_ranges=[(0, 128)],
-            # every contributing frequency gets 40 active bits, this divides up from total active bits
-            size=2048,
-            # active bits in range times number of ranges
-            sparsity_in_ranges=[0.02],
-            total_sparsity=0.02,
-        )
-    )
-
-    sdr_hot_gym = fft_encoder.encode(signal)
-
-    plot_sdr(sdr_hot_gym)
+    """
+    visualize_signal_fft("fin_test.csv", sample_rate=4096)

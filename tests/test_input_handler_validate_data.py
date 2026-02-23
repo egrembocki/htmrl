@@ -1,17 +1,17 @@
 """
-Test suite for the InputHandler class.
+tests.test_input_handler_validate_data
 
-This suite verifies the following aspects:
-    - Input normalization: Ensures various input types (list of dicts, bytearray, scalar)
-        are correctly converted into a sequence of records.
-    - Required columns: Missing columns are added and ordering is enforced.
-    - Missing values: Rows with missing values are dropped during normalization.
-    - Duplicate columns: Duplicates are removed during processing.
+Test suite for InputHandler data validation functionality.
 
-Test Flow:
-    1. Each test provides a different form of input to InputHandler.input_data().
-    2. The input is normalized via _process_dataframe and related helpers.
-    3. The test asserts on the final state or output of InputHandler.
+Validates that InputHandler correctly validates loaded data for consistency, type correctness,
+and required field presence. Tests ensure the validation step correctly identifies:
+- Missing or null values in required columns
+- Data type mismatches and format errors
+- Required column presence and completeness
+- Data quality issues that would impact downstream encoding
+
+These tests ensure the input data pipeline correctly validates data before encoder processing,
+catching issues early in the pipeline.
 """
 
 import pandas as pd

@@ -2,11 +2,18 @@
 
 Encapsulates InputFields and ColumnFields to provide a unified API
 for encoding inputs and computing temporal memory in a single step.
+
+    HTM implementation for column spatial pooling and temporal memory.
+    inspired by Sungar Thesis: http://etd.lib.metu.edu.tr/upload/12621275/index.pdf
+
+    Developed by: Dr. Pullin Agrawal Penn State University, Capstone Advisor
+
 """
 
 from typing import Any
 
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.log import get_logger, logger
 
 
 class Brain:
@@ -29,7 +36,14 @@ class Brain:
             })
     """
 
-    def __init__(self, fields: dict[str, Field]) -> None:
+    def __init__(self, fields: dict[str, Field] | None = None) -> None:
+        """Initialize the Brain with optional fields."""
+
+        if fields is None:
+            fields = {}
+
+        # Separate fields into input, output, and column fields for easy access
+        # ensure that values are instances of the correct type
         self._input_fields: dict[str, InputField] = {
             k: v for k, v in fields.items() if isinstance(v, InputField)
         }
@@ -40,6 +54,9 @@ class Brain:
             k: v for k, v in fields.items() if isinstance(v, ColumnField)
         }
         self.fields = fields
+        self.logger = get_logger(self)
+
+        self.logger.info("Brain initialized with fields: %s", list(fields.keys()))
 
     def __getitem__(self, name: str) -> Field:
         return self.fields[name]
@@ -60,6 +77,9 @@ class Brain:
             inputs: Dict mapping field names to input values.
             learn: Whether to enable learning during this step.
         """
+        if learn:
+            self.logger.info("Processing step with inputs: %s", inputs)
+
         self.encode_only(inputs)
         self.compute_only(learn=learn)
         return {name: field.decode() for name, field in self._output_fields.items()}
@@ -107,11 +127,26 @@ class Brain:
 
     def print_stats(self) -> None:
         """Print statistics from the column field."""
-        for name, column_field in self._column_fields.items():
-            print(f"Statistics for ColumnField '{name}':")
+        for column_field in self._column_fields.values():
+            self.logger.info("Statistics for ColumnField '%s':", column_field.name)
             column_field.print_stats()
 
     def reset(self) -> None:
         """Clear all states in the column field."""
-        for field in self.fields:
+        for field in self.fields.values():
             field.reset()  # type: ignore
+
+    @property
+    def input_fields(self) -> list[InputField]:
+        """Return list of input fields."""
+        return list(self._input_fields.values())
+
+    @property
+    def column_fields(self) -> list[ColumnField]:
+        """Return list of column fields."""
+        return list(self._column_fields.values())
+
+    @property
+    def output_fields(self) -> list[OutputField]:
+        """Return list of output fields."""
+        return list(self._output_fields.values())

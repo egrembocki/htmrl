@@ -12,12 +12,7 @@ Reference: https://arxiv.org/pdf/1602.05925.pdf
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from math import prod
-from typing import Any, Generic, TypeVar
-
-import pandas as pd
-
-from psu_capstone.agent_layer.agent_interface import AgentInterface
+from typing import Generic, TypeVar, override
 
 T = TypeVar("T")
 
@@ -28,55 +23,43 @@ class BaseEncoder(ABC, Generic[T]):
     Subclasses should implement :meth:`encode` to transform input values into SDRs.
     """
 
-    # class variables
-
-    __interface: AgentInterface | None = None
-
     def __init__(self, size: int | None = None):
-        """Initialize an encoder with optional size.
+        """Initializes the BaseEncoder with given size."""
 
-        Args:
-            size: Explicit SDR size.
-        """
-        self._size: int = 0 if size is None else int(size)
-
-    @property
-    def interface(self) -> AgentInterface | None:
-        """Return the agent interface associated with this encoder, if any."""
-        return self.__interface
-
-    @interface.setter
-    def interface(self, value: AgentInterface | None) -> None:
-        """Set the agent interface associated with this encoder."""
-        self.__interface = value
+        self._size: int = size if size is not None else 0
+        self._parameters: ParentDataClass | None = None
 
     @property
     def size(self) -> int:
-        """Return the SDR size used by this encoder."""
+        assert self._size >= 0, "size must be a non-negative integer"
         return self._size
 
     @size.setter
     def size(self, value: int) -> None:
-        """Set the SDR size for this encoder."""
+        if value < 0:
+            raise ValueError("size must be a non-negative integer")
+        elif value == 0:
+            raise ValueError("size must be greater than zero")
         self._size = value
 
     def reset(self):
         """Reset the encoder state, clearing size."""
         self._size = 0
+        self.__buffered_data = None
+        self.__buffer_bounds = None
 
     @abstractmethod
     def encode(self, input_value: T) -> list[int]:
-        """Encode a value into a sparse representation.
-
-        Args:
-            input_value: The value to encode.
-
-        Returns:
-            The indices of active bits in the SDR.
-        """
+        """Encodes the input value into a binary vector."""
         raise NotImplementedError("Subclasses must implement this method")
 
 
 @dataclass
-class ParentDataclass:
+class ParentDataClass:
+    """Parent Class to mark all Parameter Classes for encoders."""
+
     encoder_class = BaseEncoder
+    """Class variable to specify the associated encoder class. Subclasses should override this."""
+
+    size: int = 2048
+    """Size of the output SDR. Must be a positive integer."""

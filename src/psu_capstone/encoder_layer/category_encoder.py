@@ -1,10 +1,12 @@
 """Category Encoder implementation"""
 
+from __future__ import annotations
+
 import copy
 from dataclasses import dataclass, field
 from typing import Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
@@ -26,7 +28,7 @@ class CategoryEncoder(BaseEncoder[str]):
                     :class:`.ScalarEncoder` for details. (default False)
     """
 
-    def __init__(self, parameters: "CategoryParameters"):
+    def __init__(self, parameters: CategoryParameters):
 
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
@@ -130,7 +132,7 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters(ParentDataclass):
+class CategoryParameters(ParentDataClass):
 
     w: int = 3
     """
