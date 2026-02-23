@@ -34,7 +34,7 @@ class InputHandler:
         ".txt",
     }
 
-    def __new__(cls) -> InputHandler:
+    def __new__(cls, data: Any | None = None) -> InputHandler:
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = super(InputHandler, cls).__new__(cls)
         return cls.__instance
