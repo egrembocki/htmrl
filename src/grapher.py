@@ -4,13 +4,13 @@ from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
-from matplotlib.colors import ListedColormap, PowerNorm
-from scipy.fft import fft, fftfreq, ifft
+from matplotlib.colors import ListedColormap
+from scipy.fft import fft, fftfreq
 
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
-from utils import DATA_PATH, PROJECT_ROOT
+from utils import PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
