@@ -267,7 +267,7 @@ class Trainer:
         # make the input/output fields
         self._setup_io_fields(fields)
         # make column fields
-        self._setup_column_fields(num_columns=size, cells_per_column=32)
+        self._setup_column_fields(num_columns=size, cells_per_column=16)
         # create the Brain with fields
         brain = self._create_brain()
         self._main_brain = brain
