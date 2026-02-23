@@ -67,4 +67,9 @@ class BaseEncoder(ABC, Generic[T]):
 
 @dataclass
 class ParentDataclass:
+
     encoder_class = BaseEncoder
+    """The class of the encoder to be used. Should be a subclass of BaseEncoder."""
+
+    size: int = 2048
+    """Number of bits in the vector output SDR."""
