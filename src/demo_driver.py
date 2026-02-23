@@ -1,6 +1,5 @@
 """Driver script to demonstrate the capabilities of the Brain and Trainer classes.
 Author: Chris Mills @millscb
-TODO: - Add more demo functions to showcase different aspects of the Brain and Trainer, such as multi-field coordination, temporal learning, and prediction capabilities.
 
 Date: 2025-02-21
 
@@ -9,8 +8,6 @@ This script includes several demonstration functions that can be run to visualiz
 Note: Some of the demonstration functions may require specific datasets to be available in the DATA_PATH directory. Ensure that the necessary datasets are in place before running those demos.
 
 """
-
-# TODO: @millscb - Add more demo functions to showcase different aspects of the Brain and Trainer, such as multi-field coordination, temporal learning, and prediction capabilities.
 
 import os
 
