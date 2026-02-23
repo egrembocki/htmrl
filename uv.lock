@@ -1594,6 +1594,8 @@ dependencies = [
     { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sympy" },
     { name = "xlrd" },
 ]
@@ -1628,6 +1630,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.1" },
     { name = "pyproj", specifier = ">=3.7.1" },
     { name = "scikit-learn", specifier = ">=1.7.2" },
+    { name = "scipy", specifier = ">=1.15.3" },
     { name = "sympy", specifier = ">=1.11" },
     { name = "xlrd", specifier = ">=2.0.2" },
 ]

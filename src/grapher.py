@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
-from scipy import signal as sig
 from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
