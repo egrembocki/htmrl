@@ -15,7 +15,9 @@ import grapher
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
+from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
@@ -24,6 +26,8 @@ from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
 REC_CENTER = os.path.join(DATA_PATH, "rec_center.csv")
 DATA_COLUMN_LOG_MESSAGE = "Data column '%s': %d records"
+
+DATA_DICT = {}
 
 
 def show_input_data_demo() -> None:
@@ -51,13 +55,13 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
 
         columns.append(key)
 
-    encoder_sequence = ih.get_column_data(column=columns[1])
+    column_data = ih.get_column_data(column=columns[1])
 
     trainer.main_brain = trainer.build_brain(
         [(f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.01))]
     )  # fin markets
 
-    values = encoder_sequence[:s]  # Take the first 's' values for demonstration
+    values = column_data[:s]  # Take the first 's' values for demonstration
 
     field = trainer.main_brain._input_fields[f"{columns[1]}_input"]
     encoder = field.encoder
@@ -68,7 +72,7 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
         encoded: list[int] = field.encode(value)
         decoded_value, confidence = field.decode("active", field, encoder._encoding_cache)  # type: ignore
         print(f"Decoded: {decoded_value} (Confidence: {confidence})")
-        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[0]}={value:.2f} (Step {i + 1})")
+        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[1]}={value:.2f} (SDR {i + 1})")
 
         sdr.append(encoded)
 
@@ -92,6 +96,9 @@ def show_brain_creation_demo() -> None:
         ("temperature_input", 2048, RDSEParameters()),
         ("humidity_input", 2048, RDSEParameters()),
         ("energy_consumption_input", 2048, RDSEParameters()),
+        ("date_input", 2048, DateEncoderParameters()),
+        ("category_input", 2048, CategoryParameters()),
+        ("wave_input", 2048, FourierEncoderParameters()),
     ]
 
     trainer.main_brain = trainer.build_brain(input_fields)
@@ -242,10 +249,11 @@ if __name__ == "__main__":
 
     # Example usage of the Brain and Trainer classes
 
-    show_input_data_demo()
-    show_input_to_encoder_demo(3)
-    show_brain_creation_demo()
-    show_field_single_encoding_demo()
-    sine_wave_demo(200)
-    rec_center_demo(200)
+    # show_input_data_demo()
+    # show_input_to_encoder_demo(3)
+    # show_brain_creation_demo()
+    # sine_wave_demo(200)
     fin_data_demo(steps=3)
+
+    # rec_center_demo(200)
+    # show_field_single_encoding_demo()

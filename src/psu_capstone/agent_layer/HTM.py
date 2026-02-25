@@ -776,6 +776,8 @@ class InputField(Field):
     """A Field specialized for input bits."""
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
+        """Initialize the InputField with an encoder based on provided parameters."""
+
         if encoder_params is not None and isinstance(encoder_params, ParentDataClass):
             params = copy.deepcopy(encoder_params)
         else:
