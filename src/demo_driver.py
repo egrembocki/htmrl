@@ -31,7 +31,9 @@ DATA_DICT = {}
 
 
 def show_input_data_demo() -> None:
-    """Demonstrate the input handler can digest large datasets."""
+    """Demonstrate the input handler can digest large datasets.
+    Use Case Input Data --> Validate Data
+    """
 
     ih = InputHandler()
     data = ih.input_data(ESD)
@@ -84,7 +86,9 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
 
 
 def show_brain_creation_demo() -> None:
-    """Demonstrate creating a Brain and inspecting its structure."""
+    """Demonstrate creating a Brain and inspecting its structure.
+    Use Case Input Parameters
+    """
 
     brain = Brain()
     trainer = Trainer(brain)
@@ -116,7 +120,11 @@ def show_brain_creation_demo() -> None:
 
 
 def sine_wave_demo(steps: int = 100) -> None:
-    """Demonstrate encoding and learning on a simple sine wave dataset."""
+    """Demonstrate encoding and learning on a simple sine wave dataset.
+
+    Use Case Train Model -> Train Brain -> Use HTM -> Encode SDR / Decode SDR
+
+    """
 
     import numpy as np
 
@@ -149,7 +157,10 @@ def sine_wave_demo(steps: int = 100) -> None:
 
 
 def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
-    """Demonstrate loading and visualizing data from the dataset."""
+    """Demonstrate loading and visualizing data from the dataset.
+
+    Use Cace Input Data -> Validate Data -> Input Parameters -> Train Model -> Train Brain -> Use HTM -> Encode/Decode SDR
+    """
 
     ih = InputHandler()
     data = ih.input_data(ESD)
@@ -249,8 +260,8 @@ if __name__ == "__main__":
 
     # Example usage of the Brain and Trainer classes
 
-    show_input_data_demo()
-    # show_input_to_encoder_demo(3)
+    # show_input_data_demo()
+    show_input_to_encoder_demo(3)
     # show_brain_creation_demo()
     # sine_wave_demo(200)
     # fin_data_demo(steps=3)
