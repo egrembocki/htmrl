@@ -16,7 +16,7 @@ from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 
 DEMO_DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "hot_gym_short.csv"
-REQUIRED_COLUMNS = ["timestamp", "kw_energy_consumption"]
+REQUIRED_COLUMNS = ["timestamp", "consumption"]
 DEMO_ROW_LIMIT = 8
 SEQUENCE_SAMPLE = 5
 
@@ -39,9 +39,9 @@ def sample_usage_sequence(handler: InputHandler, sample_size: int) -> list[float
     sequence = handler.to_encoder_sequence(
         handler.data,
         required_columns=REQUIRED_COLUMNS,
-        column="kw_energy_consumption",
+        column="consumption",
     )
-    values = [float(value) for value in sequence["kw_energy_consumption"]]
+    values = [float(value) for value in sequence["consumption"]]
     return values[:sample_size]
 
 
@@ -50,8 +50,9 @@ def build_brain(field_sizes: dict[str, int]) -> Brain:
 
     usage_field = InputField(
         RDSEParameters(
-            size=field_sizes["kw_energy_consumption"],
+            size=field_sizes["consumption"],
             active_bits=16,
+            sparsity=0.0,
             resolution=0.5,
             seed=11,
         )
@@ -60,6 +61,7 @@ def build_brain(field_sizes: dict[str, int]) -> Brain:
         RDSEParameters(
             size=field_sizes["timestamp"],
             active_bits=16,
+            sparsity=0.0,
             resolution=3600.0,
             seed=17,
         )
@@ -73,7 +75,7 @@ def build_brain(field_sizes: dict[str, int]) -> Brain:
 
     return Brain(
         {
-            "kw_energy_consumption": usage_field,
+            "consumption": usage_field,
             "timestamp": timestamp_field,
             "cortex": column_field,
         }
@@ -88,11 +90,11 @@ def normalize_for_brain(records: list[dict[str, object]]) -> list[dict[str, floa
         timestamp = record["timestamp"]
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
-        usage = record["kw_energy_consumption"]
+        usage = record["consumption"]
         normalized.append(
             {
                 "timestamp": float(timestamp.timestamp()),
-                "kw_energy_consumption": float(usage),
+                "consumption": float(usage),
             }
         )
 
@@ -107,11 +109,11 @@ def prepare_encoder_records(records: list[dict[str, object]]) -> list[dict[str, 
         timestamp = record["timestamp"]
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
-        usage = float(record["kw_energy_consumption"])
+        usage = float(record["consumption"])
         hydrated.append(
             {
                 "timestamp": timestamp,
-                "kw_energy_consumption": usage,
+                "consumption": usage,
             }
         )
 
@@ -133,7 +135,7 @@ def run_demo() -> None:
     usage_sequence = sample_usage_sequence(
         input_handler, min(SEQUENCE_SAMPLE, len(normalized_records))
     )
-    print("\nInput Handler sequence sample (kw_energy_consumption):")
+    print("\nInput Handler sequence sample (consumption):")
     print(f"  {usage_sequence}")
 
     encoder_records = prepare_encoder_records(normalized_records)
@@ -146,7 +148,7 @@ def run_demo() -> None:
 
     brain = build_brain(
         {
-            "kw_energy_consumption": 256,
+            "consumption": 256,
             "timestamp": 256,
         }
     )

@@ -49,7 +49,11 @@ def test_validate_data_valid(handler):
     )
     assert data == {
         "id": [1, 2, 3],
-        "timestamp": ["2024-01-01T00:00:00", "2024-01-02T00:00:00", "2024-01-03T00:00:00"],
+        "timestamp": [
+            pd.Timestamp("2024-01-01"),
+            pd.Timestamp("2024-01-02"),
+            pd.Timestamp("2024-01-03"),
+        ],
         "value": [10, 20, 30],
     }
     assert handler._columns == ["id", "timestamp", "value"]
@@ -101,7 +105,7 @@ def test_input_data_bytearray(handler):
     data = handler.input_data(byte_data, required_columns=["id", "timestamp", "value"])
     assert data == {
         "id": ["1", "2"],
-        "timestamp": ["2024-01-01T00:00:00", "2024-01-02T00:00:00"],
+        "timestamp": [pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-02")],
         "value": ["10", "20"],
     }
 
