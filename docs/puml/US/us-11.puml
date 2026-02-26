@@ -3,18 +3,18 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-11 Summary
+title US-11 Summary TODO: Update sequence diagram to reflect planned RL loop and reporting
 
 actor "Developer" as Dev
-participant "Brain + HTM State" as BR
-participant "InputField(s)" as IF
-participant "Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)" as FE
-participant "RL Adapter" as RLA
-participant "RL Model\n(Policy/Value Network)" as RLM
-participant "Environment" as ENV
-participant "Replay Buffer\n(planned)" as RB
-participant "Trainer\n(planned)" as TR
-participant "Metrics/Checkpoint\n(planned)" as MC
+participant "<u>b:Brain + HTM State</u>" as BR
+participant "<u>if:InputField(s)</u>" as IF
+participant "<u>fe:Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)</u>" as FE
+participant "<u>rla:RL Adapter</u>" as RLA
+participant "<u>rlm:RL Model\n(Policy/Value Network)</u>" as RLM
+participant "<u>env:Environment</u>" as ENV
+participant "<u>rb:Replay Buffer\n(planned)</u>" as RB
+participant "<u>tr:Trainer\n(planned)</u>" as TR
+participant "<u>mc:Metrics/Checkpoint\n(planned)</u>" as MC
 
 group US-10A Current End-to-End Pipeline
   Dev -> BR: prediction()

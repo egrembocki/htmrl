@@ -2,14 +2,14 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-06 Train Brain
+title US-06 Train Brain (TODO: Update to match Brain Class and HTM Interface)
 
 actor "Developer" as Dev
-participant "Brain" as B
-participant "InputField(s)" as IF
-participant "ColumnField" as CF
-participant "HTM Engine" as H
-participant "OutputField(s)" as OF
+participant "<u>b:Brain</u>" as B
+participant "<u>if:InputField(s)</u>" as IF
+participant "<u>cf:ColumnField</u>" as CF
+participant "<u>h:HTM Engine</u>" as H
+participant "<u>of:OutputField(s)</u>" as OF
 
 Dev -> B: step(inputs, learn=True)
 activate B

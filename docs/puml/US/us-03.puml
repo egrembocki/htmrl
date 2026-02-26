@@ -6,11 +6,11 @@ skinparam responseMessageBelowArrow true
 title US-03 Encode Data
 
 actor Developer
-participant "InputHandler" as IH
-participant "Brain" as B
-participant "InputField" as IF
-participant "BaseEncoder\n(concrete implementation)" as BE
-participant "HTM / ColumnField" as H
+participant "<u>ih:InputHandler</u>" as IH
+participant "<u>b:Brain</u>" as B
+participant "<u>if:InputField</u>" as IF
+participant "<u>be:BaseEncoder\n(concrete implementation)</u>" as BE
+participant "<u>h:ColumnField</u>" as H
 
 group Input layer prepares normalized rows
   Developer -> IH: input_data(data, required_columns)

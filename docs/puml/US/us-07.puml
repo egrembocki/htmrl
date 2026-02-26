@@ -5,8 +5,8 @@ skinparam responseMessageBelowArrow true
 title US-07 Use HTM Engine
 
 actor "Brain" as B
-participant "ColumnField" as CF
-participant "HTM Engine" as H
+participant "<u>cf:ColumnField</u>" as CF
+participant "<u>h:HTM Engine</u>" as H
 
 group Included by higher-level user stories
   ref over B,H

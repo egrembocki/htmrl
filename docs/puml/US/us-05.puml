@@ -3,17 +3,17 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-05 Train Model (Current + Planned)
+title US-05 Train Model (TODO: Update to match Trainer Class)
 
 actor Developer as D
-participant "TrainModel" as TM
-participant "Brain" as B
-participant "RL Adapter\n(planned)" as RLA
-participant "RL Model\n(Policy/Value)" as RLM
-participant "Environment" as ENV
-participant "Replay Buffer\n(planned)" as RB
-participant "Trainer\n(planned)" as TR
-participant "Metrics/Checkpoint\n(planned)" as MC
+participant "<u>trainer:Trainer</u>" as TM
+participant "<u>b:Brain</u>" as B
+participant "<u>rla:RL Adapter\n(planned)</u>" as RLA
+participant "<u>rlm:RL Model\n(Policy/Value)</u>" as RLM
+participant "<u>env:Environment</u>" as ENV
+participant "<u>rb:Replay Buffer\n(planned)</u>" as RB
+participant "<u>tr:Trainer\n(planned)</u>" as TR
+participant "<u>mc:Metrics/Checkpoint\n(planned)</u>" as MC
 
 group US-05A Current Orchestration
   D -> TM: start_training(dataset, epochs)

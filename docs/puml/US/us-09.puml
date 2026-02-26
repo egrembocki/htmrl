@@ -5,8 +5,8 @@ skinparam responseMessageBelowArrow true
 title US-09 Generate Report (Current Code Reality)
 
 actor Developer
-participant "Demo/Test Scripts" as TS
-participant "Console/Logs" as OUT
+participant "<u>reporter:ReportGenerator</u>" as TS
+participant "<u>out:SystemFileIO</u>" as OUT
 
 Developer -> TS: run demo_driver.py or pytest suites
 activate TS

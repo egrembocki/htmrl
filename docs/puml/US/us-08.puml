@@ -3,16 +3,16 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-08 Test Model (Current + Planned)
+title US-08 Test Model (TODO: Update to match planned Brain HTM+RL evaluation flow)
 
 actor Developer
-participant "TestModel" as TM
-participant "Brain" as BR
-participant "ColumnField" as CF
-participant "RL Adapter\n(planned)" as RLA
-participant "RL Model\n(Policy/Value)" as RLM
-participant "Environment" as ENV
-participant "Metrics/Checkpoint\n(planned)" as MC
+participant "<u>trainer:Trainer</u>" as TM
+participant "<u>b:Brain</u>" as BR
+participant "<u>cf:ColumnField</u>" as CF
+participant "<u>rla:RL Adapter\n(planned)</u>" as RLA
+participant "<u>rlm:RL Model\n(Policy/Value)</u>" as RLM
+participant "<u>env:Environment</u>" as ENV
+participant "<u>mc:Metrics/Checkpoint\n(planned)</u>" as MC
 
 group US-08A Current Code Reality
   Developer -> BR: step(inputs, learn=False)
