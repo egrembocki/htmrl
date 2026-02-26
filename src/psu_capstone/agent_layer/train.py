@@ -106,6 +106,8 @@ class Trainer:
                 encoder_params = CategoryParameters(size=param.size)
             elif isinstance(param, FourierEncoderParameters):
                 encoder_params = FourierEncoderParameters(size=param.size)
+            elif isinstance(param, GeospatialParameters):
+                encoder_params = GeospatialParameters(size=param.size)
             else:
                 raise ValueError("Unsupported encoder parameters type: {}".format(type(param)))
 

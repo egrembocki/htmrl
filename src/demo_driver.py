@@ -15,7 +15,9 @@ import grapher
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
+from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
@@ -25,9 +27,13 @@ ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
 REC_CENTER = os.path.join(DATA_PATH, "rec_center.csv")
 DATA_COLUMN_LOG_MESSAGE = "Data column '%s': %d records"
 
+DATA_DICT = {}
+
 
 def show_input_data_demo() -> None:
-    """Demonstrate the input handler can digest large datasets."""
+    """Demonstrate the input handler can digest large datasets.
+    Use Case Input Data --> Validate Data
+    """
 
     ih = InputHandler()
     data = ih.input_data(ESD)
@@ -51,13 +57,13 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
 
         columns.append(key)
 
-    encoder_sequence = ih.get_column_data(column=columns[1])
+    column_data = ih.get_column_data(column=columns[1])
 
     trainer.main_brain = trainer.build_brain(
         [(f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.01))]
     )  # fin markets
 
-    values = encoder_sequence[:s]  # Take the first 's' values for demonstration
+    values = column_data[:s]  # Take the first 's' values for demonstration
 
     field = trainer.main_brain._input_fields[f"{columns[1]}_input"]
     encoder = field.encoder
@@ -68,7 +74,7 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
         encoded: list[int] = field.encode(value)
         decoded_value, confidence = field.decode("active", field, encoder._encoding_cache)  # type: ignore
         print(f"Decoded: {decoded_value} (Confidence: {confidence})")
-        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[0]}={value:.2f} (Step {i + 1})")
+        grapher.plot_sdr(encoded, title=f"RDSE Encoding: {columns[1]}={value:.2f} (SDR {i + 1})")
 
         sdr.append(encoded)
 
@@ -80,7 +86,9 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
 
 
 def show_brain_creation_demo() -> None:
-    """Demonstrate creating a Brain and inspecting its structure."""
+    """Demonstrate creating a Brain and inspecting its structure.
+    Use Case Input Parameters
+    """
 
     brain = Brain()
     trainer = Trainer(brain)
@@ -92,6 +100,9 @@ def show_brain_creation_demo() -> None:
         ("temperature_input", 2048, RDSEParameters()),
         ("humidity_input", 2048, RDSEParameters()),
         ("energy_consumption_input", 2048, RDSEParameters()),
+        ("date_input", 2048, DateEncoderParameters()),
+        ("category_input", 2048, CategoryParameters()),
+        ("wave_input", 2048, FourierEncoderParameters()),
     ]
 
     trainer.main_brain = trainer.build_brain(input_fields)
@@ -106,6 +117,78 @@ def show_brain_creation_demo() -> None:
     print("Brains: Column Fields:")
     for field in trainer.main_brain._column_fields.values():
         print(f"- {field.name}")
+
+
+def sine_wave_demo(steps: int = 100) -> None:
+    """Demonstrate encoding and learning on a simple sine wave dataset.
+
+    Use Case Train Model -> Train Brain -> Use HTM -> Encode SDR / Decode SDR
+
+    """
+
+    import numpy as np
+
+    # Generate a sine wave dataset
+    x = np.linspace(0, 1, 2048, endpoint=False)
+    y = np.sin(2 * np.pi * 1 * x)
+    data = {"sine_wave_input": y}
+    brain = Brain()
+    trainer = Trainer(brain)
+    trainer.main_brain = trainer.build_brain(
+        [("sine_wave_input", 2048, RDSEParameters(resolution=0.001))]
+    )
+    brain = trainer.main_brain
+
+    for name, value in data.items():
+        logger.debug(DATA_COLUMN_LOG_MESSAGE, name, len(value))
+
+    column = {"sine_wave_input": y.tolist()}
+
+    trainer.train_column(brain, column, steps)
+
+    # show predicted vs actual values for the last 100 steps
+    test_results = trainer.test(brain, column, steps)
+
+    trainer.show_active_columns(brain, dataset_name="sine wave")
+    trainer.show_heat_map(brain, dataset_name="sine wave")
+
+    report_path = os.path.join(PROJECT_ROOT, "docs/reports/sine_wave_training_stats.txt")
+    trainer.print_train_stats(report_path, test_results=test_results, training_steps=steps)
+
+
+def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
+    """Demonstrate loading and visualizing data from the dataset.
+
+    Use Cace Input Data -> Validate Data -> Input Parameters -> Train Model -> Train Brain -> Use HTM -> Encode/Decode SDR
+    """
+
+    ih = InputHandler()
+    data = ih.input_data(ESD)
+
+    brain = Brain()
+    trainer = Trainer(brain)
+    # resolution changes the spatial pooler representation
+    trainer.main_brain = trainer.build_full_brain(data, 2048, RDSEParameters(resolution=0.01))
+    brain = trainer.main_brain
+
+    if not column:
+        for name, value in data.items():
+            logger.debug(DATA_COLUMN_LOG_MESSAGE, name, len(value))
+
+            trainer.train_column(brain, column={f"{name}_input": value}, steps=steps)
+
+    elif column not in data:
+        logger.error("Specified column '%s' not found in dataset.", column)
+        return
+    else:
+        trainer.train_column(brain, column={f"{column}_input": data[column]}, steps=steps)
+
+    brain.print_stats()
+
+    # trainer.test(trainer._main_brain, {f"{column}_input": data[column]}, steps=steps)
+
+    trainer.show_active_columns(brain, dataset_name="financial data")
+    trainer.show_heat_map(brain, dataset_name="financial data")
 
 
 def rec_center_demo(steps: int = 100) -> None:
@@ -145,71 +228,6 @@ def rec_center_demo(steps: int = 100) -> None:
     trainer.show_heat_map(brain, dataset_name="recreation center data")
 
 
-def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
-    """Demonstrate loading and visualizing data from the dataset."""
-
-    ih = InputHandler()
-    data = ih.input_data(ESD)
-
-    brain = Brain()
-    trainer = Trainer(brain)
-    # resolution changes the spatial pooler representation
-    trainer.main_brain = trainer.build_full_brain(data, 2048, RDSEParameters(resolution=0.01))
-    brain = trainer.main_brain
-
-    if not column:
-        for name, value in data.items():
-            logger.debug(DATA_COLUMN_LOG_MESSAGE, name, len(value))
-
-            trainer.train_column(brain, column={f"{name}_input": value}, steps=steps)
-
-    elif column not in data:
-        logger.error("Specified column '%s' not found in dataset.", column)
-        return
-    else:
-        trainer.train_column(brain, column={f"{column}_input": data[column]}, steps=steps)
-
-    brain.print_stats()
-
-    # trainer.test(trainer._main_brain, {f"{column}_input": data[column]}, steps=steps)
-
-    trainer.show_active_columns(brain, dataset_name="financial data")
-    trainer.show_heat_map(brain, dataset_name="financial data")
-
-
-def sine_wave_demo(steps: int = 100) -> None:
-    """Demonstrate encoding and learning on a simple sine wave dataset."""
-
-    import numpy as np
-
-    # Generate a sine wave dataset
-    x = np.linspace(0, 1, 2048, endpoint=False)
-    y = np.sin(2 * np.pi * 1 * x)
-    data = {"sine_wave_input": y}
-    brain = Brain()
-    trainer = Trainer(brain)
-    trainer.main_brain = trainer.build_brain(
-        [("sine_wave_input", 2048, RDSEParameters(resolution=0.001))]
-    )
-    brain = trainer.main_brain
-
-    for name, value in data.items():
-        logger.debug(DATA_COLUMN_LOG_MESSAGE, name, len(value))
-
-    column = {"sine_wave_input": y.tolist()}
-
-    trainer.train_column(brain, column, steps)
-
-    # show predicted vs actual values for the last 100 steps
-    test_results = trainer.test(brain, column, steps)
-
-    trainer.show_active_columns(brain, dataset_name="sine wave")
-    trainer.show_heat_map(brain, dataset_name="sine wave")
-
-    report_path = os.path.join(PROJECT_ROOT, "docs/reports/sine_wave_training_stats.txt")
-    trainer.print_train_stats(report_path, test_results=test_results, training_steps=steps)
-
-
 def show_field_single_encoding_demo() -> None:
     """Demonstrate encoding a sample input through the Brain's input fields."""
 
@@ -242,17 +260,11 @@ if __name__ == "__main__":
 
     # Example usage of the Brain and Trainer classes
 
-    print("Demonstrating input data handling...")
-    show_input_data_demo()
-    print("\nDemonstrating input to encoder data flow...")
+    # show_input_data_demo()
     show_input_to_encoder_demo(3)
-    print("\nDemonstrating brain creation and structure...")
-    show_brain_creation_demo()
-    print("\nDemonstrating field single encoding...")
-    show_field_single_encoding_demo()
-    print("\nDemonstrating sine wave dataset training...")
-    sine_wave_demo(200)
-    print("\nDemonstrating recreation center dataset training...")
-    rec_center_demo(200)
-    print("\nDemonstrating financial data dataset training...")
-    fin_data_demo(steps=3)
+    # show_brain_creation_demo()
+    # sine_wave_demo(200)
+    # fin_data_demo(steps=3)
+
+    # rec_center_demo(200)
+    # show_field_single_encoding_demo()
