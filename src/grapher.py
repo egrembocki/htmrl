@@ -1,6 +1,11 @@
+"""Grapher module for visualizing SDRs and signal data."""
+
+from __future__ import annotations
+
 import os
 from typing import Any, cast
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
@@ -12,6 +17,10 @@ from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 from utils import PROJECT_ROOT
 
+# Use Agg backend (non-interactive but reliable on all systems)
+
+
+matplotlib.use("Agg")
 plt.style.use("seaborn-v0_8-poster")
 
 
@@ -42,7 +51,7 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
-    plt.show(block=True)
+    plt.close()  # Close without showing
 
 
 def plot_heat_map(
@@ -68,7 +77,7 @@ def plot_heat_map(
     plt.colorbar(label="Duty Cycle")
     plt.xticks([])
     plt.yticks([])
-    plt.show(block=True)
+    plt.close()  # Close without showing
 
 
 def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
@@ -102,7 +111,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         plt.xlabel("Time")
         plt.ylabel("Amplitude")
         plt.grid()
-        plt.show()
+        plt.close()  # Close without showing
 
         # frequency domain
         freq_data = cast(np.ndarray, fft(values))
@@ -120,7 +129,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         plt.xlabel("Frequency")
         plt.ylabel("Magnitude")
         plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
-        plt.show()
+        plt.close()  # Close without showing
 
         fft_encoder = FourierEncoder(FourierEncoderParameters())
 

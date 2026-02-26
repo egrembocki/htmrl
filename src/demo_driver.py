@@ -242,10 +242,17 @@ if __name__ == "__main__":
 
     # Example usage of the Brain and Trainer classes
 
+    print("Demonstrating input data handling...")
     show_input_data_demo()
+    print("\nDemonstrating input to encoder data flow...")
     show_input_to_encoder_demo(3)
+    print("\nDemonstrating brain creation and structure...")
     show_brain_creation_demo()
+    print("\nDemonstrating field single encoding...")
     show_field_single_encoding_demo()
+    print("\nDemonstrating sine wave dataset training...")
     sine_wave_demo(200)
+    print("\nDemonstrating recreation center dataset training...")
     rec_center_demo(200)
+    print("\nDemonstrating financial data dataset training...")
     fin_data_demo(steps=3)
