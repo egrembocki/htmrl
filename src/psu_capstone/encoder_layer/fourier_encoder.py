@@ -279,7 +279,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         return np.asarray(filtered_data, dtype=float)
 
     @override
-    def encode(self, input_value: np.ndarray | list[float]) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
 
         Encodes a single frequency peak into a SDR as list[int].

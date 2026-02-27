@@ -15,7 +15,7 @@ import copy
 import random
 import struct
 from dataclasses import dataclass
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 import mmh3
 import numpy as np
@@ -69,8 +69,10 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         super().__init__(self._size)
 
     @override
-    def encode(self, input_value: float) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+        if type(input_value) is not int and type(input_value) is not float:
+            raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
 

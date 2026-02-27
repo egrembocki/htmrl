@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from typing import Iterable, cast, override
+from typing import Any, Iterable, cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -71,7 +71,7 @@ class CategoryEncoder(BaseEncoder[str]):
             self.encoder = ScalarEncoder(self.sp)
 
     @override
-    def encode(self, input_value: str) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """
         This method takes in a string and encodes it to a respective
         index of the _category_list.

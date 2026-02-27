@@ -17,7 +17,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 import pandas as pd
 
@@ -303,8 +303,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         self.size = self._size
 
     @override
-    def encode(self, input_value: datetime | pd.Timestamp | time.struct_time | None) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """
+        datetime | pd.Timestamp | time.struct_time | None
         Encode a timestamp-like value into `output` SDR.
 
         input_value:

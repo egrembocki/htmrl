@@ -1,5 +1,7 @@
 """Test suite for the RDSE."""
 
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -422,3 +424,86 @@ def test_rdse_encode_output_sparsity_conforms():
     assert (
         0.15 <= actual_sparsity <= 0.25
     ), f"Sparsity={sparsity} => ~{sparsity * 100}% ones expected, got {actual_sparsity:.3f} ({num_ones}/{len(out)})"
+
+
+"""Correctness tests below."""
+
+
+def test_rdse_encode_improper_values():
+    """
+    This test tries to encode with multiple entry types.
+    There should be an exception for each.
+    """
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(ValueError):
+        encoder.encode("test")
+        encoder.encode(datetime(2020, 1, 1, 0, 0))
+        encoder.encode([1, 2, 3, 4])
+        encoder.encode(((10, 20), 2))
+
+
+def test_rdse_encode_empty_values():
+    """
+    Tests that encoder properly raises an exception if no input value is entered.
+    This also tests a None value.
+    """
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(TypeError):
+        encoder.encode()
+        encoder.encode(None)
+
+
+def test_rdse_decode_empty_sdr():
+    """Tests that the decode method can raise an exception when an empty sdr is entered."""
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(ValueError):
+        encoder.encode(1)
+        encoder.decode([])
+
+
+def test_clear_registry_decode():
+    """
+    This tests that a value error is raised if there are no registered
+    encodings and the user tries to decode.
+    """
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(ValueError):
+        a = encoder.encode(1)
+        encoder.clear_registered_encodings()
+        encoder.decode(a)

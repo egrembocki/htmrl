@@ -1,5 +1,7 @@
 """Test suite for the SDR Encoder-Scalar."""
 
+from datetime import datetime
+
 import pytest
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
@@ -429,3 +431,98 @@ def test_scalar_encode_output_active_bits_conforms():
     assert num_ones / len(out) == pytest.approx(
         active_bits / size
     ), "Sparsity should equal active_bits/size"
+
+
+"""Correctness tests below."""
+
+
+def test_scalar_encode_improper_values():
+    """
+    This test tries to encode with multiple entry types.
+    There should be an exception for each.
+    """
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(ValueError):
+        encoder.encode("test")
+        encoder.encode(datetime(2020, 1, 1, 0, 0))
+        encoder.encode([1, 2, 3, 4])
+        encoder.encode(((10, 20), 2))
+
+
+def test_scalar_encode_empty_values():
+    """
+    Tests that encode properly raises an exception if no input value is entered.
+    This also tests a None value.
+    """
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(TypeError):
+        encoder.encode()
+        encoder.encode(None)
+
+
+def test_scalar_decode_empty_sdr():
+    """Tests that the decode method can raise an exception when an empty sdr is entered."""
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(ValueError):
+        encoder.encode(1)
+        encoder.decode([])
+
+
+def test_clear_registry_decode():
+    """
+    This tests that a value error is raised if there are no registered
+    encodings and the user tries to decode.
+    """
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(ValueError):
+        a = encoder.encode(1)
+        encoder.clear_registered_encodings()
+        encoder.decode(a)

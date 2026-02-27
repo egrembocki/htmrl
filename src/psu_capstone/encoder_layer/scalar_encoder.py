@@ -15,7 +15,7 @@
 import copy
 import math
 from dataclasses import dataclass
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
 
@@ -139,8 +139,10 @@ class ScalarEncoder(BaseEncoder[int]):
         return dense
 
     @override
-    def encode(self, input_value: int | float) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+        if type(input_value) is not int and type(input_value) is not float:
+            raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
 
