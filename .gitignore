@@ -3,12 +3,9 @@
 *.dmg
 *.gz
 *.iso
-*.jar
 *.rar
 *.tar
 *.zip
-*.doc
-*.pdf
 archive/
 
 #Executables and build outputs
