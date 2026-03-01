@@ -1,4 +1,28 @@
-"""Tests for the Fourier encoder's frequency locality behavior."""
+"""
+Tests for Fourier Encoder frequency locality behavior.
+
+The Fourier Encoder transforms input signals using FFT to extract frequency
+domain features. This test suite focuses on frequency locality - the property
+that nearby frequencies should have overlapping encodings.
+
+Key Testing Areas:
+  1. **Frequency Locality**: Encodings of nearby frequencies should overlap
+  2. **Frequency Separation**: Distant frequencies should have low overlap
+  3. **Encoding Consistency**: Same frequency produces same encoding
+  4. **Output Format**: Binary SDRs of correct size
+  5. **Sparsity**: Output conforms to specified sparsity/active_bits
+
+Recent Code Changes:
+  - Parameter mutual exclusivity (active_bits vs sparsity) validated
+  - All tests use sparsity=0.0 with active_bits to satisfy constraint
+  - Handles multiple frequency ranges with separate resolutions
+
+Tests validate:
+  1. Locality: Nearby frequencies (within 10Hz) have high overlap
+  2. Separation: Distant frequencies (100+ Hz apart) have low overlap
+  3. Encoding: Different frequencies produce different patterns
+  4. Performance: Encoder handles required frequency ranges efficiently
+"""
 
 import numpy as np
 import pytest

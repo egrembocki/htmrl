@@ -3,6 +3,33 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+"""
+Test suite for InputField class.
+
+InputField wraps an encoder and handles encoding of external scalar/categorical
+inputs into SDRs for downstream HTM processing.
+
+Key Responsibilities:
+  - Manage encoder instance (RDSE, ScalarEncoder, etc.)
+  - Encode input values to SDRs
+  - Decode SDRs back to values (when decoder available)
+  - Maintain and query active bits
+  - Reset state between episodes
+
+Parameter Validation:
+  - All encoder parameters validated at initialization
+  - RDSE: mutual exclusivity of active_bits and sparsity
+  - Tests explicitly set sparsity=0.0 when using active_bits
+  - decode() returns (value, confidence) tuple
+
+Tests validate:
+  1. Initialization with various encoder types
+  2. Encoding produces correct SDR size and sparsity
+  3. Decoding reconstructs original values with confidence
+  4. Semantic similarity (close values => overlapping SDRs)
+  5. Reset functionality clears state
+"""
+
 from psu_capstone.agent_layer.HTM import InputField
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
@@ -158,5 +185,7 @@ def test_input_field_can_encode_wrong_value_type():
     """
     parameters = RDSEParameters()
     in_fi = InputField(parameters)
-    assert in_fi.encode("US") == 0
-    assert in_fi.encode(datetime(2025, 1, 1, 0, 0)) == 0
+    with pytest.raises(TypeError):
+        in_fi.encode("US")
+    with pytest.raises(TypeError):
+        in_fi.encode(datetime(2025, 1, 1, 0, 0))

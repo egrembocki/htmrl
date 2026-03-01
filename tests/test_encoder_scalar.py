@@ -1,4 +1,31 @@
-"""Test suite for the SDR Encoder-Scalar."""
+"""
+Test suite for Scalar Encoder.
+
+The Scalar Encoder encodes numeric values in a limited range into sparse SDRs.
+It uses the Cortical Learning Algorithm to create semantic representations where
+nearby values have overlapping encodings.
+
+Key Features:
+  - Range-limited input (minimum/maximum bounds)
+  - Optional input clipping
+  - Supports both periodic (cyclical) and non-periodic ranges
+  - Deterministic encoding (same input → same SDR)
+  - Semantic similarity: close values → high overlap
+
+Parameter Validation:
+  - Like RDSE, uses mutual exclusivity: exactly one of {active_bits, sparsity}
+  - All tests explicitly set sparsity=0.0 when using active_bits
+  - Supports radius/resolution specification for input coverage
+  - Handles both real numbers and periodic values
+
+Tests validate:
+  1. Initialization with valid parameters
+  2. Input clipping to min/max bounds
+  3. Output format (binary 0/1 only, correct length)
+  4. Active bits/sparsity conformance
+  5. Semantic similarity (neighboring values overlap)
+  6. Determinism and periodicity handling
+"""
 
 import pytest
 
@@ -16,7 +43,19 @@ def do_scalar_value_cases(encoder: ScalarEncoder, cases):
 
 
 def test_scalar_encoder_initialization():
-    """Test the initialization of the ScalarEncoder."""
+    """
+    Test ScalarEncoder initialization with valid parameters.
+
+    Validates:
+      - Encoder instantiates successfully with proper parameters
+      - Size property matches configured size
+      - Encoder is correct type (ScalarEncoder)
+
+    Why it passes:
+      - active_bits=5 with sparsity=0.0 satisfies mutual exclusivity
+      - Range parameters (minimum=0, maximum=100) are valid
+      - encoder.size accessible and equals configured size
+    """
 
     # Arrange
     parameters = ScalarEncoderParameters(
@@ -347,19 +386,13 @@ def test_scalar_encoder_serialization():
 
     for encoder in inputs:
         if type(encoder) is ScalarEncoder:
-            p1 = encoder._parameters
-            p2 = encoder._parameters
-
-            assert p1.size == p2.size
-            assert getattr(p1, "category", None) == getattr(p2, "category", None)
-            assert p1.active_bits == p2.active_bits
-            assert p1.periodic == p2.periodic
-            assert p1.clip_input == p2.clip_input
-            assert nearly_equal(p1.minimum, p2.minimum)
-            assert nearly_equal(p1.maximum, p2.maximum)
-            assert nearly_equal(p1.resolution, p2.resolution)
-            assert nearly_equal(p1.sparsity, p2.sparsity)
-            assert nearly_equal(p1.radius, p2.radius)
+            assert encoder.size > 0
+            assert encoder._active_bits > 0
+            assert encoder._active_bits < encoder.size
+            assert encoder._minimum <= encoder._maximum
+            assert encoder._resolution > 0
+            assert encoder._radius > 0
+            assert encoder._sparsity > 0
 
 
 # ---------------------------------------------------------------------------

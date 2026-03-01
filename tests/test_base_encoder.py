@@ -1,4 +1,17 @@
-"""Base Encoder Test Suite"""
+"""
+tests.test_base_encoder
+
+Test suite for BaseEncoder abstract base class functionality.
+
+Validates that BaseEncoder correctly enforces the encoder interface contract, including:
+- Initialization with configurable size parameters
+- Abstract encode() method implementation requirements
+- Proper encoding dimension (size parameter) validation
+- Fixture setup for concrete encoder implementations
+
+These tests ensure BaseEncoder provides a consistent foundation for all encoder subclasses
+(ScalarEncoder, CategoryEncoder, DateEncoder, RDSE, etc.) to inherit from.
+"""
 
 import pytest
 

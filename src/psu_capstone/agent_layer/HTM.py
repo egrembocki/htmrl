@@ -1,10 +1,18 @@
+"""HTM implementation for column spatial pooling and temporal memory.
+inspired by Sungar Thesis: http://etd.lib.metu.edu.tr/upload/12621275/index.pdf
+
+Developed by: Dr. Pullin Agrawal Penn State Univ
+"""
+
+from __future__ import annotations
+
 import copy
 import random
 from itertools import chain
 from statistics import fmean, pstdev
 from typing import Any, Iterable
 
-from psu_capstone.encoder_layer.base_encoder import ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import ParentDataClass
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 # Constants
@@ -75,6 +83,7 @@ class Field:
 
     def __init__(self, cells: Iterable["Cell"]) -> None:
         self.cells: list["Cell"] = list(cells)
+        self._name: str = ""
 
     def __iter__(self):
         return iter(self.cells)
@@ -85,6 +94,16 @@ class Field:
         if n > len(self.cells):
             raise ValueError("Cannot sample more cells than are in the field.")
         return set(random.sample(self.cells, n))
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        if not isinstance(value, str):
+            raise ValueError("Field name must be a string.")
+        self._name = value
 
     @property
     def active_cells(self) -> set["Cell"]:
@@ -430,7 +449,7 @@ class Column(Active, Predictive, Bursting):  # type: ignore
         best_score = -1
         for segment in self.segments:
             if segment.prev_matching:
-                if score := len(segment.potential_prev_active_synapses()) > best_score:  # type: ignore
+                if (score := segment.potential_prev_active_synapses()) > best_score:  # type: ignore
                     best_score = score
                     best_segment = segment
         return best_segment  # type: ignore
@@ -524,7 +543,7 @@ class ColumnField(Field):
 
     @property
     def active_columns(self) -> list[Column]:
-        """Return list of currently bursting columns."""
+        """Return list of currently active columns."""
         return [column for column in self.columns if column.active]
 
     @property
@@ -757,7 +776,9 @@ class InputField(Field):
     """A Field specialized for input bits."""
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        if encoder_params is not None and isinstance(encoder_params, ParentDataclass):
+        """Initialize the InputField with an encoder based on provided parameters."""
+
+        if encoder_params is not None and isinstance(encoder_params, ParentDataClass):
             params = copy.deepcopy(encoder_params)
         else:
             params = RDSEParameters()
@@ -791,7 +812,7 @@ class InputField(Field):
         if encoded is None:
             encoded = self.cells
         bit_vector = [getattr(cell, state) for cell in encoded]
-        return self.encoder.decode(bit_vector, candidates)
+        return self.encoder.decode(bit_vector, candidates)  # type: ignore
 
     def advance_states(self) -> None:
         for cell in self.cells:
@@ -802,8 +823,25 @@ class InputField(Field):
             cell.clear_state()
 
 
-class OutputField(InputField):
-    pass
+class OutputField(Field):
+    """A Field specialized for output bits."""
+
+    def __init__(self, size: int, motor_action: tuple) -> None:
+        cells = {Cell() for _ in range(size)}
+        Field.__init__(self, cells)
+
+    def encode(self, input_value: Any) -> list[int]:
+        """Encode the input value into a binary vector."""
+        raise NotImplementedError("OutputField does not support encoding")
+
+    def decode(
+        self,
+        state: str = "active",
+        encoded: Field = None,  # type: ignore
+        candidates: Iterable[float] | None = None,
+    ) -> dict[str, tuple[float | None]]:
+        """Convert active cells back to output value using RDSE decoding."""
+        raise NotImplementedError("OutputField does not support decoding")
 
 
 input_field = Field(cells={Cell() for _ in range(10)})
