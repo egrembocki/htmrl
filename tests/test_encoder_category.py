@@ -256,3 +256,35 @@ def test_decode_wrong_sdr_size_raises():
         encoder.decode([0] * 10)
     with pytest.raises(ValueError, match="does not match"):
         encoder.decode([0] * 20)
+
+
+def test_demonstrate_anything_can_be_categories():
+    """
+    Tests that the category encoder can take any category list and encode it no matter the type.
+    On top of that this tests when wrong data types are entered into the encoding. They should all default
+    to the not any category or NA.
+    """
+    params1 = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
+    encoder1 = CategoryEncoder(params1)
+    a = encoder1.encode("ES")
+    a1 = encoder1.encode(1)
+    a2 = encoder1.encode("=")
+    assert encoder1.decode(a)[0] == "ES"
+    assert encoder1.decode(a1)[0] == "NA"
+    assert encoder1.decode(a2)[0] == "NA"
+    params2 = CategoryParameters(w=3, category_list=[1, 2, 3], rdse_used=True)
+    encoder2 = CategoryEncoder(params2)
+    b = encoder2.encode(2)
+    b1 = encoder2.encode("ES")
+    b2 = encoder2.encode("=")
+    assert encoder2.decode(b)[0] == 2
+    assert encoder2.decode(b1)[0] == "NA"
+    assert encoder2.decode(b2)[0] == "NA"
+    params3 = CategoryParameters(w=3, category_list=["-", "+", "="], rdse_used=True)
+    encoder3 = CategoryEncoder(params3)
+    c = encoder3.encode("=")
+    c1 = encoder3.encode("ES")
+    c2 = encoder3.encode(1)
+    assert encoder3.decode(c)[0] == "="
+    assert encoder3.decode(c1)[0] == "NA"
+    assert encoder3.decode(c2)[0] == "NA"
