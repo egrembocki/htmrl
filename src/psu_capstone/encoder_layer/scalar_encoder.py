@@ -146,6 +146,7 @@ class ScalarEncoder(BaseEncoder[int]):
         self.register_encoding(input_value)
         return self._compute_encoding(input_value)
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[float | None, float]:

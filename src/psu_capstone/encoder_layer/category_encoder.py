@@ -90,6 +90,7 @@ class CategoryEncoder(BaseEncoder[str]):
         return a
 
     # TODO add candidates to this method
+    @override
     def decode(
         self, input_sdr: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[str | None, float]:

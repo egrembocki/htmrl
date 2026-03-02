@@ -476,6 +476,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         return dense_bits
         # END def encode
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> dict[str, list[tuple[tuple[int, int], float | None, float]] | tuple[float | None, float]]:

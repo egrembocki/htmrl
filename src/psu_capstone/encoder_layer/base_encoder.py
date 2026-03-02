@@ -25,7 +25,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -62,7 +62,12 @@ class BaseEncoder(ABC, Generic[T]):
     @abstractmethod
     def encode(self, input_value: T) -> list[int]:
         """Encodes the input value into a binary vector."""
-        raise NotImplementedError("Subclasses must implement this method")
+        raise NotImplementedError("Subclasses must implement the encoding method")
+
+    @abstractmethod
+    def decode(self, input_sdr: list[int]) -> Any:
+        """Decodes the input sdr into a value and confidence."""
+        raise NotImplementedError("Subclasses must implement the decoding method")
 
 
 @dataclass

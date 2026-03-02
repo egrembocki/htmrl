@@ -418,6 +418,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | None]
         #  TODO: could we use a union here and still maintian similar behavior?
         return output_sdr
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> dict[str, tuple[float | None]]:

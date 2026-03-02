@@ -148,6 +148,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Converts a sparse activity vector to a activation list."""
         return [i for i, bit in enumerate(vector) if bit == 1]
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[float | None, float]:
