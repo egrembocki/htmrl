@@ -185,7 +185,7 @@ def test_input_field_can_encode_wrong_value_type():
     """
     parameters = RDSEParameters()
     in_fi = InputField(parameters)
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         in_fi.encode("US")
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         in_fi.encode(datetime(2025, 1, 1, 0, 0))

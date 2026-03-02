@@ -22,6 +22,7 @@ import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.log import get_logger, logger
 
 """
  * Parameters for the RandomDistributedScalarEncoder (RDSE)
@@ -66,6 +67,8 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
+        self.logger = get_logger(self)
+
         super().__init__(self._size)
 
     @override
@@ -74,6 +77,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         if type(input_value) is not int and type(input_value) is not float:
             raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
+        self.logger.info("RDSE encoded value: %s", input_value)
         return self._compute_encoding(input_value)
 
     def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
@@ -179,6 +183,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         confidence = (
             best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
         )
+        self.logger.info("Decoded SDR into value: %s, with confidence: %s", best_value, confidence)
         return best_value, confidence
 
     def make_knn(self) -> None:
@@ -347,9 +352,11 @@ if __name__ == "__main__":
     def _overlap_count(first: list[int], second: list[int]) -> int:
         return int(np.count_nonzero(first == second))
 
-    print(_overlap_count(a, b))
-    print(encoder.decode(a))
-    print(encoder.decode(b))
+    # print(_overlap_count(a, b))
+    encoder.decode(a)
+    encoder.decode(b)
+    # print(encoder.decode(a))
+    # print(encoder.decode(b))
     # Tests
     """
     params = RDSEParameters(

@@ -13,6 +13,8 @@ These tests ensure BaseEncoder provides a consistent foundation for all encoder 
 (ScalarEncoder, CategoryEncoder, DateEncoder, RDSE, etc.) to inherit from.
 """
 
+from typing import Any
+
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -29,6 +31,9 @@ def base_encoder_instance() -> BaseEncoder:
         def encode(self, input_value) -> list[int]:
             """Dummy encode method for testing."""
             return []
+
+        def decode(self, input_sdr: list[int]) -> Any:
+            return 1
 
     return TestEncoder(100)
 
