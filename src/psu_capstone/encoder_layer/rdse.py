@@ -1,12 +1,15 @@
-"""
-@Nemunta - NuPic
-* Parameters for the RandomDistributedScalarEncoder (RDSE)
-*
-* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
-* of them.
-*
-* Members "radius", "resolution", & "category" are mutually exclusive, specify
-* exactly one of them.
+"""Random Distributed Scalar Encoder (RDSE) for flexible numeric encoding.
+
+This module provides the RandomDistributedScalarEncoder, which encodes numeric
+scalar values into SDRs using random, stable hash-based assignments. Unlike
+ScalarEncoder, RDSE does not require knowing the input range in advance and
+determines encodings at runtime using the MurmurHash3 algorithm.
+
+Parameter constraints:
+- "activeBits" & "sparsity" are mutually exclusive - specify exactly one
+- "radius", "resolution", & "category" are mutually exclusive - specify exactly one
+
+Based on NuPIC's RDSE implementation.
 """
 
 from __future__ import annotations
@@ -23,32 +26,30 @@ from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 
-"""
- * Parameters for the RandomDistributedScalarEncoder (RDSE)
- *
- * Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
- * of them.
- *
- * Members "radius", "resolution", & "category" are mutually exclusive, specify
- * exactly one of them.
-"""
-
-
-"""
- * Encodes a real number as a set of randomly generated activations.
- *
- * Description:
- * The RandomDistributedScalarEncoder (RDSE) encodes a numeric scalar (floating
- * point) value into an SDR.  The RDSE is more flexible than the ScalarEncoder.
- * This encoder does not need to know the minimum and maximum of the input
- * range.  It does not assign an input->output mapping at construction.  Instead
- * the encoding is determined at runtime.
-
-"""
-
 
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
-    """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
+    """Random Distributed Scalar Encoder using MurmurHash3 for stable encodings.
+
+    The RDSE encodes numeric scalar values into SDRs using hash-based random
+    bit selection. It provides more flexibility than ScalarEncoder by not
+    requiring pre-specified input ranges and determining encodings at runtime.
+
+    Uses MurmurHash3 algorithm for deterministic, collision-resistant encoding.
+
+    Args:
+        parameters: Configuration for RDSE encoding behavior.
+
+    Attributes:
+        _size: Total number of bits in the output SDR.
+        _active_bits: Number of active bits per encoding.
+        _sparsity: Target sparsity (alternative to active_bits).
+        _radius: Semantic radius for similarity.
+        _resolution: Input quantization resolution.
+        _category: Whether encoding discrete categories.
+        _seed: Random seed for reproducible hashing.
+        _encoding_cache: Cache of previously computed encodings.
+        knn: K-nearest neighbors model for decoding.
+    """
 
     def __init__(self, parameters: RDSEParameters):
         self._parameters = copy.deepcopy(parameters)

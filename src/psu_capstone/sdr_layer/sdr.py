@@ -1,4 +1,4 @@
-﻿"""Sparse Distributed Representation (SDR) utilities.
+"""Sparse Distributed Representation (SDR) utilities.
 
 This module mirrors NuPIC's C++ SDR behaviour using idiomatic Python.  It
 exposes the same public surface while providing type aliases, validation
@@ -32,6 +32,9 @@ class SDR:
     materialise from whichever representation is currently authoritative.
     Callbacks can be registered to observe mutations or destruction events.
 
+    Args:
+        dimensions: Iterable defining the length of each SDR dimension.
+
     Attributes:
         __dimensions: Shape of the SDR as a list of ints.
         __size: Total number of bits in the SDR.
@@ -43,17 +46,12 @@ class SDR:
         _coordinates_valid: Flag indicating whether the coordinate cache is valid.
         __callbacks: Registered change callbacks invoked after value updates.
         __destroy_callbacks: Callbacks invoked during ``destroy``.
+
+    Raises:
+        AssertionError: If no dimensions are provided.
     """
 
     def __init__(self, dimensions: list[int]) -> None:
-        """Create a new SDR with the given dimensions.
-
-        Args:
-            dimensions: Iterable defining the length of each SDR dimension.
-
-        Raises:
-            AssertionError: If no dimensions are provided.
-        """
         try:
             if dimensions is None or len(dimensions) == 0:
                 raise ValueError("SDR must have at least one dimension.")

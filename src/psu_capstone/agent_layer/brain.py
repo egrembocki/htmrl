@@ -22,6 +22,10 @@ class Brain:
     Allows binding named inputs to InputFields and processing all inputs
     with a single `step()` call instead of manually calling encode/compute.
 
+    Args:
+        fields: Optional dictionary of named Field instances to initialize with.
+            Can include InputField, OutputField, and ColumnField types.
+
     Example:
         manager = FieldManager()
         manager.add_input_field("consumption", consumption_field)
@@ -37,7 +41,6 @@ class Brain:
     """
 
     def __init__(self, fields: dict[str, Field] | None = None) -> None:
-        """Initialize the Brain with optional fields."""
 
         if fields is None:
             fields = {}

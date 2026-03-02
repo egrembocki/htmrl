@@ -30,22 +30,22 @@ from psu_capstone.log import get_logger, logger
 
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
-    """
-    Python port of the HTM DateEncoder, using the existing scalar encoders with default parameters.
+    """Python port of the HTM DateEncoder using scalar encoders with default parameters.
+
     Encodes up to 6 attributes using six different encoders of a timestamp into one SDR:
+    - season (day-of-year)
+    - dayOfWeek
+    - weekend
+    - customDays
+    - holiday
+    - timeOfDay
 
-      - season       (day-of-year)
-      - dayOfWeek
-      - weekend
-      - customDays
-      - holiday
-      - timeOfDay
-
-      Args:
+    Args:
         date_params: DateEncoderParameters instance specifying encoding options.
-        encoder_class: The class of the encoder to use.
-      rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
+            If None, defaults to DateEncoderParameters().
 
+    Raises:
+        ValueError: If custom_days is specified but empty, or if no widths are provided.
     """
 
     # !!enum!! type constants for indices
@@ -60,16 +60,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         self,
         date_params: DateEncoderParameters | None = None,
     ) -> None:
-        """
-        Initialize the DateEncoder with the given parameters.
-
-        Args:
-            date_params: DateEncoderParameters instance specifying encoding options.
-            dimensions: Optional SDR dimensions (unused, for compatibility).
-
-        Raises:
-            ValueError: If custom_days is specified but empty, or if no widths are provided.
-        """
 
         self._logger = get_logger("DateEncoder")
         self._date_params: DateEncoderParameters = (

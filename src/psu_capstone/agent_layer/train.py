@@ -29,12 +29,15 @@ from psu_capstone.log import get_logger
 
 
 class Trainer:
-    """Build a Trainer for training Brains on a dataset."""
+    """Build a Trainer for training Brains on a dataset.
+
+    Args:
+        brain: Brain instance to be trained with this trainer.
+    """
 
     _BRAIN_NOT_INITIALIZED_ERROR = "Main Brain is not initialized. Please build the Brain first."
 
     def __init__(self, brain: Brain) -> None:
-        """Initializes the Trainer with a Brain instance."""
         self.logger = get_logger(self)
         self._main_brain: Brain = brain
         self._brains: list[Brain] = []

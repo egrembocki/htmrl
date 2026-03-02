@@ -22,6 +22,10 @@ class Agent:
     to process sensory input, learn temporal patterns, and make decisions within
     the environment.
 
+    Args:
+        poolers: A list of initialized SpatialPooler instances.
+        memory: A list of initialized TemporalMemory instances.
+
     Attributes:
         _poolers (list[SpatialPooler]): A list of SpatialPooler instances used for
             encoding input patterns.
@@ -30,12 +34,6 @@ class Agent:
     """
 
     def __init__(self, poolers: list[SpatialPooler], memory: list[TemporalMemory]):
-        """Initialize the agent with specific HTM components.
-
-        Args:
-            poolers: A list of initialized SpatialPooler instances.
-            memory: A list of initialized TemporalMemory instances.
-        """
         self._poolers = poolers
         self._memory = memory
 

@@ -45,9 +45,18 @@ class SpatialPooler:
     - Compute per-column overlap and perform local inhibition to select winners.
     - Adapt synapse permanence during learning to stabilize representations.
 
+    Args:
+        input_space_size: Size of the flattened input SDR after field combination.
+        column_count: Total number of columns in the region (assumed square grid
+            for positioning).
+        initial_synapses_per_column: Number of potential proximal synapses per column.
+        random_seed: Seed for deterministic initialization. Defaults to 0.
+
     Notes:
-    - input_space_size must match the length of the combined input.
-    - inhibition_radius controls the neighborhood size for local competition.
+        Columns are positioned on a 2D grid. Potential synapses are randomly
+        assigned to input indices with initial permanence. input_space_size must
+        match the length of the combined input. inhibition_radius controls the
+        neighborhood size for local competition.
     """
 
     _input_field: np.ndarray | list[int]
@@ -60,18 +69,6 @@ class SpatialPooler:
         initial_synapses_per_column: int,
         random_seed: int = 0,
     ) -> None:
-        """Create an SP region with columns and random proximal synapses.
-
-        Parameters:
-        - input_space_size: Size of the flattened input SDR after field combination.
-        - column_count: Total number of columns in the region (assumed square grid for positioning).
-        - initial_synapses_per_column: Number of potential proximal synapses per column.
-        - random_seed: Seed for deterministic initialization.
-
-        Behavior:
-        - Columns are positioned on a 2D grid.
-        - Potential synapses are randomly assigned to input indices with initial permanence.
-        """
         self.input_space_size: int = int(input_space_size)
         self.column_count: int = column_count
         self.random_seed: int = random_seed

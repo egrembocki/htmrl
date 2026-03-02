@@ -21,7 +21,12 @@ from psu_capstone.log import get_logger, logger
 
 
 class InputHandler:
-    """Load, clean, validate, and normalize raw input payloads for the encoding pipeline."""
+    """Load, clean, validate, and normalize raw input payloads for the encoding pipeline.
+
+    Args:
+        data: Optional in-memory data to initialize with. If provided, will be
+            processed through the input_data method for validation and setup.
+    """
 
     __instance: ClassVar[InputHandler]
     """Singleton instance of the InputHandler class."""
@@ -41,8 +46,6 @@ class InputHandler:
         return cls.__instance
 
     def __init__(self, data: Any | None = None) -> None:
-        """Initialize the InputHandler with optional in-memory data, and set up internal state for data management and validation."""
-
         self.logger = get_logger(self)
 
         self._data: dict[Any, list[Any]] = {}
