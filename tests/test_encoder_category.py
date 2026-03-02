@@ -1,4 +1,29 @@
-"""Test suite for the Category Encoder"""
+"""
+Test suite for Category Encoder.
+
+The Category Encoder produces one-hot style encodings for categorical data (discrete values).
+Each category gets a unique SDR representation, with no semantic relationship between categories.
+
+Key Features:
+  - One-hot or sparse encoding for categorical inputs
+  - Each category receives unique bit pattern
+  - No overlap expected between different categories (orthogonal representations)
+  - Deterministic encoding (same category → same SDR)
+  - Width parameter (w) controls encoding sparsity
+
+Parameter Validation:
+  - size: total bits in encoded output
+  - w: number of active bits per encoding
+  - category_list: list of valid categories
+  - rdse_used: whether to use RDSE internally (False for basic category)
+
+Tests validate:
+  1. Encoder initialization with valid category list
+  2. Encoding specific categories produces expected SDR
+  3. Output format (binary only, correct length)
+  4. Orthogonality (different categories → no overlap)
+  5. Determinism and consistency
+"""
 
 import pytest
 

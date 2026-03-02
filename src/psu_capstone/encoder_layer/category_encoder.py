@@ -6,7 +6,7 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
@@ -133,7 +133,7 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters(ParentDataclass):
+class CategoryParameters(ParentDataClass):
 
     w: int = 3
     """

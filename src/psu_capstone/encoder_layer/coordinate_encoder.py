@@ -8,7 +8,7 @@ from typing import Iterable, override
 import mmh3
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
@@ -164,7 +164,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
 
 @dataclass
-class CoordinateParameters(ParentDataclass):
+class CoordinateParameters(ParentDataClass):
     n: int = 2048
     w: int = 25
     seed: int = 42

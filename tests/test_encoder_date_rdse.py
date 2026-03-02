@@ -1,8 +1,31 @@
 """
-Test suite for DateEncoder with rdse_used=True (RDSE version).
+tests.test_encoder_date_rdse
 
-Covers: output format (binary 0/1, length), parameter conformance,
-per-feature encoding, all-combined, determinism, seed, input types, and errors.
+Test suite for DateEncoder with RDSE backend.
+
+The Date Encoder decomposes temporal values (datetime objects) into multiple
+component dimensions and encodes each using RDSE for sparse, distributed representations.
+
+Temporal Components Encoded:
+  - Season (annual cycle, 365 days)
+  - Day of week (Mon-Sun, 7 values)
+  - Weekend vs weekday (binary)
+  - Holiday status (special days)
+  - Time of day (hours/minutes, 24h cycle)
+  - Custom dimensions (user-defined periodic patterns)
+
+Parameter Validation:
+  - Each component has its own size, active_bits/sparsity, radius/resolution
+  - Active_bits and sparsity are mutually exclusive (per RDSE constraint)
+  - Tests explicitly set sparsity=0.0 when using active_bits
+  - Multiple components can be combined into single encoding
+
+Tests validate:
+  1. Encoder initialization with various component combinations
+  2. Output format (binary 0/1 only, length = sum of component sizes)
+  3. Determinism (same datetime → same SDR)
+  4. Component independence (each component contributes to final encoding)
+  5. All component combinations work correctly
 """
 
 from datetime import datetime
