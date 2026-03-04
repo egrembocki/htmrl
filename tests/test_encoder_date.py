@@ -1,3 +1,23 @@
+"""
+Test suite for Date Encoder (basic version).
+
+The Date Encoder with rdse_used=False produces basic scalar encodings for
+temporal components (season, day of week, time of day, etc.).
+
+Key Differences from RDSE Version:
+  - Uses basic scalar encoding instead of RDSE for each component
+  - May have less semantic richness but faster computation
+  - Still decomposes datetime into multiple components
+  - Each component encoded independently
+
+Tests validate:
+  1. Initialization with various component combinations
+  2. Output format consistency
+  3. Component encoding behavior
+  4. Determinism across encoding attempts
+  5. Edge cases (midnight, new year, etc.)
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

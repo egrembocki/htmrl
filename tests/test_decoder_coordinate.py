@@ -1,3 +1,29 @@
+"""
+tests.test_decoder_coordinate
+
+Test suite for CoordinateEncoder decoding functionality.
+
+Validates that CoordinateEncoder correctly encodes and decodes spatial coordinates
+(x, y, z positions) and associated metadata. Tests cover:
+- Deterministic decoding (same input always produces same SDR)
+- Coordinate encoding with spatial locality (nearby coordinates have overlapping SDRs)
+- Radius-based search for nearby encoded coordinates
+- Seed-based reproducibility
+- Multi-dimensional coordinate support (2D, 3D spaces)
+- Encoding registration for reference lookups
+- Decoded coordinate accuracy and proximity
+
+Parameter Constraints:
+- n: SDR dimension (number of bits)
+- w: number of active bits (sparsity)
+- seed: random seed for reproducibility
+- max_radius: search radius in coordinate space
+- dims: number of coordinate dimensions (2D/3D)
+
+These tests validate spatial encoding for location-based learning tasks,
+enabling HTM systems to learn spatial patterns and sequences.
+"""
+
 import numpy as np
 import pytest
 

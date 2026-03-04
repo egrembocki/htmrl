@@ -1,12 +1,15 @@
-"""
-@Nemunta - NuPic
-* Parameters for the RandomDistributedScalarEncoder (RDSE)
-*
-* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
-* of them.
-*
-* Members "radius", "resolution", & "category" are mutually exclusive, specify
-* exactly one of them.
+"""Random Distributed Scalar Encoder (RDSE) for flexible numeric encoding.
+
+This module provides the RandomDistributedScalarEncoder, which encodes numeric
+scalar values into SDRs using random, stable hash-based assignments. Unlike
+ScalarEncoder, RDSE does not require knowing the input range in advance and
+determines encodings at runtime using the MurmurHash3 algorithm.
+
+Parameter constraints:
+- "activeBits" & "sparsity" are mutually exclusive - specify exactly one
+- "radius", "resolution", & "category" are mutually exclusive - specify exactly one
+
+Based on NuPIC's RDSE implementation.
 """
 
 from __future__ import annotations
@@ -21,34 +24,21 @@ import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
-
-"""
- * Parameters for the RandomDistributedScalarEncoder (RDSE)
- *
- * Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
- * of them.
- *
- * Members "radius", "resolution", & "category" are mutually exclusive, specify
- * exactly one of them.
-"""
-
-
-"""
- * Encodes a real number as a set of randomly generated activations.
- *
- * Description:
- * The RandomDistributedScalarEncoder (RDSE) encodes a numeric scalar (floating
- * point) value into an SDR.  The RDSE is more flexible than the ScalarEncoder.
- * This encoder does not need to know the minimum and maximum of the input
- * range.  It does not assign an input->output mapping at construction.  Instead
- * the encoding is determined at runtime.
-
-"""
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 
 
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
-    """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
+    """Random Distributed Scalar Encoder using MurmurHash3 for stable encodings.
+
+    The RDSE encodes numeric scalar values into SDRs using hash-based random
+    bit selection. It provides more flexibility than ScalarEncoder by not
+    requiring pre-specified input ranges and determining encodings at runtime.
+
+    Uses MurmurHash3 algorithm for deterministic, collision-resistant encoding.
+
+    Args:
+        parameters: Configuration for RDSE encoding behavior.
+    """
 
     def __init__(self, parameters: RDSEParameters):
         self._parameters = copy.deepcopy(parameters)
@@ -214,12 +204,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Method to check mutually exclusive parameters and fill in missing values.
 
         Args:
-            parameters (RDSEParameters): The parameters to check and fill in.
+            parameters: The parameters to check and fill in.
+
         Returns:
-            RDSEParameters: The checked and filled in parameters.
+            The checked and filled in parameters.
+
         Raises:
             ValueError: If the parameters are invalid.
-
         """
         # Check size parameter
         if not parameters.size > 0:
@@ -283,17 +274,17 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 @dataclass
-class RDSEParameters(ParentDataclass):
+class RDSEParameters(ParentDataClass):
 
     size: int = 2048
     """
     * Member "size" is the total number of bits in the encoded output SDR.
     """
-    active_bits: int = 40
+    active_bits: int = 0
     """
     * Member "activeBits" is the number of true bits in the encoded output SDR.
     """
-    sparsity: float = 0.0
+    sparsity: float = 0.02
     """
     * Member "sparsity" is the fraction of bits in the encoded output which this
     * encoder will activate. This is an alternative way to specify the member
@@ -350,7 +341,7 @@ if __name__ == "__main__":
     # Tests
     """
     params = RDSEParameters(
-        size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
+        size=2048, active_bits=0, sparsity=0.02, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e1 = RandomDistributedScalarEncoder(params)
     o1 = SDR([e1.size])
@@ -365,7 +356,7 @@ if __name__ == "__main__":
     print("Sparse is: \n")
 
     params2 = RDSEParameters(
-        size=2048, active_bits=40, sparsity=0.0, radius=0.0, resolution=1.0, category=False, seed=42
+        size=2048, active_bits=0, sparsity=0.02, radius=0.0, resolution=1.0, category=False, seed=42
     )
     e3 = RandomDistributedScalarEncoder(params2)
     o3 = SDR([e3.size])

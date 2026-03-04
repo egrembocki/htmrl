@@ -1,5 +1,27 @@
 """
-Tests for date decoder
+tests.test_decoder_date
+
+Test suite for DateEncoder decoding functionality.
+
+Validates that DateEncoder correctly decodes SDRs back to datetime objects from their
+temporal components. Tests cover:
+- Season component (annual cycle, 365 days) decoding
+- Day of week component (Mon-Sun) decoding
+- Weekend vs weekday binary component
+- Holiday status detection
+- Time of day component (hours/minutes)
+- Custom periodic dimension decoding
+- Full datetime reconstruction from encoded components
+- decode() returns (datetime, confidence) tuple format
+
+Parameter Constraints:
+- Each component has separate size, active_bits/sparsity, radius/resolution parameters
+- active_bits and sparsity are mutually exclusive (RDSE constraint)
+- Tests explicitly set sparsity=0.0 when using active_bits
+- Multiple temporal components combine into single encoding
+
+These tests validate the reverse transformation from temporal SDR representations
+back to interpretable datetime values, enabling HTM predictions of temporal patterns.
 """
 
 from datetime import datetime

@@ -1,0 +1,43 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+title US-07 Use HTM Engine
+
+actor "Brain" as B
+participant "<u>cf:ColumnField</u>" as CF
+participant "<u>h:HTM Engine</u>" as H
+
+group Included by higher-level user stories
+  ref over B,H
+    <<included by>> US-05 Train Model
+    <<included by>> US-06 Train Brain
+  end ref
+end
+
+B -> CF: compute(encoded SDRs, learn=True)
+activate CF
+CF -> H: compute(learn=True)
+activate H
+
+== Calls inside HTM engine ==
+H -> H: advance_states()
+H -> H: compute_overlap(encoded SDRs)
+H -> H: activate_columns()
+H -> H: activate_cells()
+H -> H: depolarize_cells()
+
+alt learn=True
+  H -> H: learn_columns()
+  H -> H: learn_segments()
+  H -> H: update_duty_cycles()
+end
+
+H -> H: set_prediction()
+
+H --> CF: active_columns,active_cells,predictive_cells,anomaly_score,confidence_signal
+deactivate H
+CF --> B: HTM result object
+
+deactivate CF
+@enduml

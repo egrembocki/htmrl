@@ -1,15 +1,37 @@
+"""Playground script for testing encoder behavior and SDR metrics.
+
+Simple demonstration script for experimenting with RDSE encoding and
+computing Hamming distance and overlap metrics between SDRs.
+"""
+
 import numpy as np
 
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
 def hamming_distance(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+    """Calculate Hamming distance between two SDR arrays.
 
+    Args:
+        sdr1: First SDR as numpy array.
+        sdr2: Second SDR as numpy array.
+
+    Returns:
+        Number of differing bits.
+    """
     return int(np.count_nonzero(sdr1 != sdr2))
 
 
 def overlap(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+    """Calculate bit overlap between two SDR arrays.
 
+    Args:
+        sdr1: First SDR as numpy array.
+        sdr2: Second SDR as numpy array.
+
+    Returns:
+        Count of matching active bits.
+    """
     return int(np.sum(np.logical_and(sdr1, sdr2)))
 
 

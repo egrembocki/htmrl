@@ -1,4 +1,9 @@
-"""Category Encoder implementation"""
+"""Category encoder for discrete, unrelated categorical values.
+
+This module provides an encoder for discrete categories represented by strings
+that have no inherent relationship or ordering. Each category is encoded to
+a distinct, non-overlapping sparse distributed representation.
+"""
 
 from __future__ import annotations
 
@@ -6,30 +11,27 @@ import copy
 from dataclasses import dataclass, field
 from typing import Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
 class CategoryEncoder(BaseEncoder[str]):
-    """
-    Encodes a list of discrete categories (described by strings), that aren't
-    related to each other, so we never emit a mixture of categories.
+    """Encoder for discrete categorical values with no semantic relationships.
 
-    The value of zero is reserved for "unknown category"
+    This encoder converts string categories into sparse distributed representations
+    where each category maps to a distinct, non-overlapping pattern. Unlike scalar
+    encoders, there is no similarity between different categories' representations.
 
-    Internally we use a :class:`.ScalarEncoder` with a radius of 1, but since we
-    only encode integers, we never get mixture outputs.
+    The encoder reserves index 0 for unknown categories not in the category list.
+    Internally, it uses either a ScalarEncoder or RandomDistributedScalarEncoder
+    with appropriate parameters to ensure non-overlapping encodings.
 
-    The :class:`.SDRCategoryEncoder` uses a different method to encode categories.
-
-    :param categoryList: list of discrete string categories
-    :param forced: if True, skip checks for parameters' settings; see
-                    :class:`.ScalarEncoder` for details. (default False)
+    Args:
+        parameters: Configuration specifying categories and encoder settings.
     """
 
     def __init__(self, parameters: CategoryParameters):
-
         self._parameters = copy.deepcopy(parameters)
         self._w = self._parameters.w
         self._category_list = self._parameters.category_list
@@ -38,9 +40,7 @@ class CategoryEncoder(BaseEncoder[str]):
         self.size = self._num_categories * self._w
 
         super().__init__(self._size)
-        """
-        If we want the RDSE to be used this will set our encoder object equal to an RDSE with the proper paremeters.
-        """
+        # Configure RDSE for random distributed encoding
         if self._RDSEused:
             self.rdsep = RDSEParameters(
                 size=self._num_categories * self._w,
@@ -52,9 +52,7 @@ class CategoryEncoder(BaseEncoder[str]):
                 seed=0,
             )
             self.encoder = RandomDistributedScalarEncoder(self.rdsep)
-            """
-            This means we want the scalar encoder to be used and this sets our encoder object to a Scalar encoder with proper parameters.
-            """
+        # Configure standard ScalarEncoder for deterministic encoding
         else:
             self.sp = ScalarEncoderParameters(
                 minimum=0,
@@ -72,15 +70,16 @@ class CategoryEncoder(BaseEncoder[str]):
 
     @override
     def encode(self, input_value: str) -> list[int]:
-        """
-        This method takes in a string and encodes it to a respective
-        index of the _category_list.
+        """Encode a category string into a sparse distributed representation.
 
-        :param self: Description
-        :param input_value: Value that is to be encoded.
-        :type input_value: str
-        :return: Description
-        :rtype: list[int]
+        Maps the input category to its index in the category list (or 0 for
+        unknown categories) and delegates to the underlying encoder.
+
+        Args:
+            input_value: Category string to encode.
+
+        Returns:
+            Binary list of 0s and 1s representing the SDR.
         """
         if input_value not in self._category_list:
             index = 0
@@ -89,19 +88,24 @@ class CategoryEncoder(BaseEncoder[str]):
         a = self.encoder.encode(int(index))
         return a
 
-    # TODO add candidates to this method
     def decode(
         self, input_sdr: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[str | None, float]:
-        """
-        This will decode an SDR back into its category. We use the _category_list
-        again to turn the index back into a string.
+        """Decode an SDR back into its original category string.
 
-        :param self: Description
-        :param input_sdr: The list[int] of 1s and 0s that we want decoded.
-        :type input_sdr: list[int]
-        :return: The return is a [value, confidence] tuple.
-        :rtype: tuple[float | None, float]
+        Converts the sparse representation back to the category string using
+        the underlying encoder and category list mapping.
+
+        Args:
+            input_sdr: Binary SDR representation (list of 0s and 1s).
+            candidates: Optional candidate values for decoding (not yet implemented).
+
+        Returns:
+            Tuple of (category_string, confidence_score) where confidence indicates
+            the quality of the match.
+
+        Note:
+            Currently only implemented for RDSE-based encoders.
         """
         if self._RDSEused:
             rdse_encoder = cast(RandomDistributedScalarEncoder, self.encoder)
@@ -114,13 +118,21 @@ class CategoryEncoder(BaseEncoder[str]):
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
             return (result, result_tuple[1])
 
-    def check_parameters(self, parameters: "CategoryParameters"):
-        """
-        Simple checks to make sure the parameters are correct.
+    def check_parameters(self, parameters: CategoryParameters) -> CategoryParameters:
+        """Validate category encoder parameters.
 
-        :param self: Description
-        :param parameters: The specified category parameters.
-        :type parameters: CategoryParameters
+        Performs basic sanity checks on the configuration to ensure proper
+        encoder operation.
+
+        Args:
+            parameters: The category parameters to validate.
+
+        Returns:
+            The validated parameters object.
+
+        Raises:
+            ValueError: If w is non-positive, category_list is empty, or
+                category_list contains duplicates.
         """
         if parameters.w <= 0:
             raise ValueError("Parameter 'w' must be positive.")
@@ -132,24 +144,21 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters(ParentDataclass):
+class CategoryParameters(ParentDataClass):
+    """Configuration parameters for CategoryEncoder.
+
+    Attributes:
+        w: Width in bits allocated per category. For N categories with w=3,
+            total bits = (N+1) * 3, where +1 accounts for unknown category.
+        category_list: List of valid category strings to encode. Must be unique.
+        rdse_used: If True, use RandomDistributedScalarEncoder for encoding;
+            if False, use standard ScalarEncoder (HTM core implementation).
+        encoder_class: Reference to the CategoryEncoder class.
+    """
 
     w: int = 3
-    """
-    The w is the width in bits per category. So, if you have 5 categories and w=3
-    we will have 5*3+3=18 bits total. The extra 3 comes from the unknown category.
-    """
     category_list: list[str] = field(default_factory=list)
-    """
-    List of categories to use.
-    """
-
     rdse_used: bool = True
-    """
-    This is an optional default true bool. The category encoder will use the
-    RDSE for each category encoded unless this is false, then it will use a
-    basic scalar encoder like the htm core implementation.
-    """
     encoder_class = CategoryEncoder
 
 
