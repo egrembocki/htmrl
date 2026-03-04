@@ -114,8 +114,13 @@ jobs:
           fail_on_error: true
           # source_path: './src'
           mypy_enabled: false
-          pydoclint_enabled: false
+          pydoclint_enabled: true
           ruff_enabled: false
+      
+      - name: Check docstring coverage
+        if: matrix.python-version == needs.setup.outputs.latest-python-version
+        run: |-
+          uv run interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests || echo "::warning::Docstring coverage below 80%"
       
       - name: Format check
         if: matrix.python-version == needs.setup.outputs.latest-python-version

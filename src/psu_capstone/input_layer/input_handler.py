@@ -21,7 +21,12 @@ from psu_capstone.log import get_logger, logger
 
 
 class InputHandler:
-    """Load, clean, validate, and normalize raw input payloads for the encoding pipeline."""
+    """Load, clean, validate, and normalize raw input payloads for the encoding pipeline.
+
+    Args:
+        data: Optional in-memory data to initialize with. If provided, will be
+            processed through the input_data method for validation and setup.
+    """
 
     __instance: ClassVar[InputHandler]
     """Singleton instance of the InputHandler class."""
@@ -41,8 +46,6 @@ class InputHandler:
         return cls.__instance
 
     def __init__(self, data: Any | None = None) -> None:
-        """Initialize the InputHandler with optional in-memory data, and set up internal state for data management and validation."""
-
         self.logger = get_logger(self)
 
         self._data: dict[Any, list[Any]] = {}
@@ -91,11 +94,6 @@ class InputHandler:
                 "age": [30, 25, 35],
                 "city": ["New York", "Chicago", "San Francisco"]
             }
-
-        Raises:
-            ValueError: If the input data is invalid, missing required columns, or contains unsupported types.
-            FileNotFoundError: If a file path is provided but the file does not exist.
-            TypeError: If the input data type is not supported for conversion to records.
 
         """
         required = required_columns if required_columns else None
@@ -301,11 +299,6 @@ class InputHandler:
 
         Returns:
             A processed and normalized DataFrame that meets the specified requirements.
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types, duplicate columns, or is missing required columns.
-
-
         """
         if df.empty:
             self._repeating_columns = []
@@ -467,12 +460,6 @@ class InputHandler:
         Returns:
             A DataFrame with missing values in numeric columns filled with the mean of the respective column,
             while non-numeric columns are left unchanged.
-
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types or if mean imputation fails due to all values being NaN in a numeric column.
-
-
         """
         dataframe = df.copy()
 

@@ -1,26 +1,23 @@
-"""Base class for all encoders -- from NuPic Numenta Cpp ported to python.
-/**
- * Base class for all encoders.
- * An encoder converts a value to a sparse distributed representation.
- *
- * Subclasses must implement method encode and Serializable interface.
- * Subclasses can optionally implement method reset.
- *
- * There are several critical properties which all encoders must have:
- *
- * 1) Semantic similarity:  Similar inputs should have high overlap.  Overlap
- * decreases smoothly as inputs become less similar.  Dissimilar inputs have
- * very low overlap so that the output representations are not easily confused.
- *
- * 2) Stability:  The representation for an input does not change during the
- * lifetime of the encoder.
- *
- * 3) Sparsity: The output SDR should have a similar sparsity for all inputs and
- * have enough active bits to handle noise and subsampling.
- *
- * Reference: https://arxiv.org/pdf/1602.05925.pdf
- */
+"""Base class for all encoders.
 
+This module provides the abstract base class for encoder implementations,
+ported from NuPIC's C++ codebase. An encoder converts a value to a sparse
+distributed representation (SDR).
+
+All encoder implementations must satisfy three critical properties:
+
+1. **Semantic similarity**: Similar inputs should have high overlap. Overlap
+   decreases smoothly as inputs become less similar. Dissimilar inputs have
+   very low overlap so that the output representations are not easily confused.
+
+2. **Stability**: The representation for an input does not change during the
+   lifetime of the encoder.
+
+3. **Sparsity**: The output SDR should have a similar sparsity for all inputs
+   and have enough active bits to handle noise and subsampling.
+
+Reference:
+    https://arxiv.org/pdf/1602.05925.pdf - HTM whitepaper
 """
 
 from abc import ABC, abstractmethod
@@ -31,30 +28,52 @@ T = TypeVar("T")
 
 
 class BaseEncoder(ABC, Generic[T]):
-    """Base class for all encoders"""
+    """Abstract base class for all encoder implementations.
+
+    Encoders convert input values into Sparse Distributed Representations (SDRs).
+    Subclasses must implement the `encode` method and can optionally override
+    the `reset` method.
+
+    Args:
+        size: Total number of bits in the output SDR. If None, defaults to 0.
+    """
 
     def __init__(self, size: int | None = None):
-        """Initializes the BaseEncoder with given size."""
-
         self._size: int = size if size is not None else 0
         self._parameters: ParentDataClass | None = None
 
     @property
     def size(self) -> int:
+        """Get the total number of bits in the output SDR.
+
+        Returns:
+            Total size of the SDR.
+        """
         assert self._size >= 0, "size must be a non-negative integer"
         return self._size
 
     @size.setter
     def size(self, value: int) -> None:
+        """Set the total number of bits in the output SDR.
+
+        Args:
+            value: New size for the SDR. Must be positive.
+
+        Raises:
+            ValueError: If value is non-positive.
+        """
         if value < 0:
             raise ValueError("size must be a non-negative integer")
         elif value == 0:
             raise ValueError("size must be greater than zero")
         self._size = value
 
-    def reset(self):
-        """Resets the encoder to its initial state if applicable."""
+    def reset(self) -> None:
+        """Reset the encoder to its initial state.
 
+        Clears dimensions, size, and any buffered data. Subclasses
+        can override this method to add additional reset logic.
+        """
         self._dimensions = []
         self._size = 0
         self.__buffered_data = None
@@ -62,16 +81,35 @@ class BaseEncoder(ABC, Generic[T]):
 
     @abstractmethod
     def encode(self, input_value: T) -> list[int]:
-        """Encodes the input value into a binary vector."""
+        """Encode an input value into a sparse distributed representation.
+
+        Subclasses must implement this method to define how input values are
+        transformed into SDRs.
+
+        Args:
+            input_value: The value to encode (type determined by generic parameter T).
+
+        Returns:
+            Binary list of 0s and 1s representing the SDR.
+
+        Raises:
+            NotImplementedError: If not implemented by subclass.
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
 
 @dataclass
 class ParentDataClass:
-    """Parent Class to mark all Parameter Classes for encoders."""
+    """Parent dataclass for encoder parameter configurations.
+
+    Provides base configuration fields common to all encoder types. Subclasses
+    should override encoder_class to reference their specific encoder type and
+    add encoder-specific parameters.
+
+    Attributes:
+        encoder_class: The encoder class associated with these parameters.
+        size: Total size of the output SDR in bits.
+    """
 
     encoder_class = BaseEncoder
-    """Class variable to specify the associated encoder class. Subclasses should override this."""
-
     size: int = 2048
-    """Size of the output SDR. Must be a positive integer."""

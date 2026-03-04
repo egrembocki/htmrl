@@ -1,3 +1,11 @@
+"""Visualization utilities for SDRs and encoder analysis.
+
+This module provides plotting functions for visualizing sparse distributed
+representations, FFT analysis of time-series data, and encoder behaviors.
+Includes tools for comparing encodings, analyzing frequency spectra, and
+displaying SDR patterns as 2D grids.
+"""
+
 import os
 from typing import Any, cast
 
@@ -21,7 +29,15 @@ plt.style.use("seaborn-v0_8-poster")
 
 
 def plot_sdr(data: list[int], title: str | None = None) -> None:
-    """Plot a visual representation of the given SDR data."""
+    """Plot a visual representation of an SDR as a 2D grid.
+
+    Converts the 1D binary SDR into a square grid visualization where
+    active bits are shown in blue and inactive bits in white.
+
+    Args:
+        data: Binary list representing the SDR (0s and 1s).
+        title: Optional title for the plot.
+    """
 
     sdr = SDR([len(data)])
     sdr.set_dense(data)
