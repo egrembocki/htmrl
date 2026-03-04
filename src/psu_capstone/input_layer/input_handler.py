@@ -95,11 +95,6 @@ class InputHandler:
                 "city": ["New York", "Chicago", "San Francisco"]
             }
 
-        Raises:
-            ValueError: If the input data is invalid, missing required columns, or contains unsupported types.
-            FileNotFoundError: If a file path is provided but the file does not exist.
-            TypeError: If the input data type is not supported for conversion to records.
-
         """
         required = required_columns if required_columns else None
 
@@ -304,11 +299,6 @@ class InputHandler:
 
         Returns:
             A processed and normalized DataFrame that meets the specified requirements.
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types, duplicate columns, or is missing required columns.
-
-
         """
         if df.empty:
             self._repeating_columns = []
@@ -470,12 +460,6 @@ class InputHandler:
         Returns:
             A DataFrame with missing values in numeric columns filled with the mean of the respective column,
             while non-numeric columns are left unchanged.
-
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types or if mean imputation fails due to all values being NaN in a numeric column.
-
-
         """
         dataframe = df.copy()
 

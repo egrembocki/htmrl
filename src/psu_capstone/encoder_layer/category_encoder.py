@@ -29,14 +29,6 @@ class CategoryEncoder(BaseEncoder[str]):
 
     Args:
         parameters: Configuration specifying categories and encoder settings.
-
-    Attributes:
-        _parameters: Deep copy of the initialization parameters.
-        _w: Width in bits allocated per category.
-        _category_list: List of valid category strings.
-        _RDSEused: Whether to use RDSE (True) or ScalarEncoder (False).
-        _num_categories: Total number of categories including unknown.
-        encoder: Underlying ScalarEncoder or RDSE instance.
     """
 
     def __init__(self, parameters: CategoryParameters):

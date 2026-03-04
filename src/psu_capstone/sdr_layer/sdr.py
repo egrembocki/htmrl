@@ -35,20 +35,8 @@ class SDR:
     Args:
         dimensions: Iterable defining the length of each SDR dimension.
 
-    Attributes:
-        __dimensions: Shape of the SDR as a list of ints.
-        __size: Total number of bits in the SDR.
-        _dense: Backing dense bit vector representing active elements.
-        _sparse: Cached list of active indices in sparse form.
-        _coordinates: Cached coordinates for each active bit broken per dimension.
-        _dense_valid: Flag indicating whether the dense buffer is authoritative.
-        _sparse_valid: Flag indicating whether the sparse buffer is authoritative.
-        _coordinates_valid: Flag indicating whether the coordinate cache is valid.
-        __callbacks: Registered change callbacks invoked after value updates.
-        __destroy_callbacks: Callbacks invoked during ``destroy``.
-
     Raises:
-        AssertionError: If no dimensions are provided.
+        ValueError: If no dimensions are provided or dimensions are invalid.
     """
 
     def __init__(self, dimensions: list[int]) -> None:
@@ -88,9 +76,6 @@ class SDR:
 
         Args:
             size: New size for the SDR.
-
-        Raises:
-            AssertionError: If the new size is not positive.
         """
         new_size = int(size)
         assert new_size > 0, "SDR size must be positive."
@@ -306,7 +291,7 @@ class SDR:
         """Sets the sparsity of the SDR.
 
         Args:
-            sparsity (float): The sparsity value to set.
+            sparsity: The sparsity value to set.
         """
         self._sparsity = (
             sparsity  # this will need to get changed change the active bits accordingly
@@ -425,9 +410,6 @@ class SDR:
 
         Returns:
             Number of shared active indices.
-
-        Raises:
-            AssertionError: If the SDRs do not share the same dimensions.
         """
         assert (
             self._dimensions == other.get_dimensions()
@@ -445,10 +427,6 @@ class SDR:
 
         Args:
             sdrs: Collection of SDRs to intersect with this instance.
-
-        Raises:
-            AssertionError: If fewer than two SDRs are provided or if any SDR
-            has incompatible dimensions.
         """
         assert len(sdrs) >= 2, "Intersection requires at least two SDRs."
 
@@ -503,10 +481,6 @@ class SDR:
 
         Args:
             sdrs: Collection of SDRs to union with this instance.
-
-        Raises:
-            AssertionError: If fewer than two SDRs are provided or if any SDR
-            has incompatible dimensions.
         """
         assert len(sdrs) >= 2, "Union requires at least two SDRs."
 
@@ -546,10 +520,6 @@ class SDR:
         Args:
             inputs: SDRs to concatenate into this SDR.
             axis: Axis index along which to concatenate.
-
-        Raises:
-            AssertionError: If fewer than two inputs are provided, if the axis
-            is invalid, or if input dimensions are incompatible with ``self``.
         """
         assert len(inputs) >= 2, "Not enough inputs to concatenate."
 
@@ -612,9 +582,6 @@ class SDR:
 
         Args:
             index: Handle returned by :meth:`add_on_change_callback`.
-
-        Raises:
-            AssertionError: If the handle is invalid or already removed.
         """
         idx = int(index)
         assert 0 <= idx < len(self.__callbacks), (
@@ -646,9 +613,6 @@ class SDR:
 
         Args:
             index: Handle returned by :meth:`add_destroy_callback`.
-
-        Raises:
-            AssertionError: If the handle is invalid or already removed.
         """
         idx = int(index)
         assert 0 <= idx < len(self.__destroy_callbacks), (

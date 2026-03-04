@@ -59,11 +59,8 @@ class EncoderHandler:
     def get_instance(cls) -> "EncoderHandler":
         """Returns the singleton instance of EncoderHandler.
 
-        Args:
-            input_data (pd.DataFrame): Input data for encoder initialization.
-
         Returns:
-            EncoderHandler: The singleton instance.
+            The singleton instance.
         """
         if cls.__instance is None:
             cls.__instance = EncoderHandler()
@@ -76,10 +73,10 @@ class EncoderHandler:
         encodes the value, and concatenates the resulting SDRs into a single composite SDR.
 
         Args:
-            input_data (pd.DataFrame): DataFrame containing input values for each encoder.
+            input_data: DataFrame containing input values for each encoder.
 
         Returns:
-            list[SDR]: Composite SDRs built from all encoded columns.
+            Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.

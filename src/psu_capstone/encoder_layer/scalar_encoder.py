@@ -31,19 +31,6 @@ class ScalarEncoder(BaseEncoder[int]):
 
     Args:
         parameters: Configuration for scalar encoding behavior.
-
-    Attributes:
-        _minimum: Minimum value in the input range.
-        _maximum: Maximum value in the input range.
-        _clip_input: Whether to clip inputs to the valid range.
-        _periodic: Whether the encoding wraps periodically.
-        _category: Whether encoding discrete categories.
-        _active_bits: Number of bits in the active block.
-        _sparsity: Target sparsity of the encoding.
-        _size: Total number of bits in the output SDR.
-        _radius: Semantic radius parameter.
-        _resolution: Resolution for quantizing input values.
-        _encoding_cache: Cache of previously computed encodings.
     """
 
     def __init__(

@@ -41,9 +41,5 @@ class InputInterface(Protocol):
 
         Returns:
             Dictionary mapping column names to lists of values.
-
-        Raises:
-            ValueError: If data is invalid or required columns are missing.
-            FileNotFoundError: If a file path doesn't exist.
         """
         ...

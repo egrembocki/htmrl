@@ -77,16 +77,18 @@ class Trainer:
         Args:
             fields: A list of tuples containing field name, field size, and encoder parameters.
 
-            Example:
+        Raises:
+            ValueError: If unsupported encoder parameter type is provided.
+
+        Example:
             fields = [
                 ("consumption_input", 12288, RDSEParameters(size=12288, sparsity=0.02, resolution=0.001, category=False, seed=5)),
                 ("date_input", 12288, DateEncoderParameters(size=12288, resolution=0.001, seed=5)),
-
             ]
 
-            Note: Field names ending with '_input' will automatically be treated as InputFields.
+        Note:
+            Field names ending with '_input' will automatically be treated as InputFields.
         """
-
         for name, size, param in fields:
             self.logger.info(
                 "Setting up field %-24s size=%5d encoder=%-28s",
@@ -489,15 +491,22 @@ class Trainer:
     ) -> Brain:
         """Build a full Brain with all fields based on the dataset.
 
+        This method automatically determines the appropriate encoder type for each field
+        based on the data type of the values in the dataset.
+
         Args:
             dataset: A dictionary mapping field names to lists of data points.
-            size: The size of the input and column fields (default: 2048).
-            params: Optional ParentDataClass instance containing encoder parameters to use for all fields. If not provided, default parameters will be used based on field type.
+            size: The size of the input and column fields. Defaults to 2048.
+            params: Optional encoder parameters to use for all fields. If not provided,
+                default parameters will be used based on field type.
 
         Returns:
-            A fully built Brain instance with input fields, column fields, and output fields configured based on the dataset and specified parameters.
+            A fully built Brain instance with configured input, column, and output fields.
 
-            Example usage:
+        Raises:
+            ValueError: If dataset contains unsupported data types.
+
+        Example:
             brain = trainer.build_full_brain(
                 dataset={
                     "temperature": [20.5, 21.0, 19.8, ...],

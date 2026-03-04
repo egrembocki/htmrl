@@ -44,8 +44,13 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         date_params: DateEncoderParameters instance specifying encoding options.
             If None, defaults to DateEncoderParameters().
 
-    Raises:
-        ValueError: If custom_days is specified but empty, or if no widths are provided.
+    Attributes:
+        SEASON: Index constant for season encoder (0).
+        DAYOFWEEK: Index constant for day of week encoder (1).
+        WEEKEND: Index constant for weekend encoder (2).
+        CUSTOM: Index constant for custom days encoder (3).
+        HOLIDAY: Index constant for holiday encoder (4).
+        TIMEOFDAY: Index constant for time of day encoder (5).
     """
 
     # !!enum!! type constants for indices
@@ -109,21 +114,20 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     ) -> RandomDistributedScalarEncoder | ScalarEncoder | None:
         """Instantiate and register a sub-encoder, keeping _initialize readable.
 
+        Must define either active_bits > 0 or sparsity > 0.0, and either radius > 0.0
+        or resolution > 0.0.
+
         Args:
             feature_key: Integer key for the feature (e.g., SEASON).
             size_value: Size of the encoder (total bits).
             active_bits: Number of active bits for the encoder.
             radius: Radius for the encoder.
             resolution: Resolution for the encoder.
-            seed: Random seed for the encoder.
-            sparsity: Sparsity for the encoder (not used).
-            -- must define either active_bits  > 0 or sparsity > 0.0 --
-            -- must define eihter radius > 0.0 or resolution > 0.0 --
+            sparsity: Sparsity for the encoder.
+            seed: Random seed for the encoder. Defaults to 42.
 
         Returns:
             An instance of RandomDistributedScalarEncoder or ScalarEncoder.
-
-
         """
         encoder_params = {
             "size": size_value,
@@ -161,9 +165,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         Raises:
             ValueError: If custom_days is specified but empty, or if no active bits are provided.
-
-        Returns:
-                None
+            RuntimeError: If no sub-encoders are successfully configured.
         """
 
         args = date_params
@@ -303,25 +305,24 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     def encode(
         self, input_value: datetime | pd.Timestamp | time.struct_time | np.datetime64 | None
     ) -> list[int]:
-        """
-        Encode a timestamp-like value into `output` SDR.
+        """Encode a timestamp-like value into output SDR.
 
-        input_value:
-          - None          -> current local time
-          - int/float     -> UNIX epoch seconds
-          - datetime      -> datetime (naive treated as local)
-          - struct_time   -> used directly
-          - np.datetime64 -> numpy datetime64
+        Supported input types:
+        - None: Uses current local time
+        - int/float: UNIX epoch seconds
+        - datetime: Python datetime (naive treated as local)
+        - struct_time: Used directly
+        - np.datetime64: NumPy datetime64
 
         Args:
-                input_value: datetime, pd.Timestamp, struct_time, np.datetime64, or None for current time.
-
-        Raises:
-                TypeError: If input_value is of unsupported type.
+            input_value: Datetime, pd.Timestamp, struct_time, np.datetime64, or None for current time.
 
         Returns:
-                List of active bit indices.
+            List of active bit indices.
 
+        Raises:
+            TypeError: If input_value is of unsupported type.
+            RuntimeError: If encoder is misconfigured with no sub-encoders.
         """
 
         output_sdr: list[int] = []

@@ -36,9 +36,6 @@ class BaseEncoder(ABC, Generic[T]):
 
     Args:
         size: Total number of bits in the output SDR. If None, defaults to 0.
-
-    Attributes:
-        size: Total number of bits in the output SDR.
     """
 
     def __init__(self, size: int | None = None):
@@ -51,9 +48,6 @@ class BaseEncoder(ABC, Generic[T]):
 
         Returns:
             Total size of the SDR.
-
-        Raises:
-            AssertionError: If size is negative.
         """
         assert self._size >= 0, "size must be a non-negative integer"
         return self._size

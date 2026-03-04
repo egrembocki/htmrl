@@ -73,35 +73,10 @@ class Parameters(Struct):
     Initializes with sensible default values suitable for general-purpose
     encoding tasks. Defaults can be overridden after instantiation.
 
-    Attributes:
-        scalar_minimum: Minimum value for scalar encoding.
-        scalar_maximum: Maximum value for scalar encoding.
-        scalar_clip_input: Whether to clip input values to min/max range.
-        scalar_periodic: Whether the scalar encoding wraps periodically.
-        scalar_category: Whether scalar encoder treats input as categories.
-        scalar_active_bits: Number of active bits in scalar encoding.
-        scalar_sparsity: Sparsity level for scalar encoding.
-        scalar_size: Total size of scalar encoding output.
-        scalar_radius: Radius parameter for scalar encoding.
-        scalar_resolution: Resolution parameter for scalar encoding.
-        rdse_active_bits: Number of active bits in RDSE encoding.
-        rdse_sparsity: Sparsity level for RDSE encoding.
-        rdse_size: Total size of RDSE encoding output.
-        rdse_radius: Radius parameter for RDSE encoding.
-        rdse_category: Whether RDSE treats input as categories.
-        rdse_resolution: Resolution parameter for RDSE encoding.
-        rdse_seed: Random seed for RDSE initialization.
-        season_width: Width of seasonal encoding in date encoder.
-        season_radius: Radius for seasonal encoding in date encoder.
-        day_of_week_width: Width of day-of-week encoding.
-        day_of_week_radius: Radius for day-of-week encoding.
-        weekend_width: Width of weekend indicator encoding.
-        holiday_width: Width of holiday indicator encoding.
-        time_of_day_width: Width of time-of-day encoding.
-        time_of_day_radius: Radius for time-of-day encoding.
-        custom_width: Width for custom date encoding features.
-        verbose: Whether to enable verbose logging.
-        cat_w: Width parameter for category encoding.
+    Note:
+        This class uses ctypes.Structure with _fields_ to define typed parameters.
+        See _fields_ list below for all available configuration parameters covering
+        scalar encoding, RDSE, date encoding, and category encoding options.
     """
 
     _fields_ = [
@@ -183,9 +158,6 @@ def smoke_check() -> None:
     Performs simple assertions on Parameters initialization to ensure
     default values are set correctly. Outputs path information and
     success message.
-
-    Raises:
-        AssertionError: If any parameter defaults are not set correctly.
     """
     params = Parameters()
     assert isclose(params.scalar_minimum, 0.0)

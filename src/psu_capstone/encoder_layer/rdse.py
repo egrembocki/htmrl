@@ -38,17 +38,6 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
     Args:
         parameters: Configuration for RDSE encoding behavior.
-
-    Attributes:
-        _size: Total number of bits in the output SDR.
-        _active_bits: Number of active bits per encoding.
-        _sparsity: Target sparsity (alternative to active_bits).
-        _radius: Semantic radius for similarity.
-        _resolution: Input quantization resolution.
-        _category: Whether encoding discrete categories.
-        _seed: Random seed for reproducible hashing.
-        _encoding_cache: Cache of previously computed encodings.
-        knn: K-nearest neighbors model for decoding.
     """
 
     def __init__(self, parameters: RDSEParameters):
@@ -215,12 +204,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Method to check mutually exclusive parameters and fill in missing values.
 
         Args:
-            parameters (RDSEParameters): The parameters to check and fill in.
+            parameters: The parameters to check and fill in.
+
         Returns:
-            RDSEParameters: The checked and filled in parameters.
+            The checked and filled in parameters.
+
         Raises:
             ValueError: If the parameters are invalid.
-
         """
         # Check size parameter
         if not parameters.size > 0:

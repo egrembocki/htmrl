@@ -79,6 +79,9 @@ class Brain:
         Args:
             inputs: Dict mapping field names to input values.
             learn: Whether to enable learning during this step.
+
+        Returns:
+            Dict mapping output field names to their decoded predictions.
         """
         if learn:
             self.logger.info("Processing step with inputs: %s", inputs)
@@ -92,10 +95,6 @@ class Brain:
 
         Returns:
             Result from decoder (typically value, confidence tuple).
-
-        Raises:
-            KeyError: If field_name doesn't match a registered field.
-            ValueError: If ColumnField is not set.
         """
         predictions = {}
         for input_name in self._input_fields:
@@ -112,6 +111,9 @@ class Brain:
 
         Args:
             inputs: Dict mapping field names to input values.
+
+        Raises:
+            KeyError: If input field name is not registered.
         """
         for name, value in inputs.items():
             if name not in self._input_fields:

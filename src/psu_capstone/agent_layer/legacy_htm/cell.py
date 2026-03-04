@@ -46,9 +46,6 @@ class Cell:
     transitions, grow/prune synapses on segments to reinforce correct
     predictions, and use segment activity to set the cell into a predictive state.
 
-    Attributes:
-        segments: List of Segment objects owned by this cell.
-
     Notes:
         This class intentionally remains lightweight: TM logic resides in higher
         layers and in Segment/Synapse structures. The number of cells per column

@@ -58,18 +58,22 @@ class MyClass:
 
     Longer description explaining the class purpose and behavior.
 
+    Args:
+        param1: Description of constructor parameter.
+
     Attributes:
-        attr1: Description of attribute1.
-        attr2: Description of attribute2.
+        CLASS_CONSTANT: Description of class-level constant.
     """
 
-    def __init__(self, param1: str):
-        """Initialize MyClass.
+    CLASS_CONSTANT = 42  # Only document class-level attributes
 
-        Args:
-            param1: Description of parameter.
-        """
+    def __init__(self, param1: str):
+        # Instance attributes set here (like self._param1)
+        # should NOT be in the Attributes: section
+        self._param1 = param1
 ```
+
+**Important:** The `Attributes:` section should ONLY document class-level attributes (constants, class variables). Do NOT document instance attributes (set in `__init__`) there. Use the `Args:` section to document constructor parameters instead.
 
 ## Key Rules
 

@@ -217,8 +217,12 @@ class SpatialPooler:
         - Apply local inhibition with the given radius to select winners.
         - Return the binary mask and list of active columns.
 
+        Args:
+            input_vector: Input SDR in various formats (array, list, or dict).
+            inhibition_radius: Radius for local competition among columns.
+
         Returns:
-        - (mask, active_columns_list)
+            Tuple of (binary mask, list of active Column objects).
         """
         combined = self.combine_input_fields(input_vector)
         for c in self.columns:

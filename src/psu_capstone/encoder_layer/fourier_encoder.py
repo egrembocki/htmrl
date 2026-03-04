@@ -88,21 +88,21 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
 
     @deprecated("Use scipy.fft.fft instead.")
     def __transform(self, time_data: np.ndarray) -> np.ndarray:
-        """A recursive implementation of the 1D Cooley-Tukey FFT, the input should have a length of power of 2.
-            Depreciated: Use scipy.fft.fft instead.
+        """A recursive implementation of the 1D Cooley-Tukey FFT.
 
-            Sum definition: X_k = sum(x_n * exp(-2*pi*i * k * n / N))
+        Deprecated: Use scipy.fft.fft instead.
 
-            O(n log n) time complexity.
+        Sum definition: X_k = sum(x_n * exp(-2*pi*i * k * n / N))
+        O(n log n) time complexity.
 
         Reference:
-        https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
+            https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
 
         Args:
-            time_data (np.ndarray | pd.DataFrame): Input time-domain data.
+            time_data: Input time-domain data. Length should be a power of 2.
 
         Returns:
-            np.ndarray: Transformed frequency-domain data. (complex-valued)
+            Transformed frequency-domain data (complex-valued).
         """
 
         # trim to a power of 2 size
@@ -194,12 +194,17 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
     ) -> tuple[np.ndarray, np.ndarray]:
         """Create a p-stable LSH encoder for frequency buckets.
 
-            Logic: h(x) = floor((a*x + b) / r)
+        Deprecated: Using RDSE internal hasher.
+
+        Logic: h(x) = floor((a*x + b) / r)
 
         Args:
-            interval (int):size of set
-            resolution (float): Resolution of the encoder.
-            seed (int): Random seed for reproducibility.
+            interval: Size of set.
+            resolution: Resolution of the encoder.
+            seed: Random seed for reproducibility.
+
+        Returns:
+            Tuple of (projection vector, offset vector) for LSH.
         """
         rng = np.random.RandomState(seed)
 
@@ -224,10 +229,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Set the sparsity for a specific frequency range.
 
         Args:
-            range_index (int): Index of the frequency range to set.
-            sparsity (float): Sparsity value to set for the specified range.
-        """
+            range_index: Index of the frequency range to set.
+            sparsity: Sparsity value to set for the specified range.
 
+        Raises:
+            IndexError: If range_index is out of bounds.
+        """
         if range_index < 0 or range_index >= len(self._frequency_ranges):
             raise IndexError("Range index out of bounds.")
 
@@ -238,10 +245,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Set the active bits for a specific frequency range.
 
         Args:
-            range_index (int): Index of the frequency range to set.
-            active_bits (int): Active bits value to set for the specified range.
-        """
+            range_index: Index of the frequency range to set.
+            active_bits: Active bits value to set for the specified range.
 
+        Raises:
+            IndexError: If range_index is out of bounds.
+        """
         if range_index < 0 or range_index >= len(self._frequency_ranges):
             raise IndexError("Range index out of bounds.")
 
@@ -266,9 +275,12 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Apply a high-pass Butterworth filter to the input data.
 
         Args:
-            data (np.ndarray): The input time-domain signal to be filtered.
-            cutoff_freq (float): The cutoff frequency for the high-pass filter in Hz.
-            order (int): The order of the Butterworth filter.
+            data: The input time-domain signal to be filtered.
+            cutoff_freq: The cutoff frequency for the high-pass filter in Hz.
+            order: The order of the Butterworth filter.
+
+        Returns:
+            Filtered time-domain signal.
         """
         nyquist = 0.5 * self._sample_rate
         normal_cutoff = cutoff_freq / nyquist
@@ -538,10 +550,11 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Check if the provided parameters are valid for the Fourier encoder.
 
         Args:
-            parameters (FourierEncoderParameters): The Fourier encoder parameters to check.
+            parameters: The Fourier encoder parameters to check.
 
-            Returns:
-            FourierEncoderParameters: The validated Fourier encoder parameters."""
+        Raises:
+            ValueError: If parameters are invalid or inconsistent.
+        """
 
         # TODO: add more checks for parameter validity such as checking for negative frequencies, zero or negative size, etc.
         # TODO: add checks for consistency between active bits and sparsity if both are provided, or enforce that only one can be provided.

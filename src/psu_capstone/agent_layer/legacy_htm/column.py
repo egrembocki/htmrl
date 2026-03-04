@@ -77,13 +77,12 @@ class Column:
         - If the raw overlap meets MIN_OVERLAP, scale by boost; otherwise set 0.
         - Store the result in self.overlap for downstream SP competition.
 
-        Parameters:
-        - input_vector: A 1D numpy array of binary activations representing the
-          current input space; indices must align with synapse.source_input.
+        Args:
+            input_vector: A 1D numpy array of binary activations representing the
+                current input space; indices must align with synapse.source_input.
 
         Side effects:
-        - Updates self.overlap.
-        - Prints a simple trace message with the column's position and overlap.
+            Updates self.overlap and prints a trace message with the column's position and overlap.
         """
         overlap_raw = sum(1 for s in self.connected_synapses if input_vector[s.source_input])
         if overlap_raw >= MIN_OVERLAP:

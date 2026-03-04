@@ -25,12 +25,6 @@ class Agent:
     Args:
         poolers: A list of initialized SpatialPooler instances.
         memory: A list of initialized TemporalMemory instances.
-
-    Attributes:
-        _poolers (list[SpatialPooler]): A list of SpatialPooler instances used for
-            encoding input patterns.
-        _memory (list[TemporalMemory]): A list of TemporalMemory instances used for
-            learning sequences and temporal context.
     """
 
     def __init__(self, poolers: list[SpatialPooler], memory: list[TemporalMemory]):
@@ -138,8 +132,8 @@ class Agent:
         Args:
             input_space_size: The total size of the input bit space.
             column_count: The number of columns (outputs) in the spatial pooler.
-            synapse_per_column: The number of potential synapses per column.
-            seed: Random seed for reproducible initialization.
+            initial_synapses_per_column: The number of initial synapses per column.
+            random_seed: Random seed for reproducible initialization.
         """
         pooler = SpatialPooler(
             input_space_size=input_space_size,
@@ -161,7 +155,6 @@ class Agent:
             column_count: The number of columns in the temporal memory (should match
                 the output of the corresponding Spatial Pooler).
             cells_per_column: The number of cells per column for temporal context.
-            seed: Random seed for reproducible initialization.
         """
 
         synapse = Synapse(0, 0.21)  # placeholder synapse
