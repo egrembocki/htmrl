@@ -1,3 +1,12 @@
+"""PSU Capstone project for Hierarchical Temporal Memory.
+
+Attributes:
+    __version__: Version string of the package.
+    PROJECT_ROOT: Root directory of the project.
+    DATA_PATH: Default path to the sample data file.
+    PYTHONPATH: Python path for the project.
+"""
+
 import os
 from importlib.metadata import PackageNotFoundError, version
 

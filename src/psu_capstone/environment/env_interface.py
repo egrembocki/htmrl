@@ -15,8 +15,8 @@ class EnvInterface(Protocol):
         """Takes a step in the environment using the provided action.
 
         Args:
-            action (Any): The action to be taken in the environment."""
-
+            action: The action to be taken in the environment.
+        """
         ...
 
     def render(self) -> None:

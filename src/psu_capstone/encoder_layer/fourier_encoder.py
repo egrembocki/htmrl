@@ -1,14 +1,17 @@
-"""
-FFT encoder implementation for HTM core
+"""Fourier Transform-based encoder for time-series frequency analysis.
 
-Indefinite integral proof:  g_f = integral(g_t * exp(-2*pi*i*f*t))
+This module provides a FourierEncoder that transforms time-domain signals
+into frequency-domain representations using Fast Fourier Transform (FFT).
+It then encodes specified frequency ranges using RDSE encoders, enabling
+HTM systems to learn from spectral features of time-series data.
 
-Sum definition: X_k = sum(x_n * exp(-2*pi*i * k * n / N))
+Mathematical foundation:
+- Continuous: G(f) = ∫ g(t) * exp(-2πift) dt
+- Discrete: X_k = Σ x_n * exp(-2πikn/N)
 
-
-https://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
-https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
-
+References:
+- https://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
+- https://pythonnumericalmethods.studentorg.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html
 """
 
 from __future__ import annotations
@@ -29,12 +32,10 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
     """Encoder that uses Fourier Transform on time data. Build RDSE for each frequency component. Assume that time domain is in seconds.
 
     Args:
-        parameters (FourierEncoderParameters, optional): Fourier encoder parameters. Defaults to FourierEncoderParameters().
-        dimensions (list[int], optional): List of dimensions for the encoder. Defaults to [].
+        parameters: Fourier encoder parameters. Defaults to FourierEncoderParameters().
     """
 
     def __init__(self, parameters: FourierEncoderParameters):
-        """Initialize the encoder with optional Fourier parameters and encoder dimensions."""
 
         if parameters is None:
             parameters = FourierEncoderParameters()
@@ -408,10 +409,11 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         """Check if the provided parameters are valid for the Fourier encoder.
 
         Args:
-            parameters (FourierEncoderParameters): The Fourier encoder parameters to check.
+            parameters: The Fourier encoder parameters to check.
 
-            Returns:
-            FourierEncoderParameters: The validated Fourier encoder parameters."""
+        Raises:
+            ValueError: If parameters are invalid or inconsistent.
+        """
 
         if parameters is None:
             raise ValueError("FourierEncoderParameters cannot be None.")
