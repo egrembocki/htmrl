@@ -183,9 +183,36 @@ def test_input_field_can_encode_wrong_value_type():
     is mismatched to the encoder.
     For example: RDSE encoder cannot encode a string category.
     """
+    # RDSE
     parameters = RDSEParameters()
     in_fi = InputField(parameters)
     with pytest.raises(ValueError):
         in_fi.encode("US")
     with pytest.raises(ValueError):
         in_fi.encode(datetime(2025, 1, 1, 0, 0))
+    # scalar
+    parameters = ScalarEncoderParameters()
+    in_fi = InputField(parameters)
+    with pytest.raises(ValueError):
+        in_fi.encode("US")
+    with pytest.raises(ValueError):
+        in_fi.encode(datetime(2025, 1, 1, 0, 0))
+    # date
+    parameters = DateEncoderParameters()
+    in_fi = InputField(parameters)
+    with pytest.raises(ValueError):
+        in_fi.encode("Unga")
+    with pytest.raises(ValueError):
+        in_fi.encode(1)
+    # fourier
+    parameters = FourierEncoderParameters()
+    in_fi = InputField(parameters)
+    with pytest.raises(ValueError):
+        in_fi.encode("Unga")
+    with pytest.raises(ValueError):
+        in_fi.encode(1)
+    # category
+    parameters = CategoryParameters(category_list=["us", "gb", "ny"])
+    in_fi = InputField(parameters)
+    in_fi.encode("Unga")
+    # geospatial

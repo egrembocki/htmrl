@@ -25,6 +25,7 @@ Tests validate:
   5. Determinism and consistency
 """
 
+import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -229,7 +230,7 @@ def test_decode_confidence_in_range():
 def test_decode_round_trip_same_category():
     """Encode then decode returns the same category (round-trip)."""
     categories = ["ES", "GB", "US"]
-    params = CategoryParameters(w=3, category_list=categories, rdse_used=True)
+    params = CategoryParameters(w=30, category_list=categories, rdse_used=True)
     encoder = CategoryEncoder(params)
     for cat in categories:
         encoded = encoder.encode(cat)
@@ -264,7 +265,7 @@ def test_demonstrate_anything_can_be_categories():
     On top of that this tests when wrong data types are entered into the encoding. They should all default
     to the not any category or NA.
     """
-    params1 = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
+    params1 = CategoryParameters(w=30, category_list=["ES", "GB", "US"], rdse_used=True)
     encoder1 = CategoryEncoder(params1)
     a = encoder1.encode("ES")
     a1 = encoder1.encode(1)
@@ -288,3 +289,13 @@ def test_demonstrate_anything_can_be_categories():
     assert encoder3.decode(c)[0] == "="
     assert encoder3.decode(c1)[0] == "NA"
     assert encoder3.decode(c2)[0] == "NA"
+
+
+def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
+    """
+    Helper method to find the differences with the first != second and then count the nonzero
+    as that is how many different bits there are. So if first was 1001 and second was 1010 the
+    first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
+    distance of 2 since 2 of the bits are different.
+    """
+    return int(np.count_nonzero(first != second))

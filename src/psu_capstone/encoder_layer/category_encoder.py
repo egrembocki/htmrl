@@ -114,9 +114,7 @@ class CategoryEncoder(BaseEncoder[str]):
             )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
             result_tuple = rdse_encoder.decode(input_sdr)
             result: str = self._category_list[int(result_tuple[0]) - 1]
-            self.logger.info(
-                "Decoded SDR into value: %s, with confidence: %s", result_tuple[0], result_tuple[1]
-            )
+            self.logger.info("Decoded SDR into category: %s", result)
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
             return (result, result_tuple[1])
 

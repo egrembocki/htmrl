@@ -63,7 +63,6 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._category = self._parameters.category
         self._seed = self._parameters.seed
         self._encoding_cache: dict[float, list[int]] = {}
-        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
 
