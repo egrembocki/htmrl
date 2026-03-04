@@ -17,7 +17,7 @@ class SDRInterface(Protocol):
         """Sets the sparse representation of the SDR.
 
         Args:
-            sparse (Any): The sparse representation to set.
+            sparse: The sparse representation to set.
         """
         ...
 
@@ -25,7 +25,7 @@ class SDRInterface(Protocol):
         """Gets the sparse representation of the SDR.
 
         Returns:
-            Any: The sparse representation of the SDR.
+            The sparse representation of the SDR.
         """
         ...
 
@@ -33,7 +33,7 @@ class SDRInterface(Protocol):
         """Sets the dense representation of the SDR.
 
         Args:
-            dense (Iterable[int]): The dense representation to set.
+            dense: The dense representation to set.
         """
         ...
 
@@ -41,7 +41,7 @@ class SDRInterface(Protocol):
         """Gets the dense representation of the SDR.
 
         Returns:
-            Any: The dense representation of the SDR.
+            The dense representation of the SDR.
         """
         ...
 
@@ -49,7 +49,7 @@ class SDRInterface(Protocol):
         """Sets the sparsity of the SDR.
 
         Args:
-            sparsity (float): The sparsity value to set.
+            sparsity: The sparsity value to set.
         """
         ...
 
@@ -57,7 +57,7 @@ class SDRInterface(Protocol):
         """Gets the sparsity of the SDR.
 
         Returns:
-            float: The sparsity of the SDR.
+            The sparsity of the SDR.
         """
         ...
 
@@ -65,7 +65,7 @@ class SDRInterface(Protocol):
         """Sets the SDR from another SDR.
 
         Args:
-            other (SDR): The other SDR to copy from.
+            other: The other SDR to copy from.
         """
         ...
 
@@ -73,14 +73,18 @@ class SDRInterface(Protocol):
         """Gets the SDR.
 
         Returns:
-            SDR: The SDR instance.
+            The SDR instance.
         """
         ...
 
     def sdr_to_type(self, type: Any, is_sparse: bool) -> Any:
         """Converts the SDR to a specific type.
 
+        Args:
+            type: Target type for conversion.
+            is_sparse: Whether to use sparse or dense representation.
+
         Returns:
-            Any: The converted SDR type.
+            The converted SDR type.
         """
         ...
