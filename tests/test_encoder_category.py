@@ -31,6 +31,7 @@ import pytest
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 
 
+# TODO we might need confidence filters on the category tests.
 @pytest.fixture
 def category_instance():
     """Fixture to create a Category encoder instance for tests
@@ -291,11 +292,31 @@ def test_demonstrate_anything_can_be_categories():
     assert encoder3.decode(c2)[0] == "NA"
 
 
-def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
+def hamming_distance_helper(first, second) -> int:
     """
     Helper method to find the differences with the first != second and then count the nonzero
     as that is how many different bits there are. So if first was 1001 and second was 1010 the
     first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
     distance of 2 since 2 of the bits are different.
     """
+    first = np.asarray(first)
+    second = np.asarray(second)
     return int(np.count_nonzero(first != second))
+
+
+# Correctness tests
+def test_close_categories_are_similar():
+    """This test checks to make sure categories by each other in the index are more similar than categories distanced from each other."""
+    params = CategoryParameters(
+        w=5, category_list=["ES", "GB", "US", "RU", "JP", "FR", "GR", "TU", "IT"], rdse_used=True
+    )
+    encoder = CategoryEncoder(params)
+    encoding1 = encoder.encode("ES")
+    encoding2 = encoder.encode("GB")
+    # encoding3 = encoder.encode("US")
+    # encoding4 = encoder.encode("Wrong")
+    encoding5 = encoder.encode("IT")
+    # TODO refactor category encoder to stay close to sparsity and fix this sometimes failing test.
+    assert hamming_distance_helper(encoding1, encoding2) < hamming_distance_helper(
+        encoding1, encoding5
+    )

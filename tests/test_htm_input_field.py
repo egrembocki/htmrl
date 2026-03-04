@@ -184,35 +184,68 @@ def test_input_field_can_encode_wrong_value_type():
     For example: RDSE encoder cannot encode a string category.
     """
     # RDSE
+    """
+    Testing the common inputs of other encoders againt the RDSE.
+    """
     parameters = RDSEParameters()
     in_fi = InputField(parameters)
     with pytest.raises(ValueError):
         in_fi.encode("US")
     with pytest.raises(ValueError):
         in_fi.encode(datetime(2025, 1, 1, 0, 0))
+    with pytest.raises(ValueError):
+        in_fi.encode([1, 2, 3, 4])
+
     # scalar
+    """
+    Testing the common inputs of other encoders against the Scalar encoder.
+    """
     parameters = ScalarEncoderParameters()
     in_fi = InputField(parameters)
     with pytest.raises(ValueError):
         in_fi.encode("US")
     with pytest.raises(ValueError):
         in_fi.encode(datetime(2025, 1, 1, 0, 0))
+    with pytest.raises(ValueError):
+        in_fi.encode([1, 2, 3, 4])
+
     # date
+    """
+    Testing the common inputs of other encoders against the Date encoder.
+    """
     parameters = DateEncoderParameters()
     in_fi = InputField(parameters)
     with pytest.raises(ValueError):
         in_fi.encode("Unga")
     with pytest.raises(ValueError):
         in_fi.encode(1)
+    with pytest.raises(ValueError):
+        in_fi.encode([1, 2, 3, 4])
+
     # fourier
+    """
+    Testing the common inputs of other encoders against the fourier encoder.
+    """
     parameters = FourierEncoderParameters()
     in_fi = InputField(parameters)
     with pytest.raises(ValueError):
         in_fi.encode("Unga")
     with pytest.raises(ValueError):
         in_fi.encode(1)
+
     # category
+    """
+    Testing the common inputs of other encoders against the category encoder.
+    """
     parameters = CategoryParameters(category_list=["us", "gb", "ny"])
     in_fi = InputField(parameters)
     in_fi.encode("Unga")
+    a = in_fi.cells
+    b = in_fi.decode(encoded=a)
+    assert b[0] == "NA"
+    in_fi.encode([1, 2, 3, 4])
+    a = in_fi.cells
+    b = in_fi.decode(encoded=a)
+    assert b[0] == "NA"
     # geospatial
+    # TODO whenever this encoder gets added completely.

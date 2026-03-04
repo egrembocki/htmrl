@@ -346,13 +346,15 @@ def test_resolution_boundary():
     assert sdr_a != sdr_c
 
 
-def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
+def hamming_distance_helper(first, second) -> int:
     """
     Helper method to find the differences with the first != second and then count the nonzero
     as that is how many different bits there are. So if first was 1001 and second was 1010 the
     first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
     distance of 2 since 2 of the bits are different.
     """
+    first = np.asarray(first)
+    second = np.asarray(second)
     return int(np.count_nonzero(first != second))
 
 

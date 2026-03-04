@@ -302,9 +302,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         self.size = self._size
 
     @override
-    def encode(
-        self, input_value: datetime | pd.Timestamp | time.struct_time | np.datetime64 | None
-    ) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode a timestamp-like value into output SDR.
 
         Supported input types:
@@ -324,6 +322,15 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
             TypeError: If input_value is of unsupported type.
             RuntimeError: If encoder is misconfigured with no sub-encoders.
         """
+        if (
+            type(input_value) is not datetime
+            and type(input_value) is not pd.Timestamp
+            and type(input_value) is not time.struct_time
+            and type(input_value) is not np.datetime64
+            and type(input_value) is not float
+            and input_value is not None
+        ):
+            raise ValueError("You did not enter a valid date or time.")
 
         output_sdr: list[int] = []
 
@@ -416,7 +423,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         for sdr in sdrs:
             output_sdr.extend(sdr)
-
+        self._logger.info("Date encoded value: %s", input_value)
         #  TODO: could we use a union here and still maintian similar behavior?
         return output_sdr
 
@@ -467,6 +474,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         ):
             local_decode = self._compute_decode(self._timeofday_encoder, encoded)
             decoded_floats["timeofday"] = local_decode
+        # for float in decoded_floats:
+        self._logger.info("Date decoded value: %s", decoded_floats)
         return decoded_floats
 
     def _compute_decode(
