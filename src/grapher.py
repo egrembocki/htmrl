@@ -1,4 +1,10 @@
-"""Grapher module for visualizing SDRs and signal data."""
+"""Visualization utilities for SDRs and encoder analysis.
+
+This module provides plotting functions for visualizing sparse distributed
+representations, FFT analysis of time-series data, and encoder behaviors.
+Includes tools for comparing encodings, analyzing frequency spectra, and
+displaying SDR patterns as 2D grids.
+"""
 
 from __future__ import annotations
 
@@ -9,13 +15,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
-from matplotlib.colors import ListedColormap
-from scipy.fft import fft, fftfreq
+from matplotlib.colors import ListedColormap, PowerNorm
+from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
-from utils import PROJECT_ROOT
+from utils import DATA_PATH, PROJECT_ROOT
 
 # Use Agg backend (non-interactive but reliable on all systems)
 
@@ -25,7 +31,15 @@ plt.style.use("seaborn-v0_8-poster")
 
 
 def plot_sdr(data: list[int], title: str | None = None) -> None:
-    """Plot a visual representation of the given SDR data."""
+    """Plot a visual representation of an SDR as a 2D grid.
+
+    Converts the 1D binary SDR into a square grid visualization where
+    active bits are shown in blue and inactive bits in white.
+
+    Args:
+        data: Binary list representing the SDR (0s and 1s).
+        title: Optional title for the plot.
+    """
 
     sdr = SDR([len(data)])
     sdr.set_dense(data)

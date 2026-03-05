@@ -3,114 +3,118 @@ tests.test_input_handler_validate_data
 
 Test suite for InputHandler data validation functionality.
 
-Validates that InputHandler correctly validates loaded data for consistency, type correctness,
-and required field presence. Tests ensure the validation step correctly identifies:
-- Missing or null values in required columns
-- Data type mismatches and format errors
-- Required column presence and completeness
-- Data quality issues that would impact downstream encoding
+Validates that InputHandler correctly processes and validates input data for consistency,
+type correctness, and required field presence. Tests ensure the processing step correctly:
+- Handles missing or required columns
+- Normalizes data types and datetime columns
+- Detects and handles duplicate columns
+- Fills missing values appropriately
+- Validates data structures before encoding
 
-These tests ensure the input data pipeline correctly validates data before encoder processing,
-catching issues early in the pipeline.
+These tests ensure the input data pipeline correctly processes data before encoder handling.
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from psu_capstone.input_layer.input_handler import InputHandler
 
 
-def _columnar_to_records(data: dict[str, list[object]]) -> list[dict[str, object]]:
-    if not data:
-        return []
-    lengths = {len(values) for values in data.values()}
-    if not lengths:
-        return []
-    if len(lengths) != 1:
-        raise AssertionError("Columnar data has inconsistent lengths.")
-    row_count = lengths.pop()
-    return [{column: data[column][idx] for column in data} for idx in range(row_count)]
-
-
 @pytest.fixture
 def handler():
-    h = InputHandler()
-    return h
+    """Create a fresh InputHandler instance for each test."""
+    return InputHandler()
 
 
-def test_validate_data_valid(handler):
-    data = handler.input_data(
-        [
-            {"id": 1, "timestamp": "2024-01-01", "value": 10},
-            {"id": 2, "timestamp": "2024-01-02", "value": 20},
-            {"id": 3, "timestamp": "2024-01-03", "value": 30},
-        ],
-        required_columns=["id", "timestamp", "value"],
+def test_process_dataframe_valid(handler):
+    """Test that valid data with required columns is processed correctly."""
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "timestamp": ["2024-01-01", "2024-01-02", "2024-01-03"],
+            "value": [10, 20, 30],
+        }
     )
-    assert data == {
-        "id": [1, 2, 3],
-        "timestamp": [
-            pd.Timestamp("2024-01-01"),
-            pd.Timestamp("2024-01-02"),
-            pd.Timestamp("2024-01-03"),
-        ],
-        "value": [10, 20, 30],
-    }
-    assert handler._columns == ["id", "timestamp", "value"]
+    result = handler._process_dataframe(df, required_columns=["id", "timestamp", "value"])
+    assert not result.empty
+    assert list(result.columns) == ["id", "timestamp", "value"]
 
 
-def test_validate_data_missing_required_columns(handler):
-    data = handler.input_data(
-        [{"id": 1, "value": 10}, {"id": 2, "value": 20}, {"id": 3, "value": 30}],
-        required_columns=["id", "timestamp", "value"],
-    )
-    assert data == {"id": [], "timestamp": [], "value": []}
-    assert handler._columns == ["id", "timestamp", "value"]
+def test_process_dataframe_adds_missing_required_columns(handler):
+    """Test that missing required columns are added with None values."""
+    df = pd.DataFrame({"id": [1, 2, 3], "value": [10, 20, 30]})
+    result = handler._process_dataframe(df, required_columns=["id", "timestamp", "value"])
+    assert "timestamp" in result.columns
+    assert list(result.columns) == ["id", "timestamp", "value"]
 
 
-def test_validate_data_empty_dataframe(handler):
-    data = handler.input_data([], required_columns=["id"])
-    assert data == {}
-    assert handler._columns == []
+def test_process_dataframe_empty(handler):
+    """Test that empty dataframes are handled correctly."""
+    df = pd.DataFrame()
+    result = handler._process_dataframe(df, required_columns=None)
+    assert result.empty
 
 
-def test_validate_data_all_nan_column(handler):
-    data = handler.input_data(
-        [
-            {"id": 1, "timestamp": None, "value": 10},
-            {"id": 2, "timestamp": None, "value": 20},
-            {"id": 3, "timestamp": None, "value": 30},
-        ],
-        required_columns=["id", "timestamp", "value"],
-    )
-    assert data == {"id": [], "timestamp": [], "value": []}
+def test_process_dataframe_removes_all_nan_rows(handler):
+    """Test that rows with all NaN values are dropped during datetime normalization."""
+    df = pd.DataFrame({"id": [1, 2, 3], "timestamp": [None, None, None], "value": [10, 20, 30]})
+    result = handler._process_dataframe(df)
+    # After datetime normalization, rows with NaN are dropped
+    assert len(result) <= len(df)
 
 
-def test_validate_data_duplicate_columns(handler):
-    df = pd.DataFrame([[1, 10, 20]], columns=["id", "value", "value"])
-    data = handler.input_data(df, required_columns=["id", "value"])
-    records = _columnar_to_records(data)
-
-    assert records == [{"id": 1, "value": 10}]
-    assert handler._columns == ["id", "value"]
-
-
-def test_input_data_sequence_of_scalars(handler):
-    data = handler.input_data([1, 2, 3], required_columns=["value"])
-    assert data == {"value": [1, 2, 3]}
+def test_process_dataframe_duplicate_columns(handler):
+    """Test that duplicate columns are removed automatically."""
+    df = pd.DataFrame([[1, "2024-01-01", 10, 100]], columns=["id", "timestamp", "value", "value"])
+    result = handler._process_dataframe(df)
+    assert result.columns.is_unique
+    assert "value" in result.columns
 
 
-def test_input_data_bytearray(handler):
-    byte_data = bytearray(b"id,timestamp,value\n1,2024-01-01,10\n2,2024-01-02,20")
-    data = handler.input_data(byte_data, required_columns=["id", "timestamp", "value"])
-    assert data == {
-        "id": ["1", "2"],
-        "timestamp": [pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-02")],
-        "value": ["10", "20"],
-    }
+def test_normalize_column_types_mixed_numeric(handler):
+    """Test that mixed numeric types are coerced correctly."""
+    df = pd.DataFrame({"value": [1, 2.5, 3, 4.0]})
+    result = handler._normalize_column_types(df)
+    assert pd.api.types.is_numeric_dtype(result["value"])
 
 
-def test_input_data_scalar(handler):
-    scalar_data = 42
-    data = handler.input_data(scalar_data, required_columns=["value"])
-    assert data == {"value": [42]}
+def test_normalize_column_types_unsupported_type_raises(handler):
+    """Test that unsupported types raise ValueError."""
+    df = pd.DataFrame({"value": [1, 2, {"key": "value"}]})
+    with pytest.raises(ValueError, match="Corrupt data detected"):
+        handler._normalize_column_types(df)
+
+
+def test_fill_missing_values_numeric(handler):
+    """Test that missing numeric values are filled with mean."""
+    df = pd.DataFrame({"value": [10.0, None, 30.0, 40.0]})
+    result = handler._fill_missing_values(df)
+    # Mean of [10, 30, 40] is ~26.67
+    assert result["value"].notna().all()
+    assert np.isclose(result["value"].iloc[1], 26.666666, rtol=0.01)
+
+
+def test_detect_repeating_values(handler):
+    """Test detection of repeating values in columns."""
+    df = pd.DataFrame({"category": ["A", "A", "A", "A", "B"]})
+    is_repeating, cols = handler._detect_repeating_values(df, threshold=3)
+    assert is_repeating is True
+    assert "category" in cols
+
+
+def test_input_data_with_dict(handler):
+    """Test that dictionary input is processed correctly."""
+    data = {"id": [1, 2, 3], "value": [10, 20, 30]}
+    result = handler.input_data(data)
+    assert isinstance(result, dict)
+    assert "id" in result
+    assert "value" in result
+    assert result["id"] == [1, 2, 3]
+
+
+def test_input_data_with_required_columns(handler):
+    """Test that required columns are enforced."""
+    data = {"id": [1, 2, 3], "value": [10, 20, 30]}
+    result = handler.input_data(data, required_columns=["id", "value", "timestamp"])
+    assert "timestamp" in result

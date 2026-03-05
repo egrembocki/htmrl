@@ -1,12 +1,15 @@
-"""
-@Nemunta - NuPic
-* Parameters for the RandomDistributedScalarEncoder (RDSE)
-*
-* Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
-* of them.
-*
-* Members "radius", "resolution", & "category" are mutually exclusive, specify
-* exactly one of them.
+"""Random Distributed Scalar Encoder (RDSE) for flexible numeric encoding.
+
+This module provides the RandomDistributedScalarEncoder, which encodes numeric
+scalar values into SDRs using random, stable hash-based assignments. Unlike
+ScalarEncoder, RDSE does not require knowing the input range in advance and
+determines encodings at runtime using the MurmurHash3 algorithm.
+
+Parameter constraints:
+- "activeBits" & "sparsity" are mutually exclusive - specify exactly one
+- "radius", "resolution", & "category" are mutually exclusive - specify exactly one
+
+Based on NuPIC's RDSE implementation.
 """
 
 from __future__ import annotations
@@ -15,29 +18,28 @@ import copy
 import random
 import struct
 from dataclasses import dataclass
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
-
-"""
- * Encodes a real number as a set of randomly generated activations.
- *
- * Description:
- * The RandomDistributedScalarEncoder (RDSE) encodes a numeric scalar (floating
- * point) value into an SDR.  The RDSE is more flexible than the ScalarEncoder.
- * This encoder does not need to know the minimum and maximum of the input
- * range.  It does not assign an input->output mapping at construction.  Instead
- * the encoding is determined at runtime.
-
-"""
+from psu_capstone.log import get_logger, logger
 
 
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
-    """Builds a Random Distributed Scalar Encoder (RDSE), with mmhr3 hashing."""
+    """Random Distributed Scalar Encoder using MurmurHash3 for stable encodings.
+
+    The RDSE encodes numeric scalar values into SDRs using hash-based random
+    bit selection. It provides more flexibility than ScalarEncoder by not
+    requiring pre-specified input ranges and determining encodings at runtime.
+
+    Uses MurmurHash3 algorithm for deterministic, collision-resistant encoding.
+
+    Args:
+        parameters: Configuration for RDSE encoding behavior.
+    """
 
     def __init__(self, parameters: RDSEParameters):
         self._parameters = copy.deepcopy(parameters)
@@ -51,16 +53,20 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._category = self._parameters.category
         self._seed = self._parameters.seed
         self._encoding_cache: dict[float, list[int]] = {}
-        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
+
+        self.logger = get_logger(self)
 
         super().__init__(self._size)
 
     @override
-    def encode(self, input_value: float) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+        if type(input_value) is not int and type(input_value) is not float:
+            raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
+        self.logger.info("RDSE encoded value: %s", input_value)
         return self._compute_encoding(input_value)
 
     def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
@@ -138,6 +144,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Converts a sparse activity vector to a activation list."""
         return [i for i, bit in enumerate(vector) if bit == 1]
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[float | None, float]:
@@ -168,6 +175,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         confidence = (
             best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
         )
+        self.logger.info("Decoded SDR into value: %s, with confidence: %s", best_value, confidence)
         return best_value, confidence
 
     def make_knn(self) -> None:
@@ -206,12 +214,13 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Method to check mutually exclusive parameters and fill in missing values.
 
         Args:
-            parameters (RDSEParameters): The parameters to check and fill in.
+            parameters: The parameters to check and fill in.
+
         Returns:
-            RDSEParameters: The checked and filled in parameters.
+            The checked and filled in parameters.
+
         Raises:
             ValueError: If the parameters are invalid.
-
         """
         # Check size parameter
         if not parameters.size > 0:
@@ -337,9 +346,11 @@ if __name__ == "__main__":
     def _overlap_count(first: list[int], second: list[int]) -> int:
         return int(np.count_nonzero(first == second))
 
-    print(_overlap_count(a, b))
-    print(encoder.decode(a))
-    print(encoder.decode(b))
+    # print(_overlap_count(a, b))
+    encoder.decode(a)
+    encoder.decode(b)
+    # print(encoder.decode(a))
+    # print(encoder.decode(b))
     # Tests
     """
     params = RDSEParameters(

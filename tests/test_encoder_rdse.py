@@ -27,6 +27,8 @@ Recent Code Changes Addressed:
   - This change ensures consistent sparse representation and prevents accidental double-specification
 """
 
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -344,13 +346,15 @@ def test_resolution_boundary():
     assert sdr_a != sdr_c
 
 
-def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
+def hamming_distance_helper(first, second) -> int:
     """
     Helper method to find the differences with the first != second and then count the nonzero
     as that is how many different bits there are. So if first was 1001 and second was 1010 the
     first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
     distance of 2 since 2 of the bits are different.
     """
+    first = np.asarray(first)
+    second = np.asarray(second)
     return int(np.count_nonzero(first != second))
 
 
@@ -628,3 +632,170 @@ def test_rdse_encode_output_sparsity_conforms():
     assert (
         0.15 <= actual_sparsity <= 0.25
     ), f"Sparsity={sparsity} => ~{sparsity * 100}% ones expected, got {actual_sparsity:.3f} ({num_ones}/{len(out)})"
+
+
+"""Correctness tests below."""
+
+
+def test_rdse_encode_improper_values():
+    """
+    This test tries to encode with multiple entry types.
+    There should be an exception for each.
+    """
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(ValueError):
+        encoder.encode("test")
+        encoder.encode(datetime(2020, 1, 1, 0, 0))
+        encoder.encode([1, 2, 3, 4])
+        encoder.encode(((10, 20), 2))
+
+
+def test_rdse_encode_empty_values():
+    """
+    Tests that encoder properly raises an exception if no input value is entered.
+    This also tests a None value.
+    """
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(TypeError):
+        encoder.encode()
+        encoder.encode(None)
+
+
+def test_rdse_decode_empty_sdr():
+    """Tests that the decode method can raise an exception when an empty sdr is entered."""
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(ValueError):
+        encoder.encode(1)
+        encoder.decode([])
+
+
+def test_clear_registry_decode():
+    """
+    This tests that a value error is raised if there are no registered
+    encodings and the user tries to decode.
+    """
+    params = RDSEParameters(
+        size=1000,
+        active_bits=0,
+        sparsity=0.02,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    with pytest.raises(ValueError):
+        a = encoder.encode(1)
+        encoder.clear_registered_encodings()
+        encoder.decode(a)
+
+
+"""
+Tests for RandomDistributedScalarEncoder (RDSE) decode.
+
+decode() returns (value, confidence) by finding the cached encoding with best
+overlap to the input SDR. Cache is populated on encode().
+"""
+
+
+def test_rdse_decode_returns_tuple_value_confidence():
+    """decode() returns (value, confidence) tuple."""
+    params = RDSEParameters(
+        size=256,
+        active_bits=20,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    encoded = encoder.encode(5.0)
+    decoded = encoder.decode(encoded)
+    assert isinstance(decoded, tuple)
+    assert len(decoded) == 2
+    value, confidence = decoded
+    assert isinstance(confidence, (int, float))
+    assert 0 <= confidence <= 1
+
+
+def test_rdse_decode_round_trip_same_value():
+    """decode(encode(x)) returns (x, high confidence) for same encoder instance."""
+    params = RDSEParameters(
+        size=256,
+        active_bits=20,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    for x in (0.0, 1.0, 5.0, 10.0, 100.0):
+        encoded = encoder.encode(x)
+        value, confidence = encoder.decode(encoded)
+        assert value == x, f"Round-trip: encode({x}) then decode should yield {x}, got {value}"
+        assert confidence >= 0.9, f"Round-trip confidence should be high, got {confidence}"
+
+
+def test_rdse_decode_wrong_size_raises():
+    """decode() with wrong-length SDR raises ValueError."""
+    params = RDSEParameters(
+        size=256,
+        active_bits=20,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    encoder.encode(1.0)  # populate cache so decode has candidates
+    with pytest.raises(ValueError, match="does not match encoder size"):
+        encoder.decode([0] * 100)
+    with pytest.raises(ValueError, match="does not match encoder size"):
+        encoder.decode([0] * 300)
+
+
+def test_rdse_decode_no_candidates_raises():
+    """decode() with no prior encode (empty cache) raises ValueError."""
+    params = RDSEParameters(
+        size=256,
+        active_bits=20,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    encoder = RandomDistributedScalarEncoder(params)
+    # No encode() call -> _encoding_cache empty -> no candidates
+    with pytest.raises(ValueError, match="No candidate encodings"):
+        encoder.decode([0] * 256)

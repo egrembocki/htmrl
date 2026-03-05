@@ -34,10 +34,8 @@ class Segment:
     activation. Learning logic (growing/pruning synapses, adjusting permanence)
     typically occurs elsewhere but uses segment queries to decide updates.
 
-    Attributes:
-    - synapses: List of DistalSynapse objects owned by this segment.
-    - sequence_segment: True if learned while the cell was predictive, which
-      usually indicates a sequence-specific transition.
+    Args:
+        synapses: Optional initial list of DistalSynapse objects. Defaults to empty list.
     """
 
     def __init__(self, synapses: list[DistalSynapse] | None = None) -> None:

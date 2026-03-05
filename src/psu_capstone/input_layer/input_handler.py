@@ -21,7 +21,12 @@ from psu_capstone.log import get_logger, logger
 
 
 class InputHandler:
-    """Load, clean, validate, and normalize raw input payloads for the encoding pipeline."""
+    """Load, clean, validate, and normalize raw input payloads for the encoding pipeline.
+
+    Args:
+        data: Optional in-memory data to initialize with. If provided, will be
+            processed through the input_data method for validation and setup.
+    """
 
     __instance: ClassVar[InputHandler]
     """Singleton instance of the InputHandler class."""
@@ -41,8 +46,6 @@ class InputHandler:
         return cls.__instance
 
     def __init__(self, data: Any | None = None) -> None:
-        """Initialize the InputHandler with optional in-memory data, and set up internal state for data management and validation."""
-
         self.logger = get_logger(self)
 
         self._data: dict[Any, list[Any]] = {}
@@ -92,11 +95,6 @@ class InputHandler:
                 "city": ["New York", "Chicago", "San Francisco"]
             }
 
-        Raises:
-            ValueError: If the input data is invalid, missing required columns, or contains unsupported types.
-            FileNotFoundError: If a file path is provided but the file does not exist.
-            TypeError: If the input data type is not supported for conversion to records.
-
         """
         required = required_columns if required_columns else None
 
@@ -124,80 +122,6 @@ class InputHandler:
         self._data = data
 
         return self._data
-
-    def to_records(self, limit: int | None = None) -> list[dict[str, Any]]:
-        """Return the normalized column data as a list of per-row records.
-
-        Args:
-            limit: Optional limit on the number of records to return
-
-        Returns:
-            A list of dictionaries, one per row, with column names as keys
-        """
-        if not self._data:
-            return []
-
-        lengths = {len(values) for values in self._data.values()}
-        if len(lengths) > 1:
-            raise ValueError("Normalized column lengths are inconsistent; cannot build records.")
-        record_count = next(iter(lengths)) if lengths else 0
-        if limit is not None:
-            record_count = min(record_count, max(0, limit))
-
-        column_order = self._columns or list(self._data.keys())
-        records: list[dict[str, Any]] = []
-        for idx in range(record_count):
-            row: dict[str, Any] = {}
-            for column in column_order:
-                values = self._data.get(column)
-                if values is None:
-                    continue
-                row[column] = values[idx]
-            records.append(row)
-
-        return records
-
-    def to_encoder_sequence(
-        self,
-        input_source: Any,
-        required_columns: list[str] | None = None,
-        column: str | None = None,
-    ) -> dict[Any, list[Any]]:
-        """Build an encoder sequence from input data.
-
-        Args:
-            input_source: The raw input data or file path
-            required_columns: Optional list of required column names
-            column: Optional specific column to extract (if not specified, infers from single column)
-
-        Returns:
-            A dictionary with column name(s) as keys and filtered values as lists
-        """
-        # check if input_source is a file path before attempting to coerce it to a DataFrame
-        if self._is_file_path(input_source):
-            df = self._load_file_to_dataframe(input_source)
-        else:
-            df = self._coerce_non_file_to_dataframe(input_source)
-
-        # Process the DataFrame to handle required columns, normalize types, and detect temporal patterns
-        df = self._process_dataframe(df, required_columns)
-
-        records = df.to_dict(orient="records")
-        if not records:
-            raise ValueError("No records available to build encoder sequence.")
-
-        if column is None:
-            if len(records[0]) != 1:
-                raise ValueError(
-                    "Column must be specified when multiple columns are present in the input."
-                )
-            column = str(next(iter(records[0].keys())))
-
-        sequence = [row.get(column) for row in records]
-        filtered = [value for value in sequence if value is not None]
-        if not filtered:
-            raise ValueError("Encoder sequence contains no valid values after filtering.")
-        return {column: filtered}
 
     def to_numpy(self, data: list[dict[Any, Any]]) -> np.ndarray:
         if not data:
@@ -375,11 +299,6 @@ class InputHandler:
 
         Returns:
             A processed and normalized DataFrame that meets the specified requirements.
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types, duplicate columns, or is missing required columns.
-
-
         """
         if df.empty:
             self._repeating_columns = []
@@ -541,12 +460,6 @@ class InputHandler:
         Returns:
             A DataFrame with missing values in numeric columns filled with the mean of the respective column,
             while non-numeric columns are left unchanged.
-
-
-        Raises:
-            ValueError: If the DataFrame contains unsupported types or if mean imputation fails due to all values being NaN in a numeric column.
-
-
         """
         dataframe = df.copy()
 

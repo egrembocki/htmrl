@@ -16,6 +16,8 @@ These tests validate the critical pipeline connection from input processing thro
 SDR encoding that feeds into the HTM temporal memory engine.
 """
 
+from typing import Any
+
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -31,6 +33,9 @@ class DummyEncoder(BaseEncoder):
 
     def encode(self, input_value: float) -> list[int]:
         return [0] * self.size
+
+    def decode(self, input_sdr: list[int]) -> Any:
+        return 1
 
 
 # Note: This is expected to fail because we do not have an HTM interface yet

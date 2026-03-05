@@ -33,14 +33,15 @@ dev = [
     "pre-commit>=4.2.0",
     "pdoc>=16.0.0",
 ]
-tests = [
-    "pytest>=8.4.1",
-    "pytest-cov>=6.2.1",
-    "pytest-mock>=3.14.0",
-    "openpyxl>=3.1.2",
-    "pandas>=2.2.2",
+tests = ["pytest>=8.4.1", "pytest-cov>=6.2.1", "pytest-mock>=3.14.0"]
+linters = [
+    "flake8>=7.3.0",
+    "flake8-pyproject>=1.2.3",
+    "pep8-naming>=0.15.1",
+    "pydocstyle>=6.3.0",
+    "interrogate>=1.7.0",
+    "pydoclint>=0.5.0",
 ]
-linters = ["flake8>=7.3.0", "flake8-pyproject>=1.2.3", "pep8-naming>=0.15.1"]
 formatters = ["black>=23.7.0", "isort>=6.0.1"]
 
 
@@ -125,3 +126,36 @@ exclude = [
   "docs",
   ".vscode",
 ]
+
+############################
+### Docstring Checking #####
+############################
+
+[tool.pydocstyle]
+convention = "google"
+add-ignore = ["D100", "D104", "D105", "D107"]
+match = "(?!test_).*\\.py"
+match-dir = "^(?!(\\.venv|build|dist|tests|__pycache__|\\.))"
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = true
+ignore-module = true
+ignore-nested-functions = true
+fail-under = 80
+exclude = ["tests", ".venv", "build", "dist", "docs"]
+verbose = 1
+quiet = false
+color = true
+
+[tool.pydoclint]
+style = "google"
+exclude = '\.venv|build|dist|tests'
+require-return-section-when-returning-nothing = false
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-yield-types = false

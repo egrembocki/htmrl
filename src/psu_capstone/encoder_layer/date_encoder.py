@@ -17,7 +17,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 import numpy as np
 import pandas as pd
@@ -30,22 +30,27 @@ from psu_capstone.log import get_logger, logger
 
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
-    """
-    Python port of the HTM DateEncoder, using the existing scalar encoders with default parameters.
+    """Python port of the HTM DateEncoder using scalar encoders with default parameters.
+
     Encodes up to 6 attributes using six different encoders of a timestamp into one SDR:
+    - season (day-of-year)
+    - dayOfWeek
+    - weekend
+    - customDays
+    - holiday
+    - timeOfDay
 
-      - season       (day-of-year)
-      - dayOfWeek
-      - weekend
-      - customDays
-      - holiday
-      - timeOfDay
-
-      Args:
+    Args:
         date_params: DateEncoderParameters instance specifying encoding options.
-        encoder_class: The class of the encoder to use.
-      rdseUsed: If True, use RandomDistributedScalarEncoder for sub-encoders; else use ScalarEncoder.
+            If None, defaults to DateEncoderParameters().
 
+    Attributes:
+        SEASON: Index constant for season encoder (0).
+        DAYOFWEEK: Index constant for day of week encoder (1).
+        WEEKEND: Index constant for weekend encoder (2).
+        CUSTOM: Index constant for custom days encoder (3).
+        HOLIDAY: Index constant for holiday encoder (4).
+        TIMEOFDAY: Index constant for time of day encoder (5).
     """
 
     # !!enum!! type constants for indices
@@ -60,15 +65,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         self,
         date_params: DateEncoderParameters | None = None,
     ) -> None:
-        """
-        Initialize the DateEncoder with the given parameters.
-
-        Args:
-            date_params: DateEncoderParameters instance specifying encoding options.
-
-        Raises:
-            ValueError: If custom_days is specified but empty, or if no widths are provided.
-        """
 
         self._logger = get_logger("DateEncoder")
         self._date_params: DateEncoderParameters = (
@@ -118,21 +114,20 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     ) -> RandomDistributedScalarEncoder | ScalarEncoder | None:
         """Instantiate and register a sub-encoder, keeping _initialize readable.
 
+        Must define either active_bits > 0 or sparsity > 0.0, and either radius > 0.0
+        or resolution > 0.0.
+
         Args:
             feature_key: Integer key for the feature (e.g., SEASON).
             size_value: Size of the encoder (total bits).
             active_bits: Number of active bits for the encoder.
             radius: Radius for the encoder.
             resolution: Resolution for the encoder.
-            seed: Random seed for the encoder.
-            sparsity: Sparsity for the encoder (not used).
-            -- must define either active_bits  > 0 or sparsity > 0.0 --
-            -- must define eihter radius > 0.0 or resolution > 0.0 --
+            sparsity: Sparsity for the encoder.
+            seed: Random seed for the encoder. Defaults to 42.
 
         Returns:
             An instance of RandomDistributedScalarEncoder or ScalarEncoder.
-
-
         """
         encoder_params = {
             "size": size_value,
@@ -170,9 +165,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         Raises:
             ValueError: If custom_days is specified but empty, or if no active bits are provided.
-
-        Returns:
-                None
+            RuntimeError: If no sub-encoders are successfully configured.
         """
 
         args = date_params
@@ -309,29 +302,36 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         self.size = self._size
 
     @override
-    def encode(
-        self, input_value: datetime | pd.Timestamp | time.struct_time | np.datetime64 | None
-    ) -> list[int]:
-        """
-        Encode a timestamp-like value into `output` SDR.
+    def encode(self, input_value: Any) -> list[int]:
+        """Encode a timestamp-like value into output SDR.
 
-        input_value:
-          - None          -> current local time
-          - int/float     -> UNIX epoch seconds
-          - datetime      -> datetime (naive treated as local)
-          - struct_time   -> used directly
-          - np.datetime64 -> numpy datetime64
+        Supported input types:
+        - None: Uses current local time
+        - int/float: UNIX epoch seconds
+        - datetime: Python datetime (naive treated as local)
+        - struct_time: Used directly
+        - np.datetime64: NumPy datetime64
 
         Args:
-                input_value: datetime, pd.Timestamp, struct_time, np.datetime64, or None for current time.
-
-        Raises:
-                TypeError: If input_value is of unsupported type.
+            input_value: Datetime, pd.Timestamp, struct_time, np.datetime64, or None for current time.
 
         Returns:
-                List of active bit indices.
+            List of active bit indices.
 
+        Raises:
+            ValueError: If input_value is not a valid timestamp-like type.
+            TypeError: If input_value is of unsupported type.
+            RuntimeError: If encoder is misconfigured with no sub-encoders.
         """
+        if (
+            type(input_value) is not datetime
+            and type(input_value) is not pd.Timestamp
+            and type(input_value) is not time.struct_time
+            and type(input_value) is not np.datetime64
+            and type(input_value) is not float
+            and input_value is not None
+        ):
+            raise ValueError("You did not enter a valid date or time.")
 
         output_sdr: list[int] = []
 
@@ -424,10 +424,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         for sdr in sdrs:
             output_sdr.extend(sdr)
-
+        self._logger.info("Date encoded value: %s", input_value)
         #  TODO: could we use a union here and still maintian similar behavior?
         return output_sdr
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> dict[str, tuple[float | None]]:
@@ -474,6 +475,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         ):
             local_decode = self._compute_decode(self._timeofday_encoder, encoded)
             decoded_floats["timeofday"] = local_decode
+        # for float in decoded_floats:
+        self._logger.info("Date decoded value: %s", decoded_floats)
         return decoded_floats
 
     def _compute_decode(

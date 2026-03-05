@@ -75,36 +75,16 @@ lint: ## Run linting checks
 	@uv run --active flake8 . --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
-puml: ## Generate PlantUML diagrams from entire project
-	@echo "📊 Generating PlantUML diagrams for entire project..."
-	@mkdir -p docs/puml
-	@PYTHONPATH=src uv run --active pyreverse -o puml -d docs/puml -p psu_capstone -f ALL --ignore __init__ src/psu_capstone/
-	@echo "✅ PlantUML diagrams generated in docs/puml/"
-	@echo ""
-	@echo "Available diagrams:"
-	@echo "  🏗️  Project Architecture:"
-	@echo "     • project_architecture.puml - Complete system overview with all layers"
-	@echo "     • data_flow.puml - Data flow through the entire pipeline"
-	@echo ""
-	@echo "  📦 Layer Diagrams:"
-	@echo "     • encoder_layer_detailed.puml - All encoder types and handlers"
-	@echo "     • agent_layer_detailed.puml - HTM, Brain, Agent structure"
-	@echo "     • sdr_layer_detailed.puml - SDR representation and utilities"
-	@echo "     • input_layer_detailed.puml - Input handling and validation"
-	@echo ""
-	@echo "  🤖 Auto-generated (from pyreverse):"
-	@echo "     • classes_psu_capstone.puml - Class relationships"
-	@echo "     • packages_psu_capstone.puml - Package structure"
-	@echo ""
-	@echo "Use 'make puml-all' to also analyze top-level modules (drivers, handlers)"
+lint-docs: ## Check docstring coverage and style
+	@echo "📝 Checking docstring coverage and style..."
+	@uv run --active pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
+	@uv run --active interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
+	@echo "✅ Docstring checks complete"
 
-puml-all: ## Generate PlantUML diagrams including all src modules
-	@echo "📊 Generating comprehensive PlantUML diagrams (all src modules)..."
-	@mkdir -p docs/puml
-	@PYTHONPATH=src bash -c "uv run --active pyreverse -o puml -d docs/puml -p psu_capstone_full -f ALL --ignore __init__ src/ 2>&1 | grep -v '__init__' || true"
-	@echo "✅ Comprehensive diagrams generated in docs/puml/"
-	@echo "   - classes_psu_capstone_full.puml (all classes including drivers)"
-	@echo "   - packages_psu_capstone_full.puml (all package hierarchies)"
+lint-docs-strict: ## Strict docstring validation with pydoclint
+	@echo "📝 Running strict docstring validation..."
+	@uv run --active pydoclint --style=google --exclude='\.venv|tests|build' src/
+	@echo "✅ Strict docstring validation complete"
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."

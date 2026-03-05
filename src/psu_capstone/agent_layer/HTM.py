@@ -773,11 +773,19 @@ class ColumnField(Field):
 
 
 class InputField(Field):
-    """A Field specialized for input bits."""
+    """A Field specialized for input bits with an encoder.
+
+    Encapsulates input encoding by wrapping an encoder (default RDSE) and
+    managing a Field of cells corresponding to the encoder's output bits.
+
+    Args:
+        encoder_params: Configuration parameters for the encoder. If None
+            or not a ParentDataClass, defaults to RDSEParameters.
+        size: Optional size override for the encoder output. If provided,
+            overrides the size parameter in encoder_params.
+    """
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        """Initialize the InputField with an encoder based on provided parameters."""
-
         if encoder_params is not None and isinstance(encoder_params, ParentDataClass):
             params = copy.deepcopy(encoder_params)
         else:
