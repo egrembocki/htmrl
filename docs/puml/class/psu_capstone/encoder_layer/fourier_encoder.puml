@@ -1,0 +1,61 @@
+@startuml
+skinparam style strictuml
+!pragma layout smetana
+
+title psu_capstone.encoder_layer.fourier_encoder
+
+class BaseEncoder
+class FourierEncoder {
+  -_params: FourierEncoderParameters
+  -_frequency_ranges: list[tuple[int, int]]
+  -_size: int
+  -_total_active_bits: int
+  -_total_sparsity: float
+  -_total_resolution: float
+  -_active_bits_in_ranges: list[int]
+  -_sparsity_in_ranges: list[float]
+  -_resolutions_in_ranges: list[float]
+  -_seed: int
+  -_bucket_sizes: list[int]
+  -_start_time: float
+  -_stop_time: float
+  -_period_size: float
+  -_total_samples: int
+  -_time_step: float
+  -_sample_rate: float
+  +__init__(parameters: FourierEncoderParameters | None = None)
+  +__transform(time_data: np.ndarray): np.ndarray
+  +_normalize(input: np.ndarray): np.ndarray
+  +_trim(input_data: np.ndarray | list[float]): np.ndarray
+  +_calc_bucket_sizes()
+  +__p_stable_lsh(interval: int, resolution: float, seed: int): tuple[np.ndarray, np.ndarray]
+  +_find_num_peaks(freq_data: np.ndarray): int
+  +_set_equal_sparsity_in_ranges()
+  +_set_sparsity_at_range(range_index: int, sparsity: float)
+  +_set_active_bits_equal_in_ranges()
+  +_set_active_bits_at_range(range_index: int, active_bits: int)
+  +encode(input_value: Any): list[int]
+  +decode(input_sdr: list[int], input_value: Any): tuple[np.ndarray, float]
+  +_validate_params(parameters: FourierEncoderParameters)
+}
+class FourierEncoderParameters {
+  +encoder_class
+  +equal_sparsity: bool
+  +size: int
+  +total_active_bits: int
+  +total_sparsity: float
+  +total_resolution: float
+  +frequency_ranges: list[tuple[int, int]]
+  +active_bits_in_ranges: list[int]
+  +sparsity_in_ranges: list[float]
+  +resolutions_in_ranges: list[float]
+  +seed: int
+  +start_time: float
+  +stop_time: float
+  +total_samples: int
+}
+
+BaseEncoder <|-- FourierEncoder
+FourierEncoder o-- FourierEncoderParameters : parameters
+
+@enduml

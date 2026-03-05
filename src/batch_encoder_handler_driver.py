@@ -3,7 +3,6 @@ import time
 import warnings
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -15,7 +14,7 @@ from psu_capstone.agent_layer.legacy_htm.temporal_memory import TemporalMemory
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.input_layer.improved_input_handler import InputHandler
+from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.sdr_layer.sdr import SDR
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -31,11 +30,24 @@ def main():
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(project_root, "data", "rec-center-hourly.csv")
-    input_data = handler.input_data(input_source=data_path, required_columns=[])
-    input_data = input_data.loc[:, ~input_data.columns.duplicated()]
+    handler.input_data(input_source=data_path, required_columns=[])
+    input_records = handler.to_records()
 
-    encoder = RandomDistributedScalarEncoder()
-    values = pd.to_numeric(input_data["kw_energy_consumption"], errors="coerce").dropna().tolist()
+    encoder = RandomDistributedScalarEncoder(RDSEParameters())
+
+    def _numeric_column(records: list[dict], col: str) -> list[float]:
+        out = []
+        for r in records:
+            v = r.get(col)
+            if v is None:
+                continue
+            try:
+                out.append(float(v))
+            except Exception:
+                continue
+        return out
+
+    values = _numeric_column(input_records, "kw_energy_consumption")
     train_values, test_values = train_test_split(values, test_size=0.2, shuffle=False)
     # Train the knn for decoding on 80% of data
     encodings = []
@@ -46,7 +58,7 @@ def main():
     # I use a second RDSE so the first one that is already
     # trained does not train on the test sdrs.
     test_encodings = []
-    encoder2 = RandomDistributedScalarEncoder()
+    encoder2 = RandomDistributedScalarEncoder(RDSEParameters())
     for v in test_values:
         test_encodings.append(encoder2.encode(v))
 
@@ -65,7 +77,7 @@ def main():
     print("RMSE:", rmse)
     # =======================================================================================================
 
-    # values = pd.to_numeric(input_data["Wave"])
+    # values = [float(row["Wave"]) for row in input_records if row.get("Wave") is not None]
     # data_path = os.path.join(project_root, "data", "test.csv")
     # =======================================================================================================
     """
@@ -139,8 +151,15 @@ def main():
 
         next_idx = (idx + 1) % len(sdrs_train)
         # target_col = input_data.columns[1]
-        target_col = input_data.columns[0]
-        actual_values.append(input_data.loc[input_data.index[next_idx], target_col])
+        target_col = cols[0] if cols else None
+        actual = None
+        if target_col is not None and next_idx < len(input_records):
+            actual = input_records[next_idx].get(target_col)
+            try:
+                actual = float(actual)
+            except Exception:
+                actual = None
+        actual_values.append(actual)
 
     for pred, actual in zip(predictions, actual_values):
         print(f"Actual next step: {actual}, Prediction: {pred}")

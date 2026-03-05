@@ -1,0 +1,48 @@
+@startuml
+' Input normalization and validation workflow
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title InputHandler Ingestion and Normalization
+
+actor Caller
+participant "InputHandler" as IH
+participant "Filesystem" as FS
+participant "CSV/JSON/XLSX Parser" as Parser
+participant "Validation Rules" as VR
+
+Caller -> IH: input_data(input_source, required_columns)
+activate IH
+
+alt input_source is string path
+  IH -> FS: exists(path)?
+  FS --> IH: true/false
+
+  alt file exists
+    IH -> Parser: _load_from_file(path)
+    activate Parser
+    Parser --> IH: raw_data
+    deactivate Parser
+    IH -> IH: _raw_to_sequence(raw_data)
+  else extension indicates file but missing
+    IH --> Caller: FileNotFoundError
+    deactivate IH
+    return
+  end
+else input_source is in-memory payload
+  IH -> IH: _raw_to_sequence(input_source)
+end
+
+opt required_columns provided
+  IH -> IH: _apply_required_columns(required_columns)
+end
+
+IH -> VR: _validate_data(required_columns)
+activate VR
+VR --> IH: valid / raise ValueError
+Deactivate VR
+
+IH --> Caller: list[dict[str, Any]] normalized records
+deactivate IH
+@enduml

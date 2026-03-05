@@ -1,4 +1,14 @@
- Executables and build outputs
+# archive files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+archive/
+
+#Executables and build outputs
 *.exe
 *.dll
 *.pdb
@@ -6,8 +16,9 @@
 /dist/
 /out/
 
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files / pycaches
 __pycache__/
+pyvenv
 *.py[codz]
 *$py.class
 
@@ -151,12 +162,11 @@ celerybeat.pid
 
 # Environments
 #.env
-.venv/
 .venv
-.venv/*
 .vscode
 .requirements.txt
 .flake8
+
 
 # Spyder project settings
 .spyderproject
@@ -220,3 +230,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 condaenv.iw4wefqq.requirements.txt
+
+# Integration test documentation (local only)
+tests/integration/README.md

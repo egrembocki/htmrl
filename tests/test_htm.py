@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 from matplotlib.pyplot import isinteractive
 
-# importing modules to test :: must use scope operator to get access to the class objects
 from psu_capstone.agent_layer.legacy_htm import (
     cell,
     column,
@@ -29,8 +28,6 @@ SEGMENT_ACTIVATION_THRESHOLD = 3  # Active connected distal synapses required fo
 SEGMENT_LEARNING_THRESHOLD = 3  # For best matching segment selection (reserved)
 INITIAL_DISTAL_PERM = 0.21  # Initial permanence for new distal synapses
 NEW_SYNAPSE_MAX = 6  # New distal synapses to add on reinforcement
-
-# TODO use mock objects where appropriate as part of pytest fixtures
 
 
 class FakeSegment(segment.Segment):

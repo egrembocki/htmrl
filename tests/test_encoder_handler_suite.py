@@ -1,9 +1,23 @@
-"""Test cases for EncoderHandler to build union SDRs"""
+"""
+tests.test_encoder_handler_suite
+
+Test suite for EncoderHandler union SDR generation functionality.
+
+Validates that EncoderHandler correctly coordinates multiple encoders to create union SDRs
+from mixed-type data. Tests ensure:
+- Multiple encoders (RDSE, Scalar, Category) process their respective fields
+- Individual field SDRs are combined into a single union SDR
+- Union SDR dimensions match expected (sum of all field encoder sizes)
+- Union SDR sparsity reflects combined encoding density
+- Encoder coordination handles different parameter configurations
+
+These tests validate the encoder coordination layer that converts tabular records
+with mixed data types into unified SDR representations for HTM processing.
+"""
 
 import copy
 from datetime import datetime
 
-import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
@@ -13,16 +27,14 @@ from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
 def handler() -> EncoderHandler:
     """Fixture to create an EncoderHandler with multiple encoders"""
 
-    df = pd.DataFrame(
-        [
-            {
-                "float_col": float(3.14),  # rdse
-                "int_col": int(42),  # scalar
-                "str_col": str("B"),  # category
-                "date_col": datetime(2023, 12, 25),  # date
-            }
-        ]
-    )
+    df = [
+        {
+            "float_col": float(3.14),  # rdse
+            "int_col": int(42),  # scalar
+            "str_col": str("B"),  # category
+            "date_col": datetime(2023, 12, 25),  # date
+        }
+    ]
 
     handler = EncoderHandler(df)
 

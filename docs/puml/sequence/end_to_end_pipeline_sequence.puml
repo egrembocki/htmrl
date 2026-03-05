@@ -1,0 +1,55 @@
+@startuml
+' End-to-end flow from raw input to HTM inference
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title End-to-End Processing Pipeline
+
+actor User
+participant "Demo Driver\n(demo_driver.py)" as Demo
+participant "InputHandler" as Input
+participant "EncoderHandler" as EH
+participant "Encoder\n(Scalar/Date/Category/RDSE)" as Enc
+participant "SDR" as SDR
+participant "Agent" as Agent
+participant "Brain" as Brain
+participant "HTM" as HTM
+
+User -> Demo: run demo()
+activate Demo
+
+Demo -> Input: input_data(source, required_columns)
+activate Input
+Input --> Demo: normalized records
+Deactivate Input
+
+loop for each record
+  Demo -> EH: encode(record)
+  activate EH
+  loop for each configured field encoder
+    EH -> Enc: encode(value, sdr)
+    activate Enc
+    Enc -> SDR: set_sparse(...) / set_dense(...)
+    deactivate Enc
+  end
+  EH --> Demo: composite SDR
+  deactivate EH
+
+  Demo -> Agent: run(composite SDR)
+  activate Agent
+  Agent -> Brain: process_input(sdr)
+  activate Brain
+  Brain -> HTM: compute_state(sdr)
+  activate HTM
+  HTM --> Brain: prediction + state update
+  deactivate HTM
+  Brain --> Agent: action / inference
+  deactivate Brain
+  Agent --> Demo: result
+  deactivate Agent
+end
+
+Demo --> User: visualization + console output
+deactivate Demo
+@enduml

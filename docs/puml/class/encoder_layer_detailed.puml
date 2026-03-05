@@ -1,0 +1,70 @@
+@startuml encoder_layer_detailed
+skinparam style strictuml
+!pragma layout smetana
+title Encoder Layer - Detailed Structure
+
+package "Encoder Layer" {
+    interface "EncoderInterface (Protocol)" as encoder_if {
+        + encode(value): SDR
+    }
+
+    abstract class "BaseEncoder" as base_encoder {
+        # width: int
+        # resolution: float
+        {abstract} encode(value)
+    }
+
+    class "ScalarEncoder" as scalar {
+        - min_value: float
+        - max_value: float
+        - sparsity: float
+        + encode(value): SDR
+    }
+
+    class "CategoryEncoder" as category {
+        - categories: list
+        - width: int
+        + encode(category): SDR
+    }
+
+    class "DateEncoder" as date {
+        - timeOfDay: bool
+        - dayOfWeek: bool
+        + encode(datetime): SDR
+    }
+
+    class "FourierEncoder" as fourier {
+        - frequency: float
+        - amplitude: float
+        + encode(value): SDR
+    }
+
+    class "RDSE" as rdse {
+        - activeBits: int
+        - radius: float
+        + encode(value): SDR
+    }
+
+    class "EncoderHandler" as handler {
+        - encoders: dict
+        + encode(data, column_mapping)
+        + get_encoder(name)
+    }
+
+    class "BatchEncoderHandler" as batch_handler {
+        - base_handler: EncoderHandler
+        + encode_batch(data_list)
+        + parallel_encode(data)
+    }
+
+    base_encoder ..|> encoder_if
+    scalar --|> base_encoder
+    category --|> base_encoder
+    date --|> base_encoder
+    fourier --|> base_encoder
+    rdse --|> base_encoder
+    handler --> encoder_if
+    batch_handler --> handler
+}
+
+@enduml

@@ -13,12 +13,16 @@ classifiers = [
 ]
 
 dependencies = [
+ "numpy>=1.26.4",
  "sympy>=1.11",
- "pandas>=2.1",
  "openpyxl>=3.1.2",
+ "pandas>=2.2.2",
  "mmh3>=3.0",
  "matplotlib>=3.7",
  "scikit-learn>=1.7.2",
+ "xlrd>=2.0.2",
+ "pyproj>=3.7.1",
+ "scipy>=1.15.3",
 ]
 
 
@@ -29,7 +33,13 @@ dev = [
     "pre-commit>=4.2.0",
     "pdoc>=16.0.0",
 ]
-tests = ["pytest>=8.4.1", "pytest-cov>=6.2.1", "pytest-mock>=3.14.0"]
+tests = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.0",
+    "openpyxl>=3.1.2",
+    "pandas>=2.2.2",
+]
 linters = ["flake8>=7.3.0", "flake8-pyproject>=1.2.3", "pep8-naming>=0.15.1"]
 formatters = ["black>=23.7.0", "isort>=6.0.1"]
 
@@ -38,7 +48,8 @@ formatters = ["black>=23.7.0", "isort>=6.0.1"]
 psu-capstone = "psu_capstone:main"
 
 [tool.uv]
-package = true
+# package = true  # Disabled for offline environments
+
 
 [tool.uv.workspace]
 members = [
@@ -101,7 +112,7 @@ warn_unused_ignores = true
 
 [tool.flake8]
 max-line-length = 100
-ignore = ["E501", "F401", "W503", "C901", "N803"]
+ignore = ["E501", "F401", "W503", "E203", "C901", "N803"]
 exclude = [
   ".venv",
   ".git",

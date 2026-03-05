@@ -1,10 +1,21 @@
-"""Base Encoder Test Suite"""
+"""
+tests.test_base_encoder
+
+Test suite for BaseEncoder abstract base class functionality.
+
+Validates that BaseEncoder correctly enforces the encoder interface contract, including:
+- Initialization with configurable size parameters
+- Abstract encode() method implementation requirements
+- Proper encoding dimension (size parameter) validation
+- Fixture setup for concrete encoder implementations
+
+These tests ensure BaseEncoder provides a consistent foundation for all encoder subclasses
+(ScalarEncoder, CategoryEncoder, DateEncoder, RDSE, etc.) to inherit from.
+"""
 
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-
-# from psu_capstone.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -13,11 +24,11 @@ def base_encoder_instance() -> BaseEncoder:
 
     # Arrange @mock
     class TestEncoder(BaseEncoder):
-        def encode(self, input_value, output_sdr: list[int]) -> None:
+        def encode(self, input_value) -> list[int]:
             """Dummy encode method for testing."""
-            pass
+            return []
 
-    return TestEncoder([10, 10])
+    return TestEncoder(100)
 
 
 def test_base_encoder_initialization(base_encoder_instance):
@@ -26,8 +37,18 @@ def test_base_encoder_initialization(base_encoder_instance):
     encoder = base_encoder_instance
 
     # Assert
-    print(encoder.dimensions)
-    print(encoder.size)
-
-    assert encoder.dimensions == [10, 10]
     assert encoder.size == 100
+
+
+def test_base_encoder_size_setter(base_encoder_instance):
+    """Ensure size setter enforces constraints."""
+
+    encoder = base_encoder_instance
+    encoder.size = 64
+    assert encoder.size == 64
+
+    with pytest.raises(ValueError):
+        encoder.size = 0
+
+    with pytest.raises(ValueError):
+        encoder.size = -1

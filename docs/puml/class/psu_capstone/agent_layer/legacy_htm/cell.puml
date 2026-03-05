@@ -1,0 +1,16 @@
+@startuml
+skinparam style strictuml
+!pragma layout smetana
+
+title psu_capstone.agent_layer.legacy_htm.cell
+
+class Cell {
+  -_segments: list[Segment]
+  +__init__()
+  +__repr__(): str
+}
+class Segment
+
+Cell o-- "0..*" Segment : segments
+
+@enduml

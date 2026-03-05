@@ -1,0 +1,16 @@
+@startuml
+skinparam style strictuml
+!pragma layout smetana
+
+title psu_capstone.input_layer.input_interface
+
+interface Protocol
+
+interface InputInterface {
+  +data
+  +input_data(input_source: Any, required_columns: list[str] | None)
+}
+
+Protocol <|.. InputInterface
+
+@enduml

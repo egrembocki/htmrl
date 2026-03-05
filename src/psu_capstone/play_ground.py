@@ -15,7 +15,8 @@ def overlap(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
 
 if __name__ == "__main__":
 
-    encoder = RandomDistributedScalarEncoder()
+    params = RDSEParameters()
+    encoder = RandomDistributedScalarEncoder(params)
 
     sdr_5 = encoder.encode(5)
     sdr_6 = encoder.encode(8)

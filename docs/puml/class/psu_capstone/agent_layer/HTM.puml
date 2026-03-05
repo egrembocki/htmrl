@@ -1,0 +1,209 @@
+@startuml
+skinparam style strictuml
+!pragma layout smetana
+
+title psu_capstone.agent_layer.HTM
+
+class Active {
+  +active: bool
+  +prev_active: bool
+  +set_active()
+  +advance_state()
+  +clear_state()
+}
+class Winner {
+  +winner: bool
+  +prev_winner: bool
+  +set_winner()
+  +advance_state()
+  +clear_state()
+}
+class Predictive {
+  +predictive: bool
+  +prev_predictive: bool
+  +set_predictive()
+  +advance_state()
+  +clear_state()
+}
+class Bursting {
+  +bursting: bool
+  +prev_bursting: bool
+  +set_bursting()
+  +advance_state()
+  +clear_state()
+}
+class Learning {
+  +learning: bool
+  +prev_learning: bool
+  +set_learning()
+  +advance_state()
+  +clear_state()
+}
+class Matching {
+  +matching: bool
+  +prev_matching: bool
+  +set_matching()
+  +advance_state()
+  +clear_state()
+}
+
+class Field {
+  +cells: list[Cell]
+  +__init__(cells: Iterable[Cell])
+  +__iter__()
+  +sample(pct: float): set[Cell]
+  +active_cells: set[Cell]
+  +prev_active_cells: set[Cell]
+  +predictive_cells: set[Cell]
+  +prev_predictive_cells: set[Cell]
+  +prev_learning_cells: set[Cell]
+  +prev_winner_cells: set[Cell]
+}
+class Synapse {
+  +source_cell: Cell | None
+  +permanence: float
+  +__init__(source_cell: Cell | None, permanence: float)
+  +_adjust_permanence(increase: bool, strength: float = 1.0)
+  +active: bool
+  +potentially_active: bool
+  +prev_active: bool
+}
+class ApicalSynapse {
+  +__init__(source_cell: Cell, permanence: float)
+  +active: bool
+}
+class DistalSynapse {
+  +__init__(source_cell: Cell, permanence: float)
+}
+class ProximalSynapse {
+  +__init__(source_cell: Cell, permanence: float = INITIAL_PERMANENCE)
+}
+class Segment {
+  +parent_cell: Cell
+  +synapses: list[DistalSynapse]
+  +sequence_segment: bool
+  +max_synapses: int
+  +synapse_cls
+  +activation_threshold: float
+  +learning_threshold_connected_pct: float
+  +__init__(parent_cell: Cell, synapses: list[Synapse] | None = None, synapse_cls=DistalSynapse)
+  +is_active(): bool
+  +is_potentially_active(): bool
+  +potential_prev_active_synapses(): int
+  +activate_segment()
+  +advance_state()
+  +clear_state()
+  +adapt(strength: float = 1.0)
+  +grow(strength: float = 1.0)
+  +weaken(strength: float = 1.0)
+}
+class ApicalSegment {
+  +__init__(parent_cell: Cell, synapses: list[ApicalSynapse] | None = None)
+  +activate_segment()
+}
+class Cell {
+  +parent_column: Column | None
+  +distal_field: Field | None
+  +apical_field: Field | None
+  +segments: list[Segment]
+  +active_duty_cycle: float
+  +__init__(parent_column: Column | None = None, distal_field: Field | None = None, apical_field: Field | None = None)
+  +initialize(distal_field: Field, apical_field: Field)
+  +__repr__(): str
+  +advance_state()
+  +clear_state()
+}
+class Column {
+  +input_field: Field | None
+  +receptive_field: set[Cell]
+  +potential_synapses: list[ProximalSynapse]
+  +connected_synapses: list[ProximalSynapse]
+  +overlap: float
+  +active_duty_cycle: float
+  +cells: list[Cell]
+  +__init__(input_field: Field | None = None, cells_per_column: int = 1)
+  +__repr__(): str
+  +segments: list[Segment]
+  +least_used_cell: Cell
+  +advance_state()
+  +clear_state()
+  +_update_connected_synapses(connected_perm: float = CONNECTED_PERM)
+  +compute_overlap()
+  +learn()
+  +best_potential_prev_active_segment(): list[Segment]
+}
+class ColumnField {
+  +num_columns: int
+  +cells_per_column: int
+  +input_fields: list[Field]
+  +non_spatial: bool
+  +non_temporal: bool
+  +duty_cycle_period: int
+  +__init__(input_fields: list[Field], num_columns: int = 0, cells_per_column: int = 1, non_spatial: bool = False, non_temporal: bool = False, duty_cycle_period: int = DUTY_CYCLE_PERIOD)
+  +initialize()
+  +set_input_fields()
+  +add_input_fields(fields: list[Field])
+  +__iter__()
+  +bursting_columns: list[Column]
+  +active_columns: list[Column]
+  +prev_winner_cells: set[Cell]
+  +advance_states()
+  +clear_states()
+  +compute(learn: bool = True)
+  +activate_columns()
+  +learn_columns()
+  +activate_top_k_columns(k: int)
+  +activate_cells()
+  +depolarize_cells()
+  +learn()
+  +set_prediction(): list[Field]
+  +_update_duty_cycles()
+  +print_stats()
+}
+class InputField {
+  +encoder
+  +__init__(encoder_params: Any | None = None, size: int | None = None)
+  +encode(input_value: Any): list[int]
+  +decode(state: str = "active", encoded: Field = None, candidates: Iterable[float] | None = None): tuple[float | None]
+  +advance_states()
+  +clear_states()
+}
+class OutputField
+class RDSEParameters
+
+Active <|-- Segment
+Learning <|-- Segment
+Matching <|-- Segment
+
+Active <|-- Cell
+Winner <|-- Cell
+Predictive <|-- Cell
+
+Active <|-- Column
+Predictive <|-- Column
+Bursting <|-- Column
+
+Synapse <|-- ApicalSynapse
+Synapse <|-- DistalSynapse
+Synapse <|-- ProximalSynapse
+
+Segment <|-- ApicalSegment
+
+Field <|-- ColumnField
+Field <|-- InputField
+InputField <|-- OutputField
+
+Field o-- "0..*" Cell : cells
+Synapse o-- Cell : source_cell
+Segment o-- Cell : parent_cell
+Segment o-- "0..*" Synapse : synapses
+Cell o-- "0..*" Segment : segments
+Cell ..> Field : distal_field
+Cell ..> Field : apical_field
+Column o-- "1..*" Cell : cells
+Column o-- "0..*" ProximalSynapse : synapses
+ColumnField o-- "1..*" Column : columns
+ColumnField o-- "1..*" Field : input_fields
+InputField ..> RDSEParameters : default params
+
+@enduml

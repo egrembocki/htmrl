@@ -1,0 +1,16 @@
+@startuml
+skinparam style strictuml
+!pragma layout smetana
+
+title psu_capstone.agent_layer.legacy_htm.distal_synapse
+
+class DistalSynapse {
+  +source_cell: Cell
+  +permanence: float
+  +__init__(source_cell: Cell, permanence: float)
+}
+class Cell
+
+DistalSynapse o-- Cell : source_cell
+
+@enduml

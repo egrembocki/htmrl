@@ -1,6 +1,13 @@
 exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 
-.PHONY: help install format lint clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
+# SSL Certificate configuration for Zscaler/corporate proxy
+export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
+export UV_NATIVE_TLS := 1
+
+# Ensure Java-based tools (e.g., PlantUML) run without an X11 display
+export JAVA_TOOL_OPTIONS := $(JAVA_TOOL_OPTIONS) -Djava.awt.headless=true
+
+.PHONY: help install format lint puml puml-all clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -65,8 +72,39 @@ format: ## Format code with isort and black
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
 	@uv run --active flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
-	@uv run --active flake8 . --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics --exclude=$(exclude)
+	@uv run --active flake8 . --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
+
+puml: ## Generate PlantUML diagrams from entire project
+	@echo "📊 Generating PlantUML diagrams for entire project..."
+	@mkdir -p docs/puml
+	@PYTHONPATH=src uv run --active pyreverse -o puml -d docs/puml -p psu_capstone -f ALL --ignore __init__ src/psu_capstone/
+	@echo "✅ PlantUML diagrams generated in docs/puml/"
+	@echo ""
+	@echo "Available diagrams:"
+	@echo "  🏗️  Project Architecture:"
+	@echo "     • project_architecture.puml - Complete system overview with all layers"
+	@echo "     • data_flow.puml - Data flow through the entire pipeline"
+	@echo ""
+	@echo "  📦 Layer Diagrams:"
+	@echo "     • encoder_layer_detailed.puml - All encoder types and handlers"
+	@echo "     • agent_layer_detailed.puml - HTM, Brain, Agent structure"
+	@echo "     • sdr_layer_detailed.puml - SDR representation and utilities"
+	@echo "     • input_layer_detailed.puml - Input handling and validation"
+	@echo ""
+	@echo "  🤖 Auto-generated (from pyreverse):"
+	@echo "     • classes_psu_capstone.puml - Class relationships"
+	@echo "     • packages_psu_capstone.puml - Package structure"
+	@echo ""
+	@echo "Use 'make puml-all' to also analyze top-level modules (drivers, handlers)"
+
+puml-all: ## Generate PlantUML diagrams including all src modules
+	@echo "📊 Generating comprehensive PlantUML diagrams (all src modules)..."
+	@mkdir -p docs/puml
+	@PYTHONPATH=src bash -c "uv run --active pyreverse -o puml -d docs/puml -p psu_capstone_full -f ALL --ignore __init__ src/ 2>&1 | grep -v '__init__' || true"
+	@echo "✅ Comprehensive diagrams generated in docs/puml/"
+	@echo "   - classes_psu_capstone_full.puml (all classes including drivers)"
+	@echo "   - packages_psu_capstone_full.puml (all package hierarchies)"
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."
@@ -87,7 +125,7 @@ endif
 
 update: ## Update dependencies
 	@echo "🔺 Updating dependencies..."
-	@uv lock --upgrade
+	@uv lock --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org
 	@echo "✅ Dependencies updated"
 
 ## In order to run a specific test file or directory, use:

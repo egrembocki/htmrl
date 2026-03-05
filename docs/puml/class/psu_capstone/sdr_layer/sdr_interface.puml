@@ -1,0 +1,26 @@
+@startuml
+skinparam style strictuml
+!pragma layout smetana
+
+title psu_capstone.sdr_layer.sdr_interface
+
+interface Protocol
+class SDR
+
+interface SDRInterface {
+  +zero()
+  +set_sparse(sparse: Iterable[int])
+  +get_sparse()
+  +set_dense(dense: Iterable[int])
+  +get_dense()
+  +set_sparsity(sparsity: float)
+  +get_sparsity()
+  +set_sdr(other: SDR)
+  +get_sdr()
+  +sdr_to_type(type: Any, is_sparse: bool)
+}
+
+Protocol <|.. SDRInterface
+SDRInterface ..> SDR
+
+@enduml

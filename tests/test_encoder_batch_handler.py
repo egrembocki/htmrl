@@ -1,9 +1,26 @@
+"""
+tests.test_encoder_batch_handler
+
+Test suite for BatchEncoderHandler functionality.
+
+Validates that BatchEncoderHandler correctly processes entire datasets of records,
+encoding each field according to its encoder type (RDSE for floats, Scalar for ints,
+Category for strings, DateEncoder for dates). Tests ensure:
+- Multiple encoders are attached and coordinated for different data types
+- Batch processing iterates through all records correctly
+- Union SDR generation combines individual field encodings properly
+- Data type detection and encoder mapping work correctly
+- Edge cases (missing values, type mismatches) are handled appropriately
+
+These tests validate the critical batch processing path that transforms tabular data
+(DataFrames) into SDR representations for HTM processing.
+"""
+
 import copy
 import os
 import warnings
 from datetime import datetime
 
-import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
@@ -15,8 +32,21 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
 
-df = pd.DataFrame(
-    [
+df = [
+    {
+        "float_col": float(3.14),  # rdse
+        "int_col": int(42),  # scalar
+        "str_col": str("B"),  # category
+        "date_col": datetime(2023, 12, 25),  # date
+    }
+]
+
+
+@pytest.fixture
+def handler() -> BatchEncoderHandler:
+    """Fixture to create an EncoderHandler with multiple encoders"""
+
+    df = [
         {
             "float_col": float(3.14),  # rdse
             "int_col": int(42),  # scalar
@@ -24,23 +54,6 @@ df = pd.DataFrame(
             "date_col": datetime(2023, 12, 25),  # date
         }
     ]
-)
-
-
-@pytest.fixture
-def handler() -> BatchEncoderHandler:
-    """Fixture to create an EncoderHandler with multiple encoders"""
-
-    df = pd.DataFrame(
-        [
-            {
-                "float_col": float(3.14),  # rdse
-                "int_col": int(42),  # scalar
-                "str_col": str("B"),  # category
-                "date_col": datetime(2023, 12, 25),  # date
-            }
-        ]
-    )
 
     handler = BatchEncoderHandler(df)
 
@@ -65,14 +78,13 @@ def test_dataframe_composite():
     we built it in separate sdrs. Concatenation was employed from the
     sdr to enable a proper composite sdr from the different encodings.
 
-    # this suppresses a pandas future warning of a method we do not use here.
     warnings.simplefilter(action="ignore", category=FutureWarning)
     handler = BatchEncoderHandler(df)
     test_input = handler._data_frame
 
     rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
     handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
+    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
         season_active_bits=0,
@@ -132,22 +144,19 @@ def test_individual_column_sdrs():
     column. Each should have 4 sdrs as we have 4 rows in the example data.
     """
 
-    # this suppresses a pandas future warning of a method we do not use here.
     warnings.simplefilter(action="ignore", category=FutureWarning)
-    df1 = pd.DataFrame(
-        [
-            {"float_col": 3.14, "int_col": 42, "str_col": "B", "date_col": datetime(2023, 12, 25)},
-            {"float_col": 5.4, "int_col": 21, "str_col": "C", "date_col": datetime(2023, 12, 26)},
-            {"float_col": 6.7, "int_col": 10, "str_col": "D", "date_col": datetime(2023, 12, 27)},
-            {"float_col": 12.4, "int_col": 5, "str_col": "E", "date_col": datetime(2023, 12, 28)},
-        ]
-    )
+    df1 = [
+        {"float_col": 3.14, "int_col": 42, "str_col": "B", "date_col": datetime(2023, 12, 25)},
+        {"float_col": 5.4, "int_col": 21, "str_col": "C", "date_col": datetime(2023, 12, 26)},
+        {"float_col": 6.7, "int_col": 10, "str_col": "D", "date_col": datetime(2023, 12, 27)},
+        {"float_col": 12.4, "int_col": 5, "str_col": "E", "date_col": datetime(2023, 12, 28)},
+    ]
 
     handler = BatchEncoderHandler(df1)
 
     rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
     handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(3, ["B"], rdse_used=False)
+    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
         season_active_bits=0,
@@ -184,16 +193,13 @@ def test_custom_encoding():
     This tests that we can tell the handler that we want the float_col to be encoded
     as a category instead of an rdse.
 
-    # this suppresses a pandas future warning of a method we do not use here.
     warnings.simplefilter(action="ignore", category=FutureWarning)
-    df1 = pd.DataFrame(
-        [
-            {"float_col": 3.14, "int_col": 42, "str_col": "B", "date_col": datetime(2023, 12, 25)},
-            {"float_col": 5.4, "int_col": 21, "str_col": "C", "date_col": datetime(2023, 12, 26)},
-            {"float_col": 6.7, "int_col": 10, "str_col": "D", "date_col": datetime(2023, 12, 27)},
-            {"float_col": 12.4, "int_col": 5, "str_col": "E", "date_col": datetime(2023, 12, 28)},
-        ]
-    )
+    df1 = [
+        {"float_col": 3.14, "int_col": 42, "str_col": "B", "date_col": datetime(2023, 12, 25)},
+        {"float_col": 5.4, "int_col": 21, "str_col": "C", "date_col": datetime(2023, 12, 26)},
+        {"float_col": 6.7, "int_col": 10, "str_col": "D", "date_col": datetime(2023, 12, 27)},
+        {"float_col": 12.4, "int_col": 5, "str_col": "E", "date_col": datetime(2023, 12, 28)},
+    ]
 
     handler = BatchEncoderHandler(df1)
 
