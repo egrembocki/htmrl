@@ -11,6 +11,9 @@ Note: Some of the demonstration functions may require specific datasets to be av
 
 import argparse
 import os
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
 
 import grapher
 from psu_capstone.agent_layer.brain import Brain
@@ -29,6 +32,71 @@ REC_CENTER = os.path.join(DATA_PATH, "rec_center.csv")
 DATA_COLUMN_LOG_MESSAGE = "Data column '%s': %d records"
 
 DATA_DICT = {}
+
+
+def build_demo_records(row_count: int = 32) -> list[dict[str, Any]]:
+    """Build deterministic mixed-type records used by demo/integration tests."""
+
+    records: list[dict[str, Any]] = []
+    base_time = datetime(2025, 1, 1, 9, 0, 0)
+    labels = ["A", "B", "C", "D"]
+
+    for index in range(max(1, row_count)):
+        records.append(
+            {
+                "float_col": float(index) * 0.5 + 1.0,
+                "int_col": int((index * 3) % 100),
+                "str_col": labels[index % len(labels)],
+                "date_col": base_time + timedelta(hours=index),
+            }
+        )
+
+    return records
+
+
+def run_full_demo(row_limit: int = 32, output_dir: str | Path | None = None) -> dict[str, Path]:
+    """Run a compact, test-friendly demo and emit visual artifacts to disk."""
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    records = build_demo_records(row_count=row_limit)
+    floats = np.asarray([record["float_col"] for record in records], dtype=float)
+    ints = np.asarray([record["int_col"] for record in records], dtype=float)
+
+    destination = (
+        Path(output_dir) if output_dir is not None else Path(PROJECT_ROOT) / "docs" / "reports"
+    )
+    destination.mkdir(parents=True, exist_ok=True)
+
+    signal_plot = destination / "demo_signal.png"
+    plt.figure(figsize=(8, 4))
+    plt.plot(floats, label="float_col")
+    plt.plot(ints, label="int_col", alpha=0.8)
+    plt.title("Demo Input Signals")
+    plt.xlabel("Record Index")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(signal_plot)
+    plt.close()
+
+    fft_plot = destination / "demo_signal_fft.png"
+    magnitude = np.abs(np.fft.rfft(floats - floats.mean()))
+    freqs = np.fft.rfftfreq(floats.size, d=1.0)
+    plt.figure(figsize=(8, 4))
+    plt.plot(freqs, magnitude)
+    plt.title("Demo Signal FFT Magnitude")
+    plt.xlabel("Frequency")
+    plt.ylabel("Magnitude")
+    plt.tight_layout()
+    plt.savefig(fft_plot)
+    plt.close()
+
+    return {
+        "signal": signal_plot,
+        "fft": fft_plot,
+    }
 
 
 def show_input_data_demo() -> None:

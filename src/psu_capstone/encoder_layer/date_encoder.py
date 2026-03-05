@@ -32,19 +32,24 @@ from psu_capstone.log import get_logger, logger
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
     """Python port of the HTM DateEncoder using scalar encoders with default parameters.
 
-    Encodes up to 6 attributes using six different encoders of a timestamp into one SDR:
-    - season (day-of-year)
+    Encodes up to 7 attributes using different encoders of a timestamp into one SDR:
+    - year (absolute year value) - mutually exclusive with season
+    - season (day-of-year, 0-365) - mutually exclusive with year
     - dayOfWeek
     - weekend
     - customDays
     - holiday
     - timeOfDay
 
+    Important: Year and Season encoders are mutually exclusive (XOR).
+    Enable year for absolute year tracking, OR season for cyclic day-of-year, but not both.
+
     Args:
         date_params: DateEncoderParameters instance specifying encoding options.
             If None, defaults to DateEncoderParameters().
 
     Attributes:
+        YEAR: Index constant for year encoder (6).
         SEASON: Index constant for season encoder (0).
         DAYOFWEEK: Index constant for day of week encoder (1).
         WEEKEND: Index constant for weekend encoder (2).
@@ -60,6 +65,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     CUSTOM = 3
     HOLIDAY = 4
     TIMEOFDAY = 5
+    YEAR = 6
 
     def __init__(
         self,
@@ -84,6 +90,8 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         """Flag indicating if all sub-encoders are valid."""
 
         # Declare one encoder per feature
+        self._year_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
+        """Encoder for year."""
         self._season_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
         """Encoder for season (day of year)."""
         self._dayofweek_encoder: RandomDistributedScalarEncoder | ScalarEncoder | None = None
@@ -173,6 +181,29 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         self._bucketMap.clear()
         self._buckets.clear()
 
+        # Validate mutually exclusive parameters: year XOR season
+        if args.year_active_bits > 0 and args.season_active_bits > 0:
+            raise ValueError(
+                "DateEncoder: year and season encoders are mutually exclusive. "
+                "Enable year for absolute year values OR season for day-of-year, not both."
+            )
+
+        # -------- Year --------
+        if args.year_active_bits > 0:
+            logger.info("DateEncoder: enabling year encoder.")
+            self._year_encoder = self._setup_feature_encoder(
+                feature_key=self.YEAR,
+                size_value=args.year_size,
+                active_bits=args.year_active_bits,
+                radius=args.year_radius,
+                resolution=args.year_resolution,
+                sparsity=args.year_sparsity,
+                seed=args.seed + self.YEAR,
+            )
+            if self._year_encoder is None:
+                raise ValueError("DateEncoder: year encoder must be enabled.")
+            size += self._year_encoder.size
+
         # -------- Season --------
         if args.season_active_bits > 0:
             logger.info("DateEncoder: enabling season encoder.")
@@ -183,6 +214,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                 radius=args.season_radius,
                 resolution=args.season_resolution,
                 sparsity=args.season_sparsity,
+                seed=args.seed + self.SEASON,
             )
             if self._season_encoder is None:
                 raise ValueError("DateEncoder: season encoder must be enabled.")
@@ -198,6 +230,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                 radius=args.day_of_week_radius,
                 resolution=args.day_of_week_resolution,
                 sparsity=args.day_of_week_sparsity,
+                seed=args.seed + self.DAYOFWEEK,
             )
             if self._dayofweek_encoder is None:
                 raise ValueError("DateEncoder: day of week encoder must be enabled.")
@@ -213,6 +246,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                 radius=args.weekend_radius,
                 resolution=args.weekend_resolution,
                 sparsity=args.weekend_sparsity,
+                seed=args.seed + self.WEEKEND,
             )
             if self._weekend_encoder is None:
                 raise ValueError("DateEncoder: weekend encoder must be enabled.")
@@ -254,6 +288,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                 radius=args.custom_radius,
                 resolution=args.custom_resolution,
                 sparsity=args.custom_sparsity,
+                seed=args.seed + self.CUSTOM,
             )
             if self._customdays_encoder is None:
                 raise ValueError("DateEncoder: custom days encoder must be enabled.")
@@ -274,6 +309,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                 radius=args.holiday_radius,
                 resolution=args.holiday_resolution,
                 sparsity=args.holiday_sparsity,
+                seed=args.seed + self.HOLIDAY,
             )
             if self._holiday_encoder is None:
                 raise ValueError("DateEncoder: holiday encoder must be enabled.")
@@ -289,6 +325,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                 radius=args.time_of_day_radius,
                 resolution=args.time_of_day_resolution,
                 sparsity=args.time_of_day_sparsity,
+                seed=args.seed + self.TIMEOFDAY,
             )
             if self._timeofday_encoder is None:
                 raise ValueError(
@@ -352,6 +389,15 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         # Collect per-attribute SDRs to later concatenate
         sdrs: list[list[int]] = []
+
+        # --- Year: absolute year value ---
+        if isinstance(self._year_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
+            year_value = float(t.tm_year)
+            encoded_value = self._year_encoder.encode(year_value)
+            bucket_idx = math.floor(year_value / max(self._year_encoder._radius, 1.0))
+            self._buckets[self._bucketMap[self.YEAR]] = float(bucket_idx)
+
+            sdrs.append(encoded_value)
 
         # --- Season: day of year (0-based) ---
         if isinstance(self._season_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
@@ -445,6 +491,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         :rtype: dict[str, tuple[float | None]]
         """
         decoded_floats = {}
+        if self._year_encoder is not None and isinstance(
+            self._year_encoder, RandomDistributedScalarEncoder
+        ):
+            local_decode = self._compute_decode(self._year_encoder, encoded)
+            decoded_floats["year"] = local_decode
         if self._season_encoder is not None and isinstance(
             self._season_encoder, RandomDistributedScalarEncoder
         ):
@@ -540,10 +591,22 @@ class DateEncoderParameters(ParentDataClass):
     Each field controls the encoding of a specific temporal feature.
     Set the corresponding width to a nonzero value to enable encoding for that feature.
 
+    Important Constraints:
+        - Year and Season encoders are mutually exclusive (XOR). Enable one or the other, not both.
+          * Year: Encodes absolute year value (e.g., 2020, 2021)
+          * Season: Encodes day-of-year (0-365, cyclic within a year)
+
     Atrtibutes:
 
+        year_size: Size of the year encoder (total bits).
+        year_active_bits: Number of active bits for absolute year (mutually exclusive with season_active_bits).
+        year_sparsity: Sparsity for year encoding.
+        year_radius: Radius for year encoding, in years.
+        year_resolution: Resolution for year encoding.
+        year_min: Minimum year value for encoding range.
+        year_max: Maximum year value for encoding range.
         season_size: Size of the season encoder (total bits).
-        season_active_bits: Number of active bits for season (day of year).
+        season_active_bits: Number of active bits for season/day of year (mutually exclusive with year_active_bits).
         season_sparsity: Sparsity for season encoding.
         season_radius: Radius for season encoding, in days.
         season_resolution: Resolution for season encoding .
@@ -599,12 +662,35 @@ class DateEncoderParameters(ParentDataClass):
          */
     """
 
+    # --------------------------------------------------------------------------
+    # Year (absolute year value)
+    year_size: int = 293
+    """Size of the year encoder (total bits)."""
+
+    year_active_bits: int = 0
+    """Set to greater than zero to enable year encoding. Number of active bits for absolute year."""
+
+    year_sparsity: float = 0.0
+    """Sparsity for year encoding (not used)."""
+
+    year_radius: float = 0.0
+    """Radius for year encoding, in years (e.g., 1 = year granularity)."""
+
+    year_resolution: float = 1.0
+    """Resolution for year encoding."""
+
+    year_min: int = 1
+    """Minimum year value for encoding range."""
+
+    year_max: int = 10000
+    """Maximum year value for encoding range."""
+
     # Season: day of year (0..366)
     # season size
-    season_size: int = 342
+    season_size: int = 293
     """Size of the season encoder (total bits)."""
 
-    season_active_bits: int = 7
+    season_active_bits: int = 6
     """Set to greater than zero to enable season encoding. Number of active bits for season (day of year). how many bits to apply to season
        Member: season -  The portion of the year. Unit is day. Range is 0 to 366 (to avoid leap year issues)."""
 
@@ -613,7 +699,7 @@ class DateEncoderParameters(ParentDataClass):
     """Sparsity for season encoding (not used)."""
 
     # season radius in days
-    season_radius: float = 85.5
+    season_radius: float = 72.25
     """Radius for season encoding, in days (default ~4 seasons) days per season."""
 
     # season  resoulation
@@ -623,11 +709,11 @@ class DateEncoderParameters(ParentDataClass):
     # --------------------------------------------------------------------------
 
     # day of week size
-    day_of_week_size: int = 342
+    day_of_week_size: int = 293
     """Size of the day of week encoder (total bits)."""
 
     # day of week active bits
-    day_of_week_active_bits: int = 7
+    day_of_week_active_bits: int = 6
     """Set to greater than zero to enable day of week encoding. Number of active bits for day of week, how many bits to apply to day of week."""
 
     # day of week sparsity
@@ -635,7 +721,7 @@ class DateEncoderParameters(ParentDataClass):
     """Sparsity for day of week encoding (not used)."""
 
     # day of week radius
-    day_of_week_radius: float = 1.0
+    day_of_week_radius: float = 41.85
     """Radius for day of week encoding, every day is a separate bucket."""
 
     # day of week resolution
@@ -645,11 +731,11 @@ class DateEncoderParameters(ParentDataClass):
     # --------------------------------------------------------------------------
 
     # Weekend flag (0/1, Fri 6pm through Sun midnight)
-    weekend_size: int = 342
+    weekend_size: int = 293
     """Size of the weekend encoder (total bits)."""
 
     # weekend active bits
-    weekend_active_bits: int = 7
+    weekend_active_bits: int = 6
     """Set to greater than zero to enable weekend encoding. Number of active bits for weekend flag."""
     # weekend sparsity
     weekend_sparsity: float = 0.0
@@ -666,10 +752,10 @@ class DateEncoderParameters(ParentDataClass):
     # --------------------------------------------------------------------------
 
     # holiday active bits
-    holiday_size: int = 342
+    holiday_size: int = 293
     """Size of the holiday encoder (total bits)."""
 
-    holiday_active_bits: int = 7
+    holiday_active_bits: int = 6
     """Set to greater than zero to enable holiday encoding. Number of active bits for holiday encoding."""
 
     # holiday sparsity
@@ -691,18 +777,18 @@ class DateEncoderParameters(ParentDataClass):
 
     # Time of day: 0..24 hours
     # time of day size
-    time_of_day_size: int = 342
+    time_of_day_size: int = 293
     """Size of the time of day encoder (total bits)."""
 
     # time of day active bits
-    time_of_day_active_bits: int = 7
+    time_of_day_active_bits: int = 6
     """Set to greater than zero to enable time of day encoding. Number of active bits for time of day."""
     # time of day sparsity
     time_of_day_sparsity: float = 0.0
     """Sparsity for time of day encoding (not used)."""
 
     # time of day radius
-    time_of_day_radius: float = 14.25
+    time_of_day_radius: float = 12.20
     """Radius for time of day encoding, in hours."""
 
     # time of day resolution
@@ -711,13 +797,12 @@ class DateEncoderParameters(ParentDataClass):
 
     # --------------------------------------------------------------------------
 
-    # custom days active bits
-    # Custom day groups (e.g. ["mon,wed,fri"])
     # custom days size
-    custom_size: int = 342
+    custom_size: int = 293
     """Size of the custom days encoder (total bits)."""
 
-    custom_active_bits: int = 7
+    # custom days active bits
+    custom_active_bits: int = 6
     """Set to greater than zero to enable custom days encoding. Number of active bits for custom day groups."""
 
     # custom days sparsity
@@ -725,13 +810,14 @@ class DateEncoderParameters(ParentDataClass):
     """Sparsity for custom days encoding (not used)."""
 
     # custom days radius
-    custom_radius: float = 1.0
+    custom_radius: float = 58.6
     """Radius for custom days encoding (not used)."""
 
     # custom days resolution
     custom_resolution: float = 0.0
     """Resolution for custom days encoding (not used)."""
 
+    # Custom day groups (e.g. ["mon,wed,fri"])
     custom_days: list[str] = field(default_factory=lambda: ["mon,tue,wed,thu,fri"])
     """List of custom day group strings (e.g., ["mon,wed,fri"])."""
 

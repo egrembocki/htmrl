@@ -1,3 +1,174 @@
+from __future__ import annotations
+
+import copy
+from datetime import datetime
+from typing import Any
+
+import numpy as np
+
+from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
+from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.sdr_layer.sdr import SDR
+
+
+class BatchEncoderHandler:
+    """Backwards-compatible batch encoder handler.
+
+    Provides the API expected by legacy tests and callers:
+    - singleton construction
+    - parameter setter methods
+    - `_build_dict_list_sdr` returning per-column SDR lists
+    """
+
+    __instance: BatchEncoderHandler | None = None
+
+    def __new__(cls, input_data: list[dict[str, Any]] | None = None) -> "BatchEncoderHandler":
+        if cls.__instance is None:
+            cls.__instance = super(BatchEncoderHandler, cls).__new__(cls)
+        return cls.__instance
+
+    def __init__(self, input_data: list[dict[str, Any]] | None = None) -> None:
+        self._data_frame: list[dict[str, Any]] = copy.deepcopy(input_data) if input_data else []
+        self._rdse_params = RDSEParameters(
+            size=2048,
+            active_bits=40,
+            sparsity=0.0,
+            radius=1.0,
+            resolution=0.0,
+            category=False,
+            seed=1,
+        )
+        self._scalar_params = ScalarEncoderParameters(
+            minimum=0,
+            maximum=100,
+            clip_input=True,
+            periodic=False,
+            active_bits=40,
+            sparsity=0.0,
+            size=2048,
+            radius=0.0,
+            category=False,
+            resolution=1.0,
+        )
+        self._date_params = DateEncoderParameters(
+            season_active_bits=0,
+            day_of_week_active_bits=7,
+            weekend_active_bits=2,
+            holiday_active_bits=4,
+            holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
+            time_of_day_active_bits=24,
+            custom_active_bits=0,
+            custom_days=[],
+            rdse_used=False,
+        )
+        self._category_params = CategoryParameters(w=3, category_list=[])
+        self._custom_encoding: dict[str, str] = {}
+
+    def _encode_value(
+        self,
+        value: Any,
+        col_name: str,
+        input_data: list[dict[str, Any]],
+    ) -> SDR:
+        encoder_type = self._custom_encoding.get(col_name, "").lower()
+        if not encoder_type:
+            if isinstance(value, datetime):
+                encoder_type = "date"
+            elif isinstance(value, str):
+                encoder_type = "category"
+            elif isinstance(value, int) and not isinstance(value, bool):
+                encoder_type = "scalar"
+            elif isinstance(value, (float, np.floating)):
+                encoder_type = "rdse"
+            else:
+                encoder_type = "rdse"
+
+        if encoder_type == "scalar":
+            encoder = ScalarEncoder(self._scalar_params)
+            if not isinstance(value, (int, float, np.integer, np.floating, bool)):
+                value = 0
+            dense = encoder.encode(int(value))
+        elif encoder_type == "category":
+            categories = sorted(
+                {str(row.get(col_name)) for row in input_data if row.get(col_name) is not None}
+            )
+            params = self._category_params
+            params.category_list = categories
+            encoder = CategoryEncoder(params)
+            dense = encoder.encode(str(value))
+        elif encoder_type == "date":
+            encoder = DateEncoder(self._date_params)
+            dense = encoder.encode(value)
+        else:
+            encoder = RandomDistributedScalarEncoder(self._rdse_params)
+            if not isinstance(value, (int, float, np.integer, np.floating, bool)):
+                value = 0.0
+            dense = encoder.encode(float(value))
+
+        sdr = SDR([encoder.size])
+        sdr.set_dense(dense)
+        return sdr
+
+    def _build_dict_list_sdr(
+        self, input_data: list[dict[str, Any]], threads_per_column: int
+    ) -> dict[str, list[SDR]]:
+        del threads_per_column
+        if not input_data:
+            return {}
+
+        column_names = list(input_data[0].keys())
+        output: dict[str, list[SDR]] = {name: [] for name in column_names}
+
+        for row in input_data:
+            for col_name in column_names:
+                output[col_name].append(self._encode_value(row.get(col_name), col_name, input_data))
+
+        return output
+
+    def set_category_encoder_parameters(self, params: CategoryParameters) -> None:
+        """Set custom parameters for category encoding.
+
+        Args:
+            params: CategoryParameters instance with encoder configuration.
+        """
+        self._category_params = params
+
+    def set_rdse_encoder_parameters(self, params: RDSEParameters) -> None:
+        """Set custom parameters for RDSE (float) encoding.
+
+        Args:
+            params: RDSEParameters instance with encoder configuration.
+        """
+        self._rdse_params = params
+
+    def set_scalar_encoder_parameters(self, params: ScalarEncoderParameters) -> None:
+        """Set custom parameters for scalar (integer) encoding.
+
+        Args:
+            params: ScalarEncoderParameters instance with encoder configuration.
+        """
+        self._scalar_params = params
+
+    def set_date_encoder_parameters(self, params: DateEncoderParameters) -> None:
+        """Set custom parameters for date/datetime encoding.
+
+        Args:
+            params: DateEncoderParameters instance with encoder configuration.
+        """
+        self._date_params = params
+
+    def choose_custom_column_encoding(self, custom_encoding: dict[str, str]) -> None:
+        """Override automatic type detection with custom encoder choices per column.
+
+        Args:
+            custom_encoding: Dict mapping column names to encoder types
+                ("rdse", "scalar", "category", "date").
+        """
+        self._custom_encoding = custom_encoding
+
+
 # from __future__ import annotations
 
 # import copy
