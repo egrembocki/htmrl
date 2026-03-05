@@ -18,13 +18,14 @@ import copy
 import random
 import struct
 from dataclasses import dataclass
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.log import get_logger, logger
 
 
 class RandomDistributedScalarEncoder(BaseEncoder[float]):
@@ -52,16 +53,20 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self._category = self._parameters.category
         self._seed = self._parameters.seed
         self._encoding_cache: dict[float, list[int]] = {}
-        self._encoding_cache: dict[float, list[int]] = {}
         self.knn: KNeighborsRegressor
         self.encoding: bool = False
+
+        self.logger = get_logger(self)
 
         super().__init__(self._size)
 
     @override
-    def encode(self, input_value: float) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+        if type(input_value) is not int and type(input_value) is not float:
+            raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
+        self.logger.info("RDSE encoded value: %s", input_value)
         return self._compute_encoding(input_value)
 
     def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
@@ -136,6 +141,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         """Converts a sparse activity vector to a activation list."""
         return [i for i, bit in enumerate(vector) if bit == 1]
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[float | None, float]:
@@ -166,6 +172,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         confidence = (
             best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
         )
+        self.logger.info("Decoded SDR into value: %s, with confidence: %s", best_value, confidence)
         return best_value, confidence
 
     def make_knn(self) -> None:
@@ -335,9 +342,11 @@ if __name__ == "__main__":
     def _overlap_count(first: list[int], second: list[int]) -> int:
         return int(np.count_nonzero(first == second))
 
-    print(_overlap_count(a, b))
-    print(encoder.decode(a))
-    print(encoder.decode(b))
+    # print(_overlap_count(a, b))
+    encoder.decode(a)
+    encoder.decode(b)
+    # print(encoder.decode(a))
+    # print(encoder.decode(b))
     # Tests
     """
     params = RDSEParameters(

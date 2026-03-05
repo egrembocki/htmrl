@@ -16,9 +16,10 @@ from __future__ import annotations
 import copy
 import math
 from dataclasses import dataclass
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.log import get_logger, logger
 
 
 class ScalarEncoder(BaseEncoder[int]):
@@ -51,7 +52,7 @@ class ScalarEncoder(BaseEncoder[int]):
         self._radius = self._parameters.radius
         self._resolution = self._parameters.resolution
         self._encoding_cache: dict[float, list[int]] = {}
-
+        self.logger = get_logger(self)
         super().__init__(self._size)
 
     """
@@ -138,11 +139,15 @@ class ScalarEncoder(BaseEncoder[int]):
         return dense
 
     @override
-    def encode(self, input_value: int | float) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+        if type(input_value) is not int and type(input_value) is not float:
+            raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
+        self.logger.info("Scalar encoded value: %s", input_value)
         return self._compute_encoding(input_value)
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[float | None, float]:
@@ -172,6 +177,9 @@ class ScalarEncoder(BaseEncoder[int]):
 
         confidence = (
             best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
+        )
+        self.logger.info(
+            "Scalar decoded SDR into value: %s, with confidence: %s", best_value, confidence
         )
         return best_value, confidence
 
@@ -391,6 +399,6 @@ if __name__ == "__main__":
     )
     encoder = ScalarEncoder(p)
     e = encoder.encode(400)
-    print(e)
+    # print(e)
     d = encoder.decode(e)
-    print(d)
+    # print(d)

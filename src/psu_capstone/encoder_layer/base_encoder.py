@@ -22,7 +22,7 @@ Reference:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, override
+from typing import Any, Generic, TypeVar, override
 
 T = TypeVar("T")
 
@@ -95,7 +95,12 @@ class BaseEncoder(ABC, Generic[T]):
         Raises:
             NotImplementedError: If not implemented by subclass.
         """
-        raise NotImplementedError("Subclasses must implement this method")
+        raise NotImplementedError("Subclasses must implement the encoding method")
+
+    @abstractmethod
+    def decode(self, input_sdr: list[int]) -> Any:
+        """Decodes the input sdr into a value and confidence."""
+        raise NotImplementedError("Subclasses must implement the decoding method")
 
 
 @dataclass

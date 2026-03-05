@@ -124,6 +124,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         h = mmh3.hash(s, seed=self._seed, signed=False)
         return h / 2**32
 
+    @override
     def decode(
         self,
         encoded: list[int],

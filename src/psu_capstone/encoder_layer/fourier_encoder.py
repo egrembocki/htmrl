@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from typing import Iterable, cast, override
+from typing import Any, Iterable, cast, override
 
 import numpy as np
 from scipy.fft import fft, fftfreq
@@ -160,7 +160,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         return num_peaks
 
     @override
-    def encode(self, input_value: np.ndarray | list[float]) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Transform the input signal via FFT and populate the provided SDR.
 
         Encodes a single frequency peak into a SDR as list[int].
@@ -348,6 +348,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         return dense_bits
         # END def encode
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> dict[str, list[tuple[tuple[int, int], float | None, float]] | tuple[float | None, float]]:

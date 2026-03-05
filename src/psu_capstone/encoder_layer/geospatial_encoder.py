@@ -81,6 +81,7 @@ class GeospatialEncoder(
 
         return self._encoder.encode((coord, radius))
 
+    @override
     def decode(
         self,
         encoded: list[int],

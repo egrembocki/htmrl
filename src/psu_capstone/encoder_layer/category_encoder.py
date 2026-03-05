@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from typing import Iterable, cast, override
+from typing import Any, Iterable, cast, override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.log import get_logger, logger
 
 
 class CategoryEncoder(BaseEncoder[str]):
@@ -38,6 +39,7 @@ class CategoryEncoder(BaseEncoder[str]):
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
         self.size = self._num_categories * self._w
+        self.logger = get_logger(self)
 
         super().__init__(self._size)
         # Configure RDSE for random distributed encoding
@@ -69,7 +71,7 @@ class CategoryEncoder(BaseEncoder[str]):
             self.encoder = ScalarEncoder(self.sp)
 
     @override
-    def encode(self, input_value: str) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode a category string into a sparse distributed representation.
 
         Maps the input category to its index in the category list (or 0 for
@@ -85,9 +87,12 @@ class CategoryEncoder(BaseEncoder[str]):
             index = 0
         else:
             index = self._category_list.index(input_value) + 1
+        self.logger.info("Category encoded value: %s", input_value)
         a = self.encoder.encode(int(index))
         return a
 
+    # TODO add candidates to this method
+    @override
     def decode(
         self, input_sdr: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[str | None, float]:
@@ -114,7 +119,7 @@ class CategoryEncoder(BaseEncoder[str]):
             )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
             result_tuple = rdse_encoder.decode(input_sdr)
             result: str = self._category_list[int(result_tuple[0]) - 1]
-            print(result)
+            self.logger.info("Decoded SDR into category: %s", result)
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
             return (result, result_tuple[1])
 
@@ -170,17 +175,13 @@ if __name__ == "__main__":
     b = e.encode("ES")
     c = e.encode("NA")
     d = e.encode("GB")
-    r = e.decode(a)
-    print(r)
+    e.decode(a)
 
-    r = e.decode(b)
-    print(r)
+    e.decode(b)
 
-    r = e.decode(c)
-    print(r)
+    e.decode(c)
 
-    r = e.decode(d)
-    print(r)
+    e.decode(d)
     """
     categories = ["ES", "GB", "US"]
     parameters = CategoryParameters(w=3, category_list=categories)
