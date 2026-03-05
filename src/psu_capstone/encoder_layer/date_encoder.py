@@ -319,6 +319,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
             List of active bit indices.
 
         Raises:
+            ValueError: If input_value is not a valid timestamp-like type.
             TypeError: If input_value is of unsupported type.
             RuntimeError: If encoder is misconfigured with no sub-encoders.
         """
