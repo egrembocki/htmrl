@@ -1,42 +1,42 @@
-"""Scalar Encoder Module implementation. From NuPic Numenta Cpp ported to python
-/**
- * These four (4) members define the total number of bits in the output:
- *      size,
- *      radius,
- *      category,
- *      resolution.
- *
- * These are mutually exclusive and only one of them should be non-zero when
- * constructing the encoder. -- Need to refactor ScalarEncoder to take in only params
- */
+"""Scalar encoder for numeric values with semantic similarity.
 
+This module provides a ScalarEncoder that converts numeric (floating point)
+values into sparse distributed representations where semantically similar
+values produce overlapping encodings. The encoder uses a contiguous block
+of active bits whose position varies with the input value.
+
+The encoder output is controlled by exactly one of four mutually exclusive
+parameters: size, radius, category, or resolution.
+
+Based on NuPIC's C++ implementation ported to Python.
 """
+
+from __future__ import annotations
 
 import copy
 import math
 from dataclasses import dataclass
-from typing import Iterable, override
+from typing import Any, Iterable, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.log import get_logger, logger
 
 
 class ScalarEncoder(BaseEncoder[int]):
+    """Encoder for numeric values using contiguous blocks of active bits.
+
+    The ScalarEncoder converts a numeric value into a sparse distributed
+    representation where active bits form a contiguous block. The position
+    of this block varies smoothly with the input value, ensuring semantic
+    similarity - similar inputs produce overlapping representations.
+
+    Args:
+        parameters: Configuration for scalar encoding behavior.
     """
-    /**
-     * Encodes a real number as a contiguous block of 1's.
-     *
-     * Description:
-     * The ScalarEncoder encodes a numeric (floating point) value into an array
-     * of bits. The output is 0's except for a contiguous block of 1's. The
-     * location of this contiguous block varies continuously with the input value.
-     *
-     * To inspect this run:
-     * $ python -m htm.examples.encoders.scalar_encoder --help
-     */"""
 
     def __init__(
         self,
-        parameters: "ScalarEncoderParameters",
+        parameters: ScalarEncoderParameters,
     ):
         self._parameters = copy.deepcopy(parameters)
         self._parameters = self.check_parameters(self._parameters)
@@ -52,7 +52,7 @@ class ScalarEncoder(BaseEncoder[int]):
         self._radius = self._parameters.radius
         self._resolution = self._parameters.resolution
         self._encoding_cache: dict[float, list[int]] = {}
-
+        self.logger = get_logger(self)
         super().__init__(self._size)
 
     """
@@ -139,11 +139,15 @@ class ScalarEncoder(BaseEncoder[int]):
         return dense
 
     @override
-    def encode(self, input_value: int | float) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
+        if type(input_value) is not int and type(input_value) is not float:
+            raise ValueError("A scalar encoder can only encode floats or ints.")
         self.register_encoding(input_value)
+        self.logger.info("Scalar encoded value: %s", input_value)
         return self._compute_encoding(input_value)
 
+    @override
     def decode(
         self, encoded: list[int], candidates: Iterable[float] | None = None
     ) -> tuple[float | None, float]:
@@ -173,6 +177,9 @@ class ScalarEncoder(BaseEncoder[int]):
 
         confidence = (
             best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
+        )
+        self.logger.info(
+            "Scalar decoded SDR into value: %s, with confidence: %s", best_value, confidence
         )
         return best_value, confidence
 
@@ -296,7 +303,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
 
 @dataclass
-class ScalarEncoderParameters(ParentDataclass):
+class ScalarEncoderParameters(ParentDataClass):
 
     minimum: int = 0
     """Min and Max
@@ -392,6 +399,6 @@ if __name__ == "__main__":
     )
     encoder = ScalarEncoder(p)
     e = encoder.encode(400)
-    print(e)
+    # print(e)
     d = encoder.decode(e)
-    print(d)
+    # print(d)

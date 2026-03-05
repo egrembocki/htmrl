@@ -1,12 +1,36 @@
 """
-Test suite for DateEncoder with rdse_used=True (RDSE version).
+tests.test_encoder_date_rdse
 
-Covers: output format (binary 0/1, length), parameter conformance,
-per-feature encoding, all-combined, determinism, seed, input types, and errors.
+Test suite for DateEncoder with RDSE backend.
+
+The Date Encoder decomposes temporal values (datetime objects) into multiple
+component dimensions and encodes each using RDSE for sparse, distributed representations.
+
+Temporal Components Encoded:
+  - Season (annual cycle, 365 days)
+  - Day of week (Mon-Sun, 7 values)
+  - Weekend vs weekday (binary)
+  - Holiday status (special days)
+  - Time of day (hours/minutes, 24h cycle)
+  - Custom dimensions (user-defined periodic patterns)
+
+Parameter Validation:
+  - Each component has its own size, active_bits/sparsity, radius/resolution
+  - Active_bits and sparsity are mutually exclusive (per RDSE constraint)
+  - Tests explicitly set sparsity=0.0 when using active_bits
+  - Multiple components can be combined into single encoding
+
+Tests validate:
+  1. Encoder initialization with various component combinations
+  2. Output format (binary 0/1 only, length = sum of component sizes)
+  3. Determinism (same datetime → same SDR)
+  4. Component independence (each component contributes to final encoding)
+  5. All component combinations work correctly
 """
 
 from datetime import datetime
 
+import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
@@ -283,9 +307,9 @@ def test_rdse_encode_accepts_struct_time():
 def test_rdse_encode_rejects_unsupported_type():
     """RDSE DateEncoder rejects unsupported input types."""
     encoder = DateEncoder(_params_season_only())
-    with pytest.raises(TypeError, match="Unsupported type"):
+    with pytest.raises(ValueError):
         encoder.encode("2020-01-01")
-    with pytest.raises(TypeError, match="Unsupported type"):
+    with pytest.raises(ValueError):
         encoder.encode([2020, 1, 1])
 
 
@@ -323,3 +347,74 @@ def test_rdse_different_dates_different_encodings():
         encodings.append(encoder.encode(dt))
     # At least two should differ
     assert len(set(tuple(e) for e in encodings)) >= 2
+
+
+# Correctness tests below
+def hamming_distance_helper(first, second) -> int:
+    """
+    Helper method to find the differences with the first != second and then count the nonzero
+    as that is how many different bits there are. So if first was 1001 and second was 1010 the
+    first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
+    distance of 2 since 2 of the bits are different.
+    """
+    first = np.asarray(first)
+    second = np.asarray(second)
+    return int(np.count_nonzero(first != second))
+
+
+def test_date_correctness():
+    encoder = DateEncoder(_params_all_combined())
+    encodings1 = []
+    for year, month, day in [(2020, 1, 1), (2020, 7, 4), (2050, 12, 25)]:
+        dt = datetime(year, month, day, 12, 0)
+        encodings1.append(encoder.encode(dt))
+    """This is failing, a year given that is 30 years ahead of the other two encodings should have some form of difference in bits."""
+    assert hamming_distance_helper(encodings1[0], encodings1[1]) < hamming_distance_helper(
+        encodings1[0], encodings1[2]
+    )
+
+    encodings2 = []
+    d = datetime(year=2026, month=1, day=1, minute=1)
+    d1 = datetime(year=2026, month=1, day=1, minute=2)
+    d2 = datetime(year=2026, month=1, day=1, minute=59)
+    encodings2.append(encoder.encode(d))
+    encodings2.append(encoder.encode(d1))
+    encodings2.append(encoder.encode(d2))
+    assert hamming_distance_helper(encodings2[0], encodings2[1]) < hamming_distance_helper(
+        encodings2[0], encodings2[2]
+    )
+
+    encodings3 = []
+    d3 = datetime(year=2026, month=1, day=1, minute=1, second=1)
+    d4 = datetime(year=2026, month=1, day=1, minute=1, second=2)
+    d5 = datetime(year=2026, month=1, day=1, minute=1, second=59)
+    encodings3.append(encoder.encode(d3))
+    encodings3.append(encoder.encode(d4))
+    encodings3.append(encoder.encode(d5))
+    assert hamming_distance_helper(encodings3[0], encodings3[1]) < hamming_distance_helper(
+        encodings3[0], encodings3[2]
+    )
+
+    encodings4 = []
+    d6 = datetime(year=2026, month=1, day=1, hour=1)
+    d7 = datetime(year=2026, month=1, day=1, hour=2)
+    d8 = datetime(year=2026, month=1, day=1, hour=23)
+    encodings4.append(encoder.encode(d6))
+    encodings4.append(encoder.encode(d7))
+    encodings4.append(encoder.encode(d8))
+    """This is failing, an hour being 23 should have less in common with 1 versus hour 1 and 2 being compared."""
+    assert hamming_distance_helper(encodings4[0], encodings4[1]) < hamming_distance_helper(
+        encodings4[0], encodings4[2]
+    )
+
+    encodings5 = []
+    d9 = datetime(year=2000, month=1, day=1, hour=1, minute=1)
+    d10 = datetime(year=2001, month=1, day=1, hour=1, minute=1)
+    d11 = datetime(year=3000, month=1, day=1, hour=1, minute=1)
+    encodings5.append(encoder.encode(d9))
+    encodings5.append(encoder.encode(d10))
+    encodings5.append(encoder.encode(d11))
+    """This is failing, the year 2000 compared to 2001 should have a lesser difference than 2000 compared to 3000."""
+    assert hamming_distance_helper(encodings5[0], encodings5[1]) < hamming_distance_helper(
+        encodings5[0], encodings5[2]
+    )

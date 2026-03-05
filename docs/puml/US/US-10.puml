@@ -1,0 +1,39 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title US-10 Decode SDR to Value
+actor Developer as Dev
+participant "<u>b:Brain</u>" as BR
+participant "<u>cf:ColumnField</u>" as HTM
+participant "<u>if:InputField</u>" as IF
+participant "<u>enc:BaseEncoder</u>" as ENC
+
+Dev -> BR: step(inputs, learn=False)
+activate BR
+BR -> HTM: compute(learn=False)
+activate HTM
+HTM --> BR: predictive state
+deactivate HTM
+
+BR -> BR: prediction() uses predictive state
+loop for each registered input field
+  BR -> IF: decode("predictive")
+  activate IF
+  IF -> ENC: decode(bit_vector, candidates)
+  activate ENC
+  ENC --> IF: decoded value + confidence
+  deactivate ENC
+  IF --> BR: (value, confidence)
+  deactivate IF
+end
+
+BR --> Dev: decoded output map + HTM state
+deactivate BR
+
+note over BR,HTM
+Predictions are produced from Brain/HTM predictive state,
+then decoded by InputField + encoder decode APIs.
+end note
+@enduml

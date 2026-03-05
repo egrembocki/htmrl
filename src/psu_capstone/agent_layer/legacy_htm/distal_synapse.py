@@ -28,25 +28,23 @@ class DistalSynapse:
       target cell's future activation.
     - Decrease permanence on incorrect predictions to prune weak associations.
 
+    The owning distal segment will evaluate this synapse against current
+    network state to compute segment activation and drive predictions.
+
+    Args:
+        source_cell: The Cell that provides activity to drive this synapse.
+        permanence: The synaptic strength; higher values indicate more stable
+            connections. Thresholding determines if the synapse is considered
+            connected during inference.
+
     Notes:
-    - Connectivity is determined by comparing permanence against a threshold
-      (defined elsewhere, typically CONNECTED_PERM).
-    - This class is intentionally lightweight; evaluation of active/connected
-      states and learning rules are performed at the segment level.
+        Connectivity is determined by comparing permanence against a threshold
+        (defined elsewhere, typically CONNECTED_PERM). This class is intentionally
+        lightweight; evaluation of active/connected states and learning rules are
+        performed at the segment level.
     """
 
     def __init__(self, source_cell: Cell, permanence: float) -> None:
-        """Create a distal synapse with a source cell and initial permanence.
-
-        Parameters:
-        - source_cell: The Cell that provides activity to drive this synapse.
-        - permanence: The synaptic strength; higher values indicate more stable
-          connections. Thresholding determines if the synapse is considered
-          connected during inference.
-
-        The owning distal segment will evaluate this synapse against current
-        network state to compute segment activation and drive predictions.
-        """
         self.source_cell: Cell = source_cell
         self.permanence: float = permanence
 

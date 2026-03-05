@@ -90,8 +90,11 @@ class TemporalMemory:
         - Compute active state, predictive state, and perform learning.
         - Return binary vectors for active, predictive, and winner (learning) cells.
 
+        Args:
+            active_columns: List of Column objects that are currently active.
+
         Returns:
-            dict with binary vectors for active_cells, predictive_cells, learning_cells
+            Dictionary with binary vectors for active_cells, predictive_cells, and learning_cells.
         """
         t = self.current_t
         active_columns = [c for c in active_columns if isinstance(c, Column)]

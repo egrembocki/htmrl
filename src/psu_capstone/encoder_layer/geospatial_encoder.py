@@ -1,3 +1,5 @@
+"""This module implements a geospatial encoder that encodes GPS coordinates and speed into a sparse binary representation. It uses the CoordinateEncoder for encoding the spatial information and includes logic for handling different coordinate reference systems and speed-based radius calculation."""
+
 from __future__ import annotations
 
 import copy
@@ -8,7 +10,7 @@ from typing import Iterable, Optional, override
 import numpy as np
 from pyproj import CRS, Transformer
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 # Good for 2D
@@ -79,6 +81,7 @@ class GeospatialEncoder(
 
         return self._encoder.encode((coord, radius))
 
+    @override
     def decode(
         self,
         encoded: list[int],
@@ -152,7 +155,7 @@ class GeospatialEncoder(
 
 
 @dataclass
-class GeospatialParameters(ParentDataclass):
+class GeospatialParameters(ParentDataClass):
     # meters per grid unit
     scale: float = 5.0
 
