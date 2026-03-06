@@ -140,6 +140,7 @@ class Field:
 
 
 class Synapse:
+    """Base synapse that links a source cell to a permanence value."""
 
     def __init__(self, source_cell: "Cell|None", permanence: float) -> None:
         self.source_cell: "Cell|None" = source_cell
@@ -217,10 +218,12 @@ class Segment(Active, Learning, Matching):
         self.learning_threshold_connected_pct: float = LEARNING_THRESHOLD_PCT
 
     def is_active(self) -> bool:
+        """Return True when enough connected synapses are currently active."""
         connected_synapses = [syn for syn in self.synapses if syn.active]
         return len(connected_synapses) > self.activation_threshold * len(self.synapses)
 
     def is_potentially_active(self) -> bool:
+        """Return True when enough potential synapses are currently active."""
         connected_synapses = [syn for syn in self.synapses if syn.potentially_active]
         return len(connected_synapses) > self.learning_threshold_connected_pct * len(self.synapses)
 
@@ -230,6 +233,7 @@ class Segment(Active, Learning, Matching):
         return sum(1 for syn in self.synapses if syn.source_cell.prev_active)  # type: ignore
 
     def activate_segment(self) -> None:
+        """Update matching/active flags and set parent cell predictive when active."""
         if self.is_potentially_active():
             self.set_matching()  # type: ignore
             if self.is_active():
@@ -237,6 +241,7 @@ class Segment(Active, Learning, Matching):
                 self.parent_cell.set_predictive()  # type: ignore
 
     def advance_state(self) -> None:
+        """Shift current segment state to previous state and clear current flags."""
         self.prev_active = self.active
         self.active = False
 
@@ -247,6 +252,7 @@ class Segment(Active, Learning, Matching):
         self.matching = False
 
     def clear_state(self) -> None:
+        """Reset all segment current and previous state flags."""
         self.active = False
         self.prev_active = False
         self.learning = False
@@ -255,6 +261,7 @@ class Segment(Active, Learning, Matching):
         self.prev_matching = False
 
     def adapt(self, strength: float = 1.0) -> None:
+        """Adjust synapse permanence values using previous source-cell activity."""
         # Strengthen synapses to previously active cells
         kept = []
         for syn in self.synapses:
@@ -281,6 +288,7 @@ class Segment(Active, Learning, Matching):
                 self.synapses.append(new_syn)
 
     def weaken(self, strength=1.0) -> None:
+        """Uniformly decrease permanence for all synapses and prune zeroed synapses."""
         # Weaken synapses to active cells
         # add synpase deletion
         kept = []
@@ -302,6 +310,7 @@ class ApicalSegment(Segment):
         super().__init__(parent_cell, synapses, synapse_cls=ApicalSynapse)  # type: ignore
 
     def activate_segment(self) -> None:
+        """Apply apical activation rules and update parent predictive state."""
         if self.is_potentially_active():
             self.set_matching()  # type: ignore
             if self.is_active():
@@ -329,6 +338,7 @@ class Cell(Active, Winner, Predictive):  # type: ignore
         self.active_duty_cycle: float = 0.0
 
     def initialize(self, distal_field: Field, apical_field: Field) -> None:
+        """Attach distal and apical fields after cell construction."""
         self.distal_field = distal_field
         self.apical_field = apical_field
 
@@ -336,6 +346,7 @@ class Cell(Active, Winner, Predictive):  # type: ignore
         return f"Cell(id={id(self)})"
 
     def advance_state(self) -> None:
+        """Shift cell state flags to previous and clear current flags."""
         self.prev_active = self.active
         self.active = False
 
@@ -349,6 +360,7 @@ class Cell(Active, Winner, Predictive):  # type: ignore
             segment.advance_state()
 
     def clear_state(self) -> None:
+        """Reset all cell state flags and clear segment state."""
         self.active = False
         self.prev_active = False
         self.winner = False
@@ -401,6 +413,7 @@ class Column(Active, Predictive, Bursting):  # type: ignore
         return random.choice([cell for cell in self.cells if len(cell.segments) == min_segments])
 
     def advance_state(self) -> None:
+        """Shift column state flags to previous and advance child cell state."""
         self.prev_active = self.active
         self.active = False
 
@@ -414,6 +427,7 @@ class Column(Active, Predictive, Bursting):  # type: ignore
             cell.advance_state()
 
     def clear_state(self) -> None:
+        """Reset column state flags and clear all child cell states."""
         self.active = False
         self.prev_active = False
         self.bursting = False
@@ -478,6 +492,7 @@ class ColumnField(Field):
         self.initialize()
 
     def initialize(self) -> None:
+        """Build columns/cells and connect their distal fields for this layer."""
         self.input_field = Field(chain.from_iterable(self.input_fields))
         if self.non_temporal:
             self.cells_per_column = 1
@@ -552,6 +567,7 @@ class ColumnField(Field):
         return self._prev_winner_cells
 
     def advance_states(self) -> None:
+        """Advance state for this field, columns, and cached previous winner set."""
         for cls in ColumnField.__mro__:
             if hasattr(cls, "advance_state") and cls not in (ColumnField, object):
                 cls.advance_state(self)
@@ -560,6 +576,7 @@ class ColumnField(Field):
         self._prev_winner_cells = set(cell for cell in self.cells if cell.prev_winner)
 
     def clear_states(self) -> None:
+        """Clear current and previous state flags for this field hierarchy."""
         for cls in ColumnField.__mro__:
             if hasattr(cls, "clear_state") and cls not in (ColumnField, object):
                 cls.clear_state(self)
@@ -568,6 +585,7 @@ class ColumnField(Field):
         self._prev_winner_cells = set()
 
     def compute(self, learn=True) -> None:
+        """Run one HTM timestep including spatial, temporal, and learning phases."""
         self.advance_states()
 
         if self.non_spatial:
@@ -600,9 +618,11 @@ class ColumnField(Field):
         self._update_duty_cycles()
 
     def activate_columns(self) -> None:
+        """Activate columns according to configured local sparsity."""
         self.activate_top_k_columns(int(len(self.columns) * DESIRED_LOCAL_SPARSITY))
 
     def learn_columns(self) -> None:
+        """Apply proximal learning updates to currently active columns."""
         for column in self.active_columns:
             column.learn()
 
@@ -614,6 +634,7 @@ class ColumnField(Field):
             col.set_active()  # type: ignore
 
     def activate_cells(self) -> None:
+        """Activate, burst, and select winner cells based on prior predictions."""
         for column in self.active_columns:
             if any(cell.prev_predictive for cell in column.cells):  # Same as 1) L3
                 column.set_predictive()  # type: ignore
@@ -641,11 +662,13 @@ class ColumnField(Field):
                 learning_segment.set_learning()  # type: ignore
 
     def depolarize_cells(self) -> None:
+        """Evaluate all segments to set matching/active/predictive states."""
         for column in self.columns:
             for segment in column.segments:
                 segment.activate_segment()
 
     def learn(self) -> None:
+        """Apply distal/apical learning rules for active, bursting, and matching segments."""
         for column in self.active_columns:
             if not column.bursting:
                 for segment in column.segments:
@@ -823,10 +846,12 @@ class InputField(Field):
         return self.encoder.decode(bit_vector, candidates)  # type: ignore
 
     def advance_states(self) -> None:
+        """Advance state on all input cells before writing a new encoding."""
         for cell in self.cells:
             cell.advance_state()
 
     def clear_states(self) -> None:
+        """Clear state on all input cells."""
         for cell in self.cells:
             cell.clear_state()
 

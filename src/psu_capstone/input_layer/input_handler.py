@@ -59,6 +59,7 @@ class InputHandler:
 
     @classmethod
     def get_instance(cls) -> InputHandler:
+        """Return the singleton InputHandler instance, creating it if needed."""
         if getattr(cls, "_InputHandler__instance", None) is None:
             cls.__instance = InputHandler()
         return cls.__instance
@@ -124,6 +125,7 @@ class InputHandler:
         return self._data
 
     def to_numpy(self, data: list[dict[Any, Any]]) -> np.ndarray:
+        """Convert a list of records into a numeric ``numpy.ndarray``."""
         if not data:
             raise ValueError("Cannot convert empty record list to numpy array.")
         df = pd.DataFrame(data)

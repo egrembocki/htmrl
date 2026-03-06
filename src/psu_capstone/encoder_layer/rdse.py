@@ -286,6 +286,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 @dataclass
 class RDSEParameters(ParentDataClass):
+    """Configuration parameters for :class:`RandomDistributedScalarEncoder`."""
 
     size: int = 2048
     """

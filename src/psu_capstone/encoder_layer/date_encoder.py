@@ -22,19 +22,18 @@ from typing import Any, Iterable, override
 import numpy as np
 import pandas as pd
 
-import grapher
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.log import get_logger, logger
+from psu_capstone.log import get_logger
 
 
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
     """Python port of the HTM DateEncoder using scalar encoders with default parameters.
 
-    Encodes up to 7 attributes using different encoders of a timestamp into one SDR:
-    - year (absolute year value) - mutually exclusive with season
-    - season (day-of-year, 0-365) - mutually exclusive with year
+    Encodes up to 7 attributes using seven different encoders of a timestamp into one SDR:
+    - year
+    - season (day-of-year)
     - dayOfWeek
     - weekend
     - customDays
@@ -47,6 +46,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     Args:
         date_params: DateEncoderParameters instance specifying encoding options.
             If None, defaults to DateEncoderParameters().
+        force_size: If True, forces the total output size to match date_params.size by dividing it equally among enabled sub-encoders. Defaults to False.
 
     Attributes:
         YEAR: Index constant for year encoder (6).
@@ -56,6 +56,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         CUSTOM: Index constant for custom days encoder (3).
         HOLIDAY: Index constant for holiday encoder (4).
         TIMEOFDAY: Index constant for time of day encoder (5).
+        YEAR: Index constant for year encoder (6).
     """
 
     # !!enum!! type constants for indices
@@ -70,6 +71,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     def __init__(
         self,
         date_params: DateEncoderParameters | None = None,
+        force_size: bool = False,
     ) -> None:
 
         self._logger = get_logger("DateEncoder")
@@ -82,7 +84,9 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         """Mapping from feature index to bucket position."""
         self._buckets: list[float] = []
         """List of bucket values for each feature."""
-        self._size: int = 0
+        self._force_size: bool = force_size  # default False
+        """Whether to force the output size to match date_params.size even if it doesn't match sum of sub-encoder sizes."""
+        self._size: int = self._date_params.size
         """Total number of bits DateEncoder."""
         self._rdse_used: bool = self._date_params.rdse_used
         """Flag indicating if RDSE is used."""
@@ -108,6 +112,26 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         # call initialize
         self._initialize(self._date_params)
         super().__init__(self._size)
+
+    def _number_of_encoders(self, params: DateEncoderParameters) -> int:
+        """Helper to count how many sub-encoders are enabled."""
+
+        count = 0
+        if params.year_active_bits > 0:
+            count += 1
+        if params.season_active_bits > 0:
+            count += 1
+        if params.day_of_week_active_bits > 0:
+            count += 1
+        if params.weekend_active_bits > 0:
+            count += 1
+        if params.custom_active_bits > 0:
+            count += 1
+        if params.holiday_active_bits > 0:
+            count += 1
+        if params.time_of_day_active_bits > 0:
+            count += 1
+        return count
 
     def _setup_feature_encoder(
         self,
@@ -178,27 +202,26 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         args = date_params
         size = 0
+        number_of_encoders = self._number_of_encoders(args)
+        self._logger.info(
+            "DateEncoder: initializing with %d sub-encoders enabled.", number_of_encoders
+        )
         self._bucketMap.clear()
         self._buckets.clear()
 
-        # Validate mutually exclusive parameters: year XOR season
-        if args.year_active_bits > 0 and args.season_active_bits > 0:
-            raise ValueError(
-                "DateEncoder: year and season encoders are mutually exclusive. "
-                "Enable year for absolute year values OR season for day-of-year, not both."
-            )
-
         # -------- Year --------
         if args.year_active_bits > 0:
-            logger.info("DateEncoder: enabling year encoder.")
+            self._logger.info("DateEncoder: enabling year encoder.")
             self._year_encoder = self._setup_feature_encoder(
                 feature_key=self.YEAR,
-                size_value=args.year_size,
+                size_value=(
+                    args.year_size if not self._force_size else self._size // number_of_encoders
+                ),
                 active_bits=args.year_active_bits,
                 radius=args.year_radius,
                 resolution=args.year_resolution,
                 sparsity=args.year_sparsity,
-                seed=args.seed + self.YEAR,
+                seed=args.seed + self.YEAR,  # different seed per encoder for RDSE
             )
             if self._year_encoder is None:
                 raise ValueError("DateEncoder: year encoder must be enabled.")
@@ -206,31 +229,38 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         # -------- Season --------
         if args.season_active_bits > 0:
-            logger.info("DateEncoder: enabling season encoder.")
+            self._logger.info("DateEncoder: enabling season encoder.")
             self._season_encoder = self._setup_feature_encoder(
                 feature_key=self.SEASON,
-                size_value=args.season_size,
+                size_value=(
+                    args.season_size if not self._force_size else self._size // number_of_encoders
+                ),
                 active_bits=args.season_active_bits,
                 radius=args.season_radius,
                 resolution=args.season_resolution,
                 sparsity=args.season_sparsity,
                 seed=args.seed + self.SEASON,
-            )
+            )  # different seed per encoder for RDSE
+
             if self._season_encoder is None:
                 raise ValueError("DateEncoder: season encoder must be enabled.")
             size += self._season_encoder.size
 
         # -------- Day of week --------
         if args.day_of_week_active_bits > 0:
-            logger.info("DateEncoder: enabling day of week encoder.")
+            self._logger.info("DateEncoder: enabling day of week encoder.")
             self._dayofweek_encoder = self._setup_feature_encoder(
                 feature_key=self.DAYOFWEEK,
-                size_value=args.day_of_week_size,
+                size_value=(
+                    args.day_of_week_size
+                    if not self._force_size
+                    else self._size // number_of_encoders
+                ),
                 active_bits=args.day_of_week_active_bits,
                 radius=args.day_of_week_radius,
                 resolution=args.day_of_week_resolution,
                 sparsity=args.day_of_week_sparsity,
-                seed=args.seed + self.DAYOFWEEK,
+                seed=args.seed + self.DAYOFWEEK,  # different seed per encoder for RDSE
             )
             if self._dayofweek_encoder is None:
                 raise ValueError("DateEncoder: day of week encoder must be enabled.")
@@ -238,15 +268,17 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         # -------- Weekend --------
         if args.weekend_active_bits > 0:
-            logger.info("DateEncoder: enabling weekend encoder.")
+            self._logger.info("DateEncoder: enabling weekend encoder.")
             self._weekend_encoder = self._setup_feature_encoder(
                 feature_key=self.WEEKEND,
-                size_value=args.weekend_size,
+                size_value=(
+                    args.weekend_size if not self._force_size else self._size // number_of_encoders
+                ),
                 active_bits=args.weekend_active_bits,
                 radius=args.weekend_radius,
                 resolution=args.weekend_resolution,
                 sparsity=args.weekend_sparsity,
-                seed=args.seed + self.WEEKEND,
+                seed=args.seed + self.WEEKEND,  # different seed per encoder for RDSE
             )
             if self._weekend_encoder is None:
                 raise ValueError("DateEncoder: weekend encoder must be enabled.")
@@ -254,7 +286,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         # -------- Custom days --------
         if args.custom_active_bits > 0:
-            logger.info("DateEncoder: enabling custom days encoder.")
+            self._logger.info("DateEncoder: enabling custom days encoder.")
             if not args.custom_days:
                 raise ValueError(
                     "DateEncoder: custom_days must contain at least one pattern string."
@@ -283,12 +315,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
             self._customdays_encoder = self._setup_feature_encoder(
                 feature_key=self.CUSTOM,
-                size_value=args.custom_size,
+                size_value=(
+                    args.custom_size if not self._force_size else self._size // number_of_encoders
+                ),
                 active_bits=args.custom_active_bits,
                 radius=args.custom_radius,
                 resolution=args.custom_resolution,
                 sparsity=args.custom_sparsity,
-                seed=args.seed + self.CUSTOM,
+                seed=args.seed + self.CUSTOM,  # different seed per encoder for RDSE
             )
             if self._customdays_encoder is None:
                 raise ValueError("DateEncoder: custom days encoder must be enabled.")
@@ -296,7 +330,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         # -------- Holiday --------
         if args.holiday_active_bits > 0:
-            logger.info("DateEncoder: enabling holiday encoder.")
+            self._logger.info("DateEncoder: enabling holiday encoder.")
             for day in args.holiday_dates:
                 if len(day) not in (2, 3):
                     raise ValueError(
@@ -304,12 +338,14 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
                     )
             self._holiday_encoder = self._setup_feature_encoder(
                 feature_key=self.HOLIDAY,
-                size_value=args.holiday_size,
+                size_value=(
+                    args.holiday_size if not self._force_size else self._size // number_of_encoders
+                ),
                 active_bits=args.holiday_active_bits,
                 radius=args.holiday_radius,
                 resolution=args.holiday_resolution,
                 sparsity=args.holiday_sparsity,
-                seed=args.seed + self.HOLIDAY,
+                seed=args.seed + self.HOLIDAY,  # different seed per encoder for RDSE
             )
             if self._holiday_encoder is None:
                 raise ValueError("DateEncoder: holiday encoder must be enabled.")
@@ -317,15 +353,19 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
         # -------- Time of day --------
         if args.time_of_day_active_bits > 0:
-            logger.info("DateEncoder: enabling time of day encoder.")
+            self._logger.info("DateEncoder: enabling time of day encoder.")
             self._timeofday_encoder = self._setup_feature_encoder(
                 feature_key=self.TIMEOFDAY,
-                size_value=args.time_of_day_size,
+                size_value=(
+                    args.time_of_day_size
+                    if not self._force_size
+                    else self._size // number_of_encoders
+                ),
                 active_bits=args.time_of_day_active_bits,
                 radius=args.time_of_day_radius,
                 resolution=args.time_of_day_resolution,
                 sparsity=args.time_of_day_sparsity,
-                seed=args.seed + self.TIMEOFDAY,
+                seed=args.seed + self.TIMEOFDAY,  # different seed per encoder for RDSE
             )
             if self._timeofday_encoder is None:
                 raise ValueError(
@@ -334,8 +374,16 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
             size += self._timeofday_encoder.size
 
         self._size = size
+
         if self._size <= 0:
             raise RuntimeError("DateEncoder misconfigured: no sub-encoders enabled.")
+        if self._size != self._date_params.size:
+            self._logger.warning(
+                "DateEncoder: total size %d does not match sum of sub-encoder sizes %d. Using computed size.",
+                self._date_params.size,
+                self._size,
+            )
+
         self.size = self._size
 
     @override
@@ -390,11 +438,11 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         # Collect per-attribute SDRs to later concatenate
         sdrs: list[list[int]] = []
 
-        # --- Year: absolute year value ---
+        # -- - Year ---
         if isinstance(self._year_encoder, (RandomDistributedScalarEncoder, ScalarEncoder)):
-            year_value = float(t.tm_year)
-            encoded_value = self._year_encoder.encode(year_value)
-            bucket_idx = math.floor(year_value / max(self._year_encoder._radius, 1.0))
+            year = float(t.tm_year)
+            encoded_value = self._year_encoder.encode(year)
+            bucket_idx = math.floor(year / self._year_encoder._radius)
             self._buckets[self._bucketMap[self.YEAR]] = float(bucket_idx)
 
             sdrs.append(encoded_value)
@@ -662,28 +710,21 @@ class DateEncoderParameters(ParentDataClass):
          */
     """
 
-    # --------------------------------------------------------------------------
-    # Year (absolute year value)
+    # total size
+    size: int = 2051
+    """Total number of bits in the output SDR. If force_size is False, this is ignored and computed from sub-encoder sizes."""
+
+    # Year
     year_size: int = 293
     """Size of the year encoder (total bits)."""
-
-    year_active_bits: int = 0
-    """Set to greater than zero to enable year encoding. Number of active bits for absolute year."""
-
+    year_active_bits: int = 6
+    """Set to greater than zero to enable year encoder. Number of active bits for year."""
     year_sparsity: float = 0.0
     """Sparsity for year encoding (not used)."""
-
     year_radius: float = 0.0
-    """Radius for year encoding, in years (e.g., 1 = year granularity)."""
-
+    """Radius for year encoding, in years."""
     year_resolution: float = 1.0
-    """Resolution for year encoding."""
-
-    year_min: int = 1
-    """Minimum year value for encoding range."""
-
-    year_max: int = 10000
-    """Maximum year value for encoding range."""
+    """Resolution for year encoding (not used)."""
 
     # Season: day of year (0..366)
     # season size
@@ -699,7 +740,7 @@ class DateEncoderParameters(ParentDataClass):
     """Sparsity for season encoding (not used)."""
 
     # season radius in days
-    season_radius: float = 72.25
+    season_radius: float = 73.25
     """Radius for season encoding, in days (default ~4 seasons) days per season."""
 
     # season  resoulation
@@ -783,6 +824,7 @@ class DateEncoderParameters(ParentDataClass):
     # time of day active bits
     time_of_day_active_bits: int = 6
     """Set to greater than zero to enable time of day encoding. Number of active bits for time of day."""
+
     # time of day sparsity
     time_of_day_sparsity: float = 0.0
     """Sparsity for time of day encoding (not used)."""
@@ -829,6 +871,7 @@ class DateEncoderParameters(ParentDataClass):
     """Enable RDSE usage for date encoder."""
 
     encoder_class = DateEncoder
+    """Reference to the DateEncoder class for factory instantiation."""
 
 
 # ---------------------------------------------------------------------------------------
@@ -836,43 +879,8 @@ class DateEncoderParameters(ParentDataClass):
 
 if __name__ == "__main__":
 
-    date_params = DateEncoderParameters(
-        season_size=100,
-        season_active_bits=5,
-        season_sparsity=0.0,
-        season_radius=4.0,
-        season_resolution=0.0,
-        day_of_week_size=100,
-        day_of_week_active_bits=5,
-        day_of_week_radius=4.0,
-        day_of_week_resolution=0.0,
-        day_of_week_sparsity=0.0,
-        weekend_size=100,
-        weekend_active_bits=0,
-        weekend_radius=4.0,
-        weekend_resolution=0.0,
-        weekend_sparsity=0.0,
-        holiday_size=100,
-        holiday_active_bits=0,
-        holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
-        holiday_radius=4.0,
-        holiday_resolution=0.0,
-        holiday_sparsity=0.0,
-        time_of_day_size=100,
-        time_of_day_active_bits=0,
-        time_of_day_radius=4.0,
-        time_of_day_resolution=0.0,
-        time_of_day_sparsity=0.0,
-        custom_size=100,
-        custom_active_bits=0,
-        custom_radius=4.0,
-        custom_resolution=0.0,
-        custom_sparsity=0.0,
-        custom_days=["Monday", "Mon, Wed, Fri"],
-        rdse_used=True,
-    )
-    date_params = DateEncoderParameters()
-    date_encoder = DateEncoder(date_params)
+    date_encoder = DateEncoder()
+    print("DateEncoder size:", date_encoder.size)
 
     test_case = [
         [2020, 1, 1, 0, 0],
