@@ -33,6 +33,7 @@ T_MERC_TO_WGS84 = Transformer.from_crs(CRS_MERC, CRS_WGS84, always_xy=True)
 class GeospatialEncoder(
     BaseEncoder[tuple[float, float, float] | tuple[float, float, float, float]]
 ):
+    """Encode geospatial position and speed into coordinate-based SDRs."""
 
     def __init__(
         self,
@@ -60,6 +61,7 @@ class GeospatialEncoder(
     def encode(
         self, input_value: tuple[float, float, float] | tuple[float, float, float, float]
     ) -> list[int]:
+        """Encode ``(speed, lon, lat[, alt])`` into an SDR."""
         if len(input_value) == 3:
             speed, lon, lat = input_value
             alt = None
@@ -87,6 +89,7 @@ class GeospatialEncoder(
         encoded: list[int],
         candidates: Iterable[tuple[tuple[int, ...], int]] | None = None,
     ) -> tuple[tuple[float, float, Optional[float]] | None, float]:
+        """Decode an SDR into an approximate ``(lon, lat, alt)`` tuple."""
 
         best_key, conf = self._encoder.decode(encoded, candidates=candidates)
         if best_key is None:
@@ -99,6 +102,7 @@ class GeospatialEncoder(
     def coordinate_for_position(
         self, lon: float, lat: float, alt: Optional[float]
     ) -> tuple[int, ...]:
+        """Project geographic coordinates into integer grid coordinates."""
 
         scale = float(self._geo_params.scale)
 
@@ -115,6 +119,7 @@ class GeospatialEncoder(
     def position_for_coordinate(
         self, coord: tuple[int, ...]
     ) -> tuple[float, float, Optional[float]]:
+        """Map integer grid coordinates back to geographic position."""
         scale = float(self._geo_params.scale)
 
         if self._geo_params.use_altitude and len(coord) == 3:
@@ -131,6 +136,7 @@ class GeospatialEncoder(
         return lon, lat, None
 
     def radius_for_speed(self, speed_mps: float) -> int:
+        """Compute coordinate radius from speed and timestep settings."""
 
         overlap = 1.5
         coords_per_timestep = speed_mps * float(self._geo_params.timestep)
@@ -156,6 +162,8 @@ class GeospatialEncoder(
 
 @dataclass
 class GeospatialParameters(ParentDataClass):
+    """Configuration parameters for :class:`GeospatialEncoder`."""
+
     # meters per grid unit
     scale: float = 5.0
 

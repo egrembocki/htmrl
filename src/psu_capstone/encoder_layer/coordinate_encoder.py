@@ -13,6 +13,7 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 
 
 class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
+    """Encode integer grid coordinates and radius into an SDR."""
 
     def __init__(self, parameters: CoordinateParameters, dimensions: list[int] | None = None):
         self._parameters = copy.deepcopy(parameters)
@@ -50,6 +51,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
     @override
     def encode(self, input_value: tuple[tuple[int, ...] | list[int], int]) -> list[int]:
+        """Encode ``(coordinate, radius)`` into a fixed-size binary SDR."""
         return self.register_encoding(input_value)
 
     def _compute_encoding(self, key: tuple[tuple[int, ...], int]) -> list[int]:
@@ -90,6 +92,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
     def register_encoding(
         self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
     ) -> list[int]:
+        """Cache and return the encoding for a coordinate/radius key."""
         coordinate, radius = input_value
 
         key = (tuple(int(v) for v in coordinate), int(radius))
@@ -130,6 +133,7 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
         encoded: list[int],
         candidates: Iterable[tuple[tuple[int, ...], int]] | None = None,
     ) -> tuple[tuple[tuple[int, ...], int] | None, float]:
+        """Decode an SDR to the nearest cached coordinate/radius candidate."""
         if len(encoded) != self.size:
             raise ValueError(
                 f"Encoded input size ({len(encoded)}) does not match encoder size ({self.size})"
@@ -165,6 +169,8 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
 
 @dataclass
 class CoordinateParameters(ParentDataClass):
+    """Configuration parameters for :class:`CoordinateEncoder`."""
+
     n: int = 2048
     w: int = 25
     seed: int = 42

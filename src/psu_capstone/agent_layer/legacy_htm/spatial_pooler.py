@@ -235,6 +235,7 @@ class SpatialPooler:
     # ---------- Helpers (belong with SP) ----------
 
     def columns_to_binary(self, columns: list[Column]) -> np.ndarray:
+        """Convert a list of active columns into a dense binary mask."""
         mask = np.zeros(len(self.columns), dtype=int)
         col_index = {c: i for i, c in enumerate(self.columns)}
         for c in columns:

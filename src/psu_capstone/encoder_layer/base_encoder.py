@@ -117,4 +117,7 @@ class ParentDataClass:
     """
 
     encoder_class = BaseEncoder
+    """Reference to the encoder class associated with these parameters. Subclasses should override this to point to their specific encoder type."""
+
     size: int = 2048
+    """Total size of the output SDR in bits."""
