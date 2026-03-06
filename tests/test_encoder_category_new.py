@@ -28,7 +28,6 @@ Tests validate:
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.category_encoder_new import (
     CategoryEncoderNew,
     CategoryParametersNew,
@@ -49,10 +48,10 @@ def test_category_initialization():
     Note: there is an optional dimensions parameter not being used here.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
-    e = CategoryEncoder(parameters=parameters)
+    parameters = CategoryParametersNew(category_list=categories, rdse_used=False)
+    e = CategoryEncoderNew(parameters=parameters)
 
-    assert isinstance(e, CategoryEncoder)
+    assert isinstance(e, CategoryEncoderNew)
     """Checking if the instance is correct."""
 
 
@@ -62,11 +61,12 @@ def test_encode_us():
     3 categories and 1 unknown category. This is w or width of 3 times 4 which is 12 long.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
-    e = CategoryEncoder(parameters=parameters)
+    parameters = CategoryParametersNew(category_list=categories, rdse_used=False)
+    e = CategoryEncoderNew(parameters=parameters)
     a = e.encode("US")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
-    assert a == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
+    assert len(a) == 2048
+    assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
 def test_unknown_category():
@@ -75,11 +75,12 @@ def test_unknown_category():
     the categories specified.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
-    e = CategoryEncoder(parameters=parameters)
+    parameters = CategoryParametersNew(category_list=categories, rdse_used=False)
+    e = CategoryEncoderNew(parameters=parameters)
     a = e.encode("NA")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
-    assert a == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    assert len(a) == 2048
+    assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
 def test_encode_es():
@@ -88,32 +89,25 @@ def test_encode_es():
     shows different active bits for different categories.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=False)
-    e = CategoryEncoder(parameters=parameters)
+    parameters = CategoryParametersNew(category_list=categories, rdse_used=False)
+    e = CategoryEncoderNew(parameters=parameters)
     a = e.encode("ES")
     """This makes sure our encoding is accurate and matches a known SDR outcome."""
-    assert a == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+    assert len(a) == 2048
+    assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
-def test_with_width_one():
+def test_with_sparsity():
     """This test is used to show how SDR outputs look with a single w or width."""
     categories = ["cat1", "cat2", "cat3", "cat4", "cat5"]
-    """Note: I think since width is 1, each category is 1 bit and there is the first bit that is the unknown category."""
-    expected = [
-        [0, 1, 0, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 0, 1, 0, 0],
-        [0, 0, 0, 0, 1, 0],
-        [0, 0, 0, 0, 0, 1],
-    ]
-    parameters = CategoryParameters(w=1, category_list=categories, rdse_used=False)
-    e = CategoryEncoder(parameters=parameters)
-    i = 0
+
+    parameters = CategoryParametersNew(sparsity=0.02, category_list=categories, rdse_used=True)
+    e = CategoryEncoderNew(parameters=parameters)
     """The respective category should equal their index of expected results."""
     for cat in categories:
         a = e.encode(cat)
-        assert a == expected[i]
-        i = i + 1
+        assert len(a) == 2048
+        assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
 def test_rdse_used():
@@ -123,8 +117,8 @@ def test_rdse_used():
     decode this if needed and get the category back from our SDR.
     """
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories)
-    e1 = CategoryEncoder(parameters=parameters)
+    parameters = CategoryParametersNew(category_list=categories)
+    e1 = CategoryEncoderNew(parameters=parameters)
     """These asserts just check that both SDRs are identical when the same category is encoded."""
     a1 = e1.encode("ES")
     a2 = e1.encode("ES")
@@ -149,8 +143,8 @@ def test_category_encode_output_only_zeros_and_ones():
     """CategoryEncoder output must contain only 0 and 1."""
     categories = ["ES", "GB", "US"]
     for rdse_used in (False, True):
-        parameters = CategoryParameters(w=3, category_list=categories, rdse_used=rdse_used)
-        encoder = CategoryEncoder(parameters)
+        parameters = CategoryParametersNew(category_list=categories, rdse_used=rdse_used)
+        encoder = CategoryEncoderNew(parameters)
         for cat in categories + ["NA"]:
             out = encoder.encode(cat)
             assert all(
@@ -161,10 +155,9 @@ def test_category_encode_output_only_zeros_and_ones():
 def test_category_encode_output_length_equals_size():
     """CategoryEncoder output length must equal (num_categories + 1) * w."""
     categories = ["ES", "GB", "US"]
-    w = 4
-    parameters = CategoryParameters(w=w, category_list=categories, rdse_used=False)
-    encoder = CategoryEncoder(parameters)
-    expected_size = (len(categories) + 1) * w  # +1 for unknown
+    parameters = CategoryParametersNew(category_list=categories, rdse_used=False)
+    encoder = CategoryEncoderNew(parameters)
+    expected_size = parameters.size  # +1 for unknown
     out = encoder.encode("US")
     assert (
         len(out) == expected_size
@@ -194,8 +187,8 @@ interpretable category values.
 
 def test_decode_returns_tuple_of_two():
     """Decode returns (value, confidence) tuple."""
-    params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
-    encoder = CategoryEncoder(params)
+    params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
+    encoder = CategoryEncoderNew(params)
     encoded = encoder.encode("US")
     decoded = encoder.decode(encoded)
     assert isinstance(decoded, tuple)
@@ -208,8 +201,8 @@ def test_decode_returns_tuple_of_two():
 def test_decode_value_in_categories_or_na():
     """Decoded value is one of the category strings or 'NA'."""
     categories = ["ES", "GB", "US"]
-    params = CategoryParameters(w=3, category_list=categories, rdse_used=True)
-    encoder = CategoryEncoder(params)
+    params = CategoryParametersNew(category_list=categories, rdse_used=True)
+    encoder = CategoryEncoderNew(params)
     valid_values = set(categories) | {"NA"}
     for cat in categories:
         encoded = encoder.encode(cat)
@@ -223,8 +216,8 @@ def test_decode_value_in_categories_or_na():
 
 def test_decode_confidence_in_range():
     """Decoded confidence is in [0, 1]."""
-    params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
-    encoder = CategoryEncoder(params)
+    params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
+    encoder = CategoryEncoderNew(params)
     for cat in ["ES", "GB", "US", "NA"]:
         encoded = encoder.encode(cat)
         decoded = encoder.decode(encoded)
@@ -235,8 +228,8 @@ def test_decode_confidence_in_range():
 def test_decode_round_trip_same_category():
     """Encode then decode returns the same category (round-trip)."""
     categories = ["ES", "GB", "US"]
-    params = CategoryParameters(w=30, category_list=categories, rdse_used=True)
-    encoder = CategoryEncoder(params)
+    params = CategoryParametersNew(category_list=categories, rdse_used=True)
+    encoder = CategoryEncoderNew(params)
     for cat in categories:
         encoded = encoder.encode(cat)
         decoded = encoder.decode(encoded)
@@ -246,8 +239,8 @@ def test_decode_round_trip_same_category():
 
 def test_decode_round_trip_unknown():
     """Encode unknown category then decode returns 'NA'."""
-    params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
-    encoder = CategoryEncoder(params)
+    params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
+    encoder = CategoryEncoderNew(params)
     encoded = encoder.encode("NA")
     decoded = encoder.decode(encoded)
     assert decoded[0] == "NA", f"Unknown should decode to 'NA', got {decoded[0]!r}"
@@ -255,8 +248,8 @@ def test_decode_round_trip_unknown():
 
 def test_decode_wrong_sdr_size_raises():
     """Decode with wrong SDR length raises."""
-    params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
-    encoder = CategoryEncoder(params)
+    params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
+    encoder = CategoryEncoderNew(params)
     # Encoder size is (len(categories)+1)*w = 4*3 = 12
     with pytest.raises(ValueError, match="does not match"):
         encoder.decode([0] * 10)
@@ -270,24 +263,24 @@ def test_demonstrate_anything_can_be_categories():
     On top of that this tests when wrong data types are entered into the encoding. They should all default
     to the not any category or NA.
     """
-    params1 = CategoryParameters(w=30, category_list=["ES", "GB", "US"], rdse_used=True)
-    encoder1 = CategoryEncoder(params1)
+    params1 = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
+    encoder1 = CategoryEncoderNew(params1)
     a = encoder1.encode("ES")
     a1 = encoder1.encode(1)
     a2 = encoder1.encode("=")
     assert encoder1.decode(a)[0] == "ES"
     assert encoder1.decode(a1)[0] == "NA"
     assert encoder1.decode(a2)[0] == "NA"
-    params2 = CategoryParameters(w=3, category_list=[1, 2, 3], rdse_used=True)
-    encoder2 = CategoryEncoder(params2)
+    params2 = CategoryParametersNew(category_list=[1, 2, 3], rdse_used=True)
+    encoder2 = CategoryEncoderNew(params2)
     b = encoder2.encode(2)
     b1 = encoder2.encode("ES")
     b2 = encoder2.encode("=")
     assert encoder2.decode(b)[0] == 2
     assert encoder2.decode(b1)[0] == "NA"
     assert encoder2.decode(b2)[0] == "NA"
-    params3 = CategoryParameters(w=3, category_list=["-", "+", "="], rdse_used=True)
-    encoder3 = CategoryEncoder(params3)
+    params3 = CategoryParametersNew(category_list=["-", "+", "="], rdse_used=True)
+    encoder3 = CategoryEncoderNew(params3)
     c = encoder3.encode("=")
     c1 = encoder3.encode("ES")
     c2 = encoder3.encode(1)
@@ -307,3 +300,33 @@ def hamming_distance_helper(first, second) -> int:
     second = np.asarray(second)
     result = int(np.count_nonzero(first != second))
     return result
+
+
+# Correctness tests
+def test_close_categories_are_similar():
+    """This test checks to make sure categories by each other in the index are more similar than categories distanced from each other."""
+    params = CategoryParametersNew(
+        category_list=["ES", "GB", "US", "RU", "JP", "FR", "GR", "TU", "IT"], rdse_used=True
+    )
+    encoder = CategoryEncoderNew(params)
+    encoding1 = encoder.encode("ES")
+    encoding2 = encoder.encode("GB")
+    encoding3 = encoder.encode("US")
+    encoding4 = encoder.encode("Wrong")
+    encoding5 = encoder.encode("IT")
+    # far distanced
+    assert hamming_distance_helper(encoding1, encoding2) < hamming_distance_helper(
+        encoding1, encoding5
+    )
+    # 3 in a row
+    assert hamming_distance_helper(encoding1, encoding2) < hamming_distance_helper(
+        encoding1, encoding3
+    )
+    # not any category should be different than all other encodings
+    far_distances = []
+    far_distances.append(hamming_distance_helper(encoding4, encoding1))
+    far_distances.append(hamming_distance_helper(encoding4, encoding2))
+    far_distances.append(hamming_distance_helper(encoding4, encoding3))
+    far_distances.append(hamming_distance_helper(encoding4, encoding5))
+    for distance in far_distances:
+        assert distance > (params.sparsity * params.size * 0.98)
