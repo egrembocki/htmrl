@@ -45,9 +45,15 @@ def date_encoder_instance() -> DateEncoder:
 
 
 def test_season_encode():
+    """Verify ScalarEncoder correctly encodes season (day of year) values.
 
+    Tests that different days of the year produce distinct encodings with correct
+    bit positions. Validates that the ScalarEncoder creates contiguous blocks of active
+    bits that vary smoothly with the day of year value.
+    """
     # Arrange
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_size=366,
         season_active_bits=4,
         season_sparsity=0.0,
@@ -102,9 +108,15 @@ def test_season_encode():
 
 
 def test_day_of_week_encode():
+    """Verify ScalarEncoder correctly encodes day of week values (0-6).
 
+    Tests that different days of the week produce distinct, semantically similar
+    encodings. Validates that adjacent days have overlapping representations while
+    distant days (e.g., Mon vs Fri) have different representations.
+    """
     # Arrange
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_size=2048,
         day_of_week_active_bits=2,
@@ -146,8 +158,15 @@ def test_day_of_week_encode():
 
 
 def test_weekend_encode():
+    """Verify ScalarEncoder correctly encodes weekend vs weekday (binary flag).
+
+    Tests that weekend periods (Fri 6pm - Sun midnight) produce consistent encodings
+    distinct from weekday encodings. Validates the weekend flag encoder with expected
+    bit patterns for various dates and times.
+    """
     # Weekend defined as Fri after noon until Sun midnight
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         weekend_size=2048,
         weekend_active_bits=2,
         weekend_radius=39.38,
@@ -202,7 +221,14 @@ def test_weekend_encode():
 
 
 def test_holiday_encode():
+    """Verify ScalarEncoder correctly encodes holiday proximity (ramp value).
+
+    Tests that dates near holidays produce a ramp-like encoding that increases
+    in proximity to the holiday and decreases as distance increases. Validates
+    encoding for specific configured holidays.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         holiday_size=2048,
         holiday_active_bits=4,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
@@ -261,7 +287,14 @@ def test_holiday_encode():
 
 
 def test_time_of_day_encode():
+    """Verify ScalarEncoder correctly encodes time of day (0-24 hours).
+
+    Tests that different times throughout the day produce distinct encodings with
+    semantic similarity (nearby times have overlapping representations). Validates
+    the smooth representation of the 24-hour cycle.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         time_of_day_size=1024,
         time_of_day_active_bits=4,
         time_of_day_radius=42.67,
@@ -316,7 +349,14 @@ def test_time_of_day_encode():
 
 
 def test_custom_day_encode():
+    """Verify ScalarEncoder correctly encodes custom day groups (binary flag).
+
+    Tests that days matching a custom group pattern (e.g., "Mon, Wed, Fri") produce
+    consistent encodings distinct from non-matching days. Validates the custom days
+    encoder with arbitrary user-defined day groups.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         custom_size=2048,
         custom_active_bits=2,
         custom_radius=730.0,
@@ -372,7 +412,14 @@ def test_custom_day_encode():
 
 
 def test_all_combined_encode():
+    """Verify ScalarEncoder correctly encodes all temporal features simultaneously.
+
+    Tests that when all seven encoders (season, day_of_week, weekend, custom, holiday,
+    time_of_day) are enabled together, the output contains expected bit patterns for
+    each encoder concatenated into a single SDR. Validates the full combined encoding.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_size=100,
         season_active_bits=2,
         season_sparsity=0.0,
@@ -458,8 +505,13 @@ def test_all_combined_encode():
 
 
 def test_date_encode_output_only_zeros_and_ones():
-    """DateEncoder output must contain only 0 and 1."""
+    """Verify DateEncoder output is strictly binary (only 0 and 1 values).
+
+    Tests that all bits in the output SDR are either 0 or 1, with no intermediate
+    values or errors. This validates the fundamental SDR representation format.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_size=100,
         season_active_bits=2,
         season_sparsity=0.0,
@@ -479,8 +531,13 @@ def test_date_encode_output_only_zeros_and_ones():
 
 
 def test_date_encode_output_length_equals_size():
-    """DateEncoder output length must equal the configured total size."""
+    """Verify DateEncoder output length matches the configured encoder size.
+
+    Tests that the output SDR has a length equal to the sum of all enabled
+    encoder sizes. This validates that no bits are dropped or added during encoding.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_size=100,
         season_active_bits=2,
         season_sparsity=0.0,
@@ -529,8 +586,15 @@ back to interpretable datetime values, enabling HTM predictions of temporal patt
 
 
 def test_season():
+    """Verify ScalarEncoder correctly encodes and decodes season values.
+
+    Tests season encoding with RDSE backend (rdse_used=True), verifying that
+    the decoder returns values in the valid range [0, 366] representing days of year,
+    and that the same encoder instance produces deterministic decodings.
+    """
     # Arrange
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_size=366,
         season_active_bits=4,
         season_sparsity=0.0,
@@ -595,7 +659,12 @@ def test_season():
 
 
 def test_rdse_decode_same_across_instances_with_same_params():
-    """With same params, DateEncoder does not pass a seed to RDSE, so all instances use default seed and produce the same decode."""
+    """Verify RDSE produces identical decodings across different encoder instances.
+
+    Tests that when two DateEncoder instances are created with the same parameters
+    and default seed, they produce identical decodings for the same input. This
+    validates deterministic RDSE behavior across instances.
+    """
     date_params = DateEncoderParameters(
         season_active_bits=0,
         day_of_week_size=2048,
@@ -625,8 +694,15 @@ def test_rdse_decode_same_across_instances_with_same_params():
 
 
 def test_day_of_week():
+    """Verify RDSE correctly decodes day of week (0-6) from encoded SDR.
+
+    Tests that the RDSE decoder recovers day-of-week values in the valid range [0, 6].
+    Validates semantic similarity where adjacent days have more similar decodings than
+    distant days, and confirms deterministic decoding for the same instance.
+    """
     # Arrange: only day-of-week encoder, RDSE (decode returns values)
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_size=2048,
         day_of_week_active_bits=2,
@@ -703,8 +779,14 @@ _DECODER_TEST_CASES = [
 
 
 def test_weekend():
-    """Decode weekend encoder (RDSE): value 0 or 1 (weekday vs weekend)."""
+    """Verify RDSE correctly decodes weekend flag (0=weekday, 1=weekend).
+
+    Tests that the RDSE decoder produces binary values (0 or 1) representing
+    weekday/weekend status. Validates consistency and range of decoded values,
+    and confirms deterministic decoding for the same instance.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_active_bits=0,
         weekend_size=2048,
@@ -744,8 +826,14 @@ def test_weekend():
 
 
 def test_custom_days():
-    """Decode custom days encoder (RDSE): value 0 or 1 (not in group vs in group)."""
+    """Verify RDSE correctly decodes custom day group membership (0 or 1).
+
+    Tests that the RDSE decoder produces binary values indicating whether a date
+    belongs to a custom day group. Validates consistency and confirms deterministic
+    decoding for the same instance.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_active_bits=0,
         weekend_active_bits=0,
@@ -786,8 +874,14 @@ def test_custom_days():
 
 
 def test_holiday():
-    """Decode holiday encoder (RDSE): value 0 to ~2 (holiday ramp)."""
+    """Verify RDSE correctly decodes holiday proximity ramp from encoded SDR.
+
+    Tests that the RDSE decoder produces ramp values (0 to ~2) representing proximity
+    to configured holidays. Validates that encoded SDR properly captures the holiday
+    proximity encoding and confirms deterministic decoding.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_active_bits=0,
         weekend_active_bits=0,
@@ -830,8 +924,14 @@ def test_holiday():
 
 
 def test_time_of_day():
-    """Decode time-of-day encoder (RDSE): value 0..24 (hours)."""
+    """Verify RDSE correctly decodes time of day (0-24 hours) from encoded SDR.
+
+    Tests that the RDSE decoder recovers hour values in the valid range [0, 24].
+    Validates semantic similarity where nearby times have similar decodings, and
+    confirms deterministic decoding for the same instance.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_active_bits=0,
         weekend_active_bits=0,
@@ -873,8 +973,15 @@ def test_time_of_day():
 
 
 def test_all_combined():
-    """Decode with all six encoders enabled (RDSE): season, day_of_week, weekend, custom, holiday, time_of_day."""
+    """Verify RDSE correctly decodes all temporal features when combined.
+
+    Tests that when all six RDSE encoders (season, day_of_week, weekend, custom,
+    holiday, time_of_day) are enabled together, the decoder correctly extracts
+    and decodes each component from the combined SDR, producing valid ranges and
+    maintaining determinism.
+    """
     date_params = DateEncoderParameters(
+        year_active_bits=0,
         season_size=100,
         season_active_bits=2,
         season_sparsity=0.0,

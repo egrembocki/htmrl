@@ -304,6 +304,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
 @dataclass
 class ScalarEncoderParameters(ParentDataClass):
+    """Configuration parameters for :class:`ScalarEncoder`."""
 
     minimum: int = 0
     """Min and Max
