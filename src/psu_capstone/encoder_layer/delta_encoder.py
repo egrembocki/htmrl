@@ -6,7 +6,7 @@ import copy
 from dataclasses import dataclass
 from typing import override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
@@ -39,7 +39,7 @@ class DeltaEncoder(BaseEncoder[float]):
 
 
 @dataclass
-class DeltaEncoderParameters(ParentDataclass):
+class DeltaEncoderParameters(ParentDataClass):
     """Parameters for the DeltaEncoder."""
 
     encoder_class = DeltaEncoder
