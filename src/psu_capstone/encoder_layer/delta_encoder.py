@@ -8,6 +8,7 @@ from typing import override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.log import get_logger
 
 
 class DeltaEncoder(BaseEncoder[tuple[float, float]]):
@@ -20,7 +21,7 @@ class DeltaEncoder(BaseEncoder[tuple[float, float]]):
             if encoder_params is not None
             else DeltaEncoderParameters()
         )
-
+        self._logger = get_logger("DeltaEncoder")
         self._size = params.size
         self._sparsity = params.sparsity
         self._active_bits = params.active_bits
@@ -48,6 +49,9 @@ class DeltaEncoder(BaseEncoder[tuple[float, float]]):
             return self._cached_encodings[self._delta_value]
 
         encoding = self._rdse_encoder.encode(self._delta_value)
+        self._logger.info(
+            f"Encoded delta value {self._delta_value} to SDR with {sum(encoding)} active bits."
+        )
         self._cached_encodings[self._delta_value] = encoding
 
         return encoding
@@ -75,7 +79,15 @@ class DeltaEncoderParameters(ParentDataClass):
 
 
 if __name__ == "__main__":
+
+    test_encoder = RandomDistributedScalarEncoder(RDSEParameters())
+
+    e1 = test_encoder.encode(10.0)
+    e2 = test_encoder.encode(5.0)
+
     encoder = DeltaEncoder()
     input_value = (10.0, 5.0)
     encoding = encoder.encode(input_value)
     print(f"Input: {input_value}, Encoding: {encoding}")
+
+    assert encoding == e2, "Encoding does not match expected value for 10.0"
