@@ -40,10 +40,27 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 # ---------------------------------------------------------------------------
 
 
+def _params_year_only():
+    return DateEncoderParameters(
+        year_size=2048,
+        year_active_bits=42,
+        year_sparsity=0.0,
+        year_radius=1.0,
+        year_resolution=0.0,
+        season_active_bits=0,
+        day_of_week_active_bits=0,
+        weekend_active_bits=0,
+        holiday_active_bits=0,
+        time_of_day_active_bits=0,
+        custom_active_bits=0,
+        rdse_used=True,
+    )
+
+
 def _params_season_only():
     return DateEncoderParameters(
-        season_size=366,
-        season_active_bits=4,
+        season_size=2048,
+        season_active_bits=42,
         season_sparsity=0.0,
         season_radius=91.5,
         season_resolution=0.0,
@@ -60,7 +77,7 @@ def _params_day_of_week_only():
     return DateEncoderParameters(
         season_active_bits=0,
         day_of_week_size=2048,
-        day_of_week_active_bits=2,
+        day_of_week_active_bits=42,
         day_of_week_radius=292.57,
         day_of_week_resolution=0.0,
         day_of_week_sparsity=0.0,
@@ -77,7 +94,7 @@ def _params_weekend_only():
         season_active_bits=0,
         day_of_week_active_bits=0,
         weekend_size=2048,
-        weekend_active_bits=2,
+        weekend_active_bits=42,
         weekend_radius=39.38,
         weekend_resolution=0.0,
         weekend_sparsity=0.0,
@@ -96,11 +113,11 @@ def _params_custom_only():
         holiday_active_bits=0,
         time_of_day_active_bits=0,
         custom_size=2048,
-        custom_active_bits=2,
-        custom_radius=730.0,
+        custom_active_bits=42,
+        custom_radius=409.6,
         custom_resolution=0.0,
         custom_sparsity=0.0,
-        custom_days=["mon,wed,fri"],
+        custom_days=["mon,tue,wed,thu,fri"],
         rdse_used=True,
     )
 
@@ -111,9 +128,9 @@ def _params_holiday_only():
         day_of_week_active_bits=0,
         weekend_active_bits=0,
         holiday_size=2048,
-        holiday_active_bits=4,
-        holiday_dates=[[2020, 1, 1], [7, 4]],
-        holiday_radius=186.18,
+        holiday_active_bits=42,
+        holiday_dates=[[2020, 1, 1], [7, 4], [12, 25]],
+        holiday_radius=682.67,
         holiday_resolution=0.0,
         holiday_sparsity=0.0,
         time_of_day_active_bits=0,
@@ -128,9 +145,9 @@ def _params_time_of_day_only():
         day_of_week_active_bits=0,
         weekend_active_bits=0,
         holiday_active_bits=0,
-        time_of_day_size=1024,
-        time_of_day_active_bits=4,
-        time_of_day_radius=42.67,
+        time_of_day_size=2048,
+        time_of_day_active_bits=42,
+        time_of_day_radius=85.33,
         time_of_day_resolution=0.0,
         time_of_day_sparsity=0.0,
         custom_active_bits=0,
@@ -140,38 +157,43 @@ def _params_time_of_day_only():
 
 def _params_all_combined():
     return DateEncoderParameters(
-        season_size=100,
-        season_active_bits=2,
+        year_size=293,
+        year_active_bits=6,
+        year_sparsity=0.0,
+        year_radius=1.0,
+        year_resolution=0.0,
+        season_size=293,
+        season_active_bits=6,
         season_sparsity=0.0,
-        season_radius=25.0,
+        season_radius=73.25,
         season_resolution=0.0,
-        day_of_week_size=100,
-        day_of_week_active_bits=2,
-        day_of_week_radius=14.28,
+        day_of_week_size=293,
+        day_of_week_active_bits=6,
+        day_of_week_radius=41.85,
         day_of_week_resolution=0.0,
         day_of_week_sparsity=0.0,
-        weekend_size=100,
-        weekend_active_bits=2,
-        weekend_radius=1.92,
+        weekend_size=293,
+        weekend_active_bits=6,
+        weekend_radius=146.5,
         weekend_resolution=0.0,
         weekend_sparsity=0.0,
-        holiday_size=100,
-        holiday_active_bits=2,
+        holiday_size=293,
+        holiday_active_bits=6,
         holiday_dates=[[2020, 1, 1], [7, 4], [2019, 4, 21]],
-        holiday_radius=9.09,
+        holiday_radius=97.67,
         holiday_resolution=0.0,
         holiday_sparsity=0.0,
-        time_of_day_size=100,
-        time_of_day_active_bits=2,
-        time_of_day_radius=0.0278,
+        time_of_day_size=293,
+        time_of_day_active_bits=6,
+        time_of_day_radius=12.20,
         time_of_day_resolution=0.0,
         time_of_day_sparsity=0.0,
-        custom_size=100,
-        custom_active_bits=2,
-        custom_radius=25.0,
+        custom_size=293,
+        custom_active_bits=6,
+        custom_radius=58.6,
         custom_resolution=0.0,
         custom_sparsity=0.0,
-        custom_days=["Monday", "Mon, Wed, Fri"],
+        custom_days=["Mon, Tue, Wed, Thu, Fri"],
         rdse_used=True,
     )
 
@@ -216,6 +238,7 @@ def test_rdse_all_combined_output_binary_and_length():
 @pytest.mark.parametrize(
     "params_factory",
     [
+        _params_year_only,
         _params_season_only,
         _params_day_of_week_only,
         _params_weekend_only,
@@ -223,7 +246,7 @@ def test_rdse_all_combined_output_binary_and_length():
         _params_holiday_only,
         _params_time_of_day_only,
     ],
-    ids=["season", "day_of_week", "weekend", "custom", "holiday", "time_of_day"],
+    ids=["year", "season", "day_of_week", "weekend", "custom", "holiday", "time_of_day"],
 )
 def test_rdse_single_feature_encode_binary_and_length(params_factory):
     """Each single-feature RDSE config produces binary output of correct length."""
@@ -321,6 +344,7 @@ def test_rdse_encode_rejects_unsupported_type():
 def test_rdse_no_encoders_enabled_raises():
     """DateEncoder with all features disabled raises during initialization."""
     params = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         day_of_week_active_bits=0,
         weekend_active_bits=0,
