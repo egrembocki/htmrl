@@ -43,6 +43,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
     Args:
         date_params: DateEncoderParameters instance specifying encoding options.
             If None, defaults to DateEncoderParameters().
+        force_size: If True, forces the total output size to match date_params.size by dividing it equally among enabled sub-encoders. Defaults to False.
 
     Attributes:
         SEASON: Index constant for season encoder (0).
