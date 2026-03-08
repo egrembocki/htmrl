@@ -1,4 +1,19 @@
-"""Base Encoder Test Suite"""
+"""
+tests.test_base_encoder
+
+Test suite for BaseEncoder abstract base class functionality.
+
+Validates that BaseEncoder correctly enforces the encoder interface contract, including:
+- Initialization with configurable size parameters
+- Abstract encode() method implementation requirements
+- Proper encoding dimension (size parameter) validation
+- Fixture setup for concrete encoder implementations
+
+These tests ensure BaseEncoder provides a consistent foundation for all encoder subclasses
+(ScalarEncoder, CategoryEncoder, DateEncoder, RDSE, etc.) to inherit from.
+"""
+
+from typing import Any
 
 import pytest
 
@@ -16,6 +31,9 @@ def base_encoder_instance() -> BaseEncoder:
         def encode(self, input_value) -> list[int]:
             """Dummy encode method for testing."""
             return []
+
+        def decode(self, input_sdr: list[int]) -> Any:
+            return 1
 
     return TestEncoder(100)
 

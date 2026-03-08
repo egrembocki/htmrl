@@ -45,9 +45,18 @@ class SpatialPooler:
     - Compute per-column overlap and perform local inhibition to select winners.
     - Adapt synapse permanence during learning to stabilize representations.
 
+    Args:
+        input_space_size: Size of the flattened input SDR after field combination.
+        column_count: Total number of columns in the region (assumed square grid
+            for positioning).
+        initial_synapses_per_column: Number of potential proximal synapses per column.
+        random_seed: Seed for deterministic initialization. Defaults to 0.
+
     Notes:
-    - input_space_size must match the length of the combined input.
-    - inhibition_radius controls the neighborhood size for local competition.
+        Columns are positioned on a 2D grid. Potential synapses are randomly
+        assigned to input indices with initial permanence. input_space_size must
+        match the length of the combined input. inhibition_radius controls the
+        neighborhood size for local competition.
     """
 
     _input_field: np.ndarray | list[int]
@@ -60,18 +69,6 @@ class SpatialPooler:
         initial_synapses_per_column: int,
         random_seed: int = 0,
     ) -> None:
-        """Create an SP region with columns and random proximal synapses.
-
-        Parameters:
-        - input_space_size: Size of the flattened input SDR after field combination.
-        - column_count: Total number of columns in the region (assumed square grid for positioning).
-        - initial_synapses_per_column: Number of potential proximal synapses per column.
-        - random_seed: Seed for deterministic initialization.
-
-        Behavior:
-        - Columns are positioned on a 2D grid.
-        - Potential synapses are randomly assigned to input indices with initial permanence.
-        """
         self.input_space_size: int = int(input_space_size)
         self.column_count: int = column_count
         self.random_seed: int = random_seed
@@ -220,8 +217,12 @@ class SpatialPooler:
         - Apply local inhibition with the given radius to select winners.
         - Return the binary mask and list of active columns.
 
+        Args:
+            input_vector: Input SDR in various formats (array, list, or dict).
+            inhibition_radius: Radius for local competition among columns.
+
         Returns:
-        - (mask, active_columns_list)
+            Tuple of (binary mask, list of active Column objects).
         """
         combined = self.combine_input_fields(input_vector)
         for c in self.columns:
@@ -234,6 +235,7 @@ class SpatialPooler:
     # ---------- Helpers (belong with SP) ----------
 
     def columns_to_binary(self, columns: list[Column]) -> np.ndarray:
+        """Convert a list of active columns into a dense binary mask."""
         mask = np.zeros(len(self.columns), dtype=int)
         col_index = {c: i for i, c in enumerate(self.columns)}
         for c in columns:

@@ -1,3 +1,5 @@
+"""This module implements a geospatial encoder that encodes GPS coordinates and speed into a sparse binary representation. It uses the CoordinateEncoder for encoding the spatial information and includes logic for handling different coordinate reference systems and speed-based radius calculation."""
+
 from __future__ import annotations
 
 import copy
@@ -8,7 +10,7 @@ from typing import Iterable, Optional, override
 import numpy as np
 from pyproj import CRS, Transformer
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataclass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 # Good for 2D
@@ -31,6 +33,7 @@ T_MERC_TO_WGS84 = Transformer.from_crs(CRS_MERC, CRS_WGS84, always_xy=True)
 class GeospatialEncoder(
     BaseEncoder[tuple[float, float, float] | tuple[float, float, float, float]]
 ):
+    """Encode geospatial position and speed into coordinate-based SDRs."""
 
     def __init__(
         self,
@@ -58,6 +61,7 @@ class GeospatialEncoder(
     def encode(
         self, input_value: tuple[float, float, float] | tuple[float, float, float, float]
     ) -> list[int]:
+        """Encode ``(speed, lon, lat[, alt])`` into an SDR."""
         if len(input_value) == 3:
             speed, lon, lat = input_value
             alt = None
@@ -79,11 +83,13 @@ class GeospatialEncoder(
 
         return self._encoder.encode((coord, radius))
 
+    @override
     def decode(
         self,
         encoded: list[int],
         candidates: Iterable[tuple[tuple[int, ...], int]] | None = None,
     ) -> tuple[tuple[float, float, Optional[float]] | None, float]:
+        """Decode an SDR into an approximate ``(lon, lat, alt)`` tuple."""
 
         best_key, conf = self._encoder.decode(encoded, candidates=candidates)
         if best_key is None:
@@ -96,6 +102,7 @@ class GeospatialEncoder(
     def coordinate_for_position(
         self, lon: float, lat: float, alt: Optional[float]
     ) -> tuple[int, ...]:
+        """Project geographic coordinates into integer grid coordinates."""
 
         scale = float(self._geo_params.scale)
 
@@ -112,6 +119,7 @@ class GeospatialEncoder(
     def position_for_coordinate(
         self, coord: tuple[int, ...]
     ) -> tuple[float, float, Optional[float]]:
+        """Map integer grid coordinates back to geographic position."""
         scale = float(self._geo_params.scale)
 
         if self._geo_params.use_altitude and len(coord) == 3:
@@ -128,6 +136,7 @@ class GeospatialEncoder(
         return lon, lat, None
 
     def radius_for_speed(self, speed_mps: float) -> int:
+        """Compute coordinate radius from speed and timestep settings."""
 
         overlap = 1.5
         coords_per_timestep = speed_mps * float(self._geo_params.timestep)
@@ -152,7 +161,9 @@ class GeospatialEncoder(
 
 
 @dataclass
-class GeospatialParameters(ParentDataclass):
+class GeospatialParameters(ParentDataClass):
+    """Configuration parameters for :class:`GeospatialEncoder`."""
+
     # meters per grid unit
     scale: float = 5.0
 

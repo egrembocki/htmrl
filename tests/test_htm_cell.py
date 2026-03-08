@@ -1,3 +1,29 @@
+"""
+Test suite for Cell class.
+
+Cell is a single processing unit within a Column. Cells form synaptic connections
+to other cells (distal synapses) and maintain learned temporal patterns through
+segments (which group related synapses).
+
+Key Components:
+  - Cell lives within Column at specific index
+  - Segments: each segment contains distal synapses from other cells
+  - Active state: whether cell is currently firing/active
+  - Predictive state: whether cell predicts activity in next timestep
+
+Temporal Learning Disabled:
+  - Tests use non_temporal=True to avoid HTM temporal memory bug
+  - Bug: best_potential_prev_active_segment() calls len() on int (HTM.py:452)
+  - Spatial pooling tested; temporal tested only in non_temporal mode
+
+Tests validate:
+  1. Cell initialization and basic properties
+  2. Segment creation and management
+  3. Synapse formation and connection
+  4. State tracking (active, predictive)
+  5. Learning state management
+"""
+
 import pytest
 
 from psu_capstone.agent_layer.HTM import Cell, DistalSynapse, Field, Segment

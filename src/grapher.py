@@ -1,12 +1,19 @@
+"""Visualization utilities for SDRs and encoder analysis.
+
+This module provides plotting functions for visualizing sparse distributed
+representations, FFT analysis of time-series data, and encoder behaviors.
+Includes tools for comparing encodings, analyzing frequency spectra, and
+displaying SDR patterns as 2D grids.
+"""
+
 import os
-from typing import cast
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import ticker
-from matplotlib.colors import ListedColormap
-from scipy import signal as sig
+from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq, ifft
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -16,13 +23,21 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
 from psu_capstone.sdr_layer.sdr import SDR
-from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
+from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
 
-def plot_sdr(data: list[int]) -> None:
-    """Plot a visual representation of the given SDR data."""
+def plot_sdr(data: list[int], title: str | None = None) -> None:
+    """Plot a visual representation of an SDR as a 2D grid.
+
+    Converts the 1D binary SDR into a square grid visualization where
+    active bits are shown in blue and inactive bits in white.
+
+    Args:
+        data: Binary list representing the SDR (0s and 1s).
+        title: Optional title for the plot.
+    """
 
     sdr = SDR([len(data)])
     sdr.set_dense(data)
@@ -43,11 +58,37 @@ def plot_sdr(data: list[int]) -> None:
 
     plt.figure(figsize=(10, 10))
     plt.imshow(grid, cmap=cmap, interpolation="nearest")
-    title = "SDR Visualization"
-    plt.title(title)
+    plot_title = title or "SDR Visualization"
+    plt.title(plot_title)
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
+    plt.show(block=True)
+
+
+def plot_heat_map(
+    heat_map: np.ndarray,
+    title: str | None = None,
+    norm: Any = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> None:
+    """Plot a heat map visualization of the given 2D array data.
+
+    Args:
+        heat_map: 2D numpy array of values to visualize
+        title: Title for the plot
+        norm: Matplotlib normalization object (e.g., PowerNorm)
+        vmin: Minimum value for color mapping (if norm is None)
+        vmax: Maximum value for color mapping (if norm is None)
+    """
+    plt.figure(figsize=(12, 12))
+    plt.imshow(heat_map, cmap="hot", interpolation="nearest", norm=norm, vmin=vmin, vmax=vmax)
+    if title:
+        plt.title(title)
+    plt.colorbar(label="Duty Cycle")
+    plt.xticks([])
+    plt.yticks([])
     plt.show(block=True)
 
 

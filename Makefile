@@ -68,6 +68,17 @@ lint: ## Run linting checks
 	@uv run --active flake8 . --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
+lint-docs: ## Check docstring coverage and style
+	@echo "📝 Checking docstring coverage and style..."
+	@uv run --active pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
+	@uv run --active interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
+	@echo "✅ Docstring checks complete"
+
+lint-docs-strict: ## Strict docstring validation with pydoclint
+	@echo "📝 Running strict docstring validation..."
+	@uv run --active pydoclint --style=google --exclude='\.venv|tests|build' src/
+	@echo "✅ Strict docstring validation complete"
+
 clean:
 	@echo "🧹 Cleaning build artifacts..."
 ifeq ($(OS),Windows_NT)
