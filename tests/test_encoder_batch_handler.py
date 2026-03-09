@@ -29,6 +29,8 @@ from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderPara
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
+pytest_plugins = ["tests.config_test"]
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
 
@@ -64,11 +66,14 @@ def test_handler_singleton(handler: BatchEncoderHandler):
     """
     Tests to make sure the handler is a singleton.
     """
+    # Arrange
     test_input = handler._data_frame
 
+    # Act
     h1 = handler
     h2 = BatchEncoderHandler(test_input)
 
+    # Assert
     assert h1 is h2
 
 
@@ -87,6 +92,7 @@ def test_dataframe_composite():
     categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
     handler.set_category_encoder_parameters(params=categoryparams)
     dateparams = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         season_radius=91.5,
         day_of_week_active_bits=7,
@@ -137,28 +143,22 @@ def test_dataframe_composite():
 """
 
 
-def test_individual_column_sdrs():
+def test_individual_column_sdrs(sample_batch_data, rdse_params_small, category_params_basic):
     """
-    This tests to make sure our dicstionary encoding allows us to access every
+    This tests to make sure our dictionary encoding allows us to access every
     column with a simple line. This retrieves all of the sdrs for that respective
     column. Each should have 4 sdrs as we have 4 rows in the example data.
     """
-
+    # Arrange
     warnings.simplefilter(action="ignore", category=FutureWarning)
-    df1 = [
-        {"float_col": 3.14, "int_col": 42, "str_col": "B", "date_col": datetime(2023, 12, 25)},
-        {"float_col": 5.4, "int_col": 21, "str_col": "C", "date_col": datetime(2023, 12, 26)},
-        {"float_col": 6.7, "int_col": 10, "str_col": "D", "date_col": datetime(2023, 12, 27)},
-        {"float_col": 12.4, "int_col": 5, "str_col": "E", "date_col": datetime(2023, 12, 28)},
-    ]
+    handler = BatchEncoderHandler(sample_batch_data)
 
-    handler = BatchEncoderHandler(df1)
+    handler.set_rdse_encoder_parameters(params=rdse_params_small)
+    handler.set_category_encoder_parameters(params=category_params_basic)
 
-    rdseparams = RDSEParameters(100, 2, 0, 0, 1, False, 1)
-    handler.set_rdse_encoder_parameters(params=rdseparams)
-    categoryparams = CategoryParameters(w=3, category_list=["B"], rdse_used=False)
-    handler.set_category_encoder_parameters(params=categoryparams)
+    # Custom date encoder parameters for this test
     dateparams = DateEncoderParameters(
+        year_active_bits=0,
         season_active_bits=0,
         season_radius=91.5,
         day_of_week_active_bits=7,
@@ -174,18 +174,14 @@ def test_individual_column_sdrs():
     )
     handler.set_date_encoder_parameters(params=dateparams)
 
-    dictionary_sdrs = handler._build_dict_list_sdr(df1, 4)
+    # Act
+    dictionary_sdrs = handler._build_dict_list_sdr(sample_batch_data, 4)
+
+    # Assert
     assert len(dictionary_sdrs["float_col"]) == 4
     assert len(dictionary_sdrs["int_col"]) == 4
     assert len(dictionary_sdrs["str_col"]) == 4
     assert len(dictionary_sdrs["date_col"]) == 4
-    """
-    #Optional Printing:
-    print(dictionary_sdrs["float_col"])
-    print(dictionary_sdrs["int_col"])
-    print(dictionary_sdrs["str_col"])
-    print(dictionary_sdrs["date_col"])
-    """
 
 
 """

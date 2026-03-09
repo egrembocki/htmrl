@@ -37,212 +37,66 @@ import pytest
 
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 
-# ---------------------------------------------------------------------------
-# Shared params: RDSE-only configs for single-feature tests
-# ---------------------------------------------------------------------------
-
-
-def _params_year_only():
-    return DateEncoderParameters(
-        year_size=2048,
-        year_active_bits=42,
-        year_sparsity=0.0,
-        year_radius=0.0,
-        year_resolution=1.0,
-        season_active_bits=0,
-        day_of_week_active_bits=0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        custom_active_bits=0,
-        rdse_used=True,
-    )
-
-
-def _params_season_only():
-    return DateEncoderParameters(
-        season_size=2048,
-        season_active_bits=42,
-        season_sparsity=0.0,
-        season_radius=91.5,
-        season_resolution=0.0,
-        day_of_week_active_bits=0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        custom_active_bits=0,
-        rdse_used=True,
-    )
-
-
-def _params_day_of_week_only():
-    return DateEncoderParameters(
-        season_active_bits=0,
-        day_of_week_size=2048,
-        day_of_week_active_bits=42,
-        day_of_week_radius=292.57,
-        day_of_week_resolution=0.0,
-        day_of_week_sparsity=0.0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        custom_active_bits=0,
-        rdse_used=True,
-    )
-
-
-def _params_weekend_only():
-    return DateEncoderParameters(
-        season_active_bits=0,
-        day_of_week_active_bits=0,
-        weekend_size=2048,
-        weekend_active_bits=42,
-        weekend_radius=39.38,
-        weekend_resolution=0.0,
-        weekend_sparsity=0.0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        custom_active_bits=0,
-        rdse_used=True,
-    )
-
-
-def _params_custom_only():
-    return DateEncoderParameters(
-        season_active_bits=0,
-        day_of_week_active_bits=0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_active_bits=0,
-        custom_size=2048,
-        custom_active_bits=42,
-        custom_radius=409.6,
-        custom_resolution=0.0,
-        custom_sparsity=0.0,
-        custom_days=["mon,tue,wed,thu,fri"],
-        rdse_used=True,
-    )
-
-
-def _params_holiday_only():
-    return DateEncoderParameters(
-        season_active_bits=0,
-        day_of_week_active_bits=0,
-        weekend_active_bits=0,
-        holiday_size=2048,
-        holiday_active_bits=42,
-        holiday_dates=[[2020, 1, 1], [7, 4], [12, 25]],
-        holiday_radius=682.67,
-        holiday_resolution=0.0,
-        holiday_sparsity=0.0,
-        time_of_day_active_bits=0,
-        custom_active_bits=0,
-        rdse_used=True,
-    )
-
-
-def _params_time_of_day_only():
-    return DateEncoderParameters(
-        season_active_bits=0,
-        day_of_week_active_bits=0,
-        weekend_active_bits=0,
-        holiday_active_bits=0,
-        time_of_day_size=2048,
-        time_of_day_active_bits=42,
-        time_of_day_radius=85.33,
-        time_of_day_resolution=0.0,
-        time_of_day_sparsity=0.0,
-        custom_active_bits=0,
-        rdse_used=True,
-    )
-
-
-def _params_all_combined():
-    return DateEncoderParameters(
-        year_size=2048,
-        year_active_bits=42,
-        year_sparsity=0.0,
-        year_radius=0.0,
-        year_resolution=1.0,
-        season_size=1024,
-        season_active_bits=22,
-        season_sparsity=0.0,
-        season_radius=256.0,
-        season_resolution=0.0,
-        day_of_week_size=1024,
-        day_of_week_active_bits=22,
-        day_of_week_radius=146.28,
-        day_of_week_resolution=0.0,
-        day_of_week_sparsity=0.0,
-        weekend_size=1024,
-        weekend_active_bits=22,
-        weekend_radius=512.0,
-        weekend_resolution=0.0,
-        weekend_sparsity=0.0,
-        holiday_size=1024,
-        holiday_active_bits=22,
-        holiday_dates=[[1, 1], [7, 4], [12, 25]],
-        holiday_radius=341.33,
-        holiday_resolution=0.0,
-        holiday_sparsity=0.0,
-        time_of_day_size=2048,
-        time_of_day_active_bits=42,
-        time_of_day_radius=0.023704,
-        time_of_day_resolution=0.0,
-        time_of_day_sparsity=0.0,
-        custom_size=1024,
-        custom_active_bits=22,
-        custom_radius=204.8,
-        custom_resolution=0.0,
-        custom_sparsity=0.0,
-        custom_days=["Mon, Tue, Wed, Thu, Fri"],
-        rdse_used=True,
-    )
-
+pytest_plugins = ["tests.config_test"]
 
 # ---------------------------------------------------------------------------
 # Output format: binary 0/1 only, length equals size
 # ---------------------------------------------------------------------------
 
 
-def test_rdse_output_only_zeros_and_ones():
+def test_rdse_output_only_zeros_and_ones(date_params_season_only):
     """Verify RDSE DateEncoder output is strictly binary (only 0 and 1 values).
 
     Tests that all bits in the output SDR are either 0 or 1, with no intermediate
     values or errors. This validates the fundamental SDR representation format for
     RDSE-based encodings.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
     dt = datetime(2020, 1, 1, 0, 0)
+
+    # Act
     out = encoder.encode(dt)
+
+    # Assert
     assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
 
 
-def test_rdse_output_length_equals_size():
+def test_rdse_output_length_equals_size(date_params_season_only):
     """Verify RDSE DateEncoder output length matches the configured encoder size.
 
     Tests that the output SDR has a length equal to the sum of all enabled
     encoder sizes. This validates that no bits are dropped or added during
     RDSE encoding operations.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
     dt = datetime(2020, 1, 1, 0, 0)
+
+    # Act
     out = encoder.encode(dt)
+
+    # Assert
     assert (
         len(out) == encoder._size
     ), f"Output length must equal _size ({encoder._size}), got {len(out)}"
 
 
-def test_rdse_all_combined_output_binary_and_length():
+def test_rdse_all_combined_output_binary_and_length(date_params_all_combined_with_year):
     """Verify RDSE DateEncoder with all features produces correct output format.
 
     Tests that when all seven RDSE encoders (year, season, day_of_week, weekend,
     custom, holiday, time_of_day) are enabled together, the output is binary
     and has the correct total length equal to sum of component sizes.
     """
-    encoder = DateEncoder(_params_all_combined())
+    # Arrange
+    encoder = DateEncoder(date_params_all_combined_with_year)
     dt = datetime(2020, 1, 1, 0, 0)
+
+    # Act
     out = encoder.encode(dt)
+
+    # Assert
     assert all(b in (0, 1) for b in out)
     assert len(out) == encoder._size
 
@@ -253,28 +107,34 @@ def test_rdse_all_combined_output_binary_and_length():
 
 
 @pytest.mark.parametrize(
-    "params_factory",
+    "params_fixture",
     [
-        _params_year_only,
-        _params_season_only,
-        _params_day_of_week_only,
-        _params_weekend_only,
-        _params_custom_only,
-        _params_holiday_only,
-        _params_time_of_day_only,
+        "date_params_year_only",
+        "date_params_season_only",
+        "date_params_day_of_week_only",
+        "date_params_weekend_only",
+        "date_params_custom_only",
+        "date_params_holiday_only",
+        "date_params_time_of_day_only",
     ],
     ids=["year", "season", "day_of_week", "weekend", "custom", "holiday", "time_of_day"],
 )
-def test_rdse_single_feature_encode_binary_and_length(params_factory):
+def test_rdse_single_feature_encode_binary_and_length(params_fixture, request):
     """Verify each individual RDSE encoder produces valid binary output.
 
     Tests that single-feature configurations (year-only, season-only, etc.) each
     produce binary output of correct length. Validates that each RDSE component
     encoder works independently in isolation.
     """
-    encoder = DateEncoder(params_factory())
+    # Arrange
+    params = request.getfixturevalue(params_fixture)
+    encoder = DateEncoder(params)
     dt = datetime(2020, 6, 15, 12, 30)
+
+    # Act
     out = encoder.encode(dt)
+
+    # Assert
     assert all(b in (0, 1) for b in out)
     assert len(out) == encoder._size
 
@@ -284,17 +144,22 @@ def test_rdse_single_feature_encode_binary_and_length(params_factory):
 # ---------------------------------------------------------------------------
 
 
-def test_rdse_same_instance_same_input_same_encoding():
+def test_rdse_same_instance_same_input_same_encoding(date_params_season_only):
     """Verify RDSE encoding is deterministic for the same encoder instance.
 
     Tests that encoding the same datetime twice with the same encoder instance
     produces identical SDRs. Validates that RDSE hash-based encoding is
     deterministic within an encoder instance.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
     dt = datetime(2019, 7, 4, 14, 0)
+
+    # Act
     enc1 = encoder.encode(dt)
     enc2 = encoder.encode(dt)
+
+    # Assert
     assert enc1 == enc2
 
 
@@ -303,17 +168,19 @@ def test_rdse_same_instance_same_input_same_encoding():
 # ---------------------------------------------------------------------------
 
 
-def test_rdse_same_params_same_encoding_across_instances():
+def test_rdse_same_params_same_encoding_across_instances(date_params_season_only):
     """Verify RDSE produces identical encodings across different encoder instances.
 
     Tests that two DateEncoder instances created with identical parameters produce
     the same encodings for the same input. Validates that RDSE behavior is
     deterministic and reproducible across instances with identical configuration.
     """
-    params = _params_season_only()
-    encoder1 = DateEncoder(params)
-    encoder2 = DateEncoder(params)
+    # Arrange
+    encoder1 = DateEncoder(date_params_season_only)
+    encoder2 = DateEncoder(date_params_season_only)
     dt = datetime(2020, 1, 1, 0, 0)
+
+    # Act & Assert
     assert encoder1.encode(dt) == encoder2.encode(dt)
 
 
@@ -322,66 +189,89 @@ def test_rdse_same_params_same_encoding_across_instances():
 # ---------------------------------------------------------------------------
 
 
-def test_rdse_encode_accepts_datetime():
+def test_rdse_encode_accepts_datetime(date_params_season_only):
     """Verify RDSE DateEncoder accepts Python datetime objects.
 
     Tests that the encoder can process datetime.datetime objects and produces
     valid SDR output. Validates support for the most common datetime input type.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
     dt = datetime(2020, 3, 15, 9, 0)
+
+    # Act
     out = encoder.encode(dt)
+
+    # Assert
     assert len(out) == encoder._size
     assert all(b in (0, 1) for b in out)
 
 
-def test_rdse_encode_accepts_none_current_time():
+def test_rdse_encode_accepts_none_current_time(date_params_season_only):
     """Verify RDSE DateEncoder accepts None to represent current time.
 
     Tests that passing None uses the current local time (via time.localtime())
     and produces valid SDR output. Validates convenient encoding of current moment.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
+
+    # Act
     out = encoder.encode(None)
+
+    # Assert
     assert len(out) == encoder._size
     assert all(b in (0, 1) for b in out)
 
 
-def test_rdse_encode_accepts_epoch_seconds():
+def test_rdse_encode_accepts_epoch_seconds(date_params_season_only):
     """Verify RDSE DateEncoder accepts UNIX epoch seconds (int/float).
 
     Tests that the encoder can process integer or float UNIX timestamps and
     produces valid SDR output. Validates support for numeric timestamp inputs.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
     dt = datetime(2020, 1, 1, 0, 0)
     ts = dt.timestamp()
+
+    # Act
     out = encoder.encode(ts)
+
+    # Assert
     assert len(out) == encoder._size
     assert all(b in (0, 1) for b in out)
 
 
-def test_rdse_encode_accepts_struct_time():
+def test_rdse_encode_accepts_struct_time(date_params_season_only):
     """Verify RDSE DateEncoder accepts time.struct_time objects.
 
     Tests that the encoder can process struct_time objects (from datetime.timetuple())
     and produces valid SDR output. Validates support for low-level time structures.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
     dt = datetime(2020, 5, 20, 18, 30)
     t = dt.timetuple()
+
+    # Act
     out = encoder.encode(t)
+
+    # Assert
     assert len(out) == encoder._size
     assert all(b in (0, 1) for b in out)
 
 
-def test_rdse_encode_rejects_unsupported_type():
+def test_rdse_encode_rejects_unsupported_type(date_params_season_only):
     """Verify RDSE DateEncoder rejects unsupported input types.
 
     Tests that the encoder raises ValueError when given invalid input types
     (strings, lists, etc.). Validates that the encoder enforces strict type checking.
     """
-    encoder = DateEncoder(_params_season_only())
+    # Arrange
+    encoder = DateEncoder(date_params_season_only)
+
+    # Act & Assert
     with pytest.raises(ValueError):
         encoder.encode("2020-01-01")
     with pytest.raises(ValueError):
@@ -418,19 +308,23 @@ def test_rdse_no_encoders_enabled_raises():
 # ---------------------------------------------------------------------------
 
 
-def test_rdse_different_dates_different_encodings():
+def test_rdse_different_dates_different_encodings(date_params_all_combined_with_year):
     """Verify different dates produce different RDSE encodings.
 
     Tests that at least two out of three different dates (1/1, 7/4, 12/25) produce
     distinct encodings. Validates that the encoder produces varying outputs for
     different temporal inputs.
     """
-    encoder = DateEncoder(_params_all_combined())
+    # Arrange
+    encoder = DateEncoder(date_params_all_combined_with_year)
+
+    # Act
     encodings = []
     for year, month, day in [(2020, 1, 1), (2020, 7, 4), (2019, 12, 25)]:
         dt = datetime(year, month, day, 12, 0)
         encodings.append(encoder.encode(dt))
-    # At least two should differ
+
+    # Assert - at least two should differ
     assert len(set(tuple(e) for e in encodings)) >= 2
 
 
@@ -447,14 +341,15 @@ def hamming_distance_helper(first, second) -> int:
     return int(np.count_nonzero(first != second))
 
 
-def test_date_correctness():
+def test_date_correctness(date_params_all_combined_with_year, date_params_year_only):
     """Verify year encoding produces semantically correct Hamming distances.
 
     Tests that years closer together have smaller Hamming distances than years
     far apart. Validates that RDSE year encoding with radius=100 produces
     meaningful semantic similarity (2020 vs 2001 < 2020 vs 3000).
     """
-    encoder = DateEncoder(_params_all_combined())
+    # Arrange
+    encoder = DateEncoder(date_params_all_combined_with_year)
     encodings1 = []
     for year, month, day in [(2020, 1, 1), (2020, 7, 4), (2050, 12, 25)]:
         dt = datetime(year, month, day, 12, 0)
@@ -506,12 +401,11 @@ def test_date_correctness():
     assert hamming_distance_helper(encodings5[0], encodings5[1]) < hamming_distance_helper(
         encodings5[0], encodings5[2]
     )
-    encoder_year = DateEncoder(_params_year_only())
+    encoder_year = DateEncoder(date_params_year_only)
     dt = datetime(2020, 6, 15, 12, 0)
     encoding_year = encoder_year.encode(dt)
-    assert len(encoding_year) == 500
-    # RDSE may have slight variation in actual active bits due to hashing
-    assert 8 <= sum(encoding_year) <= 12, f"Expected ~10 active bits, got {sum(encoding_year)}"
+    assert len(encoding_year) == 2048
+    assert sum(encoding_year) == 42, f"Expected 42 active bits, got {sum(encoding_year)}"
 
     # Season only should work
     params_season = DateEncoderParameters(

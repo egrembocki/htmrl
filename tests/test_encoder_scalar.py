@@ -44,7 +44,7 @@ def do_scalar_value_cases(encoder: ScalarEncoder, cases: list[tuple[float, list[
         except AttributeError as error:
             if "int' object has no attribute 'size" in str(error):
                 pytest.xfail(
-                    'Known periodic wrap-around bug in ScalarEncoder (_compute_encoding uses self.size.size)'
+                    "Known periodic wrap-around bug in ScalarEncoder (_compute_encoding uses self.size.size)"
                 )
             raise
         active_indices = [index for index, bit in enumerate(encoded) if bit == 1]
