@@ -158,14 +158,18 @@ def test_resolution_plus_radius_plus_category():
     Make sure an exception is thrown here since these parameters should
     not be used together.
     """
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         RandomDistributedScalarEncoder(parameters)
-        parameters.radius = 0
-        parameters.category = True
+
+    parameters.radius = 0.0
+    parameters.category = True
+    with pytest.raises(ValueError):
         RandomDistributedScalarEncoder(parameters)
-        parameters.resolution = 0
-        parameters.radius = 1
-        RandomDistributedScalarEncoder(parameters)
+
+    parameters.category = False
+    parameters.resolution = 0.0
+    parameters.radius = 1.0
+    RandomDistributedScalarEncoder(parameters)
 
 
 def test_sparsity_or_activebits():
@@ -191,7 +195,7 @@ def test_sparsity_or_activebits():
         size=1000, active_bits=50, sparsity=1.0, radius=0.0, resolution=1.5, category=False, seed=0
     )
     """Make sure an exception is thrown here since both sparsity and active bits are set."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         RandomDistributedScalarEncoder(parameters)
     """These should be able to run without an exception or assert since both are not set at once."""
     parameters.sparsity = 0.0
@@ -225,7 +229,7 @@ def test_one_of_resolution_radius_category_should_be_entered():
         size=1000, active_bits=50, sparsity=0.0, radius=0.0, resolution=0.0, category=False, seed=0
     )
     """Make sure an exception is thrown here since neither radius, resolution, or category were entered."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         RandomDistributedScalarEncoder(parameters)
 
 
@@ -253,7 +257,7 @@ def test_one_of_activebit_or_sparsity_is_entered():
         size=1000, active_bits=0, sparsity=0.0, radius=1.0, resolution=0.0, category=False, seed=0
     )
     """Make sure an exception is thrown here since neither active bits or sparsity was entered"""
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         RandomDistributedScalarEncoder(parameters)
 
 
@@ -268,7 +272,6 @@ def test_2048_bits_40_active_bits():
     sparse = [i for i, x in enumerate(a) if x == 1]
     """Checking for active bits accounting for hash collisions."""
     assert 35 <= len(sparse) <= 40
-    print(sparse)
     """Make sure the density is 2048."""
     assert len(a) == 2048
 
