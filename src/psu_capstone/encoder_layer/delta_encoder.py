@@ -6,6 +6,8 @@ import copy
 from dataclasses import dataclass
 from typing import override
 
+import numpy as np
+
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
@@ -70,13 +72,28 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
 
     def _encode_pairs(self, pairs: list[tuple[float, float]]) -> list[int]:
         """Encode a list of value pairs into a single SDR."""
-        # This is a placeholder implementation. You can implement this method to encode multiple pairs if needed.
-        # TODO use coordinate encoder to encode pairs of values as coordinates and radius, then return the the difference between the two coordinates as the delta value to encode with the RDSE encoder. This will allow us to encode pairs of values in a way that captures their relationship, rather than just encoding the delta value directly.
 
         if len(pairs) != 2:
             raise ValueError("Expected exactly 2 pairs of values to encode.")
 
-        raise NotImplementedError("Encoding pairs is not implemented yet.")
+        pair_one = pairs[0]
+        pair_two = pairs[1]
+
+        pair_one = (int(pair_one[0]), int(pair_one[1]))
+        pair_two = (int(pair_two[0]), int(pair_two[1]))
+
+        t_delta = (abs(pair_one[0] - pair_two[0]), abs(pair_one[1] - pair_two[1]))
+        t_delta_distance: float = (t_delta[0] ** 2 + t_delta[1] ** 2) ** 0.5
+
+        encoding_one = self._coordinate_encoder.encode((pair_one, 5))
+        encoding_two = self._coordinate_encoder.encode((pair_two, 5))
+
+        delta_encoding = self._rdse_encoder.encode((t_delta_distance))
+
+        e_or: list[int] = np.logical_and(encoding_one, encoding_two).astype(int).tolist()
+        delta_encoding: list[int] = np.logical_or(e_or, delta_encoding).astype(int).tolist()
+
+        return delta_encoding
 
 
 @dataclass
@@ -101,14 +118,9 @@ class DeltaEncoderParameters(ParentDataClass):
 
 if __name__ == "__main__":
 
-    test_encoder = RandomDistributedScalarEncoder(RDSEParameters())
-
-    e1 = test_encoder.encode(10.0)
-    e2 = test_encoder.encode(5.0)
-
     encoder = DeltaEncoder()
-    input_value = (10.0, 5.0)
-    encoding = encoder.encode(input_value)
-    print(f"Input: {input_value}, Encoding: {encoding}")
 
-    assert encoding == e2, "Encoding does not match expected value for 10.0"
+    input_value = [(10.0, 5.0), (1.0, 3.5)]
+    encoding = encoder.encode(input_value)
+
+    print(f"Input: {input_value}, Encoding: {encoding}")

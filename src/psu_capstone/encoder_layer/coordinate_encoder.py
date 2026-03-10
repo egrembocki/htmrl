@@ -92,7 +92,12 @@ class CoordinateEncoder(BaseEncoder[tuple[float, float]]):
     def register_encoding(
         self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
     ) -> list[int]:
-        """Cache and return the encoding for a coordinate/radius key."""
+        """Cache and return the encoding for a coordinate/radius key.
+
+        ? why do we need to this to be tuple of tuple, why not just tuple[list[int], int] for coordinate?
+        I think it maybe less confusing to simply use the tuple[list[int], int] as the key, since the coordinate is already a tuple of ints, and the radius is an int, so we can just use that directly as the key without needing to wrap it in another tuple. This would also make the code simpler and easier to read, since we wouldn't need to unpack the coordinate from the outer tuple every time we want to access it.
+
+        """
         coordinate, radius = input_value
 
         key = (tuple(int(v) for v in coordinate), int(radius))
