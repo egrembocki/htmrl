@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from typing import override
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.log import get_logger
 
 
-class DeltaEncoder(BaseEncoder[tuple[float, float]]):
+class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]]):
     """Encodes the difference between two values."""
 
     def __init__(self, encoder_params: DeltaEncoderParameters | None = None):
@@ -32,11 +33,18 @@ class DeltaEncoder(BaseEncoder[tuple[float, float]]):
             RDSEParameters(size=params.size, sparsity=params.sparsity)
         )
 
+        self._coordinate_encoder = CoordinateEncoder(
+            CoordinateParameters(n=2048, w=42, seed=42, max_radius=10, use_all_neighbors=True)
+        )
+
         super().__init__(params.size)
 
     @override
-    def encode(self, input_value: tuple[float, float]) -> list[int]:
+    def encode(self, input_value: tuple[float, float] | list[tuple[float, float]]) -> list[int]:
         """Encode the difference between value1 and value2."""
+
+        if isinstance(input_value, list):
+            return self._encode_pairs(input_value)
 
         value1, value2 = input_value
         if value1 > value2:
@@ -60,6 +68,16 @@ class DeltaEncoder(BaseEncoder[tuple[float, float]]):
         """Decode the SDR back to a value and confidence."""
         raise NotImplementedError("DeltaEncoder does not implement decode()")
 
+    def _encode_pairs(self, pairs: list[tuple[float, float]]) -> list[int]:
+        """Encode a list of value pairs into a single SDR."""
+        # This is a placeholder implementation. You can implement this method to encode multiple pairs if needed.
+        # TODO use coordinate encoder to encode pairs of values as coordinates and radius, then return the the difference between the two coordinates as the delta value to encode with the RDSE encoder. This will allow us to encode pairs of values in a way that captures their relationship, rather than just encoding the delta value directly.
+
+        if len(pairs) != 2:
+            raise ValueError("Expected exactly 2 pairs of values to encode.")
+
+        raise NotImplementedError("Encoding pairs is not implemented yet.")
+
 
 @dataclass
 class DeltaEncoderParameters(ParentDataClass):
@@ -76,6 +94,9 @@ class DeltaEncoderParameters(ParentDataClass):
 
     active_bits: int = 0
     """The number of bits that are active in the output SDR."""
+
+    encode_pairs: bool = True
+    """Whether to encode pairs of values (value1, value2) or just the delta value."""
 
 
 if __name__ == "__main__":
