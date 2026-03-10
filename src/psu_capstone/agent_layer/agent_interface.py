@@ -1,32 +1,50 @@
-"""Exposed interface for Agent layer components."""
+"""Protocol definitions for agent layer components.
+
+This module defines the interface contract that all agents must satisfy
+for decision-making and learning in the HTM reinforcement learning system.
+"""
 
 from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 
-from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
+from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
 from psu_capstone.sdr_layer.sdr_interface import SDRInterface
 
 
 @runtime_checkable
 class AgentInterface(Protocol):
-    """Defines the interface requiremnts to be an Agent in the HTM-RL system."""
+    """Protocol defining the interface requirements for HTM-RL agents.
+
+    Agents implementing this protocol can select actions based on state
+    observations and update their internal policy based on experience
+    in reinforcement learning environments.
+    """
 
     def select_action(self, state: tuple) -> Any:
-        """Select an action based on the current state.
+        """Select an action based on the current state observation.
+
+        Processes the current state through the agent's decision-making
+        mechanism (typically HTM + policy network) to determine the best action.
 
         Args:
-            state (tuple): The current state of the environment.
+            state: Current environment state as a tuple of observations.
+
+        Returns:
+            The action to take in the environment.
         """
         ...
 
     def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
-        """Update the agent's internal model and policy based on experience.
+        """Update the agent's policy based on reinforcement learning experience.
+
+        Takes a transition tuple (state, action, reward, next_state) and updates
+        the agent's internal models to improve future decision-making.
 
         Args:
-            state: The previous state of the environment.
-            action: The action taken by the agent.
-            reward: The reward received after taking the action.
-            next_state: The new state of the environment after the action.
+            state: The state before taking the action.
+            action: The action that was taken.
+            reward: The reward received from the environment.
+            next_state: The resulting state after taking the action.
         """
         ...

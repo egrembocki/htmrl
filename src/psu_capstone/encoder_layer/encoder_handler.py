@@ -38,31 +38,20 @@ class EncoderHandler:
     This class uses a singleton pattern to ensure only one instance exists.
     It dynamically selects the appropriate encoder for each DataFrame column
     based on its dtype and builds a composite SDR from the encoded columns.
+
+    Args:
+        input_data: Optional DataFrame containing input data for encoder initialization.
     """
 
     __instance: EncoderHandler | None = None
 
     def __new__(cls, input_data: pd.DataFrame | None = None) -> "EncoderHandler":
-        """Implements the singleton pattern for EncoderHandler.
-
-        Args:
-            input_data (pd.DataFrame | None): Input data for encoder initialization.
-
-        Returns:
-            EncoderHandler: The singleton instance.
-        """
-
         if cls.__instance is None:
             cls.__instance = super(EncoderHandler, cls).__new__(cls)
 
         return cls.__instance
 
     def __init__(self, input_data: pd.DataFrame | None = None):
-        """Initializes the EncoderHandler with a DataFrame of input data.
-
-        Args:
-            input_data (pd.DataFrame | None): DataFrame containing input data.
-        """
         self._data_frame = copy.deepcopy(input_data) if input_data is not None else pd.DataFrame()
         self._encoders: list[BaseEncoder] = []
 
@@ -70,11 +59,8 @@ class EncoderHandler:
     def get_instance(cls) -> "EncoderHandler":
         """Returns the singleton instance of EncoderHandler.
 
-        Args:
-            input_data (pd.DataFrame): Input data for encoder initialization.
-
         Returns:
-            EncoderHandler: The singleton instance.
+            The singleton instance.
         """
         if cls.__instance is None:
             cls.__instance = EncoderHandler()
@@ -87,10 +73,10 @@ class EncoderHandler:
         encodes the value, and concatenates the resulting SDRs into a single composite SDR.
 
         Args:
-            input_data (pd.DataFrame): DataFrame containing input values for each encoder.
+            input_data: DataFrame containing input values for each encoder.
 
         Returns:
-            list[SDR]: Composite SDRs built from all encoded columns.
+            Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.
@@ -102,12 +88,10 @@ class EncoderHandler:
 
         scalartrue = False
 
-        # --- existing per-row logic, wrapped in a loop ---@SuperBat101
         for _, row in input_data.iterrows():
             sdrs: list[SDR] = []
 
             for col_name, value in row.items():
-                # everything below here is *your existing code* per column: -- @SuperBat101
                 if isinstance(value, float) or isinstance(value, np.floating):
                     encoder = RandomDistributedScalarEncoder(
                         RDSEParameters(
@@ -139,7 +123,7 @@ class EncoderHandler:
                         )
                     )
                     sdr = SDR([encoder.size])
-                    encoder.encode(int(value), sdr)
+                    sdr = encoder.encode(int(value))
 
                 elif isinstance(value, str):
                     category_list = input_data[col_name].unique().tolist()
@@ -149,27 +133,13 @@ class EncoderHandler:
                             category_list=category_list,
                         )
                     )
-                    sdr = SDR(encoder.dimensions)
-                    encoder.encode(value, sdr)
+                    sdr = encoder.encode(value)
+                    encoder.encode(value)
 
                 elif isinstance(value, pd.Timestamp) or isinstance(value, datetime):
-                    encoder = DateEncoder(
-                        DateEncoderParameters(
-                            season_width=0,
-                            season_radius=91.5,
-                            day_of_week_width=7,
-                            day_of_week_radius=1.0,
-                            weekend_width=2,
-                            holiday_width=4,
-                            holiday_dates=[[12, 25], [1, 1], [7, 4], [11, 11]],
-                            time_of_day_width=24,
-                            time_of_day_radius=1.0,
-                            custom_width=0,
-                            custom_days=[],
-                        )
-                    )
+                    encoder = DateEncoder(DateEncoderParameters())
                     sdr = SDR([encoder.size])
-                    encoder.encode(value, sdr)
+                    sdr = encoder.encode(value)
 
                 else:
                     raise TypeError(f"Unsupported value type for encoder: {type(value)}")
