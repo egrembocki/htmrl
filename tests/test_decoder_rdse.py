@@ -48,7 +48,7 @@ def test_rdse_decode_returns_tuple_value_confidence():
       - encoder.decode(SDR) finds matching cached encoding and returns (value, confidence)
       - Decoder implementation returns tuple with exact format expected
     """
-    params = RDSEParameters(
+    params: RDSEParameters = RDSEParameters(
         size=256,
         active_bits=20,
         sparsity=0.0,
