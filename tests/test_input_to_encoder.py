@@ -72,7 +72,7 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     assert isinstance(records, dict)
     assert isinstance(encoder_sequence, list)
     assert isinstance(normalized_sequence, list)
-    assert len(normalized_sequence) > 0
+    assert len(normalized_sequence) == len(values)
     assert all(value is not None for value in normalized_sequence)
     assert encoded_from_sequence == encoded_reference
 

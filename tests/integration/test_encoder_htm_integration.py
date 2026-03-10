@@ -91,7 +91,7 @@ class TestInputFieldRDSEIntegration:
         Why it passes:
           - sparsity=0.0 with active_bits=40 satisfies mutual exclusivity
           - InputField.encode(10.0) delegates to RDSE encoder
-          - RDSE produces SDR with 512 bits, ~40 active (sparsity ~4%)
+                    - RDSE produces SDR with 1000 bits, ~40 active (sparsity ~4%)
           - Same input always produces same SDR (deterministic)
         """
         params = RDSEParameters()
@@ -104,15 +104,17 @@ class TestInputFieldRDSEIntegration:
 
         # Encode a value
         encoded = input_field.encode(10.0)
+        active_bit_count = sum(1 for bit in encoded if bit)
 
         # Verify encoding properties
         assert len(encoded) == 1000
-        assert sum(encoded) >= 35  # Allow for some hash collisions
-        assert sum(encoded) <= 40
+        assert active_bit_count >= 35  # Allow for some hash collisions
+        assert active_bit_count <= 40
 
         # Verify cells are activated correctly
         active_cells = input_field.active_cells
-        assert len(active_cells) == sum(encoded)
+        assert isinstance(active_cells, set)
+        assert len(active_cells) == active_bit_count
 
     def test_input_field_encode_sequence(self):
         """Test encoding a sequence of values and verify state management."""
@@ -179,6 +181,7 @@ class TestInputFieldCategoryIntegration:
         input_field = InputField(encoder_params=params)
 
         # Verify field is initialized
+        assert len(input_field.cells) == input_field.encoder.size
         assert len(input_field.cells) > 0
         assert isinstance(input_field.encoder, CategoryEncoder)
 
@@ -193,8 +196,10 @@ class TestInputFieldCategoryIntegration:
         encodings = {}
         for category in categories:
             encoded = input_field.encode(category)
+            active_bit_count = sum(1 for bit in encoded if bit)
             encodings[category] = encoded
-            assert sum(encoded) > 0  # Verify encoding has active bits
+            assert active_bit_count > 0  # Verify encoding has active bits
+            assert len(input_field.active_cells) == active_bit_count
 
         # Verify each category has unique encoding
         encoding_lists = list(encodings.values())
@@ -211,11 +216,15 @@ class TestInputFieldCategoryIntegration:
 
         # Encode known category
         known_encoding = input_field.encode("A")
-        assert sum(known_encoding) > 0
+        known_active_bit_count = sum(1 for bit in known_encoding if bit)
+        assert known_active_bit_count > 0
+        assert len(input_field.active_cells) == known_active_bit_count
 
         # Encode unknown category - should use "unknown" category
         unknown_encoding = input_field.encode("Z")
-        assert sum(unknown_encoding) > 0
+        unknown_active_bit_count = sum(1 for bit in unknown_encoding if bit)
+        assert unknown_active_bit_count > 0
+        assert len(input_field.active_cells) == unknown_active_bit_count
 
         # Known and unknown should have different encodings
         assert known_encoding != unknown_encoding
@@ -235,6 +244,7 @@ class TestInputFieldDateIntegration:
         input_field = InputField(encoder_params=params)
 
         # Verify field is initialized
+        assert len(input_field.cells) == input_field.encoder.size
         assert len(input_field.cells) > 0
         assert isinstance(input_field.encoder, DateEncoder)
 
@@ -254,13 +264,17 @@ class TestInputFieldDateIntegration:
         date3 = datetime.datetime(2024, 1, 16, 10, 30)  # Different day of week
 
         encoding1 = input_field.encode(date1)
+        active_bit_count1 = sum(1 for bit in encoding1 if bit)
         encoding2 = input_field.encode(date2)
+        active_bit_count2 = sum(1 for bit in encoding2 if bit)
         encoding3 = input_field.encode(date3)
+        active_bit_count3 = sum(1 for bit in encoding3 if bit)
 
         # Verify encodings have active bits
-        assert sum(encoding1) > 0
-        assert sum(encoding2) > 0
-        assert sum(encoding3) > 0
+        assert active_bit_count1 > 0
+        assert active_bit_count2 > 0
+        assert active_bit_count3 > 0
+        assert len(input_field.active_cells) == active_bit_count3
 
         # Different dates should have different encodings
         assert encoding1 != encoding2
@@ -301,6 +315,7 @@ class TestInputFieldToColumnFieldIntegration:
         # Verify some columns are active
         active_columns = column_field.active_columns
         assert len(active_columns) > 0
+        assert len(active_columns) <= len(column_field.columns)
 
     def test_non_spatial_column_field(self):
         """Test ColumnField in non-spatial mode (direct pass-through)."""
@@ -371,7 +386,10 @@ class TestInputFieldToColumnFieldIntegration:
         for value in sequence:
             input_field.encode(value)
             column_field.compute(learn=False)
-            total_active += len(column_field.active_columns)
+            active_cols = len(column_field.active_columns)
+            total_active += active_cols
+            # In non_temporal mode, each active column contributes one active cell.
+            assert len(column_field.active_cells) == active_cols
 
         assert total_active > 0
 
@@ -414,6 +432,7 @@ class TestInputFieldToColumnFieldIntegration:
         column_field.compute(learn=False)
 
         assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) <= len(column_field.columns)
 
 
 class TestMultipleInputFieldsIntegration:
@@ -457,6 +476,7 @@ class TestMultipleInputFieldsIntegration:
 
         # Verify some columns activated
         assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) <= len(column_field.columns)
 
     def test_multiple_fields_temporal_sequence(self):
         """Test temporal learning with multiple input fields."""
@@ -505,6 +525,7 @@ class TestMultipleInputFieldsIntegration:
             column_field.compute(learn=False)
 
         assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) <= len(column_field.columns)
 
 
 class TestEncodeComputeDecodePipeline:
@@ -569,7 +590,9 @@ class TestEncodeComputeDecodePipeline:
         input_field.encode(10.0)
         column_field.compute(learn=False)
 
-        assert len(column_field.active_columns) > 0
+        # In non-spatial mode, active columns map directly from active input bits.
+        assert len(column_field.active_columns) == len(input_field.active_cells)
+        assert len(column_field.active_cells) == len(column_field.active_columns)
 
 
 class TestEncoderSizeAndSparsity:
@@ -598,6 +621,7 @@ class TestEncoderSizeAndSparsity:
         column_field.compute(learn=True)
 
         assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) == len(input_field.active_cells)
 
     def test_large_encoder_size(self):
         """Test with large encoder size."""
@@ -620,6 +644,7 @@ class TestEncoderSizeAndSparsity:
         column_field.compute(learn=True)
 
         assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) <= len(column_field.columns)
 
     def test_varying_sparsity_levels(self):
         """Test different sparsity levels."""
@@ -788,7 +813,8 @@ class TestBranchingSequences:
         input_field.encode(1.0)
         column_field.compute(learn=False)
 
-        assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) == len(input_field.active_cells)
+        assert len(column_field.active_cells) == len(column_field.active_columns)
 
     def test_branching_with_different_contexts(self):
         """Test branching sequences with different temporal contexts."""
@@ -878,7 +904,8 @@ class TestBranchingSequences:
         input_field.encode(1.0)
         column_field.compute(learn=False)
 
-        assert len(column_field.active_columns) > 0
+        assert len(column_field.active_columns) == len(input_field.active_cells)
+        assert len(column_field.active_cells) == len(column_field.active_columns)
 
 
 class TestSpatialPoolingFromEncoderPatterns:
