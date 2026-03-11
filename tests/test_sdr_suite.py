@@ -24,8 +24,8 @@ HTM processing.
 
 import pytest
 
-from psu_capstone.sdr_layer.sdr import SDR
-from psu_capstone.sdr_layer.sdr_interface import SDRInterface
+from legacy.sdr_layer.sdr import SDR
+from legacy.sdr_layer.sdr_interface import SDRInterface
 
 
 @pytest.fixture
