@@ -71,7 +71,7 @@ class CategoryEncoder(BaseEncoder[str]):
             self.encoder = ScalarEncoder(self.sp)
 
     @override
-    def encode(self, input_value: Any) -> list[int]:
+    def encode(self, input_value: str) -> list[int]:
         """Encode a category string into a sparse distributed representation.
 
         Maps the input category to its index in the category list (or 0 for
