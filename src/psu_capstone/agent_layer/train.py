@@ -7,6 +7,8 @@ without needing to interact with the Brain's internal fields directly.
 
 from __future__ import annotations
 
+import io
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -37,6 +39,12 @@ class Trainer:
 
     _BRAIN_NOT_INITIALIZED_ERROR = "Main Brain is not initialized. Please build the Brain first."
 
+    # class variables for blueprints
+    brain_blueprint = Brain
+    input_field_blueprint = InputField
+    output_field_blueprint = OutputField
+    column_field_blueprint = ColumnField
+
     def __init__(self, brain: Brain) -> None:
         self.logger = get_logger(self)
         self._main_brain: Brain = brain
@@ -58,6 +66,21 @@ class Trainer:
         if self._main_brain is None:
             raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
         return self._main_brain
+
+    @property
+    def input_fields(self) -> list[Field]:
+        """Access the input fields configured for training."""
+        return self._trainer_input_fields
+
+    @property
+    def output_fields(self) -> list[Field]:
+        """Access the output fields configured for training."""
+        return self._trainer_output_fields
+
+    @property
+    def column_fields(self) -> list[Field]:
+        """Access the column fields configured for training."""
+        return self._trainer_column_fields
 
     @main_brain.setter
     def main_brain(self, brain: Brain) -> None:
@@ -206,11 +229,10 @@ class Trainer:
                     f.write("-" * 80 + "\n")
 
                 # Capture the brain stats
-                import io
-                import sys
 
                 old_stdout = sys.stdout
                 sys.stdout = buffer = io.StringIO()
+
                 self._main_brain.print_stats()
                 sys.stdout = old_stdout
                 f.write(buffer.getvalue())
