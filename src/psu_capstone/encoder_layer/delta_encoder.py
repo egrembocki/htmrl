@@ -8,7 +8,7 @@ from typing import override
 
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.log import get_logger
@@ -97,7 +97,7 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
 
 
 @dataclass
-class DeltaEncoderParameters(ParentDataClass):
+class DeltaEncoderParameters:
     """Parameters for the DeltaEncoder."""
 
     encoder_class = DeltaEncoder
@@ -118,9 +118,12 @@ class DeltaEncoderParameters(ParentDataClass):
 
 if __name__ == "__main__":
 
-    encoder = DeltaEncoder()
+    params = DeltaEncoderParameters(size=2048, sparsity=0.02, active_bits=40)
+    encoder = DeltaEncoder(params)
 
     input_value = [(10.0, 5.0), (1.0, 3.5)]
-    encoding = encoder.encode(input_value)
+    # encoding = encoder.encode(input_value)
 
-    print(f"Input: {input_value}, Encoding: {encoding}")
+    # print(f"Input: {input_value}, Encoding: {encoding}")
+
+    assert isinstance(params, ParameterMarker)

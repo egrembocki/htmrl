@@ -35,16 +35,19 @@ class AgentInterface(Protocol):
         """
         ...
 
-    def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
-        """Update the agent's policy based on reinforcement learning experience.
+    def step(self, state: tuple, action: Any, reward: float, next_state: tuple, done: bool) -> None:
+        """Update the agent's internal policy based on experience.
 
-        Takes a transition tuple (state, action, reward, next_state) and updates
-        the agent's internal models to improve future decision-making.
+        This method is called after taking an action in the environment and
+        receiving feedback. It allows the agent to learn from the transition
+        (state, action, reward, next_state) and update its decision-making
+        mechanism accordingly.
 
         Args:
-            state: The state before taking the action.
+            state: The previous state before taking the action.
             action: The action that was taken.
-            reward: The reward received from the environment.
-            next_state: The resulting state after taking the action.
+            reward: The reward received after taking the action.
+            next_state: The new state after taking the action.
+            done: Whether the episode has ended after this transition.
         """
         ...
