@@ -1,4 +1,8 @@
-"""Utility functions for PSU Capstone project. Global utilities used across the project."""
+"""Utility functions for PSU Capstone project.
+
+This module provides global utilities used across the project, including
+SDR comparison functions and encoder parameter management.
+"""
 
 import os
 from ctypes import Structure as Struct
@@ -11,18 +15,69 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data")
 
 
-def hamming_distance(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+def hamming_distance(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
+    """Calculate the Hamming distance between two SDRs.
+
+    The Hamming distance is the number of positions at which the corresponding
+    bits differ between two binary arrays.
+
+    Args:
+        sdr1: First sparse distributed representation array.
+        sdr2: Second sparse distributed representation array.
+
+    Returns:
+        The number of differing bits between the two SDRs.
+
+    Raises:
+        ValueError: If SDRs have different shapes.
+    """
+    sdr1 = np.asarray(sdr1, dtype=bool)
+    sdr2 = np.asarray(sdr2, dtype=bool)
+    if sdr1.shape != sdr2.shape:
+        raise ValueError("SDRs must have the same shape for Hamming distance calculation.")
 
     return int(np.count_nonzero(sdr1 != sdr2))
 
 
-def overlap(sdr1: np.ndarray, sdr2: np.ndarray) -> int:
+def overlap(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
+    """Calculate matching active bits between two SDRs.
+
+    The overlap measures how many bits are active (set to 1) in both SDRs,
+    which indicates similarity between the representations.
+
+    Args:
+        sdr1: First sparse distributed representation array.
+        sdr2: Second sparse distributed representation array.
+
+    Returns:
+        The count of bits that are active in both SDRs.
+
+    Raises:
+        ValueError: If SDRs have different shapes.
+    """
+    sdr1 = np.asarray(sdr1, dtype=bool)
+    sdr2 = np.asarray(sdr2, dtype=bool)
+    if sdr1.shape != sdr2.shape:
+        raise ValueError("SDRs must have the same shape for overlap calculation.")
 
     return int(np.sum(np.logical_and(sdr1, sdr2)))
 
 
 class Parameters(Struct):
-    """Structure to hold parameters for all encoders, with default values."""
+    """Structure to hold parameters for all encoder types.
+
+    This ctypes Structure provides a unified interface for configuring
+    scalar encoders, RDSE encoders, date encoders, and category encoders
+    with type-safe default values.
+
+    Initializes with sensible default values suitable for general-purpose
+    encoding tasks. Defaults can be overridden after instantiation.
+
+    Note:
+        This class uses ctypes.Structure with _fields_ to define typed parameters.
+        See _fields_ list below for all available configuration parameters covering
+        scalar encoding, RDSE, date encoding, and category encoding options.
+    """
 
     _fields_ = [
         # ScalarEncoder
@@ -97,9 +152,13 @@ class Parameters(Struct):
         self.cat_w = 3
 
 
-def smoke_check():
-    """Basic smoke check for utils module."""
+def smoke_check() -> None:
+    """Run basic smoke tests to verify utils module functionality.
 
+    Performs simple assertions on Parameters initialization to ensure
+    default values are set correctly. Outputs path information and
+    success message.
+    """
     params = Parameters()
     assert isclose(params.scalar_minimum, 0.0)
     assert params.rdse_seed == 42

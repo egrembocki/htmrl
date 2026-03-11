@@ -38,31 +38,20 @@ class EncoderHandler:
     This class uses a singleton pattern to ensure only one instance exists.
     It dynamically selects the appropriate encoder for each DataFrame column
     based on its dtype and builds a composite SDR from the encoded columns.
+
+    Args:
+        input_data: Optional DataFrame containing input data for encoder initialization.
     """
 
     __instance: EncoderHandler | None = None
 
     def __new__(cls, input_data: pd.DataFrame | None = None) -> "EncoderHandler":
-        """Implements the singleton pattern for EncoderHandler.
-
-        Args:
-            input_data (pd.DataFrame | None): Input data for encoder initialization.
-
-        Returns:
-            EncoderHandler: The singleton instance.
-        """
-
         if cls.__instance is None:
             cls.__instance = super(EncoderHandler, cls).__new__(cls)
 
         return cls.__instance
 
     def __init__(self, input_data: pd.DataFrame | None = None):
-        """Initializes the EncoderHandler with a DataFrame of input data.
-
-        Args:
-            input_data (pd.DataFrame | None): DataFrame containing input data.
-        """
         self._data_frame = copy.deepcopy(input_data) if input_data is not None else pd.DataFrame()
         self._encoders: list[BaseEncoder] = []
 
@@ -70,11 +59,8 @@ class EncoderHandler:
     def get_instance(cls) -> "EncoderHandler":
         """Returns the singleton instance of EncoderHandler.
 
-        Args:
-            input_data (pd.DataFrame): Input data for encoder initialization.
-
         Returns:
-            EncoderHandler: The singleton instance.
+            The singleton instance.
         """
         if cls.__instance is None:
             cls.__instance = EncoderHandler()
@@ -87,10 +73,10 @@ class EncoderHandler:
         encodes the value, and concatenates the resulting SDRs into a single composite SDR.
 
         Args:
-            input_data (pd.DataFrame): DataFrame containing input values for each encoder.
+            input_data: DataFrame containing input values for each encoder.
 
         Returns:
-            list[SDR]: Composite SDRs built from all encoded columns.
+            Composite SDRs built from all encoded columns.
 
         Raises:
             TypeError: If a column's value type is unsupported.
