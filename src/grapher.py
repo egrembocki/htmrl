@@ -145,6 +145,10 @@ def plot_signal(
         sample_rate: Sampling rate in Hz used for frequency axis scaling.
         domain: One of "time", "frequency", or "both".
         title: Optional label appended to plot titles.
+
+    Raises:
+        ValueError: If the signal is empty, sample_rate is not positive, domain is invalid,
+            or there are fewer than 2 samples for frequency plotting.
     """
 
     values = np.asarray(signal, dtype=float).flatten()

@@ -31,6 +31,12 @@ class Trainer:
 
     Args:
         brain: Brain instance to be trained with this trainer.
+
+    Attributes:
+        brain_blueprint: Blueprint class used for creating Brain instances.
+        input_field_blueprint: Blueprint class used for creating input fields.
+        output_field_blueprint: Blueprint class used for creating output fields.
+        column_field_blueprint: Blueprint class used for creating column fields.
     """
 
     _BRAIN_NOT_INITIALIZED_ERROR = "Main Brain is not initialized. Please build the Brain first."
