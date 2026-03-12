@@ -817,9 +817,38 @@ class InputField(Field):
         if size is not None and hasattr(params, "size") and size > 0:
             params.size = size
 
-        self.encoder = params.encoder_class(params)  # type: ignore
-        cells = {Cell() for _ in range(self.encoder.size)}
+        self._encoder = params.encoder_class(params)  # type: ignore
+
+        cells = {Cell() for _ in range(self._encoder.size)}
         Field.__init__(self, cells)
+
+    @property
+    def encoder(self) -> Any:
+        """Return the encoder bound to this input field."""
+
+        if self._encoder is None:
+
+            raise ValueError("Encoder is not set.")
+
+        if hasattr(self._encoder, "size") and len(self.cells) != self._encoder.size:
+            raise ValueError(
+                f"Encoder size {self._encoder.size} does not match number of cells {len(self.cells)}"
+            )
+        return self._encoder
+
+    @encoder.setter
+    def encoder(self, encoder: Any) -> None:
+        """Set the field encoder and keep cell count aligned with encoder size."""
+
+        if encoder is None or not hasattr(encoder, "size"):
+            raise ValueError("Encoder must define a 'size' attribute.")
+
+        if hasattr(encoder, "size") and len(self.cells) != encoder.size:
+            raise ValueError(
+                f"Encoder size {encoder.size} does not match number of cells {len(self.cells)}"
+            )
+
+        self._encoder = encoder
 
     def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""

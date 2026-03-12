@@ -7,23 +7,21 @@ without needing to interact with the Brain's internal fields directly.
 
 from __future__ import annotations
 
+import io
+import sys
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
-from matplotlib.colors import PowerNorm
 
 import grapher
+import psu_capstone.encoder_layer as el
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters
-from psu_capstone.encoder_layer.coordinate_encoder import CoordinateParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
-from psu_capstone.encoder_layer.geospatial_encoder import GeospatialParameters
-from psu_capstone.encoder_layer.rdse import RDSEParameters
+from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
 
@@ -37,14 +35,39 @@ class Trainer:
 
     _BRAIN_NOT_INITIALIZED_ERROR = "Main Brain is not initialized. Please build the Brain first."
 
+    # class variables for blueprints
+    brain_blueprint = Brain
+    input_field_blueprint = InputField
+    output_field_blueprint = OutputField
+    column_field_blueprint = ColumnField
+
     def __init__(self, brain: Brain) -> None:
         self.logger = get_logger(self)
+        self._encoder_factory = EncoderFactory()
         self._main_brain: Brain = brain
         self._brains: list[Brain] = []
         self._trainer_input_fields: list[Field] = []
         self._trainer_output_fields: list[Field] = []
         self._trainer_column_fields: list[Field] = []
         self._values: list[Any] = []
+
+    @staticmethod
+    def _encoder_type_from_params(param: ParentDataClass) -> str:
+        """Map a parameter dataclass to the factory encoder type string."""
+
+        encoder_name = param.encoder_class.__name__.lower()
+        encoder_map = {
+            "randomdistributedscalarencoder": "rdse",
+            "dateencoder": "date",
+            "categoryencoder": "category",
+            "fourierencoder": "fourier",
+            "geospatialencoder": "geospatial",
+            "coordinateencoder": "coordinate",
+            "scalarencoder": "scalar",
+        }
+        if encoder_name not in encoder_map:
+            raise ValueError(f"Unsupported encoder parameters type: {type(param)}")
+        return encoder_map[encoder_name]
 
     @property
     def brains(self) -> list[Brain]:
@@ -58,6 +81,21 @@ class Trainer:
         if self._main_brain is None:
             raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
         return self._main_brain
+
+    @property
+    def input_fields(self) -> list[Field]:
+        """Access the input fields configured for training."""
+        return self._trainer_input_fields
+
+    @property
+    def output_fields(self) -> list[Field]:
+        """Access the output fields configured for training."""
+        return self._trainer_output_fields
+
+    @property
+    def column_fields(self) -> list[Field]:
+        """Access the column fields configured for training."""
+        return self._trainer_column_fields
 
     @main_brain.setter
     def main_brain(self, brain: Brain) -> None:
@@ -96,28 +134,19 @@ class Trainer:
                 size,
                 type(param).__name__,
             )
-            if isinstance(param, RDSEParameters):
-                encoder_params = RDSEParameters(
-                    size=param.size,
-                    sparsity=param.sparsity,
-                    resolution=param.resolution,
-                    category=param.category,
-                    seed=param.seed,
-                )
-            elif isinstance(param, DateEncoderParameters):
-                encoder_params = DateEncoderParameters(size=param.size)
+            encoder_type = self._encoder_type_from_params(param)
+            created_encoder = cast(
+                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, asdict(param))
+            )
+            encoder_params = param
 
-            elif isinstance(param, CategoryParameters):
-                encoder_params = CategoryParameters(size=param.size)
-            elif isinstance(param, FourierEncoderParameters):
-                encoder_params = FourierEncoderParameters(size=param.size)
-            elif isinstance(param, GeospatialParameters):
-                encoder_params = GeospatialParameters(size=param.size)
-            else:
-                raise ValueError("Unsupported encoder parameters type: {}".format(type(param)))
+            if not isinstance(created_encoder, el.BaseEncoder):
+                self.logger.error("Failed to create encoder for field '%s'", name)
+                continue
 
             if name.endswith("_input"):
                 field = InputField(size=size, encoder_params=encoder_params)
+
                 field.name = name
             elif name.endswith("_output"):
                 field = OutputField(size=size, motor_action=(None,))
@@ -206,11 +235,10 @@ class Trainer:
                     f.write("-" * 80 + "\n")
 
                 # Capture the brain stats
-                import io
-                import sys
 
                 old_stdout = sys.stdout
                 sys.stdout = buffer = io.StringIO()
+
                 self._main_brain.print_stats()
                 sys.stdout = old_stdout
                 f.write(buffer.getvalue())
@@ -334,7 +362,7 @@ class Trainer:
     def train_column(self, brain: Brain, column: dict[str, list[Any]], steps: int) -> None:
         """Train the Brain on the specified dataset."""
 
-        self.main_brain = brain
+        self._main_brain = brain if brain is not None else self._main_brain
 
         if len(column.keys()) == 0:
             raise ValueError("Dataset is empty. Cannot train on an empty dataset.")
@@ -365,7 +393,7 @@ class Trainer:
     def train_full_brain(self, brain: Brain, dataset: dict[str, list[Any]], steps: int) -> None:
         """Train the Brain on the specified dataset."""
 
-        self.main_brain = brain
+        self._main_brain = brain if brain is not None else self._main_brain
 
         self.logger.info(f"Training on dataset with columns: {list(dataset.keys())}")
 
@@ -520,11 +548,11 @@ class Trainer:
         # TODO: add dict of ParentDataClass to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
 
         Mapping of data types to encoder parameters:
-        - Numerical (int, float): RDSEParameters
-        - Categorical (str): CategoryParameters
-        - Date/Time (datetime): DateEncoderParameters
-        - Spatial (list, np.ndarray): FourierEncoderParameters
-        - Tuple of (numerical, numerical): GeospatialParameters
+        - Numerical (int, float): el.RDSEParameters
+        - Categorical (str): el.CategoryParameters
+        - Date/Time (datetime): el.DateEncoderParameters
+        - Spatial (list, np.ndarray): el.FourierEncoderParameters
+        - Tuple of (numerical, numerical): el.GeospatialParameters
         - Other types will raise a ValueError indicating unsupported data type.
 
         """
@@ -532,43 +560,43 @@ class Trainer:
         for key, values in dataset.items():
             if isinstance(values[0], (int, float)):
                 encoder_params = (
-                    RDSEParameters(
+                    el.RDSEParameters(
                         size=params.size,
                         sparsity=params.sparsity,
                         resolution=params.resolution,
                         category=False,
                         seed=params.seed,
                     )
-                    if isinstance(params, RDSEParameters)
-                    else RDSEParameters(size=size)
+                    if isinstance(params, el.RDSEParameters)
+                    else el.RDSEParameters(size=size)
                 )
             elif isinstance(values[0], str):
                 encoder_params = (
-                    CategoryParameters(
+                    el.CategoryParameters(
                         size=params.size,
                         category_list=list(set(values)),
                         rdse_used=params.rdse_used,
                     )
-                    if isinstance(params, CategoryParameters)
-                    else CategoryParameters(
+                    if isinstance(params, el.CategoryParameters)
+                    else el.CategoryParameters(
                         size=size, category_list=list(set(values)), rdse_used=False
                     )
                 )
             elif isinstance(values[0], (list, np.ndarray)):
                 encoder_params = (
-                    FourierEncoderParameters(
+                    el.FourierEncoderParameters(
                         size=params.size,
                         frequency_ranges=params.frequency_ranges,
                         sparsity_in_ranges=params.sparsity_in_ranges,
                         resolutions_in_ranges=params.resolutions_in_ranges,
                         seed=params.seed,
                     )
-                    if isinstance(params, FourierEncoderParameters)
-                    else FourierEncoderParameters(size=size)
+                    if isinstance(params, el.FourierEncoderParameters)
+                    else el.FourierEncoderParameters(size=size)
                 )
             elif isinstance(values[0], datetime):
                 encoder_params = (
-                    DateEncoderParameters(
+                    el.DateEncoderParameters(
                         size=params.size,
                         season_active_bits=params.season_active_bits,
                         season_radius=params.season_radius,
@@ -583,8 +611,8 @@ class Trainer:
                         custom_days=params.custom_days,
                         rdse_used=params.rdse_used,
                     )
-                    if isinstance(params, DateEncoderParameters)
-                    else DateEncoderParameters(size=size)
+                    if isinstance(params, el.DateEncoderParameters)
+                    else el.DateEncoderParameters(size=size)
                 )
             elif (
                 isinstance(values[0], tuple)
@@ -592,15 +620,15 @@ class Trainer:
                 and all(isinstance(v, (int, float)) for v in values[0])
             ):
                 encoder_params = (
-                    GeospatialParameters(
+                    el.GeospatialParameters(
                         size=params.size,
                         max_radius=params.max_radius,
                         scale=params.scale,
                         timestep=params.timestep,
                         use_altitude=params.use_altitude,
                     )
-                    if isinstance(params, GeospatialParameters)
-                    else GeospatialParameters(size=size)
+                    if isinstance(params, el.GeospatialParameters)
+                    else el.GeospatialParameters(size=size)
                 )
             else:
                 raise ValueError(f"Unsupported data type for field '{key}': {type(values[0])}")
@@ -619,60 +647,12 @@ class Trainer:
     def show_active_columns(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show the active columns in the Brain."""
 
-        for column_field in brain.column_fields:
-            # self.logger.info(f"Active columns in '{column_field.name}': {column_field.active_columns}")
-
-            sdr = [
-                (1 if column in column_field.active_columns else 0)
-                for column in column_field.columns
-            ]
-
-            num_active = sum(sdr)
-            sparsity = (num_active / len(sdr)) * 100 if sdr else 0
-            dataset_info = f" - {dataset_name}" if dataset_name else ""
-            grapher.plot_sdr(
-                sdr,
-                title=f"Active Columns: {column_field.name}{dataset_info}\n({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)",
-            )
+        grapher.show_active_columns(brain, dataset_name)
 
     def show_heat_map(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show a heat map of the Brain's column duty cycle activity."""
-        if not brain.column_fields:
-            raise ValueError("No column fields available to visualize.")
 
-        column_field = brain.column_fields[0]
-        duty_cycles = np.array([column.active_duty_cycle for column in column_field.columns])
-
-        if duty_cycles.size == 0:
-            raise ValueError("Column field has no columns to visualize.")
-
-        side = int(np.ceil(np.sqrt(duty_cycles.size)))
-        heat_map = np.zeros((side, side))
-        heat_map.flat[: duty_cycles.size] = duty_cycles
-
-        positive = duty_cycles[duty_cycles > 0]
-        active_columns = len(positive)
-        max_duty = float(positive.max()) if positive.size > 0 else 0.0
-        norm = None
-
-        dataset_info = f" - {dataset_name}" if dataset_name else ""
-        title = f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
-
-        if positive.size > 0:
-            vmax = max(max_duty, 1e-6)
-            norm = PowerNorm(gamma=0.35, vmin=0.0, vmax=vmax)
-            grapher.plot_heat_map(
-                heat_map,
-                title=title,
-                norm=norm,
-            )
-        else:
-            grapher.plot_heat_map(
-                heat_map,
-                title=title,
-                vmin=0.0,
-                vmax=1.0,
-            )
+        grapher.show_heat_map(brain, dataset_name)
 
     # TODO: Implement save_brain and load_brain methods for persistence of trained Brains
     def save_brain(self, brain: Brain, filename: str) -> None:
