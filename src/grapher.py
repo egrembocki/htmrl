@@ -7,7 +7,7 @@ displaying SDR patterns as 2D grids.
 """
 
 import os
-from typing import Any, cast
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,16 +16,82 @@ from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq, ifft
 
+from legacy.sdr_layer.sdr import SDR
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import logger
-from psu_capstone.sdr_layer.sdr import SDR
 from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
+
+
+def show_active_columns(brain: Any, dataset_name: str | None = None) -> None:
+    """Visualize active columns for each column field in a brain."""
+
+    for column_field in brain.column_fields:
+        sdr = [
+            (1 if column in column_field.active_columns else 0) for column in column_field.columns
+        ]
+
+        num_active = sum(sdr)
+        sparsity = (num_active / len(sdr)) * 100 if sdr else 0
+        dataset_info = f" - {dataset_name}" if dataset_name else ""
+        plot_sdr(
+            sdr,
+            title=f"Active Columns: {column_field.name}{dataset_info}\n({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)",
+        )
+
+
+def show_heat_map(brain: Any, dataset_name: str | None = None) -> None:
+    """Visualize column duty-cycle activity as a heat map."""
+
+    if not brain.column_fields:
+        raise ValueError("No column fields available to visualize.")
+
+    column_field = brain.column_fields[0]
+    duty_cycles = np.array([column.active_duty_cycle for column in column_field.columns])
+
+    if duty_cycles.size == 0:
+        raise ValueError("Column field has no columns to visualize.")
+
+    side = int(np.ceil(np.sqrt(duty_cycles.size)))
+    heat_map = np.zeros((side, side))
+    heat_map.flat[: duty_cycles.size] = duty_cycles
+
+    positive = duty_cycles[duty_cycles > 0]
+    active_columns = len(positive)
+    max_duty = float(positive.max()) if positive.size > 0 else 0.0
+
+    dataset_info = f" - {dataset_name}" if dataset_name else ""
+    title = f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
+
+    if positive.size > 0:
+        vmax = max(max_duty, 1e-6)
+        norm = PowerNorm(gamma=0.35, vmin=0.0, vmax=vmax)
+        vmin = None
+        vmax_for_plot = None
+    else:
+        norm = None
+        vmin = 0.0
+        vmax_for_plot = 1.0
+
+    plt.figure(figsize=(12, 12))
+    plt.imshow(
+        heat_map,
+        cmap="hot",
+        interpolation="nearest",
+        norm=norm,
+        vmin=vmin,
+        vmax=vmax_for_plot,
+    )
+    plt.title(title)
+    plt.colorbar(label="Duty Cycle")
+    plt.xticks([])
+    plt.yticks([])
+    plt.show(block=True)
 
 
 def plot_sdr(data: list[int], title: str | None = None) -> None:
@@ -66,30 +132,64 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     plt.show(block=True)
 
 
-def plot_heat_map(
-    heat_map: np.ndarray,
+def plot_signal(
+    signal: list[float] | np.ndarray | pd.Series,
+    sample_rate: float = 1.0,
+    domain: str = "both",
     title: str | None = None,
-    norm: Any = None,
-    vmin: float | None = None,
-    vmax: float | None = None,
 ) -> None:
-    """Plot a heat map visualization of the given 2D array data.
+    """Plot a numeric signal in the time domain, frequency domain, or both.
 
     Args:
-        heat_map: 2D numpy array of values to visualize
-        title: Title for the plot
-        norm: Matplotlib normalization object (e.g., PowerNorm)
-        vmin: Minimum value for color mapping (if norm is None)
-        vmax: Maximum value for color mapping (if norm is None)
+        signal: 1D numeric sequence to visualize.
+        sample_rate: Sampling rate in Hz used for frequency axis scaling.
+        domain: One of "time", "frequency", or "both".
+        title: Optional label appended to plot titles.
+
+    Raises:
+        ValueError: If the signal is empty, sample_rate is not positive, domain is invalid,
+            or there are fewer than 2 samples for frequency plotting.
     """
-    plt.figure(figsize=(12, 12))
-    plt.imshow(heat_map, cmap="hot", interpolation="nearest", norm=norm, vmin=vmin, vmax=vmax)
-    if title:
-        plt.title(title)
-    plt.colorbar(label="Duty Cycle")
-    plt.xticks([])
-    plt.yticks([])
-    plt.show(block=True)
+
+    values = np.asarray(signal, dtype=float).flatten()
+    if values.size == 0:
+        raise ValueError("Signal is empty. Provide at least one value.")
+    if sample_rate <= 0:
+        raise ValueError("sample_rate must be > 0.")
+
+    selected_domain = domain.lower()
+    if selected_domain not in {"time", "frequency", "both"}:
+        raise ValueError("domain must be one of: 'time', 'frequency', 'both'.")
+
+    plot_label = f" - {title}" if title else ""
+
+    if selected_domain in {"time", "both"}:
+        time_axis = np.arange(values.size, dtype=float) / sample_rate
+        plt.figure(figsize=(16, 8))
+        plt.plot(time_axis, values, "r")
+        plt.title(f"Signal in Time Domain{plot_label}")
+        plt.xlabel("Time (s)")
+        plt.ylabel("Amplitude")
+        plt.grid()
+        plt.show(block=True)
+
+    if selected_domain in {"frequency", "both"}:
+        freq_data = fft(values)
+        samples = len(freq_data)
+        if samples < 2:
+            raise ValueError("Signal must contain at least 2 samples for frequency plotting.")
+
+        magnitudes = np.abs(freq_data[1 : samples // 2])
+        freq_bin = fftfreq(samples, 1 / sample_rate)[1 : samples // 2]
+
+        plt.figure(figsize=(16, 8))
+        plt.plot(freq_bin, magnitudes)
+        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(nbins=10))
+        plt.title(f"FFT Magnitude Spectrum{plot_label}")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("Magnitude")
+        plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
+        plt.show(block=True)
 
 
 def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
@@ -108,40 +208,22 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         print(f"Columns: {columns}")
 
     for column in columns:
-        values = signal[column]
-        values = np.array(values, dtype=float)
+        values = np.array(signal[column], dtype=float)
         values[0] = 0.0  # remove DC component by zeroing the first value
         # values = values - np.mean(values)  # remove DC component
         values = values[:4096]
 
         print(f"Plotting column: {column}")
 
-        time_axis = np.arange(len(values), dtype=float)
-        plt.figure(figsize=(16, 8))
-        plt.plot(time_axis, values, "r")
-        plt.title(f"Sine Wave in Time Domain - {column}")
-        plt.xlabel("Time")
-        plt.ylabel("Amplitude")
-        plt.grid()
-        plt.show()
+        plot_signal(values, sample_rate=sample_rate, domain="both", title=column)
 
-        # frequency domain
-        freq_data = cast(np.ndarray, fft(values))
+        freq_data = fft(values)
         samples = len(freq_data)
-        freq_data = freq_data[1 : samples // 2]
+        magnitudes = np.abs(freq_data[1 : samples // 2])
         freq_bin = fftfreq(samples, 1 / sample_rate)[1 : samples // 2]
-        plt.figure(figsize=(16, 8))
-        plt.plot(freq_bin, np.abs(freq_data))
-        peak_index = np.argmax(np.abs(freq_data))
+        peak_index = np.argmax(magnitudes)
         peak_freq = freq_bin[peak_index]
         print(f"Plot Peak Frequency: {peak_freq} Hz")
-
-        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(nbins=10))
-        plt.title(f"FFT Magnitude Spectrum - {column}")
-        plt.xlabel("Frequency")
-        plt.ylabel("Magnitude")
-        plt.grid(which="both", axis="both", linestyle="--", linewidth=0.8)
-        plt.show()
 
         fft_encoder = FourierEncoder(FourierEncoderParameters())
 

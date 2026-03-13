@@ -8,11 +8,11 @@ Memory (HTM) Reinforcement Learning framework.
 from re import S
 from typing import Any
 
-from psu_capstone.agent_layer.legacy_htm.cell import Cell
-from psu_capstone.agent_layer.legacy_htm.column import Column
-from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
-from psu_capstone.agent_layer.legacy_htm.synapse import Synapse
-from psu_capstone.agent_layer.legacy_htm.temporal_memory import TemporalMemory
+from legacy.legacy_htm.cell import Cell
+from legacy.legacy_htm.column import Column
+from legacy.legacy_htm.spatial_pooler import SpatialPooler
+from legacy.legacy_htm.synapse import Synapse
+from legacy.legacy_htm.temporal_memory import TemporalMemory
 
 
 class Agent:
