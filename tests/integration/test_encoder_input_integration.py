@@ -1,6 +1,7 @@
 import datetime
 from typing import Any
 
+import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
@@ -47,9 +48,9 @@ class TestInputRDSEIntegration:
     ):
         payload = {"value": [0.1, 1.2, 5.5, 10.0]}
 
-        seq_map = input_handler.to_encoder_sequence(payload)
+        seq_map = input_handler.input_data(payload)
         assert list(seq_map.keys()) == ["value"]
-        values = seq_map["value"]
+        values = input_handler.get_column_data("value")
         assert values == [0.1, 1.2, 5.5, 10.0]
 
         for v in values:
@@ -66,9 +67,9 @@ class TestInputRDSEIntegration:
     ):
         payload = bytearray(b"value\n0.0\n1.0\n2.0\n")
 
-        seq_map = input_handler.to_encoder_sequence(payload)
+        seq_map = input_handler.input_data(payload)
         assert list(seq_map.keys()) == ["value"]
-        values = seq_map["value"]
+        values = input_handler.get_column_data("value")
 
         assert values == ["0.0", "1.0", "2.0"]
 
@@ -89,7 +90,7 @@ class TestInputRDSEIntegration:
             {"value": 2.0},
         ]
 
-        seq_map = input_handler.to_encoder_sequence(payload, column="value")
+        seq_map = input_handler.input_data(payload)
         assert seq_map["value"] == [1.0, 2.0]
 
         for v in seq_map["value"]:
@@ -101,8 +102,10 @@ class TestInputRDSEIntegration:
     ):
         payload = [{"a": 1.0, "b": 2.0}]
 
+        input_handler.input_data(payload, required_columns=["a", "b"])
+
         with pytest.raises(ValueError, match="Column must be specified"):
-            input_handler.to_encoder_sequence(payload, column=None)
+            input_handler.get_column_data(None)
 
     def test_datetime_column_present_does_not_break_numeric_extraction(
         self,
@@ -115,7 +118,7 @@ class TestInputRDSEIntegration:
             {"t": "2026-03-01T12:00:01", "value": 2.0},
         ]
 
-        seq_map = input_handler.to_encoder_sequence(payload, column="value")
+        seq_map = input_handler.input_data(payload)
         assert seq_map["value"] == [1.0, 2.0]
 
         for v in seq_map["value"]:
@@ -126,8 +129,8 @@ class TestInputRDSEIntegration:
         self, input_handler: InputHandler, rdse: RandomDistributedScalarEncoder
     ):
         payload = {"value": [0.0, 1.0, 2.0, 3.0]}
-        seq_map = input_handler.to_encoder_sequence(payload, column="value")
-        values = [float(v) for v in seq_map["value"]]
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("value")
 
         encoded = []
         for v in values:
@@ -161,7 +164,7 @@ class TestInputDateIntegration:
 
         print(datetime.datetime(2026, 3, 1, 12, 0, 0))
 
-        seq_map = input_handler.to_encoder_sequence(payload, column="t")
+        seq_map = input_handler.input_data(payload)
         values = seq_map["t"]
         assert len(values) == 2
 
@@ -180,16 +183,15 @@ class TestInputDateIntegration:
     def test_epoch_seconds_from_input_encode(
         self, input_handler: InputHandler, date_encoder: DateEncoder
     ):
-        payload = {"t": [660123, 360000000, 86400000]}
+        payload = {"t": [1700000000.0, 1700003600.0, 1700086400.0]}
 
-        seq_map = input_handler.to_encoder_sequence(payload)
-        values = seq_map["t"]
-        assert values == [660123, 360000000, 86400000]
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("t")
+        assert values == [1700000000.0, 1700003600.0, 1700086400.0]
 
         for v in values:
-            sdr = date_encoder.encode(v)
-            assert len(sdr) == date_encoder.size
-            assert count_ones(sdr) > 0
+            vec = date_encoder.encode(v)
+            assert len(vec) == date_encoder.size
 
     def test_input_filters_none_values_before_date_encoding(
         self, input_handler: InputHandler, date_encoder: DateEncoder
@@ -200,31 +202,34 @@ class TestInputDateIntegration:
             {"t": datetime.datetime(2026, 3, 1, 12, 0, 2)},
         ]
 
-        seq_map = input_handler.to_encoder_sequence(payload, column="t")
-        values = seq_map["t"]
-        assert values == ["2026-03-01T12:00:00", "2026-03-01T12:00:02"]
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("t")
+        print(values)
+        assert values == [
+            pd.Timestamp("2026-03-01 12:00:00"),
+            pd.Timestamp("2026-03-01 12:00:02"),
+        ]
 
-        for dt in values:
-            dt = datetime.datetime.fromisoformat(dt)
-            sdr = date_encoder.encode(dt)
-            assert len(sdr) == date_encoder.size
+        for v in values:
+            vec = date_encoder.encode(v)
+            assert len(vec) == date_encoder.size
 
-    def test_iso_string_timestamps_need_conversion_before_date_encoder(
-        self, input_handler: InputHandler, date_encoder: DateEncoder
-    ):
+    def test_iso_strings_are_accepted(self, input_handler: InputHandler, date_encoder: DateEncoder):
         payload = [
             {"t": "2026-03-01T12:00:00"},
             {"t": "2026-03-01T12:00:01"},
         ]
 
-        seq_map = input_handler.to_encoder_sequence(payload, column="t")
-        values = seq_map["t"]
-        assert values == ["2026-03-01T12:00:00", "2026-03-01T12:00:01"]
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("t")
+        assert values == [
+            pd.Timestamp("2026-03-01 12:00:00"),
+            pd.Timestamp("2026-03-01 12:00:01"),
+        ]
 
-        for s in values:
-            dt = datetime.datetime.fromisoformat(s)
-            sdr = date_encoder.encode(dt)
-            assert len(sdr) == date_encoder.size
+        for v in values:
+            vec = date_encoder.encode(v)
+            assert len(vec) == date_encoder.size
 
 
 @pytest.fixture
@@ -242,7 +247,6 @@ def category_encoder(category_params: CategoryParameters) -> CategoryEncoder:
 
 
 class TestInputCategoryIntegration:
-
     def test_input_dict_category_column_encodes_all_values(
         self,
         input_handler: InputHandler,
@@ -251,13 +255,68 @@ class TestInputCategoryIntegration:
     ):
         payload = {"color": ["red", "green", "blue"]}
 
-        seq_map = input_handler.to_encoder_sequence(payload)
-        assert list(seq_map.keys()) == ["color"]
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("color")
 
-        values = seq_map["color"]
         assert values == ["red", "green", "blue"]
 
         for v in values:
-            sdr = category_encoder.encode(v)
-            assert len(sdr) == category_encoder.size
-            assert count_ones(sdr) == category_params.w
+            vec = category_encoder.encode(v)
+            assert len(vec) == category_encoder.size
+            assert count_ones(vec) == category_params.w
+
+    def test_none_category_rows_are_removed(
+        self,
+        input_handler: InputHandler,
+        category_encoder: CategoryEncoder,
+    ):
+        payload = [
+            {"color": "red"},
+            {"color": None},
+            {"color": "blue"},
+        ]
+
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("color")
+
+        assert values == ["red", "blue"]
+
+        for v in values:
+            vec = category_encoder.encode(v)
+            assert len(vec) == category_encoder.size
+
+    # Fails currently
+    def test_input_bytes_csv_parses_then_category_encodes(
+        self,
+        input_handler: InputHandler,
+        category_encoder: CategoryEncoder,
+        category_params: CategoryParameters,
+    ):
+        payload = bytearray(b"color\nred\ngreen\nblue\n")
+
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("color")
+
+        assert values == ["red", "green", "blue"]
+
+        for v in values:
+            vec = category_encoder.encode(v)
+            print(vec)
+            assert len(vec) == category_encoder.size
+            assert count_ones(vec) == category_params.w
+
+    def test_roundtrip_known_category_encode_then_decode(
+        self,
+        input_handler: InputHandler,
+        category_encoder: CategoryEncoder,
+    ):
+        payload = {"color": ["red", "green", "blue"]}
+
+        input_handler.input_data(payload)
+        values = input_handler.get_column_data("color")
+
+        for v in values:
+            vec = category_encoder.encode(v)
+            decoded_value, confidence = category_encoder.decode(vec)
+            assert decoded_value == v
+            assert confidence > 0

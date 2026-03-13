@@ -11,9 +11,10 @@ for encoding inputs and computing temporal memory in a single step.
 """
 
 from typing import Any
+from uuid import uuid4
 
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.log import get_logger, logger
+from psu_capstone.log import LoggerManager
 
 
 class Brain:
@@ -40,10 +41,16 @@ class Brain:
             })
     """
 
-    def __init__(self, fields: dict[str, Field] | None = None) -> None:
+    def __init__(
+        self,
+        fields: dict[str, Field] | None = None,
+        brain_id: str | None = None,
+    ) -> None:
 
         if fields is None:
             fields = {}
+
+        self.brain_id = brain_id or str(uuid4())
 
         # Separate fields into input, output, and column fields for easy access
         # ensure that values are instances of the correct type
@@ -57,7 +64,7 @@ class Brain:
             k: v for k, v in fields.items() if isinstance(v, ColumnField)
         }
         self.fields = fields
-        self.logger = get_logger(self)
+        self.logger = LoggerManager.get_logger(self)
 
         self.logger.info("Brain initialized with fields: %s", list(fields.keys()))
 

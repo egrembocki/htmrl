@@ -13,14 +13,14 @@ import os
 
 import grapher
 from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.train import Trainer
+from psu_capstone.agent_layer.log_train import Trainer
 from psu_capstone.encoder_layer.base_encoder import ParentDataClass
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
+from psu_capstone.log import logger, set_report_artifact_path
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
@@ -152,8 +152,7 @@ def sine_wave_demo(steps: int = 100) -> None:
     trainer.show_active_columns(brain, dataset_name="sine wave")
     trainer.show_heat_map(brain, dataset_name="sine wave")
 
-    report_path = os.path.join(PROJECT_ROOT, "docs/reports/sine_wave_training_stats.txt")
-    trainer.print_train_stats(report_path, test_results=test_results, training_steps=steps)
+    trainer.print_train_stats(test_results=test_results, training_steps=steps)
 
 
 def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
@@ -257,6 +256,8 @@ def show_field_single_encoding_demo() -> None:
 if __name__ == "__main__":
     # Ensure we're in the project root directory for consistent file operations
     os.chdir(PROJECT_ROOT)
+
+    set_report_artifact_path(os.path.join(PROJECT_ROOT, "docs", "reports"))
 
     # Example usage of the Brain and Trainer classes
 
