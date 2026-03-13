@@ -11,7 +11,7 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import get_logger, logger
@@ -149,10 +149,11 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters(ParentDataClass):
+class CategoryParameters:
     """Configuration parameters for CategoryEncoder.
 
     Attributes:
+        size: Total size of the output SDR in bits. Calculated as (N+1)*w where N is the number of categories and w is the width in bits per category.
         w: Width in bits allocated per category. For N categories with w=3,
             total bits = (N+1) * 3, where +1 accounts for unknown category.
         category_list: List of valid category strings to encode. Must be unique.
@@ -161,6 +162,7 @@ class CategoryParameters(ParentDataClass):
         encoder_class: Reference to the CategoryEncoder class.
     """
 
+    size: int = 2048
     w: int = 3
     category_list: list[str] = field(default_factory=list)
     rdse_used: bool = True

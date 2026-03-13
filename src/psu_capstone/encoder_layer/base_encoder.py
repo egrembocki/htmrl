@@ -22,7 +22,7 @@ Reference:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar, override
+from typing import Any, Generic, Protocol, TypeVar, override, runtime_checkable
 
 T = TypeVar("T")
 
@@ -40,7 +40,7 @@ class BaseEncoder(ABC, Generic[T]):
 
     def __init__(self, size: int | None = None):
         self._size: int = size if size is not None else 0
-        self._parameters: ParentDataClass | None = None
+        self._parameters: ParameterMarker | None = None
 
     @property
     def size(self) -> int:
@@ -103,8 +103,8 @@ class BaseEncoder(ABC, Generic[T]):
         raise NotImplementedError("Subclasses must implement the decoding method")
 
 
-@dataclass
-class ParentDataClass:
+@runtime_checkable
+class ParameterMarker(Protocol):
     """Parent dataclass for encoder parameter configurations.
 
     Provides base configuration fields common to all encoder types. Subclasses

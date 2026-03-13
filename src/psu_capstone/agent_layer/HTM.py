@@ -12,7 +12,7 @@ from itertools import chain
 from statistics import fmean, pstdev
 from typing import Any, Iterable
 
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 # Constants
@@ -803,13 +803,13 @@ class InputField(Field):
 
     Args:
         encoder_params: Configuration parameters for the encoder. If None
-            or not a ParentDataClass, defaults to RDSEParameters.
+            or not a ParameterMarker-compatible object, defaults to RDSEParameters.
         size: Optional size override for the encoder output. If provided,
             overrides the size parameter in encoder_params.
     """
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        if encoder_params is not None and isinstance(encoder_params, ParentDataClass):
+        if encoder_params is not None and isinstance(encoder_params, ParameterMarker):
             params = copy.deepcopy(encoder_params)
         else:
             params = RDSEParameters()

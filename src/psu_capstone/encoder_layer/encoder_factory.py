@@ -29,7 +29,9 @@ class EncoderFactory:
     }
 
     @staticmethod
-    def create_encoder(encoder_type: str, parameters: dict[str, Any] | None = None) -> object:
+    def create_encoder(
+        encoder_type: str, parameters: dict[str, Any] | None = None
+    ) -> en.BaseEncoder[Any]:
         """Create an encoder based on the specified type and parameters.
 
         Args:
