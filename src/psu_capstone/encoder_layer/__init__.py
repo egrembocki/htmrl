@@ -1,4 +1,4 @@
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
@@ -9,6 +9,7 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 
 __all__ = [
     "BaseEncoder",
+    "ParameterMarker",
     "ParentDataClass",
     "CategoryEncoder",
     "CategoryParameters",
@@ -25,3 +26,6 @@ __all__ = [
     "CoordinateParameters",
     "CoordinateEncoder",
 ]
+
+# Backward-compatible export name used by older modules.
+ParentDataClass = ParameterMarker

@@ -121,3 +121,7 @@ class ParameterMarker(Protocol):
 
     size: int = 2048
     """Total size of the output SDR in bits."""
+
+
+# Backward-compatible alias kept for older imports.
+ParentDataClass = ParameterMarker
