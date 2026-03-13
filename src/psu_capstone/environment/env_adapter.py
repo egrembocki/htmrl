@@ -1,4 +1,31 @@
-"""Env Adapter for HTM-RL Brain-Agent to traditional Gymnasium environments."""
+"""Adapter between Gym environments and the Brain/Agent loop.
+
+Think of this class as a translator sitting between two sides:
+
+1. Gym side (normal RL calls):
+    - reset() -> (obs, info)
+    - step(action) -> (obs, reward, terminated, truncated, info)
+2. Brain/Agent side (translated bridge dicts):
+    - reset_bridge() -> {obs, inputs, info}
+    - step_bridge() -> {obs, inputs, reward, terminated, truncated, info}
+
+A bridge is just one dictionary that bundles:
+
+- what Gym returned
+- flattened inputs that are easy for the Brain to consume
+
+Typical runtime flow:
+
+1. caller creates EnvAdapter around a Gym env id or env instance
+2. caller asks reset_bridge() for the first observation and HTM inputs
+3. Brain consumes bridge["inputs"]
+4. caller selects an action
+5. caller asks step_bridge(action) for the next observation and HTM inputs
+6. repeat until terminated or truncated is true
+
+This keeps the adapter compatible with Gym while still giving the Brain the
+simple key/value input map it expects.
+"""
 
 from typing import Any
 
@@ -6,26 +33,41 @@ import gymnasium as gym
 import numpy as np
 
 
-class EnvAdapter:
-    """Adapter for a HTM-RL Brain Agent to Gymnasium interface.
+class EnvAdapter(gym.Wrapper):
+    """Wrap any Gymnasium environment and translate data for HTM usage.
+
+    This class does not change the environment rules. It only:
+
+    - forwards normal Gym calls
+    - exposes space metadata
+    - flattens observations/actions into Brain-friendly fields
 
     Args:
-        gym_env: Gym environment id (for ``gym.make``) or a pre-built
-            ``gym.Env`` instance (for example ``FinGym(...)``).
-        **gym_kwargs: Optional kwargs forwarded to ``gym.make`` when
-            ``gym_env`` is a string id.
+        gym_env: Gym environment id (for gym.make) or any pre-built
+            gym.Env instance (for example FinGym(...)).
+        **gym_kwargs: Optional kwargs forwarded to gym.make when
+            gym_env is a string id.
     """
 
     def __init__(self, gym_env: str | gym.Env = "CartPole-v1", **gym_kwargs: Any) -> None:
         if isinstance(gym_env, str):
-            self._env = gym.make(gym_env, **gym_kwargs)
+            # If the caller gave an env id, create that env now.
+            # env-id can be registered with gymnasium.envs.registration.register
+            wrapped_env = gym.make(gym_env, **gym_kwargs)
         else:
             if gym_kwargs:
                 raise ValueError("gym_kwargs can only be used when gym_env is a string id.")
-            self._env = gym_env
+            # If the caller already built an env, just wrap it.
+            wrapped_env = gym_env
 
-        self._observation_space = self._env.observation_space
-        self._action_space = self._env.action_space
+        super().__init__(wrapped_env)
+
+        # Keep old private name for older code paths during migration.
+        self._env = self.env
+
+        # Keep old private names for compatibility with existing callers.
+        self._observation_space = self.observation_space
+        self._action_space = self.action_space
         self._obs: Any | None = None
 
     def _to_serializable(self, value: Any) -> Any:
@@ -45,7 +87,11 @@ class EnvAdapter:
         return value
 
     def _space_to_spec(self, space: gym.Space[Any]) -> dict[str, Any]:
-        """Create a generic, structured description for any Gymnasium space."""
+        """Return a plain metadata description of a Gym space.
+
+        This does not return runtime values. It only describes shape/type
+        details for debugging, introspection, or setup checks.
+        """
 
         if isinstance(space, gym.spaces.Discrete):
             return {
@@ -98,7 +144,12 @@ class EnvAdapter:
         }
 
     def _flatten_value(self, value: Any, prefix: str) -> dict[str, Any]:
-        """Flatten environment values into HTM-friendly key/value pairs."""
+        """Flatten nested values into a simple key/value map.
+
+        Example:
+            a nested value can turn into keys like observation_0 or
+            action_price_open.
+        """
 
         serializable = self._to_serializable(value)
 
@@ -122,7 +173,11 @@ class EnvAdapter:
         value: Any,
         prefix: str,
     ) -> dict[str, Any]:
-        """Convert an environment value into flat HTM input fields."""
+        """Convert a value into flat Brain input fields.
+
+        We walk Dict/Tuple spaces using the space definition so key names stay
+        stable and predictable over time.
+        """
 
         if isinstance(space, gym.spaces.Dict):
             flattened: dict[str, Any] = {}
@@ -143,22 +198,28 @@ class EnvAdapter:
     def get_observation_spec(self) -> dict[str, Any]:
         """Get a generic description of the environment observation space."""
 
-        return self._space_to_spec(self._observation_space)
+        return self._space_to_spec(self.observation_space)
 
     def get_action_spec(self) -> dict[str, Any]:
         """Get a generic description of the environment action space."""
 
-        return self._space_to_spec(self._action_space)
+        return self._space_to_spec(self.action_space)
 
     def observation_to_inputs(self, observation: Any) -> dict[str, Any]:
-        """Convert a raw observation into flat HTM input fields."""
+        """Convert one observation into the Brain input map.
 
-        return self._space_value_to_inputs(self._observation_space, observation, "observation")
+        Most callers use this through reset_bridge and step_bridge.
+        """
+
+        return self._space_value_to_inputs(self.observation_space, observation, "observation")
 
     def action_to_inputs(self, action: Any) -> dict[str, Any]:
-        """Convert an action value into flat HTM-style fields."""
+        """Convert one action value into flat fields.
 
-        return self._space_value_to_inputs(self._action_space, action, "action")
+        Helpful when matching candidate actions against Brain predictions.
+        """
+
+        return self._space_value_to_inputs(self.action_space, action, "action")
 
     def get_observation(self) -> dict[str, Any]:
         """Get a generic description of the environment observation space."""
@@ -170,24 +231,81 @@ class EnvAdapter:
 
         return {"actions": self.get_action_spec()}
 
-    def step(self, action: Any) -> dict[str, Any]:
+    def step(self, action: Any) -> tuple[Any, float, bool, bool, dict[str, Any]]:
+        """Run one normal Gym step.
 
-        self._obs, self._reward, self._terminated, self._truncated, self._info = self._env.step(
-            action
-        )
+        Use step_bridge if you also need Brain-ready flattened inputs.
+        """
+
+        self._obs, reward, terminated, truncated, info = self.env.step(action)
+        return self._obs, float(reward), bool(terminated), bool(truncated), info
+
+    def step_bridge(self, action: Any) -> dict[str, Any]:
+        """Run one step and return the translated bridge dict.
+
+        In plain terms: this is the handoff packet that bridges env-side data
+        to Brain/Agent-side data.
+
+        Normal Brain/Agent call order after choosing an action is:
+
+        1. call step_bridge(action)
+        2. read bridge["obs"] as the raw next observation
+        3. read bridge["inputs"] as the Brain-ready input map
+        4. inspect reward/done flags to decide whether the episode continues
+        """
+
+        obs, reward, terminated, truncated, info = self.step(action)
 
         return {
-            "obs": self._obs,
-            "inputs": self.observation_to_inputs(self._obs),
-            "reward": self._reward,
-            "terminated": self._terminated,
-            "truncated": self._truncated,
-            "info": self._info,
+            "obs": obs,
+            "inputs": self.observation_to_inputs(obs),
+            "reward": reward,
+            "terminated": terminated,
+            "truncated": truncated,
+            "info": info,
         }
 
-    def reset(self) -> dict[str, Any]:
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[Any, dict[str, Any]]:
+        """Run one normal Gym reset.
 
-        obs, info = self._env.reset()
+        Use reset_bridge if you immediately need Brain-ready inputs.
+        """
+
+        obs, info = self.env.reset(seed=seed, options=options)
         self._obs = obs
+        return obs, info
+
+    def reset_bridge(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Reset and return the translated bridge dict.
+
+        Typical episode-start flow:
+
+        1. call reset_bridge()
+        2. feed bridge["inputs"] into the Brain
+        3. choose an action
+        4. continue with step_bridge(action)
+        """
+
+        obs, info = self.reset(seed=seed, options=options)
 
         return {"obs": obs, "inputs": self.observation_to_inputs(obs), "info": info}
+
+    def render(self) -> Any:
+        """Render using the wrapped environment's render behavior."""
+
+        return self.env.render()
+
+    def close(self) -> None:
+        """Close the wrapped environment and release resources."""
+
+        self.env.close()

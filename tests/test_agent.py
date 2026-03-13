@@ -6,6 +6,7 @@ from contextlib import ExitStack
 from typing import Any
 from unittest.mock import patch
 
+import gymnasium as gym
 import numpy as np
 import pytest
 
@@ -38,7 +39,9 @@ class _AdapterStub(EnvAdapter):
             "n": n,
             "values": list(range(n)) if space_type == "Discrete" else [],
         }
-        self._action_space = _ActionSpaceStub()
+        self.action_space = gym.spaces.Discrete(n)
+        self.observation_space = None  # type: ignore[assignment]
+        self._action_space = gym.spaces.Discrete(n)
         self.last_step_action: Any | None = None
 
     def get_action_spec(self) -> dict[str, Any]:
@@ -55,16 +58,33 @@ class _AdapterStub(EnvAdapter):
         """Convert an action value into a minimal keyed payload."""
         return {"action": action}
 
-    def reset(self) -> dict[str, Any]:
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Return a deterministic initial state for episode reset tests."""
+
+        return {"state": 0}, {}
+
+    def reset_bridge(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Return deterministic adapter bridge for reset tests."""
+
         return {
             "obs": {"state": 0},
             "inputs": {"state": 0},
             "info": {},
         }
 
-    def step(self, action: Any) -> dict[str, Any]:
+    def step(self, action: Any) -> tuple[dict[str, Any], float, bool, bool, dict[str, Any]]:
         """Record the chosen action and return a deterministic transition."""
+
+        self.last_step_action = action
+        return {"state": 1}, 1.0, True, False, {"source": "stub"}
+
+    def step_bridge(self, action: Any) -> dict[str, Any]:
+        """Return deterministic adapter bridge for step tests."""
+
         self.last_step_action = action
         return {
             "obs": {"state": 1},
@@ -276,8 +296,8 @@ def test_ppo_policy_without_model_raises_value_error() -> None:
 def _build_real_brain_for_adapter_inputs(adapter: EnvAdapter) -> Brain:
     """Create a real Brain whose input fields match adapter input keys."""
 
-    reset_payload = adapter.reset()
-    input_names = list(reset_payload["inputs"].keys())
+    reset_bridge = adapter.reset_bridge()
+    input_names = list(reset_bridge["inputs"].keys())
     input_fields: dict[str, InputField] = {}
 
     for index, name in enumerate(input_names):
@@ -380,9 +400,9 @@ def test_real_input_fields_encode_values_into_sdr_vectors() -> None:
     adapter = EnvAdapter("CartPole-v1")
     try:
         brain = _build_real_brain_for_adapter_inputs(adapter)
-        reset_payload = adapter.reset()
+        reset_bridge = adapter.reset_bridge()
 
-        for name, value in reset_payload["inputs"].items():
+        for name, value in reset_bridge["inputs"].items():
             input_field = brain._input_fields[name]
             encoded = input_field.encode(value)
 

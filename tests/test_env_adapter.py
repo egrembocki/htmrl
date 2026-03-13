@@ -21,15 +21,29 @@ def test_env_adapter_accepts_instantiated_fingym() -> None:
     env = FinGym(data_source=frame, target_column="target")
 
     adapter = EnvAdapter(env)
-    reset_payload = adapter.reset()
+    reset_obs, reset_info = adapter.reset()
 
-    assert isinstance(reset_payload["obs"], np.ndarray)
-    assert isinstance(reset_payload["inputs"], dict)
+    assert isinstance(reset_obs, np.ndarray)
+    assert isinstance(reset_info, dict)
 
-    step_payload = adapter.step(1)
-    assert isinstance(step_payload["reward"], float)
-    assert "terminated" in step_payload
-    assert "truncated" in step_payload
+    payload_adapter = EnvAdapter(FinGym(data_source=frame, target_column="target"))
+    reset_bridge = payload_adapter.reset_bridge()
+    assert isinstance(reset_bridge["obs"], np.ndarray)
+    assert isinstance(reset_bridge["inputs"], dict)
+
+    step_obs, reward, terminated, truncated, info = adapter.step(1)
+
+    assert isinstance(step_obs, np.ndarray)
+    assert isinstance(reward, float)
+    assert isinstance(terminated, bool)
+    assert isinstance(truncated, bool)
+    assert isinstance(info, dict)
+
+    payload_adapter.reset_bridge()
+    step_bridge = payload_adapter.step_bridge(1)
+    assert isinstance(step_bridge["reward"], float)
+    assert "terminated" in step_bridge
+    assert "truncated" in step_bridge
 
 
 def test_env_adapter_accepts_make_kwargs() -> None:
@@ -37,8 +51,8 @@ def test_env_adapter_accepts_make_kwargs() -> None:
 
     adapter = EnvAdapter("CartPole-v1", render_mode="rgb_array")
 
-    reset_payload = adapter.reset()
-    assert isinstance(reset_payload["inputs"], dict)
+    reset_bridge = adapter.reset_bridge()
+    assert isinstance(reset_bridge["inputs"], dict)
 
 
 def test_env_adapter_rejects_kwargs_with_env_instance() -> None:

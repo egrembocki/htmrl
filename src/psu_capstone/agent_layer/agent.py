@@ -144,11 +144,11 @@ class Agent:
         """Reset the environment, then cache the initial observation.
 
         Returns:
-            Adapter reset payload containing at least the raw observation,
+            Adapter reset bridge containing at least the raw observation,
             flattened HTM inputs, and environment info.
         """
 
-        result = self._adapter.reset()
+        result = self._adapter.reset_bridge()
         self._obs = result["obs"]
         self._inputs = result["inputs"]
         return result
@@ -390,7 +390,7 @@ class Agent:
 
         brain_outputs = self._brain.step(current_inputs, learn=learn)
         action = self.select_action(current_obs, brain_outputs=brain_outputs)
-        result = self._adapter.step(action)
+        result = self._adapter.step_bridge(action)
 
         next_obs = result["obs"]
         reward = result["reward"]

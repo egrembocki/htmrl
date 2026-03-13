@@ -43,8 +43,8 @@ def build_cartpole_brain(
     back to adapter input names so Agent.step can pass adapter inputs directly.
     """
 
-    reset_payload = adapter.reset()
-    input_names = list(reset_payload["inputs"].keys())
+    reset_bridge = adapter.reset_bridge()
+    input_names = list(reset_bridge["inputs"].keys())
     trainer = Trainer(Brain({}))
 
     for index, name in enumerate(input_names):
