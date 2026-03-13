@@ -5,14 +5,9 @@ Spatial Poolers and Temporal Memory components within the Hierarchical Temporal
 Memory (HTM) Reinforcement Learning framework.
 """
 
-from re import S
 from typing import Any
 
-from psu_capstone.agent_layer.legacy_htm.cell import Cell
-from psu_capstone.agent_layer.legacy_htm.column import Column
-from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
-from psu_capstone.agent_layer.legacy_htm.synapse import Synapse
-from psu_capstone.agent_layer.legacy_htm.temporal_memory import TemporalMemory
+import numpy as np
 
 
 class Agent:
@@ -27,52 +22,12 @@ class Agent:
         memory: A list of initialized TemporalMemory instances.
     """
 
-    def __init__(self, poolers: list[SpatialPooler], memory: list[TemporalMemory]):
-        self._poolers = poolers
-        self._memory = memory
+    def __init__(self):
 
-        self._buffer_list: list[Any] = []  # place to store batched sdrs to send to poolers
-        self._models: list[Any] = []  # place to store models for agent
-        self._interfaces: list[Any] = []  # place to store interface handlers
-        self._encoder_handlers: list[Any] = []  # place to store encoder handlers
-
-    @property
-    def poolers(self) -> list[SpatialPooler]:
-        """Get the agent's spatial poolers.
-
-        Returns:
-            list[SpatialPooler]: The list of SpatialPooler instances.
-        """
-        return self._poolers
-
-    @poolers.setter
-    def poolers(self, poolers: list[SpatialPooler]):
-        """Set the agent's spatial poolers.
-
-        Args:
-            poolers: A list of SpatialPooler instances to set.
-        """
-        self._poolers = poolers
-
-    @property
-    def memory(self) -> list[TemporalMemory]:
-        """Get the agent's temporal memory modules.
-
-        Returns:
-            list[TemporalMemory]: The list of TemporalMemory instances.
-        """
-        return self._memory
-
-    @memory.setter
-    def memory(self, memory: list[TemporalMemory]):
-        """Set the agent's temporal memory modules.
-
-        Args:
-            memory: A list of TemporalMemory instances to set.
-        """
-        self._memory = memory
-
-    # protocol methods
+        self.learning_rate = 0.1
+        self.epsilon = 0.1
+        self.decay = 0.99
+        self.disconut_factor = 0.9
 
     def select_action(self, state: tuple) -> Any:
         """Select an action based on the current state observation.
@@ -89,7 +44,7 @@ class Agent:
         """
         pass
 
-    def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
+    def update(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
         """Update the agent's internal model and policy based on experience.
 
         This method focuse on updating the MLP model policy based on the agent's
@@ -103,106 +58,22 @@ class Agent:
         """
         pass
 
-    # END protocol methods
+    def step(self, action: Any) -> tuple[np.ndarray, float, bool, dict[str, Any]]:  # type: ignore
+        """Execute the given action and return the resulting experience tuple.
 
-    def append_buffer(self, sdr: Any) -> None:
-        """Load an SDR into the agent's buffer list.
-
-        Args:
-            sdr: The SDR to be added to the buffer.
-        """
-        self._buffer_list.append(sdr)
-
-    # factory methods
-
-    def create_pooler(
-        self,
-        input_space_size: int,
-        column_count: int,
-        initial_synapses_per_column: int,
-        random_seed: int = 0,
-    ) -> None:
-        """Create a new Spatial Pooler and append it to the agent's poolers.
-
-        This factory method simplifies the addition of new spatial pooling layers
-        to the agent.
-
-        --TODO we need a proper factory pattern here --
+        This method should interact with the environment to perform the action,
+        observe the next state, receive the reward, and determine if the episode
+        has terminated.
 
         Args:
-            input_space_size: The total size of the input bit space.
-            column_count: The number of columns (outputs) in the spatial pooler.
-            initial_synapses_per_column: The number of initial synapses per column.
-            random_seed: Random seed for reproducible initialization.
-        """
-        pooler = SpatialPooler(
-            input_space_size=input_space_size,
-            column_count=column_count,
-            initial_synapses_per_column=initial_synapses_per_column,
-            random_seed=random_seed,
-        )
-        self._poolers.append(pooler)
-
-    def create_memory(self, column_count: int, cells_per_column: int) -> None:
-        """Create a new Temporal Memory module and append it to the agent's memory.
-
-        This factory method simplifies the addition of new temporal memory layers
-        to the agent.
-
-        -- TODO we need a proper factory pattern here --
-
-        Args:
-            column_count: The number of columns in the temporal memory (should match
-                the output of the corresponding Spatial Pooler).
-            cells_per_column: The number of cells per column for temporal context.
-        """
-
-        synapse = Synapse(0, 0.21)  # placeholder synapse
-        columns = [
-            Column([synapse], (0, 0)) for _ in range(column_count)
-        ]  # placeholder for columns
-
-        # we could also add default temporal memory parameters inside the TemporalMemory class (a factory)
-        memory = TemporalMemory(columns=columns, cells_per_column=cells_per_column)
-
-        self._memory.append(memory)
-
-    def create_model(self, model_type: str, **kwargs) -> None:
-        """Create a new model for the agent.
-
-        This method allows the agent to instantiate various models (e.g., predictive
-        models, classifiers) based on the specified type and parameters.
-
-        Args:
-            model_type: A string indicating the type of model to create.
-            **kwargs: Additional parameters required for model initialization.
-        """
-        # Implementation would depend on the specific models supported.
-
-        # build model with parameters
-
-        # append to self._models
-
-        self._models.append(None)  # Placeholder for actual model instance
-
-    def create_encoder(self, encoder_type: str, **kwargs) -> Any:
-        """Create a new encoder for the agent.
-
-        This method allows the agent to instantiate various encoders based on the specified type and parameters.
-
-        Args:
-            encoder_type: A string indicating the type of encoder to create.
-            **kwargs: Additional parameters required for encoder initialization.
+            action: The action to execute in the environment.
 
         Returns:
-            Any: The created encoder instance.
-
-
+            A tuple of (next_state, reward, done, info) where:
+                - next_state: The new state observation after taking the action.
+                - reward: The reward received from the environment.
+                - done: A boolean indicating if the episode has ended.
+                - info: A dictionary with any additional information from the environment.
         """
-        # Implementation would depend on the specific encoders supported.
 
-        # build encoder with parameters
-
-        # append to self._encoders
-
-        self._encoder_handlers.append(None)  # Placeholder for actual encoder instance
+        return ()  # type: ignore
