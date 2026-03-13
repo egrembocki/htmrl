@@ -1,9 +1,31 @@
-"""Test suite for SDR operations."""
+"""
+tests.test_sdr_suite
+
+Test suite for SDR (Sparse Distributed Representation) class operations.
+
+Validates that SDR objects correctly implement sparse binary representations with
+support for multi-dimensional arrays. Tests cover:
+- SDR creation with specified dimensions
+- SDR storage and retrieval of active bit indices
+- Overlap calculation between two SDRs
+- Union operations combining multiple SDRs
+- Intersection operations finding common active bits
+- Sparsity calculation and metrics
+- Dimensionality validation
+- SDR comparison and equality
+- Bit access by dimension
+
+SDRs are fundamental building blocks in HTM systems, serving as the sparse
+encoding/representation format that flows through the temporal memory.
+
+These tests ensure SDR operations maintain correctness for all downstream
+HTM processing.
+"""
 
 import pytest
 
-from psu_capstone.sdr_layer.sdr import SDR
-from psu_capstone.sdr_layer.sdr_interface import SDRInterface
+from legacy.sdr_layer.sdr import SDR
+from legacy.sdr_layer.sdr_interface import SDRInterface
 
 
 @pytest.fixture

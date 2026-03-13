@@ -1,0 +1,21 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+title US-09 Generate Report (Current Code Reality)
+
+actor Developer
+participant "<u>reporter:ReportGenerator</u>" as TS
+participant "<u>out:SystemFileIO</u>" as OUT
+
+Developer -> TS: run demo_driver.py or pytest suites
+activate TS
+TS -> OUT: print SDR stats/results
+TS --> Developer: textual outputs
+deactivate TS
+
+note over TS
+No ReportGenerator or structured report API exists.
+Reporting is manual via logs, prints, and test output.
+end note
+@enduml

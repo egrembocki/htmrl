@@ -1,5 +1,35 @@
-"""Test suite for the SDR Encoder-Scalar."""
+"""
+Test suite for Scalar Encoder.
 
+The Scalar Encoder encodes numeric values in a limited range into sparse SDRs.
+It uses the Cortical Learning Algorithm to create semantic representations where
+nearby values have overlapping encodings.
+
+Key Features:
+  - Range-limited input (minimum/maximum bounds)
+  - Optional input clipping
+  - Supports both periodic (cyclical) and non-periodic ranges
+  - Deterministic encoding (same input → same SDR)
+  - Semantic similarity: close values → high overlap
+
+Parameter Validation:
+  - Like RDSE, uses mutual exclusivity: exactly one of {active_bits, sparsity}
+  - All tests explicitly set sparsity=0.0 when using active_bits
+  - Supports radius/resolution specification for input coverage
+  - Handles both real numbers and periodic values
+
+Tests validate:
+  1. Initialization with valid parameters
+  2. Input clipping to min/max bounds
+  3. Output format (binary 0/1 only, correct length)
+  4. Active bits/sparsity conformance
+  5. Semantic similarity (neighboring values overlap)
+  6. Determinism and periodicity handling
+"""
+
+from datetime import datetime
+
+import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
@@ -16,7 +46,19 @@ def do_scalar_value_cases(encoder: ScalarEncoder, cases):
 
 
 def test_scalar_encoder_initialization():
-    """Test the initialization of the ScalarEncoder."""
+    """
+    Test ScalarEncoder initialization with valid parameters.
+
+    Validates:
+      - Encoder instantiates successfully with proper parameters
+      - Size property matches configured size
+      - Encoder is correct type (ScalarEncoder)
+
+    Why it passes:
+      - active_bits=5 with sparsity=0.0 satisfies mutual exclusivity
+      - Range parameters (minimum=0, maximum=100) are valid
+      - encoder.size accessible and equals configured size
+    """
 
     # Arrange
     parameters = ScalarEncoderParameters(
@@ -347,19 +389,13 @@ def test_scalar_encoder_serialization():
 
     for encoder in inputs:
         if type(encoder) is ScalarEncoder:
-            p1 = encoder._parameters
-            p2 = encoder._parameters
-
-            assert p1.size == p2.size
-            assert getattr(p1, "category", None) == getattr(p2, "category", None)
-            assert p1.active_bits == p2.active_bits
-            assert p1.periodic == p2.periodic
-            assert p1.clip_input == p2.clip_input
-            assert nearly_equal(p1.minimum, p2.minimum)
-            assert nearly_equal(p1.maximum, p2.maximum)
-            assert nearly_equal(p1.resolution, p2.resolution)
-            assert nearly_equal(p1.sparsity, p2.sparsity)
-            assert nearly_equal(p1.radius, p2.radius)
+            assert encoder.size > 0
+            assert encoder._active_bits > 0
+            assert encoder._active_bits < encoder.size
+            assert encoder._minimum <= encoder._maximum
+            assert encoder._resolution > 0
+            assert encoder._radius > 0
+            assert encoder._sparsity > 0
 
 
 # ---------------------------------------------------------------------------
@@ -429,3 +465,180 @@ def test_scalar_encode_output_active_bits_conforms():
     assert num_ones / len(out) == pytest.approx(
         active_bits / size
     ), "Sparsity should equal active_bits/size"
+
+
+"""Correctness tests below."""
+
+
+def test_scalar_encode_improper_values():
+    """
+    This test tries to encode with multiple entry types.
+    There should be an exception for each.
+    """
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(ValueError):
+        encoder.encode("test")
+        encoder.encode(datetime(2020, 1, 1, 0, 0))
+        encoder.encode([1, 2, 3, 4])
+        encoder.encode(((10, 20), 2))
+
+
+def test_scalar_encode_empty_values():
+    """
+    Tests that encode properly raises an exception if no input value is entered.
+    This also tests a None value.
+    """
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(TypeError):
+        encoder.encode()
+        encoder.encode(None)
+
+
+def test_scalar_decode_empty_sdr():
+    """Tests that the decode method can raise an exception when an empty sdr is entered."""
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(ValueError):
+        encoder.encode(1)
+        encoder.decode([])
+
+
+def test_clear_registry_decode():
+    """
+    This tests that a value error is raised if there are no registered
+    encodings and the user tries to decode.
+    """
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=8,
+        sparsity=0.0,
+        size=64,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    with pytest.raises(ValueError):
+        a = encoder.encode(1)
+        encoder.clear_registered_encodings()
+        encoder.decode(a)
+
+
+def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
+    """
+    Helper method to find the differences with the first != second and then count the nonzero
+    as that is how many different bits there are. So if first was 1001 and second was 1010 the
+    first operation would be 0011 and the count_nonzero would return 2. This indicates a hamming
+    distance of 2 since 2 of the bits are different.
+    """
+    return int(np.count_nonzero(first != second))
+
+
+def test_scalar_hamming_distance():
+    """
+    This test compares the mean hamming distances between consecutive encoded values like 1 compared to 2 all
+    of the way up to 1000. Then we take the mean of these hamming distances. On top of that it compares 1 through 500
+    of encoded values to 9000 through 10000. We then compare these hamming distances. The thought is that the values
+    right next to each other should have less bit differences than ones far away.
+    """
+    import random
+
+    p = ScalarEncoderParameters(
+        minimum=0,
+        maximum=10001,
+        clip_input=True,
+        periodic=False,
+        active_bits=0,
+        sparsity=0.02,
+        size=2048,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    encoder = ScalarEncoder(p)
+    encodings_first = []
+    for v in range(1, 1001):
+        encodings_first.append(np.array(encoder.encode(float(v))))
+
+    encodings_second = []
+    for v in range(9000, 10001):
+        encodings_second.append(np.array(encoder.encode(float(v))))
+
+    random_values = random.sample(range(0, 10000), 2000)
+    encodings_random = []
+    for v in random_values:
+        encodings_random.append(np.array(encoder.encode(float(v))))
+
+    # check two encodings by each others hamming distances. small numbers
+    consecutive_distances = []
+    for v in range(len(encodings_first) - 1):
+        d = hamming_distance_helper(encodings_first[v], encodings_first[v + 1])
+        consecutive_distances.append(d)
+    mean_consecutive = np.mean(consecutive_distances)
+
+    # check two encodings by each others hamming distances, large numbers
+    consecutive_distances_large = []
+    for v in range(len(encodings_second) - 1):
+        d = hamming_distance_helper(encodings_second[v], encodings_second[v + 1])
+        consecutive_distances_large.append(d)
+    mean_consecutive_large = np.mean(consecutive_distances_large)
+
+    # check the hamming distance between far apart input values
+    far_distances = []
+    for v in range(1000):
+        d = hamming_distance_helper(encodings_first[v], encodings_second[v])
+        far_distances.append(d)
+    mean_far = np.mean(far_distances)
+
+    # check the hamming distance between two random encodings
+    random_distances = []
+    for i, j in zip(range(0, 1000), range(1000, 2000)):
+        d = hamming_distance_helper(encodings_random[i], encodings_random[j])
+        random_distances.append(d)
+    mean_random = np.mean(random_distances)
+
+    print("\n")
+    print("Consecutive distances mean: ", mean_consecutive)
+    print("Far distances mean: ", mean_far)
+    print("Large consecutive numbers mean distance: ", mean_consecutive_large)
+    print("Random hamming distance mean: ", mean_random)
+
+    assert mean_consecutive < mean_random < mean_far

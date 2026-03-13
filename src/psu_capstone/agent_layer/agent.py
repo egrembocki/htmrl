@@ -8,11 +8,11 @@ Memory (HTM) Reinforcement Learning framework.
 from re import S
 from typing import Any
 
-from psu_capstone.agent_layer.legacy_htm.cell import Cell
-from psu_capstone.agent_layer.legacy_htm.column import Column
-from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
-from psu_capstone.agent_layer.legacy_htm.synapse import Synapse
-from psu_capstone.agent_layer.legacy_htm.temporal_memory import TemporalMemory
+from legacy.legacy_htm.cell import Cell
+from legacy.legacy_htm.column import Column
+from legacy.legacy_htm.spatial_pooler import SpatialPooler
+from legacy.legacy_htm.synapse import Synapse
+from legacy.legacy_htm.temporal_memory import TemporalMemory
 
 
 class Agent:
@@ -22,20 +22,12 @@ class Agent:
     to process sensory input, learn temporal patterns, and make decisions within
     the environment.
 
-    Attributes:
-        _poolers (list[SpatialPooler]): A list of SpatialPooler instances used for
-            encoding input patterns.
-        _memory (list[TemporalMemory]): A list of TemporalMemory instances used for
-            learning sequences and temporal context.
+    Args:
+        poolers: A list of initialized SpatialPooler instances.
+        memory: A list of initialized TemporalMemory instances.
     """
 
     def __init__(self, poolers: list[SpatialPooler], memory: list[TemporalMemory]):
-        """Initialize the agent with specific HTM components.
-
-        Args:
-            poolers: A list of initialized SpatialPooler instances.
-            memory: A list of initialized TemporalMemory instances.
-        """
         self._poolers = poolers
         self._memory = memory
 
@@ -140,8 +132,8 @@ class Agent:
         Args:
             input_space_size: The total size of the input bit space.
             column_count: The number of columns (outputs) in the spatial pooler.
-            synapse_per_column: The number of potential synapses per column.
-            seed: Random seed for reproducible initialization.
+            initial_synapses_per_column: The number of initial synapses per column.
+            random_seed: Random seed for reproducible initialization.
         """
         pooler = SpatialPooler(
             input_space_size=input_space_size,
@@ -163,7 +155,6 @@ class Agent:
             column_count: The number of columns in the temporal memory (should match
                 the output of the corresponding Spatial Pooler).
             cells_per_column: The number of cells per column for temporal context.
-            seed: Random seed for reproducible initialization.
         """
 
         synapse = Synapse(0, 0.21)  # placeholder synapse

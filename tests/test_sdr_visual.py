@@ -1,11 +1,28 @@
-"""Visual tests for SDR class."""
+"""
+tests.test_sdr_visual
+
+Test suite for SDR visualization functionality.
+
+Validates that SDR (Sparse Distributed Representation) objects can be correctly visualized
+in matplotlib plots. Tests cover:
+- SDR array visualization as binary bitmaps (active bits shown in color, inactive in gray)
+- Overlapping SDR visualization showing comparisons between multiple SDRs
+- Custom color mapping for active/inactive bit representation
+- Correct dimension display in visualization output
+- Visual properties (title, axis labels, dimensions)
+
+Note: Visual tests are marked with @pytest.mark.visual and require matplotlib display capability.
+
+These tests ensure SDRs can be inspected visually for debugging and analysis purposes,
+facilitating understanding of sparse encoding patterns and overlaps.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib.colors import ListedColormap
 
-from psu_capstone.sdr_layer.sdr import SDR
+from legacy.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
