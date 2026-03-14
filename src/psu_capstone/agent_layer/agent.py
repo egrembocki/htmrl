@@ -7,7 +7,11 @@ Memory (HTM) Reinforcement Learning framework.
 
 from typing import Any
 
-import numpy as np
+from legacy.legacy_htm.cell import Cell
+from legacy.legacy_htm.column import Column
+from legacy.legacy_htm.spatial_pooler import SpatialPooler
+from legacy.legacy_htm.synapse import Synapse
+from legacy.legacy_htm.temporal_memory import TemporalMemory
 
 
 class Agent:

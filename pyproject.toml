@@ -61,7 +61,6 @@ members = [
 ###############
 
 [tool.pytest.ini_options]
-# addopts = ["--cov-report=term-missing", "--cov-report=xml", "tests/"]
 addopts = "-s"
 pythonpath = ["src"]
 testpaths = ["tests"]

@@ -15,7 +15,7 @@ Key points:
 # htm_core/distal_synapse.py
 from __future__ import annotations
 
-from psu_capstone.agent_layer.legacy_htm.cell import Cell
+from legacy.legacy_htm.cell import Cell
 
 
 class DistalSynapse:

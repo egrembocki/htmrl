@@ -26,14 +26,14 @@ from typing import Any
 
 import numpy as np
 
-from psu_capstone.agent_layer.legacy_htm.column import Column
-from psu_capstone.agent_layer.legacy_htm.constants import (
+from legacy.legacy_htm.column import Column
+from legacy.legacy_htm.constants import (
     CONNECTED_PERM,
     DESIRED_LOCAL_ACTIVITY,
     PERMANENCE_DEC,
     PERMANENCE_INC,
 )
-from psu_capstone.agent_layer.legacy_htm.synapse import Synapse
+from legacy.legacy_htm.synapse import Synapse
 
 
 class SpatialPooler:
