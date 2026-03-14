@@ -1,3 +1,15 @@
+"""Public exports for the agent layer.
+
+This package-level module exists to reduce import boilerplate in callers.
+Consumers can import the layer once, for example import psu_capstone.agent_layer as ag,
+and then reference ag.Brain or ag.Trainer instead of importing each symbol from
+its concrete module.
+
+The exports are loaded lazily to avoid import-time side effects. In particular,
+Trainer pulls in plotting helpers and other heavier dependencies, so eager imports
+here would make lightweight package imports unexpectedly expensive and brittle.
+"""
+
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +46,11 @@ _EXPORTS = {
 
 
 def __getattr__(name: str) -> Any:
+    """Resolve layer exports lazily to keep package imports lightweight.
+
+    This preserves the convenient ag.Symbol API introduced by the import-cleanup
+    refactor while avoiding eager imports of modules that have deeper dependency trees.
+    """
     if name not in _EXPORTS:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     module_name, attr_name = _EXPORTS[name]

@@ -12,6 +12,9 @@ Note: Some of the demonstration functions may require specific datasets to be av
 import os
 
 import grapher
+
+# Import each layer once so the demos read like the architecture they exercise.
+# This keeps example code focused on workflow rather than repeated module paths.
 import psu_capstone.agent_layer as ag
 import psu_capstone.encoder_layer as en
 import psu_capstone.input_layer as il

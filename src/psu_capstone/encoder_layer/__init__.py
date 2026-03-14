@@ -1,3 +1,11 @@
+"""Public exports for the encoder layer.
+
+Centralizing the common encoder symbols here lets callers import the layer once,
+for example ``import psu_capstone.encoder_layer as en``, instead of repeating
+per-module imports throughout the codebase. This is mainly a boilerplate reduction
+and readability improvement for cross-layer code.
+"""
+
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters

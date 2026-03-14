@@ -15,12 +15,17 @@ import numpy as np
 from matplotlib.colors import PowerNorm
 
 import grapher
+
+# Alias cross-layer packages once so the trainer can refer to encoder and input
+# layer types without repeating a long list of per-module imports.
 import psu_capstone.encoder_layer as en
 import psu_capstone.input_layer as il
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.log import get_logger
 
+# Rebind the parameter and helper types locally so the rest of this module can
+# keep its existing names while depending on the cleaner layer-level imports.
 ParameterMarker = en.ParameterMarker
 CategoryParameters = en.CategoryParameters
 CoordinateParameters = en.CoordinateParameters

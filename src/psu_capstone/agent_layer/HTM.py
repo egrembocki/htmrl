@@ -12,8 +12,12 @@ from itertools import chain
 from statistics import fmean, pstdev
 from typing import Any, Iterable
 
+# Pull encoder-layer types through the package boundary so this module does not
+# need to know the concrete module path for every shared encoder parameter type.
 import psu_capstone.encoder_layer as en
 
+# Keep the original local names so the HTM implementation stays readable while
+# still benefiting from the reduced cross-layer import boilerplate.
 ParameterMarker = en.ParameterMarker
 RDSEParameters = en.RDSEParameters
 

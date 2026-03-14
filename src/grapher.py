@@ -16,6 +16,8 @@ from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq, ifft
 
+# Use layer-level imports here because this module crosses package boundaries often
+# and benefits the most from shorter, more consistent import statements.
 import psu_capstone.encoder_layer as en
 import psu_capstone.input_layer as il
 from psu_capstone.log import logger
