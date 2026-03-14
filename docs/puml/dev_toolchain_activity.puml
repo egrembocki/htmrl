@@ -1,0 +1,108 @@
+@startuml dev_toolchain_activity
+skinparam style strictuml
+skinparam shadowing false
+
+title Developer Activity Flow: Repo Tools -> Input -> Encoder -> Agent/Trainer -> Brain -> Env Adapter
+
+start
+
+partition Developer {
+	:Pick dataset and run mode;
+	:Configure encoder and training parameters;
+}
+
+partition "Input Tools\n(InputHandler)" {
+	:Call input_data(input_source, required_columns);
+	if (File path input?) then (yes)
+		:_load_file_to_dataframe();
+	else (no)
+		:_coerce_non_file_to_dataframe();
+	endif
+
+	:_process_dataframe();
+
+	if (Dataset valid?) then (yes)
+		:Return normalized dict[Any, list[Any]];
+	else (no)
+		:Raise validation error;
+		stop
+	endif
+}
+
+partition "Encoder Tools\n(EncoderHandler + Encoders)" {
+	:Convert normalized dict to DataFrame;
+	:Encode rows with EncoderHandler;
+
+	while (More rows to encode?) is (yes)
+		:Inspect value type per column;
+		if (float?) then (yes)
+			:Encode with RDSE;
+		else (no)
+			if (int?) then (yes)
+				:Encode with ScalarEncoder;
+			else (no)
+				if (string?) then (yes)
+					:Encode with CategoryEncoder;
+				else (no)
+					:Encode with DateEncoder;
+				endif
+			endif
+		endif
+		:Build encoded row as list[int] (one SDR);
+	endwhile (no)
+
+	:Return list[list[int]] (one list[int] per row) for downstream use;
+}
+
+partition Developer {
+	if (Build and train a new Brain?) then (yes)
+	else (no)
+		:Use pre-trained Brain for inference;
+	endif
+}
+
+if (Build and train a new Brain?) then (yes)
+	partition "Agent + Trainer Tools\n(Trainer, Agent)" {
+		:Define field tuples and encoder params;
+		:Trainer.build_brain(fields);
+		:Trainer.train_full_brain(brain, dataset, steps);
+
+		while (More training steps?) is (yes)
+			:Brain.step(inputs, learn=True);
+			:Collect metrics/stats;
+		endwhile (no)
+
+		:Persist trained Brain artifacts;
+	}
+
+	partition "Brain Runtime\n(Brain)" {
+		:prediction() for validation outputs;
+		:Expose decoded values + confidence;
+	}
+else (no)
+	partition "Brain Runtime\n(Brain)" {
+		:step(inputs, learn=False);
+		:prediction();
+		:Expose state/action intent;
+	}
+endif
+
+partition "Env Adapter Role\n(Environment Layer)" {
+	:Map Brain output to Environment action space;
+	:Environment.step(action);
+	:observe() -> reward, next_state, done;
+
+	if (Episode done?) then (yes)
+		:Environment.reset();
+	else (no)
+		:Continue next timestep;
+	endif
+}
+
+partition Developer {
+	:Review reports and tune parameters;
+	:Repeat workflow as needed;
+}
+
+stop
+@enduml
