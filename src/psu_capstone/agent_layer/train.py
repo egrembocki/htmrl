@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import io
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
@@ -17,13 +17,34 @@ from typing import Any, cast
 import numpy as np
 
 import grapher
+import psu_capstone.agent_layer as ag
 import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
-from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
-from psu_capstone.input_layer.input_handler import InputHandler
+import psu_capstone.input_layer as il
 from psu_capstone.log import get_logger
+
+# Rebind the parameter and helper types locally so the rest of this module can
+# keep its existing names while depending on the cleaner layer-level imports.
+
+# Pull agent-layer types through the package boundary so this module does not
+Brain = ag.Brain
+ColumnField = ag.ColumnField
+Field = ag.Field
+InputField = ag.InputField
+OutputField = ag.OutputField
+
+
+# Pull encoder-layer types through the package boundary so this module does not
+CategoryParameters = el.CategoryParameters
+CoordinateParameters = el.CoordinateParameters
+DateEncoderParameters = el.DateEncoderParameters
+FourierEncoderParameters = el.FourierEncoderParameters
+GeospatialParameters = el.GeospatialParameters
+RDSEParameters = el.RDSEParameters
+EncoderFactory = el.EncoderFactory
+
+
+# pull input-layer types through the package boundary so this module does not
+InputHandler = il.InputHandler
 
 
 class Trainer:
@@ -58,7 +79,20 @@ class Trainer:
         self._values: list[Any] = []
 
     @staticmethod
-    def _encoder_type_from_params(param: ParentDataClass) -> str:
+    def _params_to_dict(param: el.ParameterMarker) -> dict[str, Any]:
+        """Convert encoder parameter objects to factory kwargs.
+
+        The encoder-layer parameter objects are dataclasses that also satisfy the
+        ``ParameterMarker`` protocol. The explicit runtime check keeps the factory
+        contract honest and makes the ``asdict`` call type-safe for static analysis.
+        """
+
+        if not is_dataclass(param):
+            raise TypeError(f"Encoder parameters must be dataclass instances, got {type(param)}")
+        return cast(dict[str, Any], asdict(param))
+
+    @staticmethod
+    def _encoder_type_from_params(param: el.ParameterMarker) -> str:
         """Map a parameter dataclass to the factory encoder type string."""
 
         encoder_name = param.encoder_class.__name__.lower()
@@ -115,7 +149,7 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParentDataClass]]) -> None:
+    def _setup_io_fields(self, fields: list[tuple[str, int, el.ParameterMarker]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -142,7 +176,8 @@ class Trainer:
             )
             encoder_type = self._encoder_type_from_params(param)
             created_encoder = cast(
-                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, asdict(param))
+                el.BaseEncoder,
+                self._encoder_factory.create_encoder(encoder_type, self._params_to_dict(param)),
             )
             encoder_params = param
 
@@ -287,7 +322,7 @@ class Trainer:
 
                     f.write("\n")
 
-    def build_brain(self, fields: list[tuple[str, int, ParentDataClass]]) -> Brain:
+    def build_brain(self, fields: list[tuple[str, int, el.ParameterMarker]]) -> Brain:
         """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.
 
         Args:
@@ -318,7 +353,7 @@ class Trainer:
 
         return brain
 
-    def add_input_field(self, name: str, size: int, encoder_params: ParentDataClass) -> None:
+    def add_input_field(self, name: str, size: int, encoder_params: el.ParameterMarker) -> None:
         """Add an input field to the Brain."""
 
         if self._main_brain is None:
@@ -521,7 +556,10 @@ class Trainer:
         }
 
     def build_full_brain(
-        self, dataset: dict[Any, list[Any]], size: int = 2048, params: ParentDataClass | None = None
+        self,
+        dataset: dict[Any, list[Any]],
+        size: int = 2048,
+        params: el.ParameterMarker | None = None,
     ) -> Brain:
         """Build a full Brain with all fields based on the dataset.
 
@@ -551,7 +589,7 @@ class Trainer:
 
         This method automatically determines the appropriate encoder type for each field based on the data type of the values in the dataset. It then builds the Brain with input fields for each column, a column field that connects to all input fields, and output fields as needed.
 
-        # TODO: add dict of ParentDataClass to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
+        # TODO: add a dict of ParameterMarker-compatible configs to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
 
         Mapping of data types to encoder parameters:
         - Numerical (int, float): el.RDSEParameters

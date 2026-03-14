@@ -14,16 +14,12 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
-from scipy.fft import fft, fftfreq, ifft
+from scipy.fft import fft, fftfreq
 
+import psu_capstone.encoder_layer as en
+import psu_capstone.input_layer as il
 from legacy.sdr_layer.sdr import SDR
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
-from utils import DATA_PATH, PROJECT_ROOT
+from utils import PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
@@ -194,7 +190,7 @@ def plot_signal(
 
 def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
-    ih = InputHandler()
+    ih = il.InputHandler()
 
     signal = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
@@ -225,7 +221,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         peak_freq = freq_bin[peak_index]
         print(f"Plot Peak Frequency: {peak_freq} Hz")
 
-        fft_encoder = FourierEncoder(FourierEncoderParameters())
+        fft_encoder = en.FourierEncoder(en.FourierEncoderParameters())
 
         sdr = fft_encoder.encode(values)
 
@@ -234,8 +230,8 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
 
 if __name__ == "__main__":
 
-    fft_encoder = FourierEncoder(
-        FourierEncoderParameters(
+    fft_encoder = en.FourierEncoder(
+        en.FourierEncoderParameters(
             resolutions_in_ranges=[1.0, 1.0],
             frequency_ranges=[(0, 100), (100, 500)],
             size=2048,
