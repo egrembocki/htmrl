@@ -169,8 +169,9 @@ class CategoryParametersNew(ParentDataClass):
     """Configuration parameters for CategoryEncoder.
 
     Attributes:
-        w: Width in bits allocated per category. For N categories with w=3,
-            total bits = (N+1) * 3, where +1 accounts for unknown category.
+        activeb_bits_per_category: number of active bits per category.
+        sparsity: the percent of sdr that is active bits.
+        size: the size of the sdr.
         category_list: List of valid category strings to encode. Must be unique.
         rdse_used: If True, use RandomDistributedScalarEncoder for encoding;
             if False, use standard ScalarEncoder (HTM core implementation).
