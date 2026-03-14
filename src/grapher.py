@@ -16,10 +16,9 @@ from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq
 
-import psu_capstone.encoder_layuer as en
+import psu_capstone.encoder_layer as en
 import psu_capstone.input_layer as il
 from legacy.sdr_layer.sdr import SDR
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from utils import PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
@@ -222,7 +221,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         peak_freq = freq_bin[peak_index]
         print(f"Plot Peak Frequency: {peak_freq} Hz")
 
-        fft_encoder = FourierEncoder(FourierEncoderParameters())
+        fft_encoder = en.FourierEncoder(en.FourierEncoderParameters())
 
         sdr = fft_encoder.encode(values)
 
