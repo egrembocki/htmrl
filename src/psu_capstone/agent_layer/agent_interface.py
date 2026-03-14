@@ -8,9 +8,6 @@ from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 
-from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
-from psu_capstone.sdr_layer.sdr_interface import SDRInterface
-
 
 @runtime_checkable
 class AgentInterface(Protocol):
@@ -55,7 +52,7 @@ class AgentInterface(Protocol):
 
         ...
 
-    def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
+    def update(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
         """Update the agent's internal model and policy based on experience.
 
         This method should use the experience tuple (state, action, reward, next_state)

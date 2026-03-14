@@ -15,17 +15,20 @@ import numpy as np
 from matplotlib.colors import PowerNorm
 
 import grapher
+import psu_capstone.encoder_layer as en
+import psu_capstone.input_layer as il
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import ParameterMarker
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters
-from psu_capstone.encoder_layer.coordinate_encoder import CoordinateParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
-from psu_capstone.encoder_layer.geospatial_encoder import GeospatialParameters
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
+
+ParameterMarker = en.ParameterMarker
+CategoryParameters = en.CategoryParameters
+CoordinateParameters = en.CoordinateParameters
+DateEncoderParameters = en.DateEncoderParameters
+FourierEncoderParameters = en.FourierEncoderParameters
+GeospatialParameters = en.GeospatialParameters
+RDSEParameters = en.RDSEParameters
+InputHandler = il.InputHandler
 
 
 class Trainer:

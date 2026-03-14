@@ -12,14 +12,9 @@ Note: Some of the demonstration functions may require specific datasets to be av
 import os
 
 import grapher
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.train import Trainer
-from psu_capstone.encoder_layer.base_encoder import ParameterMarker
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.input_layer.input_handler import InputHandler
+import psu_capstone.agent_layer as ag
+import psu_capstone.encoder_layer as en
+import psu_capstone.input_layer as il
 from psu_capstone.log import logger
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
@@ -35,7 +30,7 @@ def show_input_data_demo() -> None:
     Use Case Input Data --> Validate Data
     """
 
-    ih = InputHandler()
+    ih = il.InputHandler()
     data = ih.input_data(ESD)
 
     for name, value in data.items():
@@ -45,9 +40,9 @@ def show_input_data_demo() -> None:
 def show_input_to_encoder_demo(s: int = 5) -> None:
     """Demonstrate the InputHandler's ability to convert raw input data to encoder-ready format."""
 
-    ih = InputHandler()
-    brain = Brain()
-    trainer = Trainer(brain)
+    ih = il.InputHandler()
+    brain = ag.Brain()
+    trainer = ag.Trainer(brain)
 
     columns: list[str] = []
     data = ih.input_data(ESD)
@@ -60,7 +55,7 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
     column_data = ih.get_column_data(column=columns[1])
 
     trainer.main_brain = trainer.build_brain(
-        [(f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.01))]
+        [(f"{columns[1]}_input", 2048, en.RDSEParameters(resolution=0.01))]
     )  # fin markets
 
     values = column_data[:s]  # Take the first 's' values for demonstration
@@ -90,19 +85,19 @@ def show_brain_creation_demo() -> None:
     Use Case Input Parameters
     """
 
-    brain = Brain()
-    trainer = Trainer(brain)
+    brain = ag.Brain()
+    trainer = ag.Trainer(brain)
 
-    input_fields: list[tuple[str, int, ParameterMarker]] = []
+    input_fields: list[tuple[str, int, en.ParameterMarker]] = []
 
     # Example of building a brain with specific input fields
     input_fields = [
-        ("temperature_input", 2048, RDSEParameters()),
-        ("humidity_input", 2048, RDSEParameters()),
-        ("energy_consumption_input", 2048, RDSEParameters()),
-        ("date_input", 2048, DateEncoderParameters()),
-        ("category_input", 2048, CategoryParameters()),
-        ("wave_input", 2048, FourierEncoderParameters()),
+        ("temperature_input", 2048, en.RDSEParameters()),
+        ("humidity_input", 2048, en.RDSEParameters()),
+        ("energy_consumption_input", 2048, en.RDSEParameters()),
+        ("date_input", 2048, en.DateEncoderParameters()),
+        ("category_input", 2048, en.CategoryParameters()),
+        ("wave_input", 2048, en.FourierEncoderParameters()),
     ]
 
     trainer.main_brain = trainer.build_brain(input_fields)
@@ -132,10 +127,10 @@ def sine_wave_demo(steps: int = 100) -> None:
     x = np.linspace(0, 1, 2048, endpoint=False)
     y = np.sin(2 * np.pi * 1 * x)
     data = {"sine_wave_input": y}
-    brain = Brain()
-    trainer = Trainer(brain)
+    brain = ag.Brain()
+    trainer = ag.Trainer(brain)
     trainer.main_brain = trainer.build_brain(
-        [("sine_wave_input", 2048, RDSEParameters(resolution=0.001))]
+        [("sine_wave_input", 2048, en.RDSEParameters(resolution=0.001))]
     )
     brain = trainer.main_brain
 
@@ -162,13 +157,13 @@ def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
     Use Cace Input Data -> Validate Data -> Input Parameters -> Train Model -> Train Brain -> Use HTM -> Encode/Decode SDR
     """
 
-    ih = InputHandler()
+    ih = il.InputHandler()
     data = ih.input_data(ESD)
 
-    brain = Brain()
-    trainer = Trainer(brain)
+    brain = ag.Brain()
+    trainer = ag.Trainer(brain)
     # resolution changes the spatial pooler representation
-    trainer.main_brain = trainer.build_full_brain(data, 2048, RDSEParameters(resolution=0.01))
+    trainer.main_brain = trainer.build_full_brain(data, 2048, en.RDSEParameters(resolution=0.01))
     brain = trainer.main_brain
 
     if not column:
@@ -195,9 +190,9 @@ def rec_center_demo(steps: int = 100) -> None:
     """Demonstrate loading and visualizing the rec_center dataset."""
 
     columns: list[str] = []
-    ih = InputHandler()
-    brain = Brain()
-    trainer = Trainer(brain)
+    ih = il.InputHandler()
+    brain = ag.Brain()
+    trainer = ag.Trainer(brain)
     data = ih.input_data(REC_CENTER)
 
     for key in data.keys():
@@ -207,8 +202,8 @@ def rec_center_demo(steps: int = 100) -> None:
 
     trainer.main_brain = trainer.build_brain(
         [
-            (f"{columns[0]}_input", 2048, DateEncoderParameters()),
-            (f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.1)),
+            (f"{columns[0]}_input", 2048, en.DateEncoderParameters()),
+            (f"{columns[1]}_input", 2048, en.RDSEParameters(resolution=0.1)),
         ]
     )
 
@@ -231,13 +226,13 @@ def rec_center_demo(steps: int = 100) -> None:
 def show_field_single_encoding_demo() -> None:
     """Demonstrate encoding a sample input through the Brain's input fields."""
 
-    brain = Brain()
-    trainer = Trainer(brain)
+    brain = ag.Brain()
+    trainer = ag.Trainer(brain)
 
-    input_fields: list[tuple[str, int, ParameterMarker]] = []
+    input_fields: list[tuple[str, int, en.ParameterMarker]] = []
     # Create a simple brain with one input field and one column field
     input_fields = [
-        ("temperature_input", 2048, RDSEParameters(resolution=0.1)),
+        ("temperature_input", 2048, en.RDSEParameters(resolution=0.1)),
     ]
     trainer.main_brain = trainer.build_brain(input_fields)
 

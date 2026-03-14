@@ -12,8 +12,10 @@ from itertools import chain
 from statistics import fmean, pstdev
 from typing import Any, Iterable
 
-from psu_capstone.encoder_layer.base_encoder import ParameterMarker
-from psu_capstone.encoder_layer.rdse import RDSEParameters
+import psu_capstone.encoder_layer as en
+
+ParameterMarker = en.ParameterMarker
+RDSEParameters = en.RDSEParameters
 
 # Constants
 CONNECTED_PERM = 0.5  # Permanence threshold for a synapse to be considered connected

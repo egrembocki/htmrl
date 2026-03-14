@@ -7,10 +7,6 @@ from typing import Any, Protocol, runtime_checkable
 class EnvInterface(Protocol):
     """Defines the interface for environment layer components."""
 
-    def setup(self) -> None:
-        """Resets the environment to its initial state."""
-        ...
-
     def step(self, action: Any) -> None:
         """Takes a step in the environment using the provided action.
 
@@ -23,10 +19,10 @@ class EnvInterface(Protocol):
         """Renders the current state of the environment."""
         ...
 
-    def observe(self) -> tuple[float, Any, Any]:
-        """Returns the current observation from the environment."""
+    def close(self) -> tuple[float, Any, Any]:
+        """Closes the environment and returns the final observation."""
         ...
 
-    def update(self) -> None:
-        """Updates the environment's state."""
+    def reset(self) -> None:
+        """Resets the environment to its initial state."""
         ...
