@@ -16,7 +16,7 @@ from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq
 
-import psu_capstone.encoder_layer as en
+import psu_capstone.encoder_layer as el
 import psu_capstone.input_layer as il
 from legacy.sdr_layer.sdr import SDR
 from utils import PROJECT_ROOT
@@ -170,7 +170,7 @@ def plot_signal(
         plt.show(block=True)
 
     if selected_domain in {"frequency", "both"}:
-        freq_data = fft(values)
+        freq_data: np.ndarray = np.asarray(fft(values))
         samples = len(freq_data)
         if samples < 2:
             raise ValueError("Signal must contain at least 2 samples for frequency plotting.")
@@ -206,14 +206,13 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     for column in columns:
         values = np.array(signal[column], dtype=float)
         values[0] = 0.0  # remove DC component by zeroing the first value
-        # values = values - np.mean(values)  # remove DC component
         values = values[:4096]
 
         print(f"Plotting column: {column}")
 
         plot_signal(values, sample_rate=sample_rate, domain="both", title=column)
 
-        freq_data = fft(values)
+        freq_data: np.ndarray = np.asarray(fft(values))
         samples = len(freq_data)
         magnitudes = np.abs(freq_data[1 : samples // 2])
         freq_bin = fftfreq(samples, 1 / sample_rate)[1 : samples // 2]
@@ -221,7 +220,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         peak_freq = freq_bin[peak_index]
         print(f"Plot Peak Frequency: {peak_freq} Hz")
 
-        fft_encoder = en.FourierEncoder(en.FourierEncoderParameters())
+        fft_encoder = el.FourierEncoder(el.FourierEncoderParameters())
 
         sdr = fft_encoder.encode(values)
 
@@ -230,8 +229,8 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
 
 if __name__ == "__main__":
 
-    fft_encoder = en.FourierEncoder(
-        en.FourierEncoderParameters(
+    fft_encoder = el.FourierEncoder(
+        el.FourierEncoderParameters(
             resolutions_in_ranges=[1.0, 1.0],
             frequency_ranges=[(0, 100), (100, 500)],
             size=2048,
@@ -244,12 +243,7 @@ if __name__ == "__main__":
     a, b, c, d, e, f = 10, 2, 30, 2, 50, 60
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
     y1 *= np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    # y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    # y1 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
     y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
 
     """
     fft_one = fft_encoder.encode(y1)
