@@ -1,64 +1,60 @@
-@startuml brain_env_training_activity
+@startuml act-05-env-adapter-loop
 skinparam style strictuml
 skinparam shadowing false
 
-title Activity Detail: Agent + Trainer -> Brain -> Environment Adapter Loop
+title ACT-05: Env Adapter Loop (Brain -> Agent -> Environment)
 
 start
 
 partition Developer {
-  :Create Brain and Trainer instances;
-  :Load dataset via InputHandler;
+	:Create Agent and Environment instances;
+	:Connect Brain output to Env Adapter;
 }
 
-partition "Trainer" {
-  :build_brain(fields);
-  :train_full_brain(brain, dataset, steps);
-}
-
-partition "Brain" {
-  :Initialize field states;
+partition "Environment" {
+	:Define observation_space and action_space;
+	:reset() -> initialize state;
 }
 
 while (Episode active?) is (yes)
-  partition "Agent" {
-    :Read current state from Brain;
-    :select_action(state);
-  }
 
-  partition "Env Adapter Role" {
-    :Translate action for Environment;
-  }
+	partition "Brain" {
+		:encode_only(current_state);
+		:compute_only(learn=True);
+		:prediction() -> decoded value + confidence;
+	}
 
-  partition "Environment" {
-    :step(action);
-    :observe() -> reward, next_state, done;
-  }
+	partition "Env Adapter Role" {
+		:Map Brain prediction to action_space;
+	}
 
-  partition "Agent" {
-    :update(state, action, reward, next_state);
-  }
+	partition "Agent" {
+		:select_action(state);
+	}
 
-  partition "Brain" {
-    :encode_only(inputs);
-    :compute_only(learn=True);
-    :prediction();
-  }
+	partition "Environment" {
+		:step(action);
+		:observe() -> reward, next_state, done;
+	}
 
-  if (done?) then (yes)
-    partition "Environment" {
-      :reset();
-    }
-  else (no)
-  endif
+	partition "Agent" {
+		:update(state, action, reward, next_state);
+	}
+
+	if (done?) then (yes)
+		partition "Environment" {
+			:reset();
+		}
+		partition "Trainer" {
+			:print_train_stats() -> log episode metrics;
+		}
+	else (no)
+	endif
+
 endwhile (no)
 
-partition Trainer {
-  :print_train_stats();
-}
-
 partition Developer {
-  :Review metrics and retrain if needed;
+	:Review episode metrics and retrain if needed;
 }
 
 stop
