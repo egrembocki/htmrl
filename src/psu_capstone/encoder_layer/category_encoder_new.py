@@ -169,7 +169,7 @@ class CategoryParametersNew(ParentDataClass):
     """Configuration parameters for CategoryEncoder.
 
     Attributes:
-        activeb_bits_per_category: number of active bits per category.
+        active_bits_per_category: number of active bits per category.
         sparsity: the percent of sdr that is active bits.
         size: the size of the sdr.
         category_list: List of valid category strings to encode. Must be unique.
