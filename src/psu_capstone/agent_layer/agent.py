@@ -17,9 +17,6 @@ class Agent:
     to process sensory input, learn temporal patterns, and make decisions within
     the environment.
 
-    Args:
-        poolers: A list of initialized SpatialPooler instances.
-        memory: A list of initialized TemporalMemory instances.
     """
 
     def __init__(self):
