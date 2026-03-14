@@ -14,16 +14,13 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
-from scipy.fft import fft, fftfreq, ifft
+from scipy.fft import fft, fftfreq
 
+import psu_capstone.encoder_layuer as en
+import psu_capstone.input_layer as il
 from legacy.sdr_layer.sdr import SDR
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
-from utils import DATA_PATH, PROJECT_ROOT
+from utils import PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 

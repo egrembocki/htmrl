@@ -7,11 +7,7 @@ Memory (HTM) Reinforcement Learning framework.
 
 from typing import Any
 
-from legacy.legacy_htm.cell import Cell
-from legacy.legacy_htm.column import Column
-from legacy.legacy_htm.spatial_pooler import SpatialPooler
-from legacy.legacy_htm.synapse import Synapse
-from legacy.legacy_htm.temporal_memory import TemporalMemory
+import numpy as np
 
 
 class Agent:
@@ -31,7 +27,7 @@ class Agent:
         self.learning_rate = 0.1
         self.epsilon = 0.1
         self.decay = 0.99
-        self.disconut_factor = 0.9
+        self.discount_factor = 0.9
 
     def select_action(self, state: tuple) -> Any:
         """Select an action based on the current state observation.
