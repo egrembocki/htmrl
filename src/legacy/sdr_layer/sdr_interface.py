@@ -2,7 +2,7 @@
 
 from typing import Any, Iterable, Protocol, runtime_checkable
 
-from psu_capstone.sdr_layer.sdr import SDR
+from legacy.sdr_layer.sdr import SDR
 
 
 @runtime_checkable

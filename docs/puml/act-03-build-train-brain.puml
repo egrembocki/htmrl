@@ -1,0 +1,64 @@
+@startuml act-03-build-train-brain
+skinparam style strictuml
+skinparam shadowing false
+
+title ACT-03: Build and Train Brain (Trainer + Brain)
+
+start
+
+partition Developer {
+	:Define field tuples\n(name: str, size: int, ParameterMarker);
+	note right
+		Supported markers:
+		RDSEParameters
+		DateEncoderParameters
+		CategoryParameters
+		FourierEncoderParameters
+		GeospatialParameters
+	end note
+	:Instantiate Trainer(brain);
+}
+
+partition "Trainer" {
+	:_setup_io_fields(fields);
+	note right
+		Names ending in '_input' -> InputField
+		Names ending in '_output' -> OutputField
+	end note
+	:_setup_column_fields(num_columns, cells_per_column);
+	:build_brain(fields) -> Brain;
+}
+
+partition "Brain" {
+	:Assign InputFields, OutputFields, ColumnFields;
+	:Log initialized field names;
+}
+
+partition "Trainer" {
+	:train_full_brain(brain, dataset, steps);
+
+	while (More training steps?) is (yes)
+		:_build_values_list(dataset);
+
+		partition "Brain" {
+			:encode_only(inputs);
+			note right
+				Each InputField.encode(value)
+				via its configured encoder
+			end note
+			:compute_only(learn=True);
+			note right
+				ColumnField.compute(learn=True)
+				-> spatial pooler + temporal memory
+			end note
+		}
+
+		:Collect anomaly_score and metrics;
+	endwhile (no)
+
+	:print_train_stats(save_path);
+	:Persist Brain artifacts to disk;
+}
+
+stop
+@enduml

@@ -24,9 +24,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from psu_capstone.agent_layer.legacy_htm.cell import Cell
-from psu_capstone.agent_layer.legacy_htm.constants import CONNECTED_PERM, MIN_OVERLAP
-from psu_capstone.agent_layer.legacy_htm.synapse import Synapse
+from legacy.legacy_htm.cell import Cell
+from legacy.legacy_htm.constants import CONNECTED_PERM, MIN_OVERLAP
+from legacy.legacy_htm.synapse import Synapse
 
 
 class Column:

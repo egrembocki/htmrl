@@ -10,7 +10,7 @@ from typing import Iterable, Optional, override
 import numpy as np
 from pyproj import CRS, Transformer
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 # Good for 2D
@@ -37,18 +37,22 @@ class GeospatialEncoder(
 
     def __init__(
         self,
-        geo_params: GeospatialParameters,
-        coord_params: CoordinateParameters,
+        geo_params: GeospatialParameters | None = None,
+        coord_params: CoordinateParameters | None = None,
         dimensions: list[int] | None = None,
     ):
 
-        self._geo_params = copy.deepcopy(geo_params)
-        self._coord_params = copy.deepcopy(coord_params)
+        self._geo_params = (
+            copy.deepcopy(geo_params) if geo_params is not None else GeospatialParameters()
+        )
+        self._coord_params = (
+            copy.deepcopy(coord_params) if coord_params is not None else CoordinateParameters()
+        )
 
         coord_params = CoordinateParameters(
-            n=coord_params.n,
-            w=coord_params.w,
-            seed=coord_params.seed,
+            n=self._coord_params.n,
+            w=self._coord_params.w,
+            seed=self._coord_params.seed,
             max_radius=self._geo_params.max_radius,
             dims=3 if self._geo_params.use_altitude else 2,
         )
@@ -161,8 +165,10 @@ class GeospatialEncoder(
 
 
 @dataclass
-class GeospatialParameters(ParentDataClass):
+class GeospatialParameters:
     """Configuration parameters for :class:`GeospatialEncoder`."""
+
+    size: int = 2048
 
     # meters per grid unit
     scale: float = 5.0
