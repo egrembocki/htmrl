@@ -20,6 +20,7 @@ import grapher
 import psu_capstone.agent_layer as ag
 import psu_capstone.encoder_layer as el
 import psu_capstone.input_layer as il
+from psu_capstone.encoder_layer.encoder_factory import EncoderFactory as _EncoderFactory
 from psu_capstone.log import get_logger
 
 # Rebind the parameter and helper types locally so the rest of this module can
@@ -40,7 +41,7 @@ DateEncoderParameters = el.DateEncoderParameters
 FourierEncoderParameters = el.FourierEncoderParameters
 GeospatialParameters = el.GeospatialParameters
 RDSEParameters = el.RDSEParameters
-EncoderFactory = el.EncoderFactory
+EncoderFactory = _EncoderFactory
 
 
 # pull input-layer types through the package boundary so this module does not
