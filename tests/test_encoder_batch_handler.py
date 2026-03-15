@@ -16,7 +16,6 @@ These tests validate the critical batch processing path that transforms tabular 
 (DataFrames) into SDR representations for HTM processing.
 """
 
-import copy
 import os
 import warnings
 from datetime import datetime

@@ -22,7 +22,7 @@ from typing import Any, Iterable, override
 import numpy as np
 import pandas as pd
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import get_logger
@@ -629,7 +629,7 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
 
 
 @dataclass
-class DateEncoderParameters(ParentDataClass):
+class DateEncoderParameters:
     """Configuration parameters for DateEncoder.
 
     Each field controls the encoding of a specific temporal feature.

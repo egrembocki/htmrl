@@ -8,7 +8,7 @@ from typing import Iterable, override
 import mmh3
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
@@ -97,7 +97,12 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
     def register_encoding(
         self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
     ) -> list[int]:
-        """Cache and return the encoding for a coordinate/radius key."""
+        """Cache and return the encoding for a coordinate/radius key.
+
+        ? why do we need to this to be tuple of tuple, why not just tuple[list[int], int] for coordinate?
+        I think it maybe less confusing to simply use the tuple[list[int], int] as the key, since the coordinate is already a tuple of ints, and the radius is an int, so we can just use that directly as the key without needing to wrap it in another tuple. This would also make the code simpler and easier to read, since we wouldn't need to unpack the coordinate from the outer tuple every time we want to access it.
+
+        """
         coordinate, radius = input_value
 
         key = (tuple(int(v) for v in coordinate), int(radius))
@@ -173,9 +178,10 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
 
 
 @dataclass
-class CoordinateParameters(ParentDataClass):
+class CoordinateParameters:
     """Configuration parameters for :class:`CoordinateEncoder`."""
 
+    size: int = 2048
     n: int = 2048
     w: int = 25
     seed: int = 42

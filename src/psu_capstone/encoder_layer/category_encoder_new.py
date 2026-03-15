@@ -11,13 +11,13 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.log import get_logger, logger
 
 
-class CategoryEncoder(BaseEncoder[str]):
+class CategoryEncoderNew(BaseEncoder[str]):
     """Encoder for discrete categorical values with no semantic relationships.
 
     This encoder converts string categories into sparse distributed representations
@@ -32,24 +32,35 @@ class CategoryEncoder(BaseEncoder[str]):
         parameters: Configuration specifying categories and encoder settings.
     """
 
-    def __init__(self, parameters: CategoryParameters):
+    def __init__(self, parameters: CategoryParametersNew):
         self._parameters = copy.deepcopy(parameters)
-        self._w = self._parameters.w
+        # self._w = self._parameters.w
         self._category_list = self._parameters.category_list
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
-        self.size = self._num_categories * self._w
+        if self._parameters.size == 0:
+            self.size = self._num_categories * self._w
+        else:
+            self.size = self._parameters.size
+        if self._parameters.sparsity != 0:
+            self.sparsity = self._parameters.sparsity
+            self.active_bits_per_category = 0
+        else:
+            self.sparsity = 0
+            self.active_bits_per_category = self._parameters.active_bits_per_category
         self.logger = get_logger(self)
 
         super().__init__(self._size)
         # Configure RDSE for random distributed encoding
         if self._RDSEused:
+            print("Active bits: ", self.active_bits_per_category)
+            print("Sparsity: ", self.sparsity)
             self.rdsep = RDSEParameters(
-                size=self._num_categories * self._w,
-                active_bits=self._w,
-                sparsity=0.0,
-                radius=1.0,
-                resolution=0.0,
+                size=self.size,
+                active_bits=self.active_bits_per_category,
+                sparsity=self.sparsity,
+                radius=0.0,
+                resolution=1.0,
                 category=False,
                 seed=0,
             )
@@ -58,20 +69,20 @@ class CategoryEncoder(BaseEncoder[str]):
         else:
             self.sp = ScalarEncoderParameters(
                 minimum=0,
-                maximum=int(self._num_categories - 1),
+                maximum=1000,
                 clip_input=False,
                 periodic=False,
                 category=False,
-                active_bits=self._w,
-                sparsity=0.0,
-                size=self._num_categories * self._w,
+                active_bits=self.active_bits_per_category,
+                sparsity=self.sparsity,
+                size=self.size,
                 radius=0.0,
                 resolution=1.0,
             )
             self.encoder = ScalarEncoder(self.sp)
 
     @override
-    def encode(self, input_value: str) -> list[int]:
+    def encode(self, input_value: Any) -> list[int]:
         """Encode a category string into a sparse distributed representation.
 
         Maps the input category to its index in the category list (or 0 for
@@ -84,7 +95,7 @@ class CategoryEncoder(BaseEncoder[str]):
             Binary list of 0s and 1s representing the SDR.
         """
         if input_value not in self._category_list:
-            index = 0
+            index = 1000
         else:
             index = self._category_list.index(input_value) + 1
         self.logger.info("Category encoded value: %s", input_value)
@@ -118,12 +129,17 @@ class CategoryEncoder(BaseEncoder[str]):
                 "NA"
             )  # we have to do this since the unknown categories are not in the _category_list but are still encoded
             result_tuple = rdse_encoder.decode(input_sdr)
-            result: str = self._category_list[int(result_tuple[0]) - 1]
+
+            try:
+                result: str = self._category_list[int(result_tuple[0]) - 1]
+            except IndexError:
+                result = "NA"
+
             self.logger.info("Decoded SDR into category: %s", result)
             self._category_list.pop()  # pop the unknown category before returning to keep the _category_list correct
             return (result, result_tuple[1])
 
-    def check_parameters(self, parameters: CategoryParameters) -> CategoryParameters:
+    def check_parameters(self, parameters: CategoryParametersNew) -> CategoryParametersNew:
         """Validate category encoder parameters.
 
         Performs basic sanity checks on the configuration to ensure proper
@@ -149,30 +165,33 @@ class CategoryEncoder(BaseEncoder[str]):
 
 
 @dataclass
-class CategoryParameters:
+class CategoryParametersNew(ParentDataClass):
     """Configuration parameters for CategoryEncoder.
 
     Attributes:
-        size: Total size of the output SDR in bits. Calculated as (N+1)*w where N is the number of categories and w is the width in bits per category.
-        w: Width in bits allocated per category. For N categories with w=3,
-            total bits = (N+1) * 3, where +1 accounts for unknown category.
+        active_bits_per_category: number of active bits per category.
+        sparsity: the percent of sdr that is active bits.
+        size: the size of the sdr.
         category_list: List of valid category strings to encode. Must be unique.
         rdse_used: If True, use RandomDistributedScalarEncoder for encoding;
             if False, use standard ScalarEncoder (HTM core implementation).
         encoder_class: Reference to the CategoryEncoder class.
     """
 
+    active_bits_per_category: int = 0
+    sparsity: float = 0.02
     size: int = 2048
-    w: int = 3
     category_list: list[str] = field(default_factory=list)
     rdse_used: bool = True
-    encoder_class = CategoryEncoder
+    encoder_class = CategoryEncoderNew
 
 
 if __name__ == "__main__":
     categories = ["ES", "GB", "US"]
-    parameters = CategoryParameters(w=3, category_list=categories, rdse_used=True)
-    e = CategoryEncoder(parameters=parameters)
+    parameters = CategoryParametersNew(
+        active_bits_per_category=0, category_list=categories, rdse_used=True
+    )
+    e = CategoryEncoderNew(parameters=parameters)
     a = e.encode("US")
     b = e.encode("ES")
     c = e.encode("NA")
