@@ -21,16 +21,13 @@ class Synapse:
         source_input: int -- index of input bit this synapse connects to in the input space
         permanence: float -- initial permanence value
 
+    Parameters:
+    - source_input: The integer index of the input bit in the combined SDR.
+    - permanence: Initial strength (0.0–1.0 typical). Values above CONNECTED_PERM
+      mark the synapse as connected for overlap computations.
     """
 
     def __init__(self, source_input: int, permanence: float) -> None:
-        """Create a synapse referencing an input bit index with an initial permanence.
-
-        Parameters:
-        - source_input: The integer index of the input bit in the combined SDR.
-        - permanence: Initial strength (0.0–1.0 typical). Values above CONNECTED_PERM
-          mark the synapse as connected for overlap computations.
-        """
         self.source_input: int = source_input
         self.permanence: float = permanence
 

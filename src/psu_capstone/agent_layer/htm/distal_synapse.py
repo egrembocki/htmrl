@@ -33,10 +33,9 @@ class DistalSynapse:
       (defined elsewhere, typically CONNECTED_PERM).
     - This class is intentionally lightweight; evaluation of active/connected
       states and learning rules are performed at the segment level.
-    """
 
-    def __init__(self, source_cell: Cell, permanence: float) -> None:
-        """Create a distal synapse with a source cell and initial permanence.
+
+        Create a distal synapse with a source cell and initial permanence.
 
         Parameters:
         - source_cell: The Cell that provides activity to drive this synapse.
@@ -47,6 +46,8 @@ class DistalSynapse:
         The owning distal segment will evaluate this synapse against current
         network state to compute segment activation and drive predictions.
         """
+
+    def __init__(self, source_cell: Cell, permanence: float) -> None:
         self.source_cell: Cell = source_cell
         self.permanence: float = permanence
 

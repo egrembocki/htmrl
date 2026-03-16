@@ -1,24 +1,48 @@
-"""Exposed interfaces for encoder layer components."""
+"""Protocol definitions for encoder layer components.
 
-from typing import Any, Protocol, runtime_checkable
+This module defines the interface contract that all encoder implementations
+must satisfy, using Python's Protocol for structural subtyping.
+"""
+
+from typing import Any, Iterable, Protocol, runtime_checkable
 
 
 @runtime_checkable
 class EncoderInterface(Protocol):
-    """Defines the interface for encoder layer components."""
+    """Protocol defining the interface for encoder layer components.
 
-    def buffer_data(self, input_data: Any, start: int = 0, stop: int | None = None) -> Any:
-        """Hold a buffered dataset to be processed by encode().
+    Encoders implementing this protocol convert input values into sparse
+    distributed representations. The protocol uses structural subtyping,
+    so any class with matching method signatures automatically satisfies it.
+    """
+
+    def encode(self, input_value: Any) -> list[int]:
+        """Encode a single input value into an SDR.
+
+        Transforms the input value into a sparse distributed representation
+        expressed as a list of active bit indices.
 
         Args:
-            input_data (Any): The input dataset to be encoded."""
+            input_value: The value to encode.
 
+        Returns:
+            List of active bit indices representing the encoded value.
+        """
         ...
 
-    def encode(self, input_value: Any, output_sdr: Any) -> None:
-        """Encodes a single input value and returns the encoded output.
+    def decode(
+        self, encoded: list[int], candidates: Iterable[float] | None = None
+    ) -> tuple[float | None, float]:
+        """Decode an SDR back into its original input value.
+
+        Transforms a sparse distributed representation back into the original
+        input value.
 
         Args:
-            input_value (Any): The input value to be encoded."""
+            encoded: List of active bit indices representing the encoded value.
+            candidates: Optional iterable of candidate values for decoding.
 
+        Returns:
+            A tuple containing the decoded value (or None if decoding fails) and a confidence score.
+        """
         ...

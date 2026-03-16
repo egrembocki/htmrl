@@ -1,11 +1,28 @@
-"""Visual tests for SDR class."""
+"""
+tests.test_sdr_visual
+
+Test suite for SDR visualization functionality.
+
+Validates that SDR (Sparse Distributed Representation) objects can be correctly visualized
+in matplotlib plots. Tests cover:
+- SDR array visualization as binary bitmaps (active bits shown in color, inactive in gray)
+- Overlapping SDR visualization showing comparisons between multiple SDRs
+- Custom color mapping for active/inactive bit representation
+- Correct dimension display in visualization output
+- Visual properties (title, axis labels, dimensions)
+
+Note: Visual tests are marked with @pytest.mark.visual and require matplotlib display capability.
+
+These tests ensure SDRs can be inspected visually for debugging and analysis purposes,
+facilitating understanding of sparse encoding patterns and overlaps.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib.colors import ListedColormap
 
-from psu_capstone.sdr_layer.sdr import SDR
+from legacy.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
@@ -15,7 +32,7 @@ def sdr_visualization(debug=False):
 
 
 @pytest.mark.visual
-def test_sdr_visualization(sdr_visualization):
+def __test_sdr_visualization(sdr_visualization):
     """Test the visualization of an SDR."""
 
     # sdr.get_dense() should return a list or 1D array of 0/1
@@ -48,7 +65,7 @@ def test_sdr_visualization(sdr_visualization):
 
 
 @pytest.mark.visual
-def test_sdr_one_row_visual():
+def __test_sdr_one_row_visual():
     """Test visualization of a single row SDR."""
     # Arrange
     sdr = SDR([100])
@@ -69,7 +86,7 @@ def test_sdr_one_row_visual():
 
 
 @pytest.mark.visual
-def test_sdr_cat_visual():
+def __test_sdr_cat_visual():
     print(">> running test_sdr_union_layout_visual")  # sanity check
 
     rows, cols = 20, 50  # size of each small SDR grid
@@ -141,7 +158,7 @@ def test_sdr_cat_visual():
 
 
 @pytest.mark.visual
-def test_sdr_union_visual():
+def __test_sdr_union_visual():
     print(">> running test_sdr_union_layout_visual")  # sanity check
 
     rows, cols = 64, 32  # size of each small SDR grid

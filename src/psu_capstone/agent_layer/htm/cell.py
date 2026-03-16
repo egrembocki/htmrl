@@ -47,19 +47,17 @@ class Cell:
       layers and in Segment/Synapse structures.
     - The number of cells per column (often 32) controls sequence capacity:
       more cells allow richer contextual differentiation.
+
+    The Temporal Memory procedure will:
+    - Create segments in response to novel transitions.
+    - Grow/prune synapses on segments to reinforce correct predictions.
+    - Use segment activity to set the cell into a predictive state.
+
+    Attributes:
+    - segments: List of Segment objects owned by this cell.
     """
 
     def __init__(self) -> None:
-        """Initialize a Cell with no distal segments.
-
-        The Temporal Memory procedure will:
-        - Create segments in response to novel transitions.
-        - Grow/prune synapses on segments to reinforce correct predictions.
-        - Use segment activity to set the cell into a predictive state.
-
-        Attributes:
-        - segments: List of Segment objects owned by this cell.
-        """
         # Filled by Temporal Memory: list of Segment objects
         self._segments: list["Segment"] = []
 

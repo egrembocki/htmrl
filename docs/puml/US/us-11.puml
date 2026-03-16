@@ -1,0 +1,99 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title US-11 Summary TODO: Update sequence diagram to reflect planned RL loop and reporting
+
+actor "Developer" as Dev
+participant "<u>b:Brain + HTM State</u>" as BR
+participant "<u>if:InputField(s)</u>" as IF
+participant "<u>fe:Field Encoders\n(Scalar/Date/Category/RDSE/Fourier/Geospatial)</u>" as FE
+participant "<u>rla:RL Adapter</u>" as RLA
+participant "<u>rlm:RL Model\n(Policy/Value Network)</u>" as RLM
+participant "<u>env:Environment</u>" as ENV
+participant "<u>rb:Replay Buffer\n(planned)</u>" as RB
+participant "<u>tr:Trainer\n(planned)</u>" as TR
+participant "<u>mc:Metrics/Checkpoint\n(planned)</u>" as MC
+
+group US-10A Current End-to-End Pipeline
+  Dev -> BR: prediction()
+  activate BR
+  loop for each registered input field
+    BR -> IF: decode("predictive")
+    activate IF
+    IF -> IF: build bit_vector from cell.predictive
+    IF -> FE: decode(bit_vector, candidates?)
+    activate FE
+    FE --> IF: decoded value + confidence
+    deactivate FE
+    IF --> BR: tuple(value, confidence)
+    deactivate IF
+  end
+
+  BR -> RLA: export state/action context
+  activate RLA
+  RLA --> BR: features for RL policy/value model
+  deactivate RLA
+
+  BR --> Dev: decoded output map + HTM state
+  deactivate BR
+end
+
+group US-10B Planned RL Loop (Figure 6-1/6-2 Alignment)
+  Dev -> BR: run_episode(step_limit)
+  activate BR
+  loop each timestep t
+    BR -> RLA: state_t, prediction_t
+    activate RLA
+    RLA -> RLM: infer_action(state_t)
+    activate RLM
+    RLM --> RLA: action_t (+ confidence / logits)
+    deactivate RLM
+    RLA --> BR: action_t
+    deactivate RLA
+
+    BR -> ENV: apply(action_t)
+    activate ENV
+    ENV --> BR: reward_t, next_state_t, done
+    deactivate ENV
+
+    BR -> RB: append(state_t, action_t, reward_t, next_state_t, done)
+    activate RB
+    RB --> BR: stored transition
+    deactivate RB
+
+    alt scheduled training step
+      BR -> TR: train_step(sample_from=RB)
+      activate TR
+      TR -> RB: sample(batch)
+      RB --> TR: transitions
+      TR -> RLM: update policy/value weights
+      activate RLM
+      RLM --> TR: updated parameters
+      deactivate RLM
+      TR -> MC: log loss/reward + checkpoint
+      activate MC
+      MC --> TR: persisted artifacts
+      deactivate MC
+      TR --> BR: training metrics
+      deactivate TR
+    end
+
+    alt done == true
+      BR -> MC: write episode summary
+      activate MC
+      MC --> BR: summary id/path
+      deactivate MC
+      break
+    end
+  end
+  BR --> Dev: episode report + updated model refs
+  deactivate BR
+end
+
+note over RLA,MC
+RL Adapter connects the decoded HTM state to the RL-only
+components (replay buffer, trainer, metrics) shown above.
+end note
+@enduml

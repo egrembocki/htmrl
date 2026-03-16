@@ -1,4 +1,18 @@
- Executables and build outputs
+# archive files
+*.7z
+*.dmg
+*.gz
+*.iso
+#*.jar
+*.rar
+*.tar
+*.zip
+*.doc
+*.pdf
+archive/
+
+
+#Executables and build outputs
 *.exe
 *.dll
 *.pdb
@@ -30,6 +44,7 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+*.egg-info
 .installed.cfg
 *.egg
 MANIFEST
@@ -104,7 +119,7 @@ ipython_config.py
 #   having no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.
 
-Pipfile.lock
+#Pipfile.lock
 
 # UV
 #   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
@@ -125,7 +140,6 @@ Pipfile.lock
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
 #   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
 #   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
-#
 #pdm.lock
 #pdm.toml
 .pdm-python
@@ -151,7 +165,6 @@ celerybeat.pid
 # Environments
 #.env
 .venv
-.venv/*
 .vscode
 .requirements.txt
 .flake8
@@ -218,3 +231,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 condaenv.iw4wefqq.requirements.txt
+
+# Integration test documentation (local only)
+tests/integration/README.md

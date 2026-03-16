@@ -1,0 +1,50 @@
+@startuml act-01-input-tools
+skinparam style strictuml
+skinparam shadowing false
+
+title ACT-01: Input Tools (InputHandler)
+
+start
+
+partition Developer {
+	:Provide input_source and optional required_columns;
+}
+
+partition "InputHandler" {
+	:input_data(input_source, required_columns);
+
+	if (input_source is a file path\nwith supported extension?) then (yes)
+		:_load_file_to_dataframe(path);
+		if (File exists?) then (yes)
+			:Read via pandas\n(csv / json / xlsx / parquet / txt);
+		else (no)
+			:Raise FileNotFoundError;
+			stop
+		endif
+	else (no)
+		:_coerce_non_file_to_dataframe(input_source);
+		note right
+			Accepts: dict, list[dict],
+			DataFrame, ndarray, StringIO
+		end note
+	endif
+
+	:_process_dataframe(df, required_columns);
+	note right
+		_normalize_datetime_columns()
+		_normalize_column_types()
+		_fill_missing_values()
+		_detect_repeating_values()
+	end note
+
+	if (Required columns present?) then (yes)
+		:Store self._data and self._columns;
+		:Return dict[Any, list[Any]];
+	else (no)
+		:Raise ValueError (missing columns);
+		stop
+	endif
+}
+
+stop
+@enduml
