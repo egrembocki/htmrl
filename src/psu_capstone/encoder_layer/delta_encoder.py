@@ -97,7 +97,7 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
 
 
 @dataclass
-class DeltaEncoderParameters(ParentDataClass):
+class DeltaEncoderParameters:
     """Parameters for the DeltaEncoder."""
 
     encoder_class = DeltaEncoder

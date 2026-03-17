@@ -1,0 +1,44 @@
+@startuml act-02-encoder-tools
+skinparam style strictuml
+skinparam shadowing false
+
+title ACT-02: Encoder Tools (EncoderHandler + Encoders)
+
+start
+
+partition Developer {
+	:Pass dict[Any, list[Any]] from InputHandler;
+}
+
+partition "EncoderHandler" {
+	:Convert normalized dict to DataFrame;
+	:build_composite_sdr(input_data);
+
+	while (More rows to encode?) is (yes)
+
+		while (More columns in row?) is (yes)
+			:Inspect column value type;
+
+			if (float?) then (yes)
+				:RandomDistributedScalarEncoder\n(RDSE) -> list[int];
+			else (no)
+				if (int?) then (yes)
+					:ScalarEncoder -> list[int];
+				else (no)
+					if (string?) then (yes)
+						:CategoryEncoder -> list[int];
+					else (no)
+						:DateEncoder -> list[int];
+					endif
+				endif
+			endif
+		endwhile (no)
+
+		:Concatenate column list[int]s\ninto single row list[int];
+	endwhile (no)
+
+	:Return list[list[int]]\n(one list[int] per input row);
+}
+
+stop
+@enduml
