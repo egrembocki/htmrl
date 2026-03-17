@@ -24,6 +24,10 @@ class FinGym(gym.Env):
     feature columns. Rewards can optionally be derived from the delta of a
     target column between consecutive rows.
 
+    Actions are 0=hold, 1=long, 2=short. If ``target_column`` is not provided,
+    rewards are always ``0.0``. Non-numeric feature values are coerced to numeric
+    and missing values are filled with ``0.0`` for stable observation vectors.
+
     Args:
         data_source: Table source as DataFrame, file path, or mapping of
             columns to value sequences.
@@ -33,11 +37,12 @@ class FinGym(gym.Env):
             row-to-row deltas.
         max_rows: Optional cap on number of rows read from the dataset.
 
-        Notes:
-                - Actions are 0=hold, 1=long, 2=short.
-                - If ``target_column`` is not provided, rewards are always ``0.0``.
-                - Non-numeric feature values are coerced to numeric and missing values
-                    are filled with ``0.0`` for stable observation vectors.
+    Attributes:
+        metadata: Gymnasium render mode metadata.
+
+    Raises:
+        ValueError: If ``max_rows`` is not greater than 1, if fewer than 2 rows are
+            available after loading, or if ``target_column`` is not found in the data.
     """
 
     metadata = {"render_modes": ["human"]}
@@ -222,6 +227,10 @@ class FinGym(gym.Env):
     ) -> tuple[np.ndarray, dict[str, Any]]:
         """Reset to the first row of the tabular dataset.
 
+        Args:
+            seed: Optional random seed passed to the base Gymnasium environment.
+            options: Optional dictionary of reset options (currently unused).
+
         Returns:
             ``(observation, info)`` where observation is the first row feature
             vector and info includes row index and active column metadata.
@@ -249,6 +258,9 @@ class FinGym(gym.Env):
 
         Returns:
             (observation, reward, terminated, truncated, info)
+
+        Raises:
+            ValueError: If ``action`` is not a valid value in the action space.
         """
 
         # Validate action is in the discrete space {0, 1, 2}
