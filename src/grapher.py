@@ -190,7 +190,7 @@ def plot_signal(
 
 def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
-    ih = il.InputHandler()
+    ih = InputHandler()
 
     signal = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
@@ -229,8 +229,8 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
 
 if __name__ == "__main__":
 
-    fft_encoder = el.FourierEncoder(
-        el.FourierEncoderParameters(
+    fft_encoder = FourierEncoder(
+        FourierEncoderParameters(
             resolutions_in_ranges=[1.0, 1.0],
             frequency_ranges=[(0, 100), (100, 500)],
             size=2048,

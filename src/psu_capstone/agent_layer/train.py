@@ -20,34 +20,19 @@ import grapher
 import psu_capstone.encoder_layer as el
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
 
-# Rebind the parameter and helper types locally so the rest of this module can
-# keep its existing names while depending on the cleaner layer-level imports.
-
-# Pull agent-layer types through the package boundary so this module does not
-Brain = ag.Brain
-ColumnField = ag.ColumnField
-Field = ag.Field
-InputField = ag.InputField
-OutputField = ag.OutputField
-
-
-# Pull encoder-layer types through the package boundary so this module does not
+# Rebind encoder parameter types locally so callers can use short names without
+# importing them individually from the encoder sub-layer.
 CategoryParameters = el.CategoryParameters
 CoordinateParameters = el.CoordinateParameters
 DateEncoderParameters = el.DateEncoderParameters
 FourierEncoderParameters = el.FourierEncoderParameters
 GeospatialParameters = el.GeospatialParameters
 RDSEParameters = el.RDSEParameters
-EncoderFactory = _EncoderFactory
-
-
-# pull input-layer types through the package boundary so this module does not
-InputHandler = il.InputHandler
 
 
 class Trainer:
@@ -82,7 +67,7 @@ class Trainer:
         self._values: list[Any] = []
 
     @staticmethod
-    def _encoder_type_from_params(param: ParentDataClass) -> str:
+    def _encoder_type_from_params(param: ParameterMarker) -> str:
         """Map a parameter dataclass to the factory encoder type string."""
 
         encoder_name = param.encoder_class.__name__.lower()
@@ -139,7 +124,7 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, el.ParameterMarker]]) -> None:
+    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
