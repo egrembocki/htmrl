@@ -15,7 +15,7 @@ from matplotlib.colors import PowerNorm
 import grapher
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
@@ -118,7 +118,7 @@ class Trainer:
             "created_at": datetime.now().isoformat(),
         }
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParentDataClass]]) -> None:
+    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
         """Setup the input/output fields for the Brain.
 
         Args:
@@ -260,7 +260,7 @@ class Trainer:
                 test_results=test_results,
             )
 
-    def build_brain(self, fields: list[tuple[str, int, ParentDataClass]]) -> Brain:
+    def build_brain(self, fields: list[tuple[str, int, ParameterMarker]]) -> Brain:
         """Build the Brain for training using an explicit field list."""
         if not fields:
             raise ValueError("fields cannot be empty.")
@@ -284,7 +284,7 @@ class Trainer:
 
         return brain
 
-    def add_input_field(self, name: str, size: int, encoder_params: ParentDataClass) -> None:
+    def add_input_field(self, name: str, size: int, encoder_params: ParameterMarker) -> None:
         """Add an input field to the Brain."""
         if self._main_brain is None:
             raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
@@ -528,7 +528,7 @@ class Trainer:
         self,
         dataset: dict[Any, list[Any]],
         size: int = 2048,
-        params: ParentDataClass | None = None,
+        params: ParameterMarker | None = None,
     ) -> Brain:
         """Build a full Brain with all fields based on the dataset.
 
@@ -693,13 +693,13 @@ class Trainer:
         if positive.size > 0:
             vmax = max(max_duty, 1e-6)
             norm = PowerNorm(gamma=0.35, vmin=0.0, vmax=vmax)
-            grapher.plot_heat_map(
+            grapher.show_heat_map(
                 heat_map,
                 title=title,
                 norm=norm,
             )
         else:
-            grapher.plot_heat_map(
+            grapher.show_heat_map(
                 heat_map,
                 title=title,
                 vmin=0.0,

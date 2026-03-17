@@ -14,7 +14,7 @@ import os
 import grapher
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.log_train import Trainer
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
@@ -93,7 +93,7 @@ def show_brain_creation_demo() -> None:
     brain = Brain()
     trainer = Trainer(brain)
 
-    input_fields: list[tuple[str, int, ParentDataClass]] = []
+    input_fields: list[tuple[str, int, ParameterMarker]] = []
 
     # Example of building a brain with specific input fields
     input_fields = [
@@ -233,7 +233,7 @@ def show_field_single_encoding_demo() -> None:
     brain = Brain()
     trainer = Trainer(brain)
 
-    input_fields: list[tuple[str, int, ParentDataClass]] = []
+    input_fields: list[tuple[str, int, ParameterMarker]] = []
     # Create a simple brain with one input field and one column field
     input_fields = [
         ("temperature_input", 2048, RDSEParameters(resolution=0.1)),
