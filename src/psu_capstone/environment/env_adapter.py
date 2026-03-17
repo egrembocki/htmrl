@@ -46,9 +46,13 @@ class EnvAdapter(gym.Wrapper):
         gym_env: Gym environment id (for gym.make) or any pre-built
             gym.Env instance (for example FinGym(...)).
         **gym_kwargs: Optional kwargs used only when gym_env is a
-            string id. These are forwarded to gym.make(...).
-            Example: EnvAdapter("CartPole-v1", render_mode="human").
+            string id. These are forwarded to gym.make(...).Example:
+            EnvAdapter("CartPole-v1", render_mode="human").
             Do not pass these when gym_env is already a gym.Env object.
+
+    Raises:
+        ValueError: If ``gym_kwargs`` are provided when ``gym_env`` is already
+            a ``gym.Env`` instance instead of a string id.
     """
 
     def __init__(self, gym_env: str | gym.Env = "CartPole-v1", **gym_kwargs: Any) -> None:
@@ -178,6 +182,13 @@ class EnvAdapter(gym.Wrapper):
 
     def _flatten_value(self, value: Any, prefix: str) -> dict[str, Any]:
         """Flatten nested values into a simple key/value map.
+
+        Args:
+            value: The value to flatten (dict, list, or scalar).
+            prefix: Key prefix used to build namespaced output keys.
+
+        Returns:
+            A flat dictionary mapping prefixed string keys to scalar values.
 
         Example:
             a nested value can turn into keys like observation_0 or

@@ -59,6 +59,10 @@ class Agent:
             ``stable_baselines3.PPO`` during model construction.
         ppo_deterministic: Passed to ``ppo_model.predict`` when policy mode is
             ``ppo``.
+
+    Raises:
+        TypeError: If ``policy_mode`` is ``'q_table'`` but the environment
+            does not have a Discrete action space.
     """
 
     def __init__(
@@ -342,6 +346,8 @@ class Agent:
 
         Args:
             obs: Current environment observation.
+            brain_outputs: Optional dict of Brain prediction outputs used when
+                ``policy_mode`` is ``'brain'``.
 
         Returns:
             The environment action chosen by the active policy mode.
