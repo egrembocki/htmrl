@@ -70,7 +70,7 @@ class Agent:
         self,
         brain: Brain,
         adapter: EnvAdapter,
-        episodes: int = 1000,
+        episodes: int = 500,  # num of episodes to run when train() is called
         policy_mode: Literal["q_table", "brain", "ppo"] = "ppo",
         ppo_policy: str = "MlpPolicy",
         ppo_kwargs: dict[str, Any] | None = None,

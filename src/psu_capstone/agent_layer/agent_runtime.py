@@ -53,17 +53,6 @@ FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
         },
         "max_steps_per_episode": 200,
     },
-    "FrozenLake": {
-        "observation_labels": ["Agent X", "Agent Y", "Goal X", "Goal Y"],
-        "action_count": 4,
-        "initial_observation": {
-            "Agent X": 0.0,
-            "Agent Y": 0.0,
-            "Goal X": 4.0,
-            "Goal Y": 4.0,
-        },
-        "max_steps_per_episode": 100,
-    },
     "FrozenLake-v1": {
         "observation_labels": ["Agent X", "Agent Y", "Goal X", "Goal Y"],
         "action_count": 4,
@@ -93,17 +82,6 @@ FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
             "theta_dot": 0.0,
         },
         "max_steps_per_episode": 200,
-    },
-    "GridWorld": {
-        "observation_labels": ["Agent X", "Agent Y", "Goal X", "Goal Y"],
-        "action_count": 4,
-        "initial_observation": {
-            "Agent X": 0.0,
-            "Agent Y": 0.0,
-            "Goal X": 4.0,
-            "Goal Y": 4.0,
-        },
-        "max_steps_per_episode": 100,
     },
 }
 
@@ -179,6 +157,8 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
     adapter_kwargs: dict[str, Any] = {}
     if config.render_mode is not None:
         adapter_kwargs["render_mode"] = config.render_mode
+    if hasattr(config, "max_steps_per_episode") and config.max_steps_per_episode is not None:
+        adapter_kwargs["max_steps_per_episode"] = config.max_steps_per_episode
 
     try:
         return EnvAdapter(config.env_id, **adapter_kwargs), False
