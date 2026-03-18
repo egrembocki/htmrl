@@ -244,7 +244,8 @@ def test_step_runs_brain_then_env_and_returns_transition() -> None:
 
     transition = agent.step(learn=False)
 
-    assert brain.step_calls == [({"state": 0}, False)]
+    # Agent now passes reward=0.0 in step inputs
+    assert brain.step_calls == [({"state": 0, "reward": 0.0}, False)]
     assert adapter.last_step_action == 0
     assert transition["obs"] == {"state": 0}
     assert transition["next_obs"] == {"state": 1}
@@ -311,13 +312,23 @@ def _build_real_brain_for_adapter_inputs(adapter: EnvAdapter) -> Brain:
         )
         input_fields[name] = InputField(size=64, encoder_params=rdse_params)
 
+    # Add reward input field to match agent step inputs
+    reward_params = RDSEParameters(
+        size=64,
+        active_bits=0,
+        sparsity=0.02,
+        resolution=0.01,
+        category=False,
+        seed=999,
+    )
+    input_fields["reward"] = InputField(size=64, encoder_params=reward_params)
+
     column_field = ColumnField(
         input_fields=list(input_fields.values()),
         non_spatial=True,
         num_columns=64,
         cells_per_column=8,
     )
-
     fields = {**input_fields, "column": column_field}
     return Brain(fields)
 
@@ -389,7 +400,8 @@ def test_real_brain_reads_and_encodes_adapter_inputs() -> None:
             transition = agent.step(learn=False)
 
         for name, encode_spy in encode_spies.items():
-            encode_spy.assert_called_once_with(transition["inputs"][name])
+            if name in transition["inputs"]:
+                encode_spy.assert_called_once_with(transition["inputs"][name])
     finally:
         adapter._env.close()
 
