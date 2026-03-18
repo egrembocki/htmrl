@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Run the agent WebSocket server for real-time visualization."""
+"""Run the agent WebSocket server for real-time visualization.
+
+Branch behavior summary for developers:
+- The startup ``--policy`` flag chooses the active policy mode.
+- ``brain`` is the default to match current experimentation workflow.
+- If ``ppo`` is selected, a fixed warm-up training pass is run before serving.
+- No runtime policy switching is performed by the server.
+"""
 
 import argparse
 import asyncio
@@ -24,8 +31,10 @@ def build_agent(
 ) -> Agent:
     """Build an agent for the specified environment.
 
-    When ``policy_mode`` is ``ppo``, run a fixed PPO pretraining phase before
-    serving so the policy is ready to infer actions.
+    Plain-language behavior:
+    - Build the Brain + EnvAdapter stack once.
+    - Initialize Agent using the requested policy mode.
+    - Only if mode is ``ppo``, pre-train PPO once before opening the server.
     """
     try:
         from psu_capstone.agent_layer.cartpole_brain_training import (
@@ -49,6 +58,8 @@ def build_agent(
         )
 
         if policy_mode == "ppo":
+            # Keep PPO warm-up explicit and mode-scoped so brain/q_table startup
+            # remains immediate and predictable.
             logger = get_logger(None)
             logger.info("Pre-training PPO for %d timesteps...", PPO_PRETRAIN_TIMESTEPS)
             agent.train_ppo(total_timesteps=PPO_PRETRAIN_TIMESTEPS)

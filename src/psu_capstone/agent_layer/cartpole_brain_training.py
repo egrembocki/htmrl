@@ -4,7 +4,7 @@ This module provides a practical end-to-end loop for:
 
 1. building a Brain that matches CartPole observation inputs,
 2. wrapping CartPole with EnvAdapter,
-3. running Agent in a chosen ``policy_mode`` across episodes.
+3. running the Env loop using Agent in a chosen ``policy_mode`` across episodes.
 """
 
 from __future__ import annotations
@@ -22,7 +22,12 @@ from psu_capstone.environment.env_adapter import EnvAdapter
 
 @dataclass(frozen=True)
 class CartPoleTrainingConfig:
-    """Configuration for CartPole policy training."""
+    """Configuration for CartPole policy training.
+
+    ``policy_mode`` is intentionally part of this config so callers (like the
+    websocket server bootstrap) can pass one policy choice through the entire
+    build path without hidden defaults.
+    """
 
     episodes: int = 200
     max_steps_per_episode: int = 150
@@ -103,6 +108,10 @@ def train_cartpole_brain_policy(
 
     Returns:
         Dictionary of training metrics and per-episode summaries.
+
+    Note:
+        Function name is historical. The implementation now supports all policy
+        modes configured via ``CartPoleTrainingConfig.policy_mode``.
     """
 
     cfg = config or CartPoleTrainingConfig()
@@ -118,6 +127,7 @@ def train_cartpole_brain_policy(
             adapter=adapter,
             episodes=cfg.episodes,
             policy_mode=cfg.policy_mode,
+            # Only force direct brain outputs when brain policy is selected.
             force_brain_mode=(cfg.policy_mode == "brain"),
         )
 

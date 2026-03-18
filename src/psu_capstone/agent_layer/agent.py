@@ -418,7 +418,12 @@ class Agent:
         return action
 
     def _select_ppo_or_q_action(self, obs: Any) -> Any:
-        """Use PPO if available and trained, otherwise fall back to q_table."""
+        """Use PPO first, then q-table as the final safety net.
+
+        This helper is used when brain mode cannot confidently choose an action.
+        If PPO cannot produce an action (for example, model init issues), we
+        still return a valid action by delegating to q-table selection.
+        """
         try:
             return self._select_ppo_action(obs)
         except Exception:
@@ -435,6 +440,12 @@ class Agent:
 
         Returns:
             The environment action chosen by the active policy mode.
+
+        Notes:
+            - ``mode`` is the configured top-level policy.
+            - ``source`` (logged each step) is the component that actually
+              produced the action after fallback logic.
+              Example: mode=brain, source=ppo.
         """
 
         if self._policy_mode == "brain":
@@ -529,12 +540,13 @@ class Agent:
     ) -> None:
         """Update policy state from a transition.
 
-                This method dispatches updates by active policy mode:
+                Plain-language policy update rules:
 
-                - ``q_table``: one-step tabular TD update.
-                - ``ppo``: no-op here (PPO lifecycle is managed by ``train_ppo``).
-                - ``brain``: call the current brain RL stub; if action selection fell
-                    back to ``q_table`` in this step, apply the tabular TD update.
+                - ``q_table``: apply one-step TD update.
+                - ``ppo``: no update here; PPO training is managed separately.
+                - ``brain``: keep the current RL update stub in place. If this step
+                    actually used q-table fallback, run the q-table TD update so those
+                    fallback actions can still learn tabular values.
 
         Args:
             obs: Observation before the action was taken.
@@ -554,7 +566,8 @@ class Agent:
                 # explicitly fell back to q_table behavior.
                 pass
             else:
-                # Brain RL update is intentionally a stub for now.
+                # Brain RL update is intentionally a stub for now; we keep this
+                # explicit so a future reward-driven Brain update can drop in.
                 self._brain.rl_policy_update()
                 return
 
