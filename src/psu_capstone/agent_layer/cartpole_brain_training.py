@@ -1,17 +1,17 @@
-"""CartPole training loop driven by Brain policy mode.
+"""CartPole training loop for configurable Agent policy modes.
 
 This module provides a practical end-to-end loop for:
 
 1. building a Brain that matches CartPole observation inputs,
 2. wrapping CartPole with EnvAdapter,
-3. running Agent in ``policy_mode='brain'`` across episodes.
+3. running Agent in a chosen ``policy_mode`` across episodes.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from statistics import fmean
-from typing import Any
+from typing import Any, Literal
 
 from psu_capstone.agent_layer.agent import Agent
 from psu_capstone.agent_layer.brain import Brain
@@ -22,15 +22,16 @@ from psu_capstone.environment.env_adapter import EnvAdapter
 
 @dataclass(frozen=True)
 class CartPoleTrainingConfig:
-    """Configuration for CartPole brain-policy training."""
+    """Configuration for CartPole policy training."""
 
     episodes: int = 200
     max_steps_per_episode: int = 150
-    input_size: int = 512
-    cells_per_column: int = 16
+    input_size: int = 256
+    cells_per_column: int = 8
     resolution: float = 0.001
     rdse_seed: int = 5
     render_mode: str | None = "human"
+    policy_mode: Literal["q_table", "brain", "ppo"] = "brain"
 
 
 def build_cartpole_brain(
@@ -94,7 +95,7 @@ def build_cartpole_brain(
 def train_cartpole_brain_policy(
     config: CartPoleTrainingConfig | None = None,
 ) -> dict[str, Any]:
-    """Run CartPole episodes using Agent in brain policy mode.
+    """Run CartPole episodes using Agent in configured policy mode.
 
     Args:
         config: Optional training configuration. Defaults to
@@ -116,8 +117,8 @@ def train_cartpole_brain_policy(
             brain=brain,
             adapter=adapter,
             episodes=cfg.episodes,
-            policy_mode="brain",
-            force_brain_mode=True,
+            policy_mode=cfg.policy_mode,
+            force_brain_mode=(cfg.policy_mode == "brain"),
         )
 
         episode_rewards: list[float] = []

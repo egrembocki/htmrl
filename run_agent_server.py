@@ -6,6 +6,7 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
+from typing import Literal, cast
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -14,29 +15,45 @@ from psu_capstone.agent_layer.agent_server import AgentWebSocketServer  # noqa: 
 from psu_capstone.environment.env_adapter import EnvAdapter  # noqa: E402
 from psu_capstone.log import get_logger  # noqa: E402
 
+PPO_PRETRAIN_TIMESTEPS = 50_000
 
-def build_agent(env_id: str, ppo_timesteps: int = 50_000) -> Agent:
-    """Build and (for PPO) pre-train an agent for the specified environment."""
+
+def build_agent(
+    env_id: str,
+    policy_mode: Literal["q_table", "brain", "ppo"] = "brain",
+) -> Agent:
+    """Build an agent for the specified environment.
+
+    When ``policy_mode`` is ``ppo``, run a fixed PPO pretraining phase before
+    serving so the policy is ready to infer actions.
+    """
     try:
         from psu_capstone.agent_layer.cartpole_brain_training import (
             CartPoleTrainingConfig,
             build_cartpole_brain,
         )
 
-        config = CartPoleTrainingConfig(episodes=1000, max_steps_per_episode=150)
+        config = CartPoleTrainingConfig(
+            episodes=1000,
+            max_steps_per_episode=150,
+            policy_mode=policy_mode,
+        )
         adapter = EnvAdapter(env_id)
         brain = build_cartpole_brain(adapter, config)
+
         agent = Agent(
             brain=brain,
             adapter=adapter,
             episodes=config.episodes,
-            policy_mode="ppo",
+            policy_mode=policy_mode,
         )
-        if ppo_timesteps > 0:
+
+        if policy_mode == "ppo":
             logger = get_logger(None)
-            logger.info("Pre-training PPO for %d timesteps...", ppo_timesteps)
-            agent.train_ppo(total_timesteps=ppo_timesteps)
+            logger.info("Pre-training PPO for %d timesteps...", PPO_PRETRAIN_TIMESTEPS)
+            agent.train_ppo(total_timesteps=PPO_PRETRAIN_TIMESTEPS)
             logger.info("PPO pre-training complete.")
+
         return agent
     except ImportError:
         raise ImportError(
@@ -51,15 +68,14 @@ async def main(args: argparse.Namespace) -> None:
 
     try:
         logger.info(f"Building {args.env} agent...")
-        agent = build_agent(args.env, ppo_timesteps=args.ppo_timesteps)
+        policy_mode = cast(Literal["q_table", "brain", "ppo"], args.policy)
+        agent = build_agent(args.env, policy_mode=policy_mode)
 
         logger.info(f"Starting WebSocket server on ws://{args.host}:{args.port}")
         server = AgentWebSocketServer(
             agent,
             host=args.host,
             port=args.port,
-            switch_after_episodes=args.switch_episodes,
-            switch_min_reward=args.switch_reward,
         )
 
         logger.info(f"Server is running. Connect your web client to ws://{args.host}:{args.port}")
@@ -102,22 +118,11 @@ if __name__ == "__main__":
         help="WebSocket server bind port (default: 8765)",
     )
     parser.add_argument(
-        "--ppo-timesteps",
-        type=int,
-        default=50_000,
-        help="Timesteps to pre-train PPO before serving (default: 50000, 0 to skip)",
-    )
-    parser.add_argument(
-        "--switch-episodes",
-        type=int,
-        default=100,
-        help="Switch from PPO to brain after this many episodes meet the reward threshold (default: 100)",
-    )
-    parser.add_argument(
-        "--switch-reward",
-        type=float,
-        default=100.0,
-        help="Mean reward threshold required to trigger policy switch to brain (default: 100.0)",
+        "--policy",
+        type=str,
+        default="brain",
+        choices=["ppo", "brain", "q_table"],
+        help="Starting policy mode (default: brain)",
     )
     parser.add_argument(
         "--log-level",

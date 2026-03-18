@@ -19,49 +19,10 @@ from typing import Any, Literal
 
 import numpy as np
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.log import get_logger
-
-
-class BrainTrainingCallback(BaseCallback):
-    """SB3 callback that feeds each PPO rollout step into the HTM Brain.
-
-    During PPO's internal training loop, this callback intercepts every
-    environment transition and runs it through ``brain.step()`` so the
-    Temporal Memory builds up predictive context from the same experience
-    that trains the PPO policy.
-    """
-
-    def __init__(self, brain: Brain, adapter: EnvAdapter) -> None:
-        super().__init__(verbose=0)
-        self._brain = brain
-        self._adapter = adapter
-
-    def _on_step(self) -> bool:
-        """Called by SB3 after every environment step in the rollout."""
-        try:
-            obs = self.locals.get("obs_tensor")
-            if obs is None:
-                return True
-            rewards = self.locals.get("rewards")
-            # obs_tensor is a torch.Tensor of shape (n_envs, obs_dim)
-            import torch
-
-            if isinstance(obs, torch.Tensor):
-                obs_np = obs.cpu().numpy()
-            else:
-                obs_np = np.asarray(obs)
-            for i, row in enumerate(obs_np):
-                inputs = self._adapter.observation_to_inputs(row.astype(np.float32))
-                if rewards is not None:
-                    inputs["reward"] = float(rewards[i])
-                self._brain.step(inputs, learn=True)
-        except Exception:
-            pass  # never interrupt PPO training for brain errors
-        return True
 
 
 class Agent:
@@ -110,7 +71,7 @@ class Agent:
         brain: Brain,
         adapter: EnvAdapter,
         episodes: int = 1000,
-        policy_mode: Literal["q_table", "brain", "ppo"] = "q_table",
+        policy_mode: Literal["q_table", "brain", "ppo"] = "ppo",
         ppo_policy: str = "MlpPolicy",
         ppo_kwargs: dict[str, Any] | None = None,
         ppo_deterministic: bool = True,
@@ -190,8 +151,7 @@ class Agent:
         if self._ppo_model is None:
             self._ppo_model = self._build_ppo_model()
         self._logger.info("Training PPO for %d timesteps...", total_timesteps)
-        brain_callback = BrainTrainingCallback(self._brain, self._adapter)
-        self._ppo_model.learn(total_timesteps=total_timesteps, callback=brain_callback)
+        self._ppo_model.learn(total_timesteps=total_timesteps)
         self._logger.info("PPO training complete.")
 
     def switch_policy(self, new_mode: Literal["q_table", "brain", "ppo"]) -> None:
@@ -459,10 +419,11 @@ class Agent:
 
     def _select_ppo_or_q_action(self, obs: Any) -> Any:
         """Use PPO if available and trained, otherwise fall back to q_table."""
-        if self._ppo_model is not None:
+        try:
             return self._select_ppo_action(obs)
-        self._logger.info("PPO model not available; falling back to q_table.")
-        return self._select_q_action(obs)
+        except Exception:
+            self._logger.info("PPO unavailable; falling back to q_table.")
+            return self._select_q_action(obs)
 
     def select_action(self, obs: Any, brain_outputs: dict[str, Any] | None = None) -> Any:
         """Dispatch action selection to the active policy implementation.
@@ -477,13 +438,19 @@ class Agent:
         """
 
         if self._policy_mode == "brain":
-            return self._select_brain_action_from_outputs(obs, brain_outputs)
-
-        if self._policy_mode == "ppo":
-            return self._select_ppo_action(obs)
-
+            action = self._select_brain_action_from_outputs(obs, brain_outputs)
+        elif self._policy_mode == "ppo":
+            action = self._select_ppo_action(obs)
         else:
-            return self._select_q_action(obs)
+            action = self._select_q_action(obs)
+
+        self._logger.info(
+            "Policy step: mode=%s source=%s action=%s",
+            self._policy_mode,
+            self._last_action_source,
+            action,
+        )
+        return action
 
     def step(self, learn: bool = True) -> dict[str, Any]:
         """Run one complete agent-controlled environment timestep.
@@ -562,10 +529,12 @@ class Agent:
     ) -> None:
         """Update policy state from a transition.
 
-        This method applies a one-step tabular Q-learning update when the
-        active policy is backed by a discrete action index. If an action cannot
-        be resolved to a Q-row index, the update is skipped. In ``brain``
-        policy mode this method is currently a no-op.
+                This method dispatches updates by active policy mode:
+
+                - ``q_table``: one-step tabular TD update.
+                - ``ppo``: no-op here (PPO lifecycle is managed by ``train_ppo``).
+                - ``brain``: call the current brain RL stub; if action selection fell
+                    back to ``q_table`` in this step, apply the tabular TD update.
 
         Args:
             obs: Observation before the action was taken.
@@ -575,19 +544,19 @@ class Agent:
             done: Whether the transition ended the episode.
         """
 
+        if self._policy_mode == "ppo":
+            # PPO model training lifecycle is managed externally.
+            return
+
         if self._policy_mode == "brain":
             if self._last_action_source == "q_table":
                 # In brain mode, allow tabular updates when action selection
                 # explicitly fell back to q_table behavior.
                 pass
             else:
-                # Brain-driven policy updates are not implemented yet.
+                # Brain RL update is intentionally a stub for now.
                 self._brain.rl_policy_update()
                 return
-
-        if self._policy_mode == "ppo":
-            # PPO model training lifecycle is managed externally.
-            return
 
         if self._action_count is None:
             return
