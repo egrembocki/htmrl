@@ -18,6 +18,7 @@ HTM_MODULE = "psu_capstone.agent_layer.HTM"
 if TYPE_CHECKING:
     from psu_capstone.agent_layer.agent import Agent
     from psu_capstone.agent_layer.agent_interface import AgentInterface
+    from psu_capstone.agent_layer.agent_runtime import AgentRuntimeConfig
     from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
     from psu_capstone.agent_layer.brain import Brain
     from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Agent",
+    "AgentRuntimeConfig",
     "AgentInterface",
     "AgentWebSocketServer",
     "Brain",
@@ -37,14 +39,17 @@ __all__ = [
 
 _EXPORTS = {
     "Agent": ("psu_capstone.agent_layer.agent", "Agent"),
+    "AgentRuntimeConfig": ("psu_capstone.agent_layer.agent_runtime", "AgentRuntimeConfig"),
     "AgentInterface": ("psu_capstone.agent_layer.agent_interface", "AgentInterface"),
     "Brain": ("psu_capstone.agent_layer.brain", "Brain"),
     "ColumnField": (HTM_MODULE, "ColumnField"),
+    "EnvTrainingConfig": ("psu_capstone.agent_layer.brain_training_helper", "EnvTrainingConfig"),
     "Field": (HTM_MODULE, "Field"),
     "InputField": (HTM_MODULE, "InputField"),
     "OutputField": (HTM_MODULE, "OutputField"),
     "AgentWebSocketServer": ("psu_capstone.agent_layer.agent_server", "AgentWebSocketServer"),
     "Trainer": ("psu_capstone.agent_layer.train", "Trainer"),
+    "train_env_policy": ("psu_capstone.agent_layer.brain_training_helper", "train_env_policy"),
 }
 
 

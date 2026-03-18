@@ -1,139 +1,109 @@
 #!/usr/bin/env python3
 """Run the agent WebSocket server for real-time visualization.
 
-Branch behavior summary for developers:
-- The startup ``--policy`` flag chooses the active policy mode.
+Branch behavior summary:
+- ``--policy`` flag chooses the active policy mode.
 - ``brain`` is the default to match current experimentation workflow.
 - If ``ppo`` is selected, a fixed warm-up training pass is run before serving.
-- No runtime policy switching is performed by the server.
+- currently - No runtime policy switching is performed by the server.
 """
 
 import argparse
 import asyncio
-import logging
 import sys
 from pathlib import Path
 from typing import Literal, cast
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from psu_capstone.agent_layer.agent import Agent  # noqa: E402
-from psu_capstone.agent_layer.agent_server import AgentWebSocketServer  # noqa: E402
-from psu_capstone.environment.env_adapter import EnvAdapter  # noqa: E402
+from psu_capstone.agent_layer.agent_runtime import (  # noqa: E402
+    AgentRuntimeConfig,
+    run_local_session,
+    run_server,
+)
 from psu_capstone.log import get_logger  # noqa: E402
-
-PPO_PRETRAIN_TIMESTEPS = 50_000
-
-
-def build_agent(
-    env_id: str,
-    policy_mode: Literal["q_table", "brain", "ppo"] = "brain",
-) -> Agent:
-    """Build an agent for the specified environment.
-
-    Plain-language behavior:
-    - Build the Brain + EnvAdapter stack once.
-    - Initialize Agent using the requested policy mode.
-    - Only if mode is ``ppo``, pre-train PPO once before opening the server.
-    """
-    try:
-        from psu_capstone.agent_layer.cartpole_brain_training import (
-            CartPoleTrainingConfig,
-            build_cartpole_brain,
-        )
-
-        config = CartPoleTrainingConfig(
-            episodes=1000,
-            max_steps_per_episode=150,
-            policy_mode=policy_mode,
-        )
-        adapter = EnvAdapter(env_id)
-        brain = build_cartpole_brain(adapter, config)
-
-        agent = Agent(
-            brain=brain,
-            adapter=adapter,
-            episodes=config.episodes,
-            policy_mode=policy_mode,
-        )
-
-        if policy_mode == "ppo":
-            # Keep PPO warm-up explicit and mode-scoped so brain/q_table startup
-            # remains immediate and predictable.
-            logger = get_logger(None)
-            logger.info("Pre-training PPO for %d timesteps...", PPO_PRETRAIN_TIMESTEPS)
-            agent.train_ppo(total_timesteps=PPO_PRETRAIN_TIMESTEPS)
-            logger.info("PPO pre-training complete.")
-
-        return agent
-    except ImportError:
-        raise ImportError(
-            "CartPole brain training support not available. "
-            "Ensure psu_capstone is properly installed."
-        )
-
-
-async def main(args: argparse.Namespace) -> None:
-    """Start the agent WebSocket server."""
-    logger = get_logger(None)
-
-    try:
-        logger.info(f"Building {args.env} agent...")
-        policy_mode = cast(Literal["q_table", "brain", "ppo"], args.policy)
-        agent = build_agent(args.env, policy_mode=policy_mode)
-
-        logger.info(f"Starting WebSocket server on ws://{args.host}:{args.port}")
-        server = AgentWebSocketServer(
-            agent,
-            host=args.host,
-            port=args.port,
-        )
-
-        logger.info(f"Server is running. Connect your web client to ws://{args.host}:{args.port}")
-        logger.info("Press Ctrl+C to stop the server.")
-
-        await server.start()
-
-    except KeyboardInterrupt:
-        logger.info("Shutting down...")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}")
-        raise
 
 
 def main_sync(args: argparse.Namespace) -> None:
-    """Wrapper to run the async main function."""
-    asyncio.run(main(args))
+    """Run either server mode or local mode from one runtime config."""
+
+    logger = get_logger(None)
+    policy_mode = cast(Literal["q_table", "brain", "ppo"], args.policy)
+    render_mode = None if args.render_mode == "none" else args.render_mode
+    if render_mode is None and args.mode == "local":
+        render_mode = "human"
+
+    config = AgentRuntimeConfig(
+        env_id=args.env,
+        policy_mode=policy_mode,
+        episodes=args.episodes,
+        max_steps_per_episode=args.max_steps,
+        render_mode=render_mode,
+        host=args.host,
+        port=args.port,
+    )
+
+    try:
+        logger.info("Starting %s mode for env %s", args.mode, args.env)
+        if policy_mode == "ppo":
+            logger.info(
+                "PPO mode selected: runtime will pre-train for %d timesteps before normal execution.",
+                config.ppo_pretrain_timesteps,
+            )
+        if args.mode == "server":
+            asyncio.run(run_server(config))
+        else:
+            metrics = run_local_session(config)
+            logger.info(
+                "Local session summary: episodes=%s mean_reward=%.3f best_reward=%.3f",
+                metrics["episodes"],
+                metrics["mean_reward"],
+                metrics["best_reward"],
+            )
+    except KeyboardInterrupt:
+        logger.info("Shutting down...")
+    except Exception as exc:
+        logger.error("Fatal error: %s", exc)
+        raise
 
 
 if __name__ == "__main__":
+    defaults = AgentRuntimeConfig()
+
     parser = argparse.ArgumentParser(
-        description="Run an agent WebSocket server for real-time visualization."
+        description="Run the unified agent runtime in server or local mode."
     )
     parser.add_argument(
         "--env",
         type=str,
-        default="CartPole-v1",
-        help="Gym environment ID to use (default: CartPole-v1)",
+        default=defaults.env_id,
+        help=f"Environment id or frontend env alias to use (default: {defaults.env_id})",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="server",
+        choices=["server", "local"],
+        help="Run websocket server mode or local Gym stepping mode (default: server)",
     )
     parser.add_argument(
         "--host",
         type=str,
-        default="localhost",
-        help="WebSocket server bind address (default: localhost)",
+        default=defaults.host,
+        help=f"WebSocket server bind address (default: {defaults.host})",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=8765,
-        help="WebSocket server bind port (default: 8765)",
+        default=defaults.port,
+        help=f"WebSocket server bind port (default: {defaults.port})",
     )
     parser.add_argument(
         "--policy",
         type=str,
-        default="brain",
+        default=defaults.policy_mode,
         choices=["ppo", "brain", "q_table"],
-        help="Starting policy mode (default: brain)",
+        help=f"Starting policy mode (default: {defaults.policy_mode})",
     )
     parser.add_argument(
         "--log-level",
@@ -141,6 +111,27 @@ if __name__ == "__main__":
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging verbosity (default: INFO)",
+    )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=defaults.episodes,
+        help=f"Number of episodes for local/train loops (default: {defaults.episodes})",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=defaults.max_steps_per_episode,
+        help=(
+            f"Maximum steps per episode for local/train loops "
+            f"(default: {defaults.max_steps_per_episode})"
+        ),
+    )
+    parser.add_argument(
+        "--render-mode",
+        type=str,
+        default="none",
+        help="Gym render mode for local runs; use 'none' to disable (default: none, local defaults to human)",
     )
 
     args = parser.parse_args()

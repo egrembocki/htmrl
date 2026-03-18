@@ -1,24 +1,26 @@
-"""Smoke tests for CartPole brain-policy training loop."""
+"""Smoke tests for generic env brain-policy training loop."""
 
 from __future__ import annotations
 
-from psu_capstone.agent_layer.cartpole_brain_training import (
-    CartPoleTrainingConfig,
-    train_cartpole_brain_policy,
+from psu_capstone.agent_layer.brain_training_helper import (
+    EnvTrainingConfig,
+    train_env_policy,
 )
 
 
-def test_train_cartpole_brain_policy_returns_metrics() -> None:
+def test_train_env_policy_returns_metrics() -> None:
     """Training helper should run and return structured metrics."""
 
-    metrics = train_cartpole_brain_policy(
-        CartPoleTrainingConfig(
+    metrics = train_env_policy(
+        EnvTrainingConfig(
+            env_id="CartPole-v1",
             episodes=2,
             max_steps_per_episode=10,
             input_size=64,
             cells_per_column=4,
             resolution=0.05,
-            rdse_seed=11,
+            seed=11,
+            render_mode=None,
         )
     )
 

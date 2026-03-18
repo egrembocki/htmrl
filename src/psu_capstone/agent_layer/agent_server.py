@@ -47,6 +47,9 @@ class AgentWebSocketServer:
         self._max_episodes: int | None = (
             int(raw_max_episodes) if isinstance(raw_max_episodes, (int, float)) else None
         )
+        self._max_steps_per_episode: int | None = getattr(
+            agent._adapter, "max_steps_per_episode", None
+        )
         self._connections: set[ServerConnection] = set()
         self._episode_state: dict[ServerConnection, dict[str, Any]] = {}
 
@@ -75,6 +78,7 @@ class AgentWebSocketServer:
                     {
                         "type": "config",
                         "max_episodes": self._max_episodes,
+                        "max_steps_per_episode": self._max_steps_per_episode,
                     }
                 )
             )
@@ -85,6 +89,7 @@ class AgentWebSocketServer:
                         "type": "ready",
                         "message": "Server ready",
                         "max_episodes": self._max_episodes,
+                        "max_steps_per_episode": self._max_steps_per_episode,
                     }
                 )
             )
@@ -181,6 +186,7 @@ class AgentWebSocketServer:
                 "type": "episode_start",
                 "episode": state["episode_num"],
                 "max_episodes": self._max_episodes,
+                "max_steps_per_episode": self._max_steps_per_episode,
                 "obs": self._serialize_value(obs),
                 "inputs": inputs,
             }
@@ -223,6 +229,7 @@ class AgentWebSocketServer:
                 "type": "step_result",
                 "step": state["step_num"],
                 "max_episodes": self._max_episodes,
+                "max_steps_per_episode": self._max_steps_per_episode,
                 "action": self._serialize_value(action),
                 "reward": float(reward),
                 "terminated": bool(transition["terminated"]),
@@ -282,11 +289,11 @@ class AgentWebSocketServer:
             import numpy as np
 
             if isinstance(obs, dict):
-                obs_array = np.array(list(obs.values()), dtype=np.float32)
+                obs_value = obs
             elif isinstance(obs, list):
-                obs_array = np.array(obs, dtype=np.float32)
+                obs_value = np.array(obs, dtype=np.float32)
             else:
-                obs_array = obs
+                obs_value = obs
 
             state["step_num"] += 1
             state["total_reward"] += float(reward)
@@ -297,19 +304,19 @@ class AgentWebSocketServer:
                     state["prev_obs"],
                     state["prev_action"],
                     float(reward),
-                    obs_array,
+                    obs_value,
                     done,
                 )
 
             # Feed the observation through the brain so predictions are current
-            inputs = self._agent._adapter.observation_to_inputs(obs_array)
+            inputs = self._agent._adapter.observation_to_inputs(obs_value)
             inputs["reward"] = float(reward)
             brain_outputs = self._agent._brain.step(inputs, learn=True)
 
-            action = self._agent.select_action(obs_array, brain_outputs=brain_outputs)
+            action = self._agent.select_action(obs_value, brain_outputs=brain_outputs)
 
             # Cache for the next update call
-            state["prev_obs"] = obs_array
+            state["prev_obs"] = obs_value
             state["prev_action"] = action
 
             if done:
@@ -326,6 +333,7 @@ class AgentWebSocketServer:
                 "type": "action",
                 "step": state["step_num"],
                 "max_episodes": self._max_episodes,
+                "max_steps_per_episode": self._max_steps_per_episode,
                 "action": self._serialize_value(action),
                 "episode_done": done,
                 "total_reward": float(state["total_reward"]),
@@ -346,6 +354,7 @@ class AgentWebSocketServer:
                 "type": "episode_stop",
                 "episode": state["episode_num"],
                 "max_episodes": self._max_episodes,
+                "max_steps_per_episode": self._max_steps_per_episode,
                 "steps": state["step_num"],
                 "total_reward": float(state["total_reward"]),
                 "was_active": was_active,
@@ -368,6 +377,7 @@ class AgentWebSocketServer:
                 "type": "status",
                 "episode": state["episode_num"],
                 "max_episodes": self._max_episodes,
+                "max_steps_per_episode": self._max_steps_per_episode,
                 "step": state["step_num"],
                 "total_reward": float(state["total_reward"]),
                 "episode_active": state["episode_active"],
