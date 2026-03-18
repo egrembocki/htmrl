@@ -18,6 +18,7 @@ HTM_MODULE = "psu_capstone.agent_layer.HTM"
 if TYPE_CHECKING:
     from psu_capstone.agent_layer.agent import Agent
     from psu_capstone.agent_layer.agent_interface import AgentInterface
+    from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
     from psu_capstone.agent_layer.brain import Brain
     from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
     from psu_capstone.agent_layer.train import Trainer
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
 __all__ = [
     "Agent",
     "AgentInterface",
+    "AgentWebSocketServer",
     "Brain",
     "ColumnField",
     "Field",
@@ -41,6 +43,7 @@ _EXPORTS = {
     "Field": (HTM_MODULE, "Field"),
     "InputField": (HTM_MODULE, "InputField"),
     "OutputField": (HTM_MODULE, "OutputField"),
+    "AgentWebSocketServer": ("psu_capstone.agent_layer.agent_server", "AgentWebSocketServer"),
     "Trainer": ("psu_capstone.agent_layer.train", "Trainer"),
 }
 
