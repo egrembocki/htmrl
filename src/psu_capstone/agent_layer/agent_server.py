@@ -122,7 +122,8 @@ class AgentWebSocketServer:
         elif msg_type == "reset":
             return await self._handle_reset(client_id)
         elif msg_type == "observation":
-            obs = data.get("obs")
+            # Accept both "observation" (web app) and "obs" (legacy)
+            obs = data.get("observation") or data.get("obs")
             reward = data.get("reward", 0.0)
             done = data.get("done", False)
             return await self._handle_observation(client_id, obs, reward, done)
@@ -233,12 +234,36 @@ class AgentWebSocketServer:
         """
         state = self._episode_state.get(client_id)
         if not state or not state["episode_active"]:
-            return {
-                "type": "error",
-                "message": "No active episode. Call 'start_episode' first.",
-            }
+            # Auto-start an episode so the web app doesn't need a separate start_episode call
+            if state is None:
+                self._episode_state[client_id] = {
+                    "episode_active": False,
+                    "episode_num": 0,
+                    "step_num": 0,
+                    "total_reward": 0.0,
+                    "prev_obs": None,
+                    "prev_action": None,
+                }
+                state = self._episode_state[client_id]
+            state["episode_active"] = True
+            state["episode_num"] += 1
+            state["step_num"] = 0
+            state["total_reward"] = 0.0
+            state["prev_obs"] = None
+            state["prev_action"] = None
+            self._logger.info(f"Auto-started episode {state['episode_num']} for client {client_id}")
 
         try:
+            # Normalise observation: the web app sends a named dict; the Brain needs an array.
+            import numpy as np
+
+            if isinstance(obs, dict):
+                obs_array = np.array(list(obs.values()), dtype=np.float32)
+            elif isinstance(obs, list):
+                obs_array = np.array(obs, dtype=np.float32)
+            else:
+                obs_array = obs
+
             state["step_num"] += 1
             state["total_reward"] += float(reward)
 
@@ -248,18 +273,18 @@ class AgentWebSocketServer:
                     state["prev_obs"],
                     state["prev_action"],
                     float(reward),
-                    obs,
+                    obs_array,
                     done,
                 )
 
             # Feed the observation through the brain so predictions are current
-            inputs = self._agent._adapter.observation_to_inputs(obs)
+            inputs = self._agent._adapter.observation_to_inputs(obs_array)
             brain_outputs = self._agent._brain.step(inputs, learn=True)
 
-            action = self._agent.select_action(obs, brain_outputs=brain_outputs)
+            action = self._agent.select_action(obs_array, brain_outputs=brain_outputs)
 
             # Cache for the next update call
-            state["prev_obs"] = obs
+            state["prev_obs"] = obs_array
             state["prev_action"] = action
 
             if done:
