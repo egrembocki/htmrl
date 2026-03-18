@@ -26,10 +26,11 @@ class CartPoleTrainingConfig:
 
     episodes: int = 200
     max_steps_per_episode: int = 150
-    input_size: int = 128
-    cells_per_column: int = 8
+    input_size: int = 512
+    cells_per_column: int = 16
     resolution: float = 0.001
     rdse_seed: int = 5
+    render_mode: str | None = "human"
 
 
 def build_cartpole_brain(
@@ -58,6 +59,17 @@ def build_cartpole_brain(
         )
         trainer.add_input_field(f"{name}_input", config.input_size, params)
 
+    # Feed reward as an explicit scalar input so TM can learn reward-correlated transitions.
+    reward_params = RDSEParameters(
+        size=config.input_size,
+        active_bits=0,
+        sparsity=0.02,
+        resolution=0.01,
+        category=False,
+        seed=config.rdse_seed + len(input_names),
+    )
+    trainer.add_input_field("reward_input", config.input_size, reward_params)
+
     # Motor action candidates map to CartPole's discrete actions.
     trainer.add_output_field("action_output", 4, motor_action=(0, 1))
 
@@ -72,6 +84,7 @@ def build_cartpole_brain(
     remapped_fields: dict[str, Any] = {
         name: trainer_brain.fields[f"{name}_input"] for name in input_names
     }
+    remapped_fields["reward"] = trainer_brain.fields["reward_input"]
     remapped_fields["action_output"] = trainer_brain.fields["action_output"]
     remapped_fields["column"] = trainer_brain.fields["column_column"]
 
@@ -92,7 +105,10 @@ def train_cartpole_brain_policy(
     """
 
     cfg = config or CartPoleTrainingConfig()
-    adapter = EnvAdapter("CartPole-v1")
+    adapter_kwargs = {}
+    if cfg.render_mode is not None:
+        adapter_kwargs["render_mode"] = cfg.render_mode
+    adapter = EnvAdapter("CartPole-v1", **adapter_kwargs)
 
     try:
         brain = build_cartpole_brain(adapter, cfg)
@@ -100,7 +116,8 @@ def train_cartpole_brain_policy(
             brain=brain,
             adapter=adapter,
             episodes=cfg.episodes,
-            policy_mode="ppo",
+            policy_mode="brain",
+            force_brain_mode=True,
         )
 
         episode_rewards: list[float] = []

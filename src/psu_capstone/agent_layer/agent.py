@@ -22,6 +22,7 @@ from stable_baselines3 import PPO
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
+from psu_capstone.log import get_logger
 
 
 class Agent:
@@ -74,6 +75,7 @@ class Agent:
         ppo_policy: str = "MlpPolicy",
         ppo_kwargs: dict[str, Any] | None = None,
         ppo_deterministic: bool = True,
+        force_brain_mode: bool = False,
     ) -> None:
         self._learning_rate: float = 0.1
         self._discount_factor: float = 0.99
@@ -82,11 +84,15 @@ class Agent:
 
         self._brain = brain
         self._adapter = adapter
+        self._logger = get_logger(self)
         self._policy_mode: Literal["q_table", "brain", "ppo"] = policy_mode
         self._ppo_policy = ppo_policy
         self._ppo_kwargs = ppo_kwargs or {}
         self._ppo_model: PPO | None = None
         self._ppo_deterministic = ppo_deterministic
+        self._brain_action_confidence_threshold: float = 0.1
+        self._force_brain_mode: bool = force_brain_mode
+        self._q_state_decimals: int = 2
 
         # q_table policy only makes sense when actions can be indexed.
         action_spec = self._adapter.get_action_spec()
@@ -105,6 +111,8 @@ class Agent:
         self._obs: Any | None = None
         self._inputs: dict[str, Any] = {}
         self._rng = random.Random()
+        self._last_action_source: str = "unknown"
+        self._last_reward: float = 0.0
 
         if self._policy_mode == "ppo":
             self._ppo_model = self._build_ppo_model()
@@ -125,6 +133,7 @@ class Agent:
             self._ppo_model = self._build_ppo_model()
 
         action, _state = self._ppo_model.predict(obs, deterministic=self._ppo_deterministic)
+        self._last_action_source = "ppo"
         if isinstance(action, np.ndarray) and action.shape == ():
             return action.item()
         return action
@@ -142,7 +151,15 @@ class Agent:
 
         # Use adapter-normalized inputs so state identity matches Brain-facing features.
         obs_inputs = self._adapter.observation_to_inputs(obs)
-        return tuple(sorted(obs_inputs.items()))
+        quantized_inputs = {
+            key: (
+                round(float(value), self._q_state_decimals)
+                if isinstance(value, (int, float, np.integer, np.floating))
+                else value
+            )
+            for key, value in obs_inputs.items()
+        }
+        return tuple(sorted(quantized_inputs.items()))
 
     def reset_episode(self) -> dict[str, Any]:
         """Reset the environment, then cache the initial observation.
@@ -155,6 +172,7 @@ class Agent:
         result = self._adapter.reset_bridge()
         self._obs = result["obs"]
         self._inputs = result["inputs"]
+        self._last_reward = 0.0
         return result
 
     def _initialize_q_values(self, obs: Any) -> tuple[tuple[str, Any], ...]:
@@ -224,19 +242,25 @@ class Agent:
         candidate_actions = self._candidate_actions()
 
         if not candidate_actions:
+            self._last_action_source = "q_table"
             return self._adapter._action_space.sample()
 
         # Epsilon-greedy action selection
         if self._rng.random() < self._epsilon:
+            self._last_action_source = "q_table"
             return self._adapter._action_space.sample()
 
         q_row = self._q_values[state_key]
 
         # If spec/value mismatch occurs, degrade safely to random exploration.
         if len(q_row) != len(candidate_actions):
+            self._last_action_source = "q_table"
             return self._adapter._action_space.sample()
 
-        best_index = int(np.argmax(q_row))
+        max_q = float(np.max(q_row))
+        best_indices = [index for index, value in enumerate(q_row) if float(value) == max_q]
+        best_index = self._rng.choice(best_indices)
+        self._last_action_source = "q_table"
         return candidate_actions[best_index]
 
     def _score_predicted_action(
@@ -294,14 +318,20 @@ class Agent:
 
         return self._select_brain_action_from_outputs(obs, brain_outputs=None)
 
-    def _extract_action_from_brain_outputs(self, brain_outputs: dict[str, Any]) -> Any | None:
-        """Extract a direct action hint from Brain.step output payloads."""
+    def _extract_action_from_brain_outputs(
+        self, brain_outputs: dict[str, Any]
+    ) -> tuple[Any | None, float]:
+        """Extract direct action hint and confidence from Brain.step output payloads."""
 
         for _name, payload in brain_outputs.items():
             if isinstance(payload, dict) and "action" in payload:
-                return payload["action"]
+                confidence = payload.get("confidence", 1.0)
+                confidence_value = (
+                    float(confidence) if isinstance(confidence, (int, float)) else 1.0
+                )
+                return payload["action"], confidence_value
 
-        return None
+        return None, 0.0
 
     def _select_brain_action_from_outputs(
         self,
@@ -311,18 +341,37 @@ class Agent:
         """Select action from output-field hints, then prediction scoring, then q-table fallback."""
 
         if isinstance(brain_outputs, dict):
-            action_hint = self._extract_action_from_brain_outputs(brain_outputs)
-            if action_hint is not None:
+            action_hint, confidence = self._extract_action_from_brain_outputs(brain_outputs)
+            if action_hint is not None and (
+                confidence >= self._brain_action_confidence_threshold or self._force_brain_mode
+            ):
+                self._last_action_source = "brain"
+                if self._force_brain_mode and confidence < self._brain_action_confidence_threshold:
+                    self._logger.info(
+                        "force_brain_mode: using brain action with low confidence %.3f.",
+                        confidence,
+                    )
                 return action_hint
+            if action_hint is not None:
+                # If Brain produced an action but confidence is low, prefer the
+                # tabular baseline over predictive decode fallback.
+                self._logger.info(
+                    "Brain action confidence %.3f below threshold %.3f; falling back to q_table.",
+                    confidence,
+                    self._brain_action_confidence_threshold,
+                )
+                return self._select_q_action(obs)
 
         candidate_actions = self._candidate_actions()
 
         if not candidate_actions:
+            self._last_action_source = "brain"
             return self._adapter._action_space.sample()
 
         predictions = self._brain.prediction()
         if not isinstance(predictions, dict):
             # Current Brain API is still evolving; use q_table as a robust fallback.
+            self._logger.info("Brain predictions unavailable; falling back to q_table.")
             return self._select_q_action(obs)
 
         action_predictions = {
@@ -331,15 +380,18 @@ class Agent:
 
         if not action_predictions:
             # No action-like prediction keys yet, so use the baseline selector.
+            self._logger.info("No action-like brain predictions; falling back to q_table.")
             return self._select_q_action(obs)
 
-        return max(
+        action = max(
             candidate_actions,
             key=lambda action: self._score_predicted_action(
                 self._adapter.action_to_inputs(action),
                 action_predictions,
             ),
         )
+        self._last_action_source = "brain"
+        return action
 
     def select_action(self, obs: Any, brain_outputs: dict[str, Any] | None = None) -> Any:
         """Dispatch action selection to the active policy implementation.
@@ -394,12 +446,16 @@ class Agent:
         if current_obs is None:
             raise RuntimeError("Agent observation state was not initialized.")
 
-        brain_outputs = self._brain.step(current_inputs, learn=learn)
+        step_inputs = dict(current_inputs)
+        step_inputs.setdefault("reward", float(self._last_reward))
+
+        brain_outputs = self._brain.step(step_inputs, learn=learn)
         action = self.select_action(current_obs, brain_outputs=brain_outputs)
         result = self._adapter.step_bridge(action)
 
         next_obs = result["obs"]
         reward = result["reward"]
+        self._last_reward = float(reward)
 
         self.update(
             current_obs,
@@ -449,9 +505,14 @@ class Agent:
         """
 
         if self._policy_mode == "brain":
-            # Brain-driven policy updates are not implemented yet.
-            self._brain.rl_policy_update()
-            return
+            if self._last_action_source == "q_table":
+                # In brain mode, allow tabular updates when action selection
+                # explicitly fell back to q_table behavior.
+                pass
+            else:
+                # Brain-driven policy updates are not implemented yet.
+                self._brain.rl_policy_update()
+                return
 
         if self._policy_mode == "ppo":
             # PPO model training lifecycle is managed externally.

@@ -100,9 +100,13 @@ class Brain:
         for input_name in self._input_fields:
             input_field = self._input_fields[input_name]
             if hasattr(input_field.encoder, "decode"):
-                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
-                    "predictive"
-                )
+                try:
+                    predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
+                        "predictive"
+                    )
+                except ValueError:
+                    predictions[input_name] = None
+                    predictions[input_name + ".conf"] = 0.0
 
         return predictions  # type: ignore
 

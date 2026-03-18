@@ -43,6 +43,10 @@ class AgentWebSocketServer:
         self._host = host
         self._port = port
         self._logger = get_logger("AgentWebSocketServer")
+        raw_max_episodes = getattr(agent, "_training_episodes", None)
+        self._max_episodes: int | None = (
+            int(raw_max_episodes) if isinstance(raw_max_episodes, (int, float)) else None
+        )
         self._connections: set[ServerConnection] = set()
         self._episode_state: dict[ServerConnection, dict[str, Any]] = {}
 
@@ -66,7 +70,24 @@ class AgentWebSocketServer:
         }
 
         try:
-            await websocket.send(json.dumps({"type": "ready", "message": "Server ready"}))
+            await websocket.send(
+                json.dumps(
+                    {
+                        "type": "config",
+                        "max_episodes": self._max_episodes,
+                    }
+                )
+            )
+
+            await websocket.send(
+                json.dumps(
+                    {
+                        "type": "ready",
+                        "message": "Server ready",
+                        "max_episodes": self._max_episodes,
+                    }
+                )
+            )
 
             async for message in websocket:
                 try:
@@ -159,6 +180,7 @@ class AgentWebSocketServer:
             return {
                 "type": "episode_start",
                 "episode": state["episode_num"],
+                "max_episodes": self._max_episodes,
                 "obs": self._serialize_value(obs),
                 "inputs": inputs,
             }
@@ -200,6 +222,7 @@ class AgentWebSocketServer:
             return {
                 "type": "step_result",
                 "step": state["step_num"],
+                "max_episodes": self._max_episodes,
                 "action": self._serialize_value(action),
                 "reward": float(reward),
                 "terminated": bool(transition["terminated"]),
@@ -279,6 +302,7 @@ class AgentWebSocketServer:
 
             # Feed the observation through the brain so predictions are current
             inputs = self._agent._adapter.observation_to_inputs(obs_array)
+            inputs["reward"] = float(reward)
             brain_outputs = self._agent._brain.step(inputs, learn=True)
 
             action = self._agent.select_action(obs_array, brain_outputs=brain_outputs)
@@ -300,6 +324,7 @@ class AgentWebSocketServer:
             return {
                 "type": "action",
                 "step": state["step_num"],
+                "max_episodes": self._max_episodes,
                 "action": self._serialize_value(action),
                 "episode_done": done,
                 "total_reward": float(state["total_reward"]),
@@ -319,6 +344,7 @@ class AgentWebSocketServer:
             summary = {
                 "type": "episode_stop",
                 "episode": state["episode_num"],
+                "max_episodes": self._max_episodes,
                 "steps": state["step_num"],
                 "total_reward": float(state["total_reward"]),
                 "was_active": was_active,
@@ -340,6 +366,7 @@ class AgentWebSocketServer:
             return {
                 "type": "status",
                 "episode": state["episode_num"],
+                "max_episodes": self._max_episodes,
                 "step": state["step_num"],
                 "total_reward": float(state["total_reward"]),
                 "episode_active": state["episode_active"],
