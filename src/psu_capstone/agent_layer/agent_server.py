@@ -1,0 +1,273 @@
+"""WebSocket server for real-time agent visualization and control.
+
+This module provides a WebSocket server that the web visualization client
+connects to in order to run episodes, send observations, and receive actions.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from typing import Any
+
+import websockets
+from websockets.server import ServerConnection
+
+from psu_capstone.agent_layer.agent import Agent
+from psu_capstone.log import get_logger
+
+
+class AgentWebSocketServer:
+    """WebSocket server for real-time agent control and visualization.
+
+    Bridges a web visualization client to a running Python agent. The server
+    manages the agent's episode loop and translates between JSON messages
+    and agent API calls.
+
+    Args:
+        agent: The Agent instance to run episodes.
+        host: WebSocket server bind address (default: localhost).
+        port: WebSocket server bind port (default: 8765).
+        log_level: Logging verbosity (default: logging.INFO).
+    """
+
+    def __init__(
+        self,
+        agent: Agent,
+        host: str = "localhost",
+        port: int = 8765,
+        log_level: int = logging.INFO,
+    ) -> None:
+        self._agent = agent
+        self._host = host
+        self._port = port
+        self._logger = get_logger(self.__qualname__)
+        self._connections: set[ServerConnection] = set()
+        self._episode_state: dict[ServerConnection, dict[str, Any]] = {}
+
+    async def handle_client(self, websocket: ServerConnection, path: str) -> None:
+        """Handle a single client connection lifecycle.
+
+        Args:
+            websocket: The ServerConnection from websockets library.
+            path: The WebSocket path (typically unused in simple servers).
+        """
+        self._connections.add(websocket)
+        client_id = id(websocket)
+        self._logger.info(f"Client {client_id} connected from {websocket.remote_address}")
+
+        self._episode_state[client_id] = {
+            "episode_active": False,
+            "episode_num": 0,
+            "step_num": 0,
+            "total_reward": 0.0,
+        }
+
+        try:
+            await websocket.send(json.dumps({"type": "ready", "message": "Server ready"}))
+
+            async for message in websocket:
+                try:
+                    data = json.loads(message)
+                    response = await self._process_message(websocket, client_id, data)
+                    if response:
+                        await websocket.send(json.dumps(response))
+                except json.JSONDecodeError as e:
+                    self._logger.error(f"Invalid JSON from {client_id}: {e}")
+                    await websocket.send(
+                        json.dumps({"type": "error", "message": f"Invalid JSON: {str(e)}"})
+                    )
+                except Exception as e:
+                    self._logger.error(f"Error processing message from {client_id}: {e}")
+                    await websocket.send(
+                        json.dumps({"type": "error", "message": f"Server error: {str(e)}"})
+                    )
+
+        except websockets.exceptions.ConnectionClosed:
+            self._logger.info(f"Client {client_id} disconnected normally")
+        except Exception as e:
+            self._logger.error(f"Unexpected error with client {client_id}: {e}")
+        finally:
+            self._connections.discard(websocket)
+            self._episode_state.pop(client_id, None)
+            self._logger.info(f"Client {client_id} cleanup complete")
+
+    async def _process_message(
+        self, websocket: ServerConnection, client_id: int, data: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Process an incoming message and return a response.
+
+        Supported message types:
+        - "start_episode": Initialize a new episode
+        - "reset": Reset and start a fresh episode
+        - "step": Run one agent timestep with the provided observation
+        - "stop": End the current episode
+        - "status": Return current episode state
+
+        Args:
+            websocket: The client connection.
+            client_id: Unique identifier for this client.
+            data: Parsed JSON message dict.
+
+        Returns:
+            Response dict to send back to client, or None if no response needed.
+        """
+        msg_type: str = data.get("type", "unknown")
+        self._logger.debug(f"Client {client_id} message: {msg_type}")
+
+        if msg_type == "start_episode":
+            return await self._handle_start_episode(client_id)
+        elif msg_type == "reset":
+            return await self._handle_reset(client_id)
+        elif msg_type == "step":
+            inputs = data.get("inputs", {})
+            return await self._handle_step(client_id, inputs)
+        elif msg_type == "stop":
+            return await self._handle_stop(client_id)
+        elif msg_type == "status":
+            return await self._handle_status(client_id)
+        else:
+            self._logger.warning(f"Unknown message type: {msg_type}")
+            return {"type": "error", "message": f"Unknown message type: {msg_type}"}
+
+    async def _handle_start_episode(self, client_id: int) -> dict[str, Any]:
+        """Start a new episode and return initial observation."""
+        try:
+            self._agent.reset_episode()
+
+            state = self._episode_state[client_id]
+            state["episode_active"] = True
+            state["episode_num"] += 1
+            state["step_num"] = 0
+            state["total_reward"] = 0.0
+
+            obs = self._agent._obs
+            inputs = self._agent._inputs
+
+            self._logger.info(f"Episode {state['episode_num']} started for client {client_id}")
+
+            return {
+                "type": "episode_start",
+                "episode": state["episode_num"],
+                "obs": self._serialize_value(obs),
+                "inputs": inputs,
+            }
+        except Exception as e:
+            self._logger.error(f"Failed to start episode for {client_id}: {e}")
+            return {"type": "error", "message": f"Failed to start episode: {str(e)}"}
+
+    async def _handle_reset(self, client_id: int) -> dict[str, Any]:
+        """Reset the agent and start a fresh episode."""
+        return await self._handle_start_episode(client_id)
+
+    async def _handle_step(self, client_id: int, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Run one agent step and return the action."""
+        state = self._episode_state.get(client_id)
+        if not state or not state["episode_active"]:
+            return {
+                "type": "error",
+                "message": "No active episode. Call 'start_episode' first.",
+            }
+
+        try:
+            self._agent._inputs = inputs
+            transition = self._agent.step(learn=True)
+
+            action = transition["action"]
+            reward = transition["reward"]
+            done = transition["terminated"] or transition["truncated"]
+
+            state["step_num"] += 1
+            state["total_reward"] += float(reward)
+
+            if done:
+                state["episode_active"] = False
+
+            self._logger.debug(
+                f"Step {state['step_num']}: action={action}, reward={reward}, done={done}"
+            )
+
+            return {
+                "type": "step_result",
+                "step": state["step_num"],
+                "action": self._serialize_value(action),
+                "reward": float(reward),
+                "terminated": bool(transition["terminated"]),
+                "truncated": bool(transition["truncated"]),
+                "total_reward": float(state["total_reward"]),
+                "episode_done": done,
+            }
+
+        except Exception as e:
+            self._logger.error(f"Step failed for client {client_id}: {e}")
+            state["episode_active"] = False
+            return {"type": "error", "message": f"Step failed: {str(e)}"}
+
+    async def _handle_stop(self, client_id: int) -> dict[str, Any]:
+        """Stop the current episode."""
+        state = self._episode_state.get(client_id)
+        if state:
+            was_active = state["episode_active"]
+            state["episode_active"] = False
+
+            summary = {
+                "type": "episode_stop",
+                "episode": state["episode_num"],
+                "steps": state["step_num"],
+                "total_reward": float(state["total_reward"]),
+                "was_active": was_active,
+            }
+
+            self._logger.info(
+                f"Episode {state['episode_num']} stopped: "
+                f"{state['step_num']} steps, "
+                f"reward={state['total_reward']:.2f}"
+            )
+            return summary
+
+        return {"type": "error", "message": "No active episode to stop"}
+
+    async def _handle_status(self, client_id: int) -> dict[str, Any]:
+        """Return the current episode state."""
+        state = self._episode_state.get(client_id)
+        if state:
+            return {
+                "type": "status",
+                "episode": state["episode_num"],
+                "step": state["step_num"],
+                "total_reward": float(state["total_reward"]),
+                "episode_active": state["episode_active"],
+            }
+        return {"type": "error", "message": "No episode state available"}
+
+    def _serialize_value(self, value: Any) -> Any:
+        """Convert observation/action values to JSON-serializable form."""
+        import numpy as np
+
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        elif isinstance(value, (np.integer, np.floating)):
+            return value.item()
+        elif isinstance(value, (int, float, str, bool, type(None))):
+            return value
+        elif isinstance(value, (list, tuple)):
+            return [self._serialize_value(v) for v in value]
+        elif isinstance(value, dict):
+            return {k: self._serialize_value(v) for k, v in value.items()}
+        else:
+            return str(value)
+
+    async def start(self) -> None:
+        """Start the WebSocket server and run forever."""
+        self._logger.info(f"Starting WebSocket server on ws://{self._host}:{self._port}")
+
+        async with websockets.serve(
+            self.handle_client, self._host, self._port, ping_interval=20, ping_timeout=20
+        ):
+            self._logger.info("WebSocket server is running. Waiting for connections...")
+            await asyncio.Future()
+
+    def run(self) -> None:
+        """Start the server using asyncio.run() (blocking call)."""
+        asyncio.run(self.start())
