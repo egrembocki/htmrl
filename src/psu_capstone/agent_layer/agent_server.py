@@ -42,16 +42,15 @@ class AgentWebSocketServer:
         self._agent = agent
         self._host = host
         self._port = port
-        self._logger = get_logger(self.__qualname__)
+        self._logger = get_logger("AgentWebSocketServer")
         self._connections: set[ServerConnection] = set()
         self._episode_state: dict[ServerConnection, dict[str, Any]] = {}
 
-    async def handle_client(self, websocket: ServerConnection, path: str) -> None:
+    async def handle_client(self, websocket: ServerConnection) -> None:
         """Handle a single client connection lifecycle.
 
         Args:
             websocket: The ServerConnection from websockets library.
-            path: The WebSocket path (typically unused in simple servers).
         """
         self._connections.add(websocket)
         client_id = id(websocket)
@@ -62,6 +61,8 @@ class AgentWebSocketServer:
             "episode_num": 0,
             "step_num": 0,
             "total_reward": 0.0,
+            "prev_obs": None,
+            "prev_action": None,
         }
 
         try:
@@ -120,6 +121,11 @@ class AgentWebSocketServer:
             return await self._handle_start_episode(client_id)
         elif msg_type == "reset":
             return await self._handle_reset(client_id)
+        elif msg_type == "observation":
+            obs = data.get("obs")
+            reward = data.get("reward", 0.0)
+            done = data.get("done", False)
+            return await self._handle_observation(client_id, obs, reward, done)
         elif msg_type == "step":
             inputs = data.get("inputs", {})
             return await self._handle_step(client_id, inputs)
@@ -141,6 +147,8 @@ class AgentWebSocketServer:
             state["episode_num"] += 1
             state["step_num"] = 0
             state["total_reward"] = 0.0
+            state["prev_obs"] = None
+            state["prev_action"] = None
 
             obs = self._agent._obs
             inputs = self._agent._inputs
@@ -203,6 +211,78 @@ class AgentWebSocketServer:
             self._logger.error(f"Step failed for client {client_id}: {e}")
             state["episode_active"] = False
             return {"type": "error", "message": f"Step failed: {str(e)}"}
+
+    async def _handle_observation(
+        self,
+        client_id: int,
+        obs: Any,
+        reward: float,
+        done: bool,
+    ) -> dict[str, Any]:
+        """Accept an observation from the client and return the agent's action.
+
+        This is the primary message type for client-driven loops where the
+        environment runs on the client side and the server hosts only the
+        agent brain.
+
+        Args:
+            client_id: Unique identifier for this client.
+            obs: Current environment observation sent by the client.
+            reward: Reward received for the previous action (0.0 on first step).
+            done: Whether the episode ended after the previous action.
+        """
+        state = self._episode_state.get(client_id)
+        if not state or not state["episode_active"]:
+            return {
+                "type": "error",
+                "message": "No active episode. Call 'start_episode' first.",
+            }
+
+        try:
+            state["step_num"] += 1
+            state["total_reward"] += float(reward)
+
+            # Q-update for the transition that just completed (prev_action → reward → obs)
+            if state["prev_obs"] is not None and state["prev_action"] is not None:
+                self._agent.update(
+                    state["prev_obs"],
+                    state["prev_action"],
+                    float(reward),
+                    obs,
+                    done,
+                )
+
+            # Feed the observation through the brain so predictions are current
+            inputs = self._agent._adapter.observation_to_inputs(obs)
+            brain_outputs = self._agent._brain.step(inputs, learn=True)
+
+            action = self._agent.select_action(obs, brain_outputs=brain_outputs)
+
+            # Cache for the next update call
+            state["prev_obs"] = obs
+            state["prev_action"] = action
+
+            if done:
+                state["episode_active"] = False
+                state["prev_obs"] = None
+                state["prev_action"] = None
+
+            self._logger.debug(
+                f"Observation step {state['step_num']}: action={action}, "
+                f"reward={reward}, done={done}"
+            )
+
+            return {
+                "type": "action",
+                "step": state["step_num"],
+                "action": self._serialize_value(action),
+                "episode_done": done,
+                "total_reward": float(state["total_reward"]),
+            }
+        except Exception as e:
+            self._logger.error(f"Observation handling failed for client {client_id}: {e}")
+            state["episode_active"] = False
+            return {"type": "error", "message": f"Observation handling failed: {str(e)}"}
 
     async def _handle_stop(self, client_id: int) -> dict[str, Any]:
         """Stop the current episode."""

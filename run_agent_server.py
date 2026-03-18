@@ -42,7 +42,7 @@ def build_agent(env_id: str) -> Agent:
 
 async def main(args: argparse.Namespace) -> None:
     """Start the agent WebSocket server."""
-    logger = get_logger(None, level=logging.INFO)
+    logger = get_logger(None)
 
     try:
         logger.info(f"Building {args.env} agent...")
