@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
-from scipy.fft import fft, fftfreq, ifft
+from scipy.fft import fft, fftfreq
 
 from legacy.sdr_layer.sdr import SDR
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
@@ -145,6 +145,10 @@ def plot_signal(
         sample_rate: Sampling rate in Hz used for frequency axis scaling.
         domain: One of "time", "frequency", or "both".
         title: Optional label appended to plot titles.
+
+    Raises:
+        ValueError: If the signal is empty, ``sample_rate`` is not positive,
+            or ``domain`` is not one of ``'time'``, ``'frequency'``, or ``'both'``.
     """
 
     values = np.asarray(signal, dtype=float).flatten()
@@ -206,7 +210,6 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     for column in columns:
         values = np.array(signal[column], dtype=float)
         values[0] = 0.0  # remove DC component by zeroing the first value
-        # values = values - np.mean(values)  # remove DC component
         values = values[:4096]
 
         print(f"Plotting column: {column}")
@@ -244,12 +247,7 @@ if __name__ == "__main__":
     a, b, c, d, e, f = 10, 2, 30, 2, 50, 60
     y1 = np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
     y1 *= np.sin(2 * np.pi * b * np.linspace(0, 1, 2048, endpoint=False))
-    # y1 += np.sin(2 * np.pi * c * np.linspace(0, 1, 2048, endpoint=False))
-    # y1 += np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
     y2 = np.sin(2 * np.pi * d * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * a * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * e * np.linspace(0, 1, 2048, endpoint=False))
-    # y2 += np.sin(2 * np.pi * f * np.linspace(0, 1, 2048, endpoint=False))
 
     """
     fft_one = fft_encoder.encode(y1)

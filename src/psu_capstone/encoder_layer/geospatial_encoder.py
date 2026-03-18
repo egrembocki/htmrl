@@ -10,7 +10,7 @@ from typing import Iterable, Optional, override
 import numpy as np
 from pyproj import CRS, Transformer
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 # Good for 2D
@@ -165,8 +165,10 @@ class GeospatialEncoder(
 
 
 @dataclass
-class GeospatialParameters(ParentDataClass):
+class GeospatialParameters:
     """Configuration parameters for :class:`GeospatialEncoder`."""
+
+    size: int = 2048
 
     # meters per grid unit
     scale: float = 5.0

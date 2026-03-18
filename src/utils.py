@@ -71,6 +71,12 @@ def register_envs(id: str, entry: str, args: dict, max_episode_step: int) -> Non
     custom environments defined in this project are registered and available
     for use with gym.make().
 
+    Args:
+        id: Unique identifier for the environment (e.g., "CustomEnv-v0").
+        entry: The Python path to the environment class (e.g., "my_module:MyEnvClass").
+        args: A dictionary of keyword arguments to pass to the environment constructor.
+        max_episode_step: The maximum number of steps per episode for this environment.
+
     Example:
         register_envs()  # Call this at the top level of your module to register environments.
     """

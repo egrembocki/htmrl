@@ -20,10 +20,19 @@ import grapher
 import psu_capstone.encoder_layer as el
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.encoder_layer.base_encoder import ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
+
+# Rebind encoder parameter types locally so callers can use short names without
+# importing them individually from the encoder sub-layer.
+CategoryParameters = el.CategoryParameters
+CoordinateParameters = el.CoordinateParameters
+DateEncoderParameters = el.DateEncoderParameters
+FourierEncoderParameters = el.FourierEncoderParameters
+GeospatialParameters = el.GeospatialParameters
+RDSEParameters = el.RDSEParameters
 
 
 class Trainer:
@@ -31,6 +40,12 @@ class Trainer:
 
     Args:
         brain: Brain instance to be trained with this trainer.
+
+    Attributes:
+        brain_blueprint: Blueprint class used for creating Brain instances.
+        input_field_blueprint: Blueprint class used for creating input fields.
+        output_field_blueprint: Blueprint class used for creating output fields.
+        column_field_blueprint: Blueprint class used for creating column fields.
     """
 
     _BRAIN_NOT_INITIALIZED_ERROR = "Main Brain is not initialized. Please build the Brain first."
@@ -52,7 +67,7 @@ class Trainer:
         self._values: list[Any] = []
 
     @staticmethod
-    def _encoder_type_from_params(param: ParentDataClass) -> str:
+    def _encoder_type_from_params(param: ParameterMarker) -> str:
         """Map a parameter dataclass to the factory encoder type string."""
 
         encoder_name = param.encoder_class.__name__.lower()
@@ -109,7 +124,7 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParentDataClass]]) -> None:
+    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -281,7 +296,7 @@ class Trainer:
 
                     f.write("\n")
 
-    def build_brain(self, fields: list[tuple[str, int, ParentDataClass]]) -> Brain:
+    def build_brain(self, fields: list[tuple[str, int, el.ParameterMarker]]) -> Brain:
         """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.
 
         Args:
@@ -312,7 +327,7 @@ class Trainer:
 
         return brain
 
-    def add_input_field(self, name: str, size: int, encoder_params: ParentDataClass) -> None:
+    def add_input_field(self, name: str, size: int, encoder_params: el.ParameterMarker) -> None:
         """Add an input field to the Brain."""
 
         if self._main_brain is None:
@@ -515,7 +530,10 @@ class Trainer:
         }
 
     def build_full_brain(
-        self, dataset: dict[Any, list[Any]], size: int = 2048, params: ParentDataClass | None = None
+        self,
+        dataset: dict[Any, list[Any]],
+        size: int = 2048,
+        params: el.ParameterMarker | None = None,
     ) -> Brain:
         """Build a full Brain with all fields based on the dataset.
 
@@ -545,7 +563,7 @@ class Trainer:
 
         This method automatically determines the appropriate encoder type for each field based on the data type of the values in the dataset. It then builds the Brain with input fields for each column, a column field that connects to all input fields, and output fields as needed.
 
-        # TODO: add dict of ParentDataClass to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
+        # TODO: add a dict of ParameterMarker-compatible configs to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
 
         Mapping of data types to encoder parameters:
         - Numerical (int, float): el.RDSEParameters

@@ -41,7 +41,6 @@ class EncoderFactory:
 
         Raises:
             ValueError: If encoder_type is not supported.
-            TypeError: If parameters don't match the encoder's parameter dataclass.
         """
 
         encoder_type = encoder_type.lower()

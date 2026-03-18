@@ -83,6 +83,10 @@ def train_cartpole_brain_policy(
 ) -> dict[str, Any]:
     """Run CartPole episodes using Agent in brain policy mode.
 
+    Args:
+        config: Optional training configuration. Defaults to
+            ``CartPoleTrainingConfig()`` if not provided.
+
     Returns:
         Dictionary of training metrics and per-episode summaries.
     """

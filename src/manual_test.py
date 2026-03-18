@@ -13,9 +13,10 @@ from typing import Any
 import numpy as np
 from tqdm import tqdm
 
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, InputField
-from psu_capstone.encoder_layer.rdse import RDSEParameters
+# The manual test imports the agent and encoder layers as packages to keep the
+# experiment code concise while still making the architectural dependency obvious.
+import psu_capstone.agent_layer as ag
+import psu_capstone.encoder_layer as en
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -45,23 +46,23 @@ def _seed_rng(config: SineConfig) -> None:
     random.seed(config.rng_seed)
 
 
-def _build_sine_brain(config: SineConfig) -> tuple[Brain, list[float]]:
-    rdse_params = RDSEParameters(
+def _build_sine_brain(config: SineConfig) -> tuple[ag.Brain, list[float]]:
+    rdse_params = en.RDSEParameters(
         size=config.num_columns,
         sparsity=0.02,
         resolution=config.resolution,
         category=False,
         seed=config.rdse_seed,
     )
-    input_field = InputField(size=config.num_columns, encoder_params=rdse_params)
-    column_field = ColumnField(
+    input_field = ag.InputField(size=config.num_columns, encoder_params=rdse_params)
+    column_field = ag.ColumnField(
         input_fields=[input_field],
         non_spatial=True,
         num_columns=config.num_columns,
         cells_per_column=config.cells_per_column,
     )
     sine_cycle = np.sin(np.linspace(0, 2 * np.pi, config.cycle_length, endpoint=False)).tolist()
-    brain = Brain(
+    brain = ag.Brain(
         {
             "sine_input": input_field,
             "column_field": column_field,
@@ -71,7 +72,7 @@ def _build_sine_brain(config: SineConfig) -> tuple[Brain, list[float]]:
 
 
 def _train_sine(
-    brain: Brain,
+    brain: ag.Brain,
     sine_cycle: list[float],
     config: SineConfig,
 ) -> list[int]:
@@ -85,7 +86,7 @@ def _train_sine(
 
 
 def _evaluate_sine(
-    brain: Brain,
+    brain: ag.Brain,
     sine_cycle: list[float],
     config: SineConfig,
 ) -> tuple[list[float], list[int], int]:

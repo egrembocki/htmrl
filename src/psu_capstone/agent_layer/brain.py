@@ -27,7 +27,7 @@ class Brain:
             Can include InputField, OutputField, and ColumnField types.
 
     Example:
-        manager = FieldManager()
+        manager = Trainer()
         manager.add_input_field("consumption", consumption_field)
         manager.add_input_field("date", date_field)
         manager.set_column_field(column_field)

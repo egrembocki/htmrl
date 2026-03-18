@@ -24,6 +24,10 @@ class FinGym(gym.Env):
     feature columns. Rewards can optionally be derived from the delta of a
     target column between consecutive rows.
 
+    Actions are 0=hold, 1=long, 2=short. If ``target_column`` is not provided,
+    rewards are always ``0.0``. Non-numeric feature values are coerced to numeric
+    and missing values are filled with ``0.0`` for stable observation vectors.
+
     Args:
         data_source: Table source as DataFrame, file path, or mapping of
             columns to value sequences.
@@ -33,11 +37,12 @@ class FinGym(gym.Env):
             row-to-row deltas.
         max_rows: Optional cap on number of rows read from the dataset.
 
-        Notes:
-                - Actions are ``0=hold``, ``1=long``, ``2=short``.
-                - If ``target_column`` is not provided, rewards are always ``0.0``.
-                - Non-numeric feature values are coerced to numeric and missing values
-                    are filled with ``0.0`` for stable observation vectors.
+    Attributes:
+        metadata: Gymnasium render mode metadata.
+
+    Raises:
+        ValueError: If ``max_rows`` is not greater than 1, if fewer than 2 rows are
+            available after loading, or if ``target_column`` is not found in the data.
     """
 
     metadata = {"render_modes": ["human"]}
@@ -51,7 +56,9 @@ class FinGym(gym.Env):
     ) -> None:
         super().__init__()
 
+        # Load the raw data and optionally cap it to max_rows for testing/prototyping
         self._raw_frame = self._load_frame(data_source)
+
         if max_rows is not None:
             if max_rows <= 1:
                 raise ValueError("max_rows must be greater than 1.")
@@ -64,12 +71,17 @@ class FinGym(gym.Env):
         self._feature_columns = self._resolve_feature_columns(feature_columns, target_column)
 
         # Normalize all selected feature columns into a dense float matrix that
-        # can be consumed directly by Gym/agents.
+        # can be consumed directly by Gym/agents. We convert to numeric and converting
+        # non-numeric values to NaN, then fill NaNs with 0.0 for stability, and
+        # cast to float32 for memory efficiency and neural network compatibility.
         features = self._raw_frame[self._feature_columns].apply(pd.to_numeric, errors="coerce")
         features = features.fillna(0.0).astype(np.float32)
         self._feature_matrix = features.to_numpy(dtype=np.float32)
 
+        # If a target column was specified, normalize it to float32 for reward calculations.
+        # Target values represent the signal we want the agent to learn to predict.
         self._target_values: np.ndarray | None = None
+
         if self._target_column is not None:
             if self._target_column not in self._raw_frame.columns:
                 raise ValueError(f"Unknown target column: {self._target_column}")
@@ -79,9 +91,11 @@ class FinGym(gym.Env):
             self._target_values = target_series.to_numpy(dtype=np.float32)
 
         self._row_count = self._feature_matrix.shape[0]
-        self._current_row = 0
+        self._current_row = 0  # Start at row 0, will advance with each step()
 
-        # 0=hold, 1=long, 2=short.
+        # Define the Gymnasium action and observation spaces:
+        # - Actions: 0=hold (neutral), 1=long (bet on up), 2=short (bet on down)
+        # - Observations: float32 vectors with features from the current row
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
@@ -92,13 +106,21 @@ class FinGym(gym.Env):
 
     @property
     def feature_columns(self) -> list[str]:
-        """Return the ordered feature column names used for observations."""
+        """Return the ordered feature column names used for observations.
+
+        This is useful for downstream agents/models that need to understand
+        which original data columns map to which observation indices.
+        """
 
         return list(self._feature_columns)
 
     @property
     def target_column(self) -> str | None:
-        """Return the optional target column used for reward calculation."""
+        """Return the optional target column used for reward calculation.
+
+        If None, the environment always returns reward=0.0 (useful for
+        unsupervised exploration or when rewards are handled externally).
+        """
 
         return self._target_column
 
@@ -108,8 +130,11 @@ class FinGym(gym.Env):
     ) -> pd.DataFrame:
         """Load tabular data from common spreadsheet-like sources.
 
-        Supported file inputs: ``.csv``, ``.xlsx``, ``.xls``, ``.parquet``,
-        ``.json``.
+        Supports multiple input types to maximize flexibility:
+        - DataFrame: Use directly
+        - Mapping: Convert to DataFrame (e.g., dict of column -> values)
+        - File paths: Auto-detect format and parse (``.csv``, ``.xlsx``, ``.xls``,
+          ``.parquet``, ``.json``)
         """
 
         if isinstance(data_source, pd.DataFrame):
@@ -166,25 +191,33 @@ class FinGym(gym.Env):
     def _reward_from_action(self, action: int) -> float:
         """Compute reward from target delta for hold/long/short actions.
 
+        This method realizes the core financial logic: agents earn reward when
+        their action aligns with the next price movement.
+
         Reward is based on ``target[t+1] - target[t]``:
-            - long (1): positive delta is rewarded
-            - short (2): negative delta is rewarded
-            - hold (0): zero reward
+            - long (1): positive delta is rewarded, negative delta penalized
+            - short (2): negative delta is rewarded, positive delta penalized
+            - hold (0): no action, no reward (delta is ignored)
+
+        Returns 0.0 if target column is not defined or we're at the final row.
         """
 
+        # Cannot compute reward if no target or at the final row (no next value to compare)
         if self._target_values is None or self._current_row >= self._row_count - 1:
             return 0.0
 
+        # Calculate the price movement from current to next timestep
         current_value = self._target_values[self._current_row]
         next_value = self._target_values[self._current_row + 1]
         delta = float(next_value - current_value)
 
-        if action == 1:
+        # Map action to reward: long benefits from positive delta, short from negative
+        if action == 1:  # long
             return delta
-        if action == 2:
+        if action == 2:  # short
             return -delta
 
-        return 0.0
+        return 0.0  # hold: no reward
 
     def reset(
         self,
@@ -193,6 +226,10 @@ class FinGym(gym.Env):
         options: dict[str, Any] | None = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
         """Reset to the first row of the tabular dataset.
+
+        Args:
+            seed: Optional random seed passed to the base Gymnasium environment.
+            options: Optional dictionary of reset options (currently unused).
 
         Returns:
             ``(observation, info)`` where observation is the first row feature
@@ -210,25 +247,40 @@ class FinGym(gym.Env):
         return observation, info
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
-        """Advance one row and return Gymnasium step tuple.
+        """Advance one row and return standard Gymnasium step tuple.
 
-        The environment advances until the final valid transition
-        ``row_count - 2 -> row_count - 1`` has been consumed.
+        Each step represents processing one row of the dataset. The environment
+        terminates after the final valid transition (row_count-2 -> row_count-1),
+        at which point there is no next row to transition to.
+
+        Args:
+            action: One of 0 (hold), 1 (long), or 2 (short)
+
+        Returns:
+            (observation, reward, terminated, truncated, info)
+
+        Raises:
+            ValueError: If ``action`` is not a valid value in the action space.
         """
 
+        # Validate action is in the discrete space {0, 1, 2}
         if not self.action_space.contains(action):
             raise ValueError(f"Invalid action: {action}")
 
+        # Compute reward based on how well the action aligns with the next price move
         reward = self._reward_from_action(action)
 
-        # Terminal is raised when there is no next transition to evaluate.
+        # Episode ends when we reach the last row (no next row to transition to for reward)
         terminated = self._current_row >= self._row_count - 2
-        truncated = False
+        truncated = False  # We don't use Gymnasium truncation; only proper termination
 
+        # Only advance if not terminated; at termination we stay at the final valid row
         if not terminated:
             self._current_row += 1
 
+        # Fetch the observation (feature vector) for the current row
         observation = self._current_observation()
+        # Include metadata for debugging and post-episode analysis
         info = {
             "row_index": self._current_row,
             "reward_source": self._target_column,
@@ -237,10 +289,11 @@ class FinGym(gym.Env):
         return observation, reward, terminated, truncated, info
 
     def render(self) -> dict[str, Any]:
-        """Return the current row payload for debugging/inspection.
+        """Return the current row for debugging and inspection.
 
-        This returns structured data rather than printing so callers can log,
-        assert, or visualize the current state as needed.
+        Returns structured data (not print output) so callers can easily log,
+        assert, visualize, or analyze the raw row content without parsing strings.
+        Useful for understanding why an episode behaved as it did.
         """
 
         row = self._raw_frame.iloc[self._current_row]

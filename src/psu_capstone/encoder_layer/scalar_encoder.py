@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Iterable, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.log import get_logger, logger
 
 
@@ -303,7 +303,7 @@ class ScalarEncoder(BaseEncoder[int]):
 
 
 @dataclass
-class ScalarEncoderParameters(ParentDataClass):
+class ScalarEncoderParameters:
     """Configuration parameters for :class:`ScalarEncoder`."""
 
     minimum: int = 0
