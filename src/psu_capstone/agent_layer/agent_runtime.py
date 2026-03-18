@@ -1,11 +1,35 @@
-"""Unified runtime flow for Agent, Brain, server, and local env execution.
+"""
+Unified runtime flow for Agent, Brain, server, and local env execution.
 
-This module is the single orchestration point for:
-- choosing the correct adapter for a requested environment
-- building a Brain that matches that environment's observation/action schema
-- constructing the Agent
-- running a websocket server for frontend-driven sessions
-- running a local Gym session for render-based testing
+This module is the main entry point for connecting your backend RL agent to a frontend web app.
+
+It handles:
+1. Picking the right environment adapter (Gym or frontend-driven)
+2. Building the Brain (encoder, SDR, etc.) to match the environment
+3. Constructing the Agent (policy, training, etc.)
+4. Running the WebSocket server so your frontend can connect and control episodes
+5. Running local Gym sessions for backend-only testing
+
+CALL CHAIN SUMMARY (backend to frontend):
+1. run_server(config): Starts the WebSocket server for frontend connections
+2. build_runtime(config): Builds adapter, Brain, Agent for the requested env
+3. build_adapter(config): Chooses Gym or frontend adapter, passes max_steps_per_episode
+4. build_brain_for_adapter(adapter, config): Sets up Brain fields to match env inputs/actions
+5. AgentWebSocketServer: Handles WebSocket messages, episode state, and sends info to frontend
+6. Frontend connects via WebSocket, sends commands (start_episode, step, etc.), receives state/results
+
+TROUBLESHOOTING TIPS:
+- If frontend doesn't see max_steps_per_episode, check build_adapter passes it to EnvAdapter
+- If frontend can't start episodes, verify AgentWebSocketServer is running and reachable
+- If Gym env doesn't match frontend, check env_id and adapter selection logic
+- For custom environments, update FRONTEND_ENV_SPECS and adapter logic
+
+To get the backend and frontend working together:
+* Always start the server with run_server(config)
+* Make sure your frontend connects to the correct ws://host:port
+* Use the documented WebSocket protocol (see AGENT_WEBSOCKET_SERVER.md)
+* Pass max_steps_per_episode and other config values through AgentRuntimeConfig
+* Debug with logs from agent_server and agent_runtime for connection/state issues
 """
 
 from __future__ import annotations
@@ -140,11 +164,15 @@ class AgentRuntime:
 def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tuple[Any, bool]:
     """Build the correct adapter for the requested environment id."""
 
+    # Decide which adapter to use:
+    # - FrontendEnvAdapter: for frontend-driven envs (web app controls episode)
+    # - EnvAdapter: for Gym environments (backend controls episode)
     use_frontend_adapter = (
         allow_frontend_env and config.env_id in FRONTEND_ENV_SPECS and config.policy_mode != "ppo"
     )
 
     if use_frontend_adapter:
+        # Build frontend adapter for web-driven environments
         spec = cast(FrontendEnvSpec, FRONTEND_ENV_SPECS[config.env_id])
         adapter = FrontendEnvAdapter(
             env_name=config.env_id,
@@ -154,6 +182,7 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
         )
         return adapter, True
 
+    # Build Gym adapter for backend-driven environments
     adapter_kwargs: dict[str, Any] = {}
     if config.render_mode is not None:
         adapter_kwargs["render_mode"] = config.render_mode
@@ -163,6 +192,7 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
     try:
         return EnvAdapter(config.env_id, **adapter_kwargs), False
     except Exception as exc:
+        # Error handling for adapter creation
         if config.env_id in FRONTEND_ENV_SPECS and not allow_frontend_env:
             raise ValueError(
                 f"Environment '{config.env_id}' is frontend-driven in this mode. Use server mode for frontend aliases or pass a valid Gym env id."
