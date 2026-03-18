@@ -19,10 +19,49 @@ from typing import Any, Literal
 
 import numpy as np
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.log import get_logger
+
+
+class BrainTrainingCallback(BaseCallback):
+    """SB3 callback that feeds each PPO rollout step into the HTM Brain.
+
+    During PPO's internal training loop, this callback intercepts every
+    environment transition and runs it through ``brain.step()`` so the
+    Temporal Memory builds up predictive context from the same experience
+    that trains the PPO policy.
+    """
+
+    def __init__(self, brain: Brain, adapter: EnvAdapter) -> None:
+        super().__init__(verbose=0)
+        self._brain = brain
+        self._adapter = adapter
+
+    def _on_step(self) -> bool:
+        """Called by SB3 after every environment step in the rollout."""
+        try:
+            obs = self.locals.get("obs_tensor")
+            if obs is None:
+                return True
+            rewards = self.locals.get("rewards")
+            # obs_tensor is a torch.Tensor of shape (n_envs, obs_dim)
+            import torch
+
+            if isinstance(obs, torch.Tensor):
+                obs_np = obs.cpu().numpy()
+            else:
+                obs_np = np.asarray(obs)
+            for i, row in enumerate(obs_np):
+                inputs = self._adapter.observation_to_inputs(row.astype(np.float32))
+                if rewards is not None:
+                    inputs["reward"] = float(rewards[i])
+                self._brain.step(inputs, learn=True)
+        except Exception:
+            pass  # never interrupt PPO training for brain errors
+        return True
 
 
 class Agent:
@@ -124,7 +163,8 @@ class Agent:
             raise ValueError("ppo policy mode requires an adapter with a Gym environment (_env).")
 
         env = self._adapter._env
-        return PPO(self._ppo_policy, env, verbose=0, **self._ppo_kwargs)
+        kwargs = {"device": "cpu", **self._ppo_kwargs}
+        return PPO(self._ppo_policy, env, verbose=0, **kwargs)
 
     def _select_ppo_action(self, obs: Any) -> Any:
         """Select an action from the configured PPO-style policy model."""
@@ -137,6 +177,31 @@ class Agent:
         if isinstance(action, np.ndarray) and action.shape == ():
             return action.item()
         return action
+
+    def train_ppo(self, total_timesteps: int = 50_000) -> None:
+        """Train the PPO model for the given number of environment timesteps.
+
+        Args:
+            total_timesteps: Total environment steps to train for.
+                50 000 is enough for CartPole-v1 to converge reliably.
+        """
+        if self._policy_mode != "ppo":
+            raise RuntimeError("train_ppo() called but policy_mode is not 'ppo'.")
+        if self._ppo_model is None:
+            self._ppo_model = self._build_ppo_model()
+        self._logger.info("Training PPO for %d timesteps...", total_timesteps)
+        brain_callback = BrainTrainingCallback(self._brain, self._adapter)
+        self._ppo_model.learn(total_timesteps=total_timesteps, callback=brain_callback)
+        self._logger.info("PPO training complete.")
+
+    def switch_policy(self, new_mode: Literal["q_table", "brain", "ppo"]) -> None:
+        """Switch the active policy mode at runtime.
+
+        Args:
+            new_mode: The policy mode to switch to.
+        """
+        self._logger.info("Switching policy from '%s' to '%s'.", self._policy_mode, new_mode)
+        self._policy_mode = new_mode
 
     def _new_q_row(self) -> np.ndarray:
         """Create a zero-initialized action-value row for one state."""
@@ -338,7 +403,10 @@ class Agent:
         obs: Any,
         brain_outputs: dict[str, Any] | None,
     ) -> Any:
-        """Select action from output-field hints, then prediction scoring, then q-table fallback."""
+        """Select action from output-field hints, then prediction scoring.
+
+        Fallback chain: brain → ppo → q_table.
+        """
 
         if isinstance(brain_outputs, dict):
             action_hint, confidence = self._extract_action_from_brain_outputs(brain_outputs)
@@ -353,14 +421,12 @@ class Agent:
                     )
                 return action_hint
             if action_hint is not None:
-                # If Brain produced an action but confidence is low, prefer the
-                # tabular baseline over predictive decode fallback.
                 self._logger.info(
-                    "Brain action confidence %.3f below threshold %.3f; falling back to q_table.",
+                    "Brain action confidence %.3f below threshold %.3f; falling back to ppo.",
                     confidence,
                     self._brain_action_confidence_threshold,
                 )
-                return self._select_q_action(obs)
+                return self._select_ppo_or_q_action(obs)
 
         candidate_actions = self._candidate_actions()
 
@@ -370,18 +436,16 @@ class Agent:
 
         predictions = self._brain.prediction()
         if not isinstance(predictions, dict):
-            # Current Brain API is still evolving; use q_table as a robust fallback.
-            self._logger.info("Brain predictions unavailable; falling back to q_table.")
-            return self._select_q_action(obs)
+            self._logger.info("Brain predictions unavailable; falling back to ppo.")
+            return self._select_ppo_or_q_action(obs)
 
         action_predictions = {
             key: value for key, value in predictions.items() if key.startswith("action")
         }
 
         if not action_predictions:
-            # No action-like prediction keys yet, so use the baseline selector.
-            self._logger.info("No action-like brain predictions; falling back to q_table.")
-            return self._select_q_action(obs)
+            self._logger.info("No action-like brain predictions; falling back to ppo.")
+            return self._select_ppo_or_q_action(obs)
 
         action = max(
             candidate_actions,
@@ -392,6 +456,13 @@ class Agent:
         )
         self._last_action_source = "brain"
         return action
+
+    def _select_ppo_or_q_action(self, obs: Any) -> Any:
+        """Use PPO if available and trained, otherwise fall back to q_table."""
+        if self._ppo_model is not None:
+            return self._select_ppo_action(obs)
+        self._logger.info("PPO model not available; falling back to q_table.")
+        return self._select_q_action(obs)
 
     def select_action(self, obs: Any, brain_outputs: dict[str, Any] | None = None) -> Any:
         """Dispatch action selection to the active policy implementation.

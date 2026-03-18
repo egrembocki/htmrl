@@ -15,8 +15,8 @@ from psu_capstone.environment.env_adapter import EnvAdapter  # noqa: E402
 from psu_capstone.log import get_logger  # noqa: E402
 
 
-def build_agent(env_id: str) -> Agent:
-    """Build an agent for the specified environment."""
+def build_agent(env_id: str, ppo_timesteps: int = 50_000) -> Agent:
+    """Build and (for PPO) pre-train an agent for the specified environment."""
     try:
         from psu_capstone.agent_layer.cartpole_brain_training import (
             CartPoleTrainingConfig,
@@ -30,8 +30,13 @@ def build_agent(env_id: str) -> Agent:
             brain=brain,
             adapter=adapter,
             episodes=config.episodes,
-            policy_mode="brain",
+            policy_mode="ppo",
         )
+        if ppo_timesteps > 0:
+            logger = get_logger(None)
+            logger.info("Pre-training PPO for %d timesteps...", ppo_timesteps)
+            agent.train_ppo(total_timesteps=ppo_timesteps)
+            logger.info("PPO pre-training complete.")
         return agent
     except ImportError:
         raise ImportError(
@@ -46,10 +51,16 @@ async def main(args: argparse.Namespace) -> None:
 
     try:
         logger.info(f"Building {args.env} agent...")
-        agent = build_agent(args.env)
+        agent = build_agent(args.env, ppo_timesteps=args.ppo_timesteps)
 
         logger.info(f"Starting WebSocket server on ws://{args.host}:{args.port}")
-        server = AgentWebSocketServer(agent, host=args.host, port=args.port)
+        server = AgentWebSocketServer(
+            agent,
+            host=args.host,
+            port=args.port,
+            switch_after_episodes=args.switch_episodes,
+            switch_min_reward=args.switch_reward,
+        )
 
         logger.info(f"Server is running. Connect your web client to ws://{args.host}:{args.port}")
         logger.info("Press Ctrl+C to stop the server.")
@@ -89,6 +100,24 @@ if __name__ == "__main__":
         type=int,
         default=8765,
         help="WebSocket server bind port (default: 8765)",
+    )
+    parser.add_argument(
+        "--ppo-timesteps",
+        type=int,
+        default=50_000,
+        help="Timesteps to pre-train PPO before serving (default: 50000, 0 to skip)",
+    )
+    parser.add_argument(
+        "--switch-episodes",
+        type=int,
+        default=100,
+        help="Switch from PPO to brain after this many episodes meet the reward threshold (default: 100)",
+    )
+    parser.add_argument(
+        "--switch-reward",
+        type=float,
+        default=100.0,
+        help="Mean reward threshold required to trigger policy switch to brain (default: 100.0)",
     )
     parser.add_argument(
         "--log-level",

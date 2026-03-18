@@ -38,6 +38,9 @@ class AgentWebSocketServer:
         host: str = "localhost",
         port: int = 8765,
         log_level: int = logging.INFO,
+        auto_switch_to_brain: bool = True,
+        switch_after_episodes: int = 100,
+        switch_min_reward: float = 100.0,
     ) -> None:
         self._agent = agent
         self._host = host
@@ -49,6 +52,11 @@ class AgentWebSocketServer:
         )
         self._connections: set[ServerConnection] = set()
         self._episode_state: dict[ServerConnection, dict[str, Any]] = {}
+        self._auto_switch_to_brain = auto_switch_to_brain
+        self._switch_after_episodes = switch_after_episodes
+        self._switch_min_reward = switch_min_reward
+        self._policy_switched = False
+        self._recent_episode_rewards: list[float] = []
 
     async def handle_client(self, websocket: ServerConnection) -> None:
         """Handle a single client connection lifecycle.
@@ -147,7 +155,7 @@ class AgentWebSocketServer:
             obs = data.get("observation") or data.get("obs")
             reward = data.get("reward", 0.0)
             done = data.get("done", False)
-            return await self._handle_observation(client_id, obs, reward, done)
+            return await self._handle_observation(websocket, client_id, obs, reward, done)
         elif msg_type == "step":
             inputs = data.get("inputs", {})
             return await self._handle_step(client_id, inputs)
@@ -238,6 +246,7 @@ class AgentWebSocketServer:
 
     async def _handle_observation(
         self,
+        websocket: ServerConnection,
         client_id: int,
         obs: Any,
         reward: float,
@@ -315,6 +324,7 @@ class AgentWebSocketServer:
                 state["episode_active"] = False
                 state["prev_obs"] = None
                 state["prev_action"] = None
+                await self._check_policy_switch(websocket, state["total_reward"])
 
             self._logger.debug(
                 f"Observation step {state['step_num']}: action={action}, "
@@ -333,6 +343,48 @@ class AgentWebSocketServer:
             self._logger.error(f"Observation handling failed for client {client_id}: {e}")
             state["episode_active"] = False
             return {"type": "error", "message": f"Observation handling failed: {str(e)}"}
+
+    async def _check_policy_switch(
+        self, websocket: ServerConnection, episode_reward: float
+    ) -> None:
+        """Switch from PPO to brain policy after sustained good performance."""
+        if (
+            self._policy_switched
+            or not self._auto_switch_to_brain
+            or self._agent._policy_mode != "ppo"
+        ):
+            return
+
+        self._recent_episode_rewards.append(episode_reward)
+        # Keep only the last N episodes for the rolling window
+        if len(self._recent_episode_rewards) > self._switch_after_episodes:
+            self._recent_episode_rewards.pop(0)
+
+        if len(self._recent_episode_rewards) < self._switch_after_episodes:
+            return
+
+        mean_reward = sum(self._recent_episode_rewards) / len(self._recent_episode_rewards)
+        if mean_reward >= self._switch_min_reward:
+            self._agent.switch_policy("brain")
+            self._policy_switched = True
+            self._logger.info(
+                "Auto-switched to brain policy after %d episodes (mean reward %.1f).",
+                self._switch_after_episodes,
+                mean_reward,
+            )
+            try:
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "type": "policy_switched",
+                            "new_policy": "brain",
+                            "trigger_episodes": self._switch_after_episodes,
+                            "mean_reward": mean_reward,
+                        }
+                    )
+                )
+            except Exception:
+                pass
 
     async def _handle_stop(self, client_id: int) -> dict[str, Any]:
         """Stop the current episode."""
