@@ -39,6 +39,7 @@ _EXPORTS = {
     "Brain": ("psu_capstone.agent_layer.brain", "Brain"),
     "ColumnField": (HTM_MODULE, "ColumnField"),
     "Field": (HTM_MODULE, "Field"),
+    "Cell": (HTM_MODULE, "Cell"),
     "InputField": (HTM_MODULE, "InputField"),
     "OutputField": (HTM_MODULE, "OutputField"),
     "Trainer": ("psu_capstone.agent_layer.train", "Trainer"),

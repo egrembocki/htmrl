@@ -1,49 +1,22 @@
-@startuml
+@startuml us-06-train-brain
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-06 Train Brain (TODO: Update to match Brain Class and HTM Interface)
 
-actor "Developer" as Dev
-participant "<u>b:Brain</u>" as B
-participant "<u>if:InputField(s)</u>" as IF
-participant "<u>cf:ColumnField</u>" as CF
-participant "<u>h:HTM Engine</u>" as H
-participant "<u>of:OutputField(s)</u>" as OF
+title US-06 Train Brain (Trainer, Brain)
 
-Dev -> B: step(inputs, learn=True)
+actor Developer as D
+participant "trainer:Trainer" as TM
+participant "brain:Brain" as B
+
+D -> TM: train_brain(config, data)
+activate TM
+TM -> B: fit(data)
 activate B
-
-== 1) Encode inputs ==
-B -> IF: encode(value)
-activate IF
-IF --> B: encoded SDRs
-
-deactivate IF
-
-== 2) Delegate learning to HTM via ColumnField ==
-B -> CF: compute(encoded SDRs, learn=True)
-activate CF
-CF -> H: compute(learn=True)
-activate H
-H -> H: advance_states()
-H -> H: spatial pooling overlap + inhibition
-H -> H: temporal memory activation + prediction
-H -> H: learning updates (grow/adapt/weaken)
-H --> CF: active_columns,predictive_cells, anomaly_score,learning_state
-
-deactivate H
-CF --> B: HTM state package
-
-deactivate CF
-
-== 3) Decode and publish result ==
-B -> OF: decode(predictive state)
-activate OF
-OF --> B: decoded value + confidence
-
-deactivate OF
-B --> Dev: prediction payload
-
+B -> TM: feedback, stats
+TM -> B: step(inputs, learn=True)
+B --> TM: prediction, model update
 deactivate B
+TM --> D: training report + model refs
+deactivate TM
 @enduml
