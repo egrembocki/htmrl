@@ -15,14 +15,14 @@ class EnvInterface(Protocol):
         """
         ...
 
+    def reset(self) -> None:
+        """Reset the env to base state"""
+        ...
+
     def render(self) -> None:
         """Renders the current state of the environment."""
         ...
 
-    def close(self) -> tuple[float, Any, Any]:
-        """Closes the environment and returns the final observation."""
-        ...
-
-    def reset(self) -> None:
-        """Resets the environment to its initial state."""
+    def close(self) -> None:
+        """Cleans up any resources used by the environment."""
         ...

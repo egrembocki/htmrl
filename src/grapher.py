@@ -19,10 +19,14 @@ from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq
 
-import psu_capstone.encoder_layer as el
-import psu_capstone.input_layer as il
 from legacy.sdr_layer.sdr import SDR
-from utils import PROJECT_ROOT
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.log import logger
+from utils import DATA_PATH, PROJECT_ROOT
 
 # Use Agg backend (non-interactive but reliable on all systems)
 
@@ -150,8 +154,8 @@ def plot_signal(
         title: Optional label appended to plot titles.
 
     Raises:
-        ValueError: If the signal is empty, sample_rate is not positive, domain is invalid,
-            or there are fewer than 2 samples for frequency plotting.
+        ValueError: If the signal is empty, ``sample_rate`` is not positive,
+            or ``domain`` is not one of ``'time'``, ``'frequency'``, or ``'both'``.
     """
 
     values = np.asarray(signal, dtype=float).flatten()
@@ -177,7 +181,7 @@ def plot_signal(
         plt.show(block=True)
 
     if selected_domain in {"frequency", "both"}:
-        freq_data: np.ndarray = np.asarray(fft(values))
+        freq_data = fft(values)
         samples = len(freq_data)
         if samples < 2:
             raise ValueError("Signal must contain at least 2 samples for frequency plotting.")
@@ -197,7 +201,7 @@ def plot_signal(
 
 def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
     """Plot time-domain data and FFT magnitude spectrum for the specified dataset."""
-    ih = il.InputHandler()
+    ih = InputHandler()
 
     signal = ih.input_data(os.path.join(PROJECT_ROOT, "data", dataset))
 
@@ -219,7 +223,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
 
         plot_signal(values, sample_rate=sample_rate, domain="both", title=column)
 
-        freq_data: np.ndarray = np.asarray(fft(values))
+        freq_data = fft(values)
         samples = len(freq_data)
         magnitudes = np.abs(freq_data[1 : samples // 2])
         freq_bin = fftfreq(samples, 1 / sample_rate)[1 : samples // 2]
@@ -227,7 +231,7 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
         peak_freq = freq_bin[peak_index]
         print(f"Plot Peak Frequency: {peak_freq} Hz")
 
-        fft_encoder = el.FourierEncoder(el.FourierEncoderParameters())
+        fft_encoder = FourierEncoder(FourierEncoderParameters())
 
         sdr = fft_encoder.encode(values)
 
@@ -236,8 +240,8 @@ def visualize_signal_fft(dataset: str, sample_rate: int) -> None:
 
 if __name__ == "__main__":
 
-    fft_encoder = el.FourierEncoder(
-        el.FourierEncoderParameters(
+    fft_encoder = FourierEncoder(
+        FourierEncoderParameters(
             resolutions_in_ranges=[1.0, 1.0],
             frequency_ranges=[(0, 100), (100, 500)],
             size=2048,
