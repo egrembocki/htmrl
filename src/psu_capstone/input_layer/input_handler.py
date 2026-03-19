@@ -53,6 +53,7 @@ class InputHandler:
         self._repeating_columns: list[str] = []
         self._is_repeating: bool = False
         self._contains_multidimensional_data: bool = False
+        self._fields: list[Any] = []
 
         if data is not None:
             self.input_data(data)
@@ -67,6 +68,15 @@ class InputHandler:
     @property
     def data(self) -> dict[Any, list[Any]]:
         return self._data
+
+    @property
+    def fields(self) -> list[Any]:
+        """Return input fields associated with this handler.
+
+        InputHandler currently normalizes tabular payloads directly and does not
+        build HTM Field objects here, so this defaults to an empty list.
+        """
+        return self._fields
 
     @data.setter
     def data(self, data: dict[Any, list[Any]]) -> None:
@@ -483,8 +493,6 @@ class InputHandler:
             A tuple containing a boolean indicating whether any repeating temporal columns were detected, and a list of
 
             column names that exhibit repeating temporal patterns based on the specified threshold.
-
-
 
 
         """

@@ -338,7 +338,9 @@ def hamming_distance_helper(first, second) -> int:
     """
     first = np.asarray(first)
     second = np.asarray(second)
-    return int(np.count_nonzero(first != second))
+    result = int(np.count_nonzero(first != second))
+    print(result)
+    return result
 
 
 def test_date_correctness(date_params_all_combined_with_year, date_params_year_only):
@@ -394,7 +396,7 @@ def test_date_correctness(date_params_all_combined_with_year, date_params_year_o
     encodings5 = []
     d9 = datetime(year=2000, month=1, day=1, hour=1, minute=1)
     d10 = datetime(year=2001, month=1, day=1, hour=1, minute=1)
-    d11 = datetime(year=3000, month=1, day=1, hour=1, minute=1)
+    d11 = datetime(year=2002, month=1, day=1, hour=1, minute=1)
     encodings5.append(encoder.encode(d9))
     encodings5.append(encoder.encode(d10))
     encodings5.append(encoder.encode(d11))

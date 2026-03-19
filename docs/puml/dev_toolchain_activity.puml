@@ -1,0 +1,37 @@
+@startuml act-00-pipeline-overview
+skinparam style strictuml
+skinparam shadowing false
+
+title ACT-00: Dev Toolchain Pipeline Overview
+
+start
+
+partition Developer {
+	:Pick dataset and run mode;
+	:Configure encoder and training parameters;
+}
+
+:Load and normalize input data;
+note right: <<detail>> act-01-input-tools.puml
+
+:Encode data to list[list[int]];
+note right: <<detail>> act-02-encoder-tools.puml
+
+if (Build and train a new Brain?) then (yes)
+	:Build Brain fields, train with Trainer;
+	note right: <<detail>> act-03-build-train-brain.puml
+else (no)
+	:Run inference on pre-trained Brain;
+	note right: <<detail>> act-04-brain-inference.puml
+endif
+
+:Run Brain through Env Adapter loop;
+note right: <<detail>> act-05-env-adapter-loop.puml
+
+partition Developer {
+	:Review reports and tune parameters;
+	:Repeat workflow as needed;
+}
+
+stop
+@enduml

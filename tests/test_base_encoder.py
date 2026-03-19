@@ -19,6 +19,8 @@ import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 
+# from legacy.sdr_layer.sdr import SDR
+
 
 @pytest.fixture
 def base_encoder_instance() -> BaseEncoder:

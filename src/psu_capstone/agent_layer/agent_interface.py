@@ -8,8 +8,8 @@ from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 
-from psu_capstone.agent_layer.legacy_htm.spatial_pooler import SpatialPooler
-from psu_capstone.sdr_layer.sdr_interface import SDRInterface
+from legacy.legacy_htm.spatial_pooler import SpatialPooler
+from legacy.sdr_layer.sdr_interface import SDRInterface
 
 
 @runtime_checkable
@@ -35,16 +35,38 @@ class AgentInterface(Protocol):
         """
         ...
 
-    def update_policy(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
-        """Update the agent's policy based on reinforcement learning experience.
+    def step(self, action: Any) -> tuple[np.ndarray, float, bool, dict[str, Any]]:
+        """Execute the given action and return the resulting experience tuple.
 
-        Takes a transition tuple (state, action, reward, next_state) and updates
-        the agent's internal models to improve future decision-making.
+        This method should interact with the environment to perform the action,
+        observe the next state, receive the reward, and determine if the episode
+        has terminated.
 
         Args:
-            state: The state before taking the action.
-            action: The action that was taken.
-            reward: The reward received from the environment.
-            next_state: The resulting state after taking the action.
+            action: The action to execute in the environment.
+
+        Returns:
+            A tuple of (next_state, reward, done, info) where:
+                - next_state: The new state observation after taking the action.
+                - reward: The reward received from the environment.
+                - done: A boolean indicating if the episode has ended.
+                - info: A dictionary with any additional information from the environment.
         """
+
+        ...
+
+    def update(self, state: tuple, action: Any, reward: float, next_state: tuple) -> None:
+        """Update the agent's internal model and policy based on experience.
+
+        This method should use the experience tuple (state, action, reward, next_state)
+        to update the agent's learning mechanism, such as updating the HTM model
+        or training a policy network.
+
+        Args:
+            state: The state observed before taking the action.
+            action: The action taken by the agent.
+            reward: The reward received from the environment.
+            next_state: The state observed after taking the action.
+        """
+
         ...

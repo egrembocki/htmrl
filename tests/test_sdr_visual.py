@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 from matplotlib.colors import ListedColormap
 
-from psu_capstone.sdr_layer.sdr import SDR
+from legacy.sdr_layer.sdr import SDR
 
 
 @pytest.fixture

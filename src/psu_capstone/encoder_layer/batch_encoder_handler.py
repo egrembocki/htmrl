@@ -187,7 +187,7 @@ class BatchEncoderHandler:
 # from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 # from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 # from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-# from psu_capstone.sdr_layer.sdr import SDR
+# from legacy.sdr_layer.sdr import SDR
 
 
 # class RdseThread(Thread):

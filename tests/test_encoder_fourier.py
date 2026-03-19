@@ -27,9 +27,9 @@ Tests validate:
 import numpy as np
 import pytest
 
+from legacy.sdr_layer.sdr import SDR
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
-from utils import hamming_distance, overlap
+from src.utils import hamming_distance, overlap
 
 _SIGNAL_LENGTH = 2048
 
