@@ -349,7 +349,7 @@ def test_real_brain_agent_adapter_gym_single_step_q_table() -> None:
         assert isinstance(transition["next_inputs"], dict)
         assert "reward" in transition
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_brain_policy_mode_fallback_to_q_table() -> None:
@@ -367,7 +367,7 @@ def test_real_brain_policy_mode_fallback_to_q_table() -> None:
         assert isinstance(transition["terminated"], bool)
         assert isinstance(transition["truncated"], bool)
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_brain_reads_and_encodes_adapter_inputs() -> None:
@@ -391,7 +391,7 @@ def test_real_brain_reads_and_encodes_adapter_inputs() -> None:
         for name, encode_spy in encode_spies.items():
             encode_spy.assert_called_once_with(transition["inputs"][name])
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_input_fields_encode_values_into_sdr_vectors() -> None:
@@ -411,7 +411,7 @@ def test_real_input_fields_encode_values_into_sdr_vectors() -> None:
             assert set(encoded).issubset({0, 1})
             assert sum(encoded) > 0
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_output_field_decode_drives_brain_policy_action() -> None:
@@ -433,4 +433,4 @@ def test_real_output_field_decode_drives_brain_policy_action() -> None:
         assert transition["action"] == 1
         assert transition["action"] in (0, 1)
     finally:
-        adapter._env.close()
+        adapter.env.close()

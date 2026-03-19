@@ -100,7 +100,7 @@ def train_cartpole_brain_policy(
             brain=brain,
             adapter=adapter,
             episodes=cfg.episodes,
-            policy_mode="ppo",
+            policy_mode="brain",
         )
 
         episode_rewards: list[float] = []
@@ -134,8 +134,8 @@ def train_cartpole_brain_policy(
             "best_reward": float(max(episode_rewards)) if episode_rewards else 0.0,
         }
     finally:
-        if hasattr(adapter._env, "close"):
-            adapter._env.close()
+        if hasattr(adapter.env, "close"):
+            adapter.env.close()
 
 
 def main() -> None:

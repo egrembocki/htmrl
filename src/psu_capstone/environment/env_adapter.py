@@ -62,7 +62,7 @@ class EnvAdapter(gym.Wrapper):
             # Allowed path: gym_env is an id, so create the env here and pass
             # constructor kwargs through to gym.make(...).
             # Example: EnvAdapter("CartPole-v1", render_mode="human").
-            wrapped_env = gym.make(gym_env, **gym_kwargs)
+            self._wrapped_env = gym.make(gym_env, **gym_kwargs)
         else:
             if gym_kwargs:
                 # Invalid path: gym_env is already an env instance.
@@ -73,16 +73,11 @@ class EnvAdapter(gym.Wrapper):
                 # 2) EnvAdapter(existing_env)  # no gym_kwargs
                 raise ValueError("gym_kwargs can only be used when gym_env is a string id.")
             # If the caller already built an env, just wrap it.
-            wrapped_env = gym_env
+            self._wrapped_env = gym_env
 
-        super().__init__(wrapped_env)
+        super().__init__(self._wrapped_env)
 
-        # Keep old private name for older code paths during migration.
-        self._env = self.env
-
-        # Keep old private names for compatibility with existing callers.
-        self._observation_space = self.observation_space
-        self._action_space = self.action_space
+        # Internal observation cache for episode state.
         self._obs: Any | None = None
 
     def _to_serializable(self, value: Any) -> Any:
