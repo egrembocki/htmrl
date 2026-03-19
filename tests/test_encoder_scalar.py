@@ -1,3 +1,4 @@
+# Test Suite: TS-03 (SDR Encoder Scalar)
 """
 Test suite for Scalar Encoder.
 
@@ -59,6 +60,7 @@ def do_scalar_value_cases(encoder: ScalarEncoder, cases: list[tuple[float, list[
 
 
 def test_scalar_encoder_initialization():
+    # TC-030
     """
     Test ScalarEncoder initialization with valid parameters.
 
@@ -98,6 +100,7 @@ def test_scalar_encoder_initialization():
 
 
 def test_clipping_inputs():
+    # TC-031
     """Test that inputs are correctly clipped to the specified min/max range."""
 
     # Arrange
@@ -132,6 +135,7 @@ def test_clipping_inputs():
 
 
 def test_valid_scalar_inputs():
+    # TC-032
     """Test that valid scalar inputs are encoded correctly."""
 
     # Arrange
@@ -163,6 +167,7 @@ def test_valid_scalar_inputs():
 
 
 def test_scalar_encoder_category_encode():
+    # TC-033
     """Test that category scalar inputs are encoded correctly."""
     # Arrange
     params = ScalarEncoderParameters(
@@ -198,6 +203,7 @@ def test_scalar_encoder_category_encode():
 
 
 def test_scalar_encoder_non_integer_bucket_width():
+    # TC-034
     """Test that scalar encoder handles non-integer bucket widths correctly."""
     # Arrange
     params = ScalarEncoderParameters(
@@ -224,6 +230,7 @@ def test_scalar_encoder_non_integer_bucket_width():
 
 
 def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
+    # TC-035
     """Test that scalar encoder rounds to the nearest multiple of resolution correctly."""
 
     # Arrange
@@ -264,6 +271,7 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
 
 
 def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
+    # TC-036
     """Test that periodic scalar encoder rounds to the nearest multiple of resolution correctly."""
     # Arrange
     params = ScalarEncoderParameters(
@@ -301,6 +309,7 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
 
 
 def test_scalar_encoder_serialization():
+    # TC-037
     """Test serialization and deserialization of ScalarEncoder."""
 
     # Arrange

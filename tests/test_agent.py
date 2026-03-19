@@ -1,3 +1,4 @@
+# Test Suite: TS 19 (Agent Orchestration and Policy Behavior)
 """Unit tests for Agent orchestration and policy behavior."""
 
 from __future__ import annotations
@@ -77,6 +78,7 @@ def real_agent_brain_with_output(real_brain_with_output, real_adapter):
 
 
 def test_q_table_policy_requires_discrete_action_space(real_brain):
+    # TC 155
     """q_table mode should reject non-discrete action spaces at construction."""
     env = gym.make("CartPole-v1")
     env.action_space = gym.spaces.Box(low=0, high=1, shape=(1,))
@@ -86,6 +88,7 @@ def test_q_table_policy_requires_discrete_action_space(real_brain):
 
 
 def test_q_values_row_initialized_by_action_count(real_brain, real_adapter):
+    # TC 156
     """Newly seen states should get zero Q rows sized to action-space cardinality."""
     agent = Agent(brain=real_brain, adapter=real_adapter, policy_mode="q_table")
     state_key = agent._initialize_q_values(real_adapter.reset_bridge()["inputs"])
@@ -97,6 +100,7 @@ def test_q_values_row_initialized_by_action_count(real_brain, real_adapter):
 
 
 def test_select_q_action_uses_argmax_when_not_exploring(real_brain, real_adapter):
+    # TC 157
     """With epsilon disabled, q_table policy should pick the maximum-valued action."""
     agent = Agent(brain=real_brain, adapter=real_adapter, policy_mode="q_table")
     obs = real_adapter.reset_bridge()["inputs"]
@@ -111,6 +115,7 @@ def test_select_q_action_uses_argmax_when_not_exploring(real_brain, real_adapter
 
 
 def test_update_applies_q_learning_bootstrap_target(real_brain, real_adapter):
+    # TC 158
     """update should apply one-step Q-learning with next-state bootstrap value."""
     agent = Agent(brain=real_brain, adapter=real_adapter, policy_mode="q_table")
     # obs not used, remove
@@ -128,6 +133,7 @@ def test_update_applies_q_learning_bootstrap_target(real_brain, real_adapter):
 
 
 def test_update_ignores_bootstrap_on_terminal_transition(real_brain, real_adapter):
+    # TC 159
     """update should not bootstrap next-state value when transition is terminal."""
     agent = Agent(brain=real_brain, adapter=real_adapter, policy_mode="q_table")
     # obs not used, remove
@@ -148,6 +154,7 @@ def test_update_ignores_bootstrap_on_terminal_transition(real_brain, real_adapte
 
 
 def test_update_is_noop_for_brain_policy_mode(real_brain, real_adapter):
+    # TC 160
     """update should not mutate q-table values when running in brain policy mode."""
     agent = Agent(brain=real_brain, adapter=real_adapter, policy_mode="brain")
     state_key = agent._state_key(real_adapter.reset_bridge()["inputs"])
@@ -175,6 +182,7 @@ def test_update_is_noop_for_brain_policy_mode(real_brain, real_adapter):
 
 
 def test_step_runs_brain_then_env_and_returns_transition(real_agent_q_table):
+    # TC 161
     """Agent.step should process Brain input, act, and return the transition payload."""
     transition = real_agent_q_table.step(learn=False)
     print("DEBUG transition:", transition)
@@ -187,18 +195,21 @@ def test_step_runs_brain_then_env_and_returns_transition(real_agent_q_table):
 
 
 def test_brain_policy_uses_action_from_brain_step_output() -> None:
+    # TC 162
     """brain mode should prefer direct action hints from Brain.step outputs."""
 
     # Removed: test_brain_policy_uses_action_from_brain_step_output (stub-only)
 
 
 def test_ppo_policy_selects_action_from_injected_model() -> None:
+    # TC 163
     """ppo mode should delegate action selection to internally built PPO model."""
 
     # Removed: test_ppo_policy_selects_action_from_injected_model (stub-only)
 
 
 def test_ppo_policy_without_model_raises_value_error() -> None:
+    # TC 164
     """ppo mode should fail fast when adapter does not expose a Gym env."""
 
     # Removed: test_ppo_policy_without_model_raises_value_error (stub-only)

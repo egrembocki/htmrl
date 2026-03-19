@@ -1,3 +1,4 @@
+# Test Suite: TS-02 (SDR Operations)
 """
 tests.test_sdr_suite
 
@@ -35,6 +36,7 @@ def sdr_fixture():
 
 
 def test_sdr_creation():
+    # TC-011
     """Test SDR creation and basic properties."""
 
     # Arrange
@@ -50,6 +52,7 @@ def test_sdr_creation():
 
 
 def test_sdr_initialization_and_properties(sdr_fixture):
+    # TC-012
     # Arrange
     sdr = sdr_fixture
     # Act
@@ -63,6 +66,7 @@ def test_sdr_initialization_and_properties(sdr_fixture):
 
 
 def test_sdr_zero_and_dense_sparse(sdr_fixture):
+    # TC-013
     # Arrange
     sdr = sdr_fixture
     # Act
@@ -81,6 +85,7 @@ def test_sdr_zero_and_dense_sparse(sdr_fixture):
 
 
 def test_sdr_set_coordinates_and_get_coordinates(sdr_fixture):
+    # TC-014
     # Arrange
     sdr = sdr_fixture
     coords = [[0, 1, 2], [2, 1, 4]]
@@ -92,6 +97,7 @@ def test_sdr_set_coordinates_and_get_coordinates(sdr_fixture):
 
 
 def test_sdr_reshape(sdr_fixture):
+    # TC-015
     # Arrange
     sdr = sdr_fixture
     sdr.set_dense([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
@@ -103,6 +109,7 @@ def test_sdr_reshape(sdr_fixture):
 
 
 def test_sdr_at_byte(sdr_fixture):
+    # TC-016
     # Arrange
     sdr = sdr_fixture
     sdr.set_dense([1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
@@ -114,6 +121,7 @@ def test_sdr_at_byte(sdr_fixture):
 
 
 def test_sdr_set_sdr(sdr_fixture):
+    # TC-017
     # Arrange
     sdr1 = SDR([4])
     sdr2 = SDR([4])
@@ -125,6 +133,7 @@ def test_sdr_set_sdr(sdr_fixture):
 
 
 def test_sdr_metrics(sdr_fixture):
+    # TC-018
     # Arrange
     sdr = SDR([5])
     sdr.set_sparse([0, 2, 4])
@@ -137,6 +146,7 @@ def test_sdr_metrics(sdr_fixture):
 
 
 def test_sdr_get_overlap(sdr_fixture):
+    # TC-019
     # Arrange
     sdr1 = SDR([5])
     sdr2 = SDR([5])
@@ -149,6 +159,7 @@ def test_sdr_get_overlap(sdr_fixture):
 
 
 def test_sdr_intersection_and_union(sdr_fixture):
+    # TC-020
     # Arrange
     sdr1 = SDR([3])
     sdr2 = SDR([3])
@@ -167,6 +178,7 @@ def test_sdr_intersection_and_union(sdr_fixture):
 
 
 def test_sdr_concatenate(sdr_fixture):
+    # TC-021
     # Arrange
     sdr1 = SDR([2])
     sdr2 = SDR([2])
@@ -181,6 +193,7 @@ def test_sdr_concatenate(sdr_fixture):
 
 
 def test_sdr_callbacks(sdr_fixture):
+    # TC-022
     # Arrange
     sdr = SDR([2])
     called = []
@@ -209,6 +222,7 @@ def test_sdr_callbacks(sdr_fixture):
 
 
 def test_sdr_randomize_add_noise_kill_cells(sdr_fixture):
+    # TC-023
     # Arrange
     sdr = SDR([10])
     # Act
@@ -226,6 +240,7 @@ def test_sdr_randomize_add_noise_kill_cells(sdr_fixture):
 
 
 def test_sdr_eq_repr(sdr_fixture):
+    # TC-024
     # Arrange
     sdr1 = SDR([3])
     sdr2 = SDR([3])
@@ -240,6 +255,7 @@ def test_sdr_eq_repr(sdr_fixture):
 
 
 def test_sdr_set_and_get_sparse():
+    # TC-025
     """Test setting and getting sparse representation."""
 
     # Arrange
@@ -254,6 +270,7 @@ def test_sdr_set_and_get_sparse():
 
 
 def test_sdr_zero():
+    # TC-026
     """Test zeroing the SDR."""
 
     # Arrange
@@ -269,6 +286,7 @@ def test_sdr_zero():
 
 
 def test_sdr_set_dense():
+    # TC-027
     """Test setting dense representation and converting to sparse."""
 
     # Arrange
@@ -284,6 +302,7 @@ def test_sdr_set_dense():
 
 
 def test_sdr_64_32_init():
+    # TC-028
     """Test SDR creation with dimensions [64, 32]."""
 
     # Arrange
@@ -301,6 +320,7 @@ def test_sdr_64_32_init():
 
 
 def test_sdr_destroy():
+    # TC-029
     """Test SDR destruction."""
 
     # Arrange
