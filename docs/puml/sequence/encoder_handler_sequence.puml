@@ -1,6 +1,7 @@
 @startuml
 ' Dynamic routing inside EncoderHandler
 skinparam style strictuml
+skinparam defaultFontSize 20
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 

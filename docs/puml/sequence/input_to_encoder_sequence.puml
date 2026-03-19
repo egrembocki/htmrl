@@ -1,6 +1,7 @@
 @startuml
 ' Focused handoff from normalized records to encoder-ready vectors
 skinparam style strictuml
+skinparam defaultFontSize 20
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 

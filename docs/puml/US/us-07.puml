@@ -1,4 +1,9 @@
 @startuml
+scale 2000 width
+scale 2000 height
+skinparam TitleFontSize 40
+skinparam ObjectFontSize 30
+skinparam DefaultFontSize 32
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
@@ -6,7 +11,7 @@ title US-07 Use HTM Engine
 
 actor "Brain" as B
 participant "<u>cf:ColumnField</u>" as CF
-participant "<u>h:HTM Engine</u>" as H
+participant "HTM" as H
 
 group Included by higher-level user stories
   ref over B,H

@@ -1,4 +1,9 @@
 @startuml
+scale 2000 width
+scale 2000 height
+skinparam TitleFontSize 40
+skinparam ObjectFontSize 30
+skinparam DefaultFontSize 32
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true

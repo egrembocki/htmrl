@@ -2,6 +2,7 @@
 skinparam style strictuml
 skinparam shadowing false
 
+skinparam defaultFontSize 20
 title ACT-00: Dev Toolchain Pipeline Overview
 
 start

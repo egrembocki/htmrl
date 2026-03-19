@@ -2,6 +2,7 @@
 skinparam style strictuml
 skinparam shadowing false
 
+skinparam defaultFontSize 20
 title ACT-02: Encoder Tools (EncoderHandler + Encoders)
 
 start

@@ -1,29 +1,33 @@
 """
 Integration tests for Encoder layer and HTM (agent_layer) integration.
 
+Team 20 SWENG 481 Mapping:
+Test Suite ID: TS-11 (Integration Systems)
+Test Cases: TI-001 to TI-014
+
 This test suite validates the integration between various encoder types and the HTM
 architecture, including InputField, ColumnField, and the full encode-compute-decode pipeline.
 
 Key Test Categories:
-  1. **RDSE-InputField Integration**: Verifies RDSE encoders work within InputField
-  2. **ColumnField with various encoders**: Tests spatial pooling with different input patterns
-  3. **Temporal learning (non_temporal=True)**: Validates that temporal tests work with flag to bypass buggy code
-  4. **Decoder integration**: Tests encode-compute-decode round trip
-  5. **Parameter validation**: Ensures all parameter combinations work correctly
+    1. **RDSE-InputField Integration**: Verifies RDSE encoders work within InputField
+    2. **ColumnField with various encoders**: Tests spatial pooling with different input patterns
+    3. **Temporal learning (non_temporal=True)**: Validates that temporal tests work with flag to bypass buggy code
+    4. **Decoder integration**: Tests encode-compute-decode round trip
+    5. **Parameter validation**: Ensures all parameter combinations work correctly
 
 Recent Code Changes Addressed:
-  - Tests use sparsity=0.0 explicitly when setting active_bits (mutual exclusivity)
-  - Temporal learning tests use non_temporal=True to avoid HTM temporal memory bug
-    (bug in HTM.py line 452: best_potential_prev_active_segment() calls len() on int)
-  - InputField.decode() now returns (value, confidence) tuple
-  - OutputField requires (size, motor_action) parameters
-  - Tests updated to unpack tuples and validate both values correctly
+    - Tests use sparsity=0.0 explicitly when setting active_bits (mutual exclusivity)
+    - Temporal learning tests use non_temporal=True to avoid HTM temporal memory bug
+        (bug in HTM.py line 452: best_potential_prev_active_segment() calls len() on int)
+    - InputField.decode() now returns (value, confidence) tuple
+    - OutputField requires (size, motor_action) parameters
+    - Tests updated to unpack tuples and validate both values correctly
 
 Why Tests Pass:
-  - RDSE parameter validation enforces mutual exclusivity at encoder init
-  - Spatial pooling (non-temporal) works correctly with proper initialization
-  - Temporal flag prevents execution of buggy temporal path
-  - Integration tests verify end-to-end pipeline with parameter constraints
+    - RDSE parameter validation enforces mutual exclusivity at encoder init
+    - Spatial pooling (non-temporal) works correctly with proper initialization
+    - Temporal flag prevents execution of buggy temporal path
+    - Integration tests verify end-to-end pipeline with parameter constraints
 """
 
 import datetime
@@ -51,6 +55,7 @@ class TestInputFieldRDSEIntegration:
     """
 
     def test_input_field_initialization_with_rdse(self):
+        # TI-001: Ensures that our input can reach the encoder and be transformed into a valid SDR.
         """
         Test InputField initialization with RDSE parameters.
 
@@ -80,6 +85,7 @@ class TestInputFieldRDSEIntegration:
         assert input_field.encoder.size == 512
 
     def test_input_field_encode_scalar_values(self):
+        # TI-002: Ensures that a batch of SDRs is being fed into the Agent (HTM) so that the HTM can learn from incoming SDRs.
         """
         Test encoding scalar values through InputField.
 
@@ -117,6 +123,7 @@ class TestInputFieldRDSEIntegration:
         assert len(active_cells) == active_bit_count
 
     def test_input_field_encode_sequence(self):
+        # TI-003: Checks the InputField integration with the RDSE encoder
         """Test encoding a sequence of values and verify state management."""
         params = RDSEParameters()
         params.size = 512
@@ -145,6 +152,7 @@ class TestInputFieldRDSEIntegration:
                 assert encodings[i] != encodings[j]
 
     def test_input_field_decode_active_state(self):
+        # TI-004: Checks InputField integration with the Category encoder
         """Test decoding active cell state back to input value."""
         params = RDSEParameters()
         params.size = 1000
@@ -174,6 +182,7 @@ class TestInputFieldCategoryIntegration:
     """Test InputField integration with Category encoder."""
 
     def test_input_field_with_category_encoder(self):
+        # TI-005: Checks InputField integration with the Date encoder
         """Test InputField with CategoryEncoder."""
         categories = ["red", "green", "blue", "yellow"]
         params = CategoryParameters(w=5, category_list=categories, rdse_used=True)
@@ -186,6 +195,7 @@ class TestInputFieldCategoryIntegration:
         assert isinstance(input_field.encoder, CategoryEncoder)
 
     def test_category_encoding_through_input_field(self):
+        # TI-006: Checks integration between InputField and ColumnField
         """Test encoding categorical values through InputField."""
         categories = ["cat", "dog", "bird", "fish"]
         params = CategoryParameters(w=10, category_list=categories, rdse_used=True)
@@ -208,6 +218,7 @@ class TestInputFieldCategoryIntegration:
                 assert encoding_lists[i] != encoding_lists[j]
 
     def test_category_unknown_value_handling(self):
+        # TI-007: Checks multiple InputFields feeding into a single ColumnField
         """Test encoding unknown category through InputField."""
         categories = ["A", "B", "C"]
         params = CategoryParameters(w=5, category_list=categories, rdse_used=True)
@@ -234,6 +245,7 @@ class TestInputFieldDateIntegration:
     """Test InputField integration with Date encoder."""
 
     def test_input_field_with_date_encoder(self):
+        # TI-008: Checks the full pipeline: encode to compute to decode
         """Test InputField with DateEncoder."""
         params = DateEncoderParameters()
         params.season_size = 100
@@ -249,6 +261,7 @@ class TestInputFieldDateIntegration:
         assert isinstance(input_field.encoder, DateEncoder)
 
     def test_date_encoding_through_input_field(self):
+        # TI-009: Checks different encoder size and sparsity settings.
         """Test encoding date values through InputField."""
         params = DateEncoderParameters()
         params.season_size = 200
@@ -285,6 +298,7 @@ class TestInputFieldToColumnFieldIntegration:
     """Test integration between InputField and ColumnField."""
 
     def test_single_input_field_to_column_field(self):
+        # TI-010: Checks error handling and edge cases in integration
         """Test single InputField feeding into ColumnField."""
         # Create InputField with RDSE
         rdse_params = RDSEParameters()
@@ -318,6 +332,7 @@ class TestInputFieldToColumnFieldIntegration:
         assert len(active_columns) <= len(column_field.columns)
 
     def test_non_spatial_column_field(self):
+        # TI-011: Checks duty cycle tracking in ColumnField
         """Test ColumnField in non-spatial mode (direct pass-through)."""
         # Create InputField
         rdse_params = RDSEParameters()
@@ -350,6 +365,7 @@ class TestInputFieldToColumnFieldIntegration:
         assert active_columns == active_input_cells
 
     def test_temporal_learning_with_sequence(self):
+        # TI-012: Checks HTM handling of branching sequences
         """Test temporal learning with a sequence of inputs."""
         # Create InputField
         rdse_params = RDSEParameters()
@@ -394,6 +410,7 @@ class TestInputFieldToColumnFieldIntegration:
         assert total_active > 0
 
     def test_column_field_bursting_behavior(self):
+        # TI-013: Checks that spatial pooling learns correctly from encoder patterns
         """Test that unexpected inputs cause bursting in ColumnField."""
         # Create InputField
         rdse_params = RDSEParameters()
@@ -439,6 +456,7 @@ class TestMultipleInputFieldsIntegration:
     """Test multiple InputFields feeding into single ColumnField."""
 
     def test_two_input_fields_to_column_field(self):
+        # TI-014: Checks the feedback loop between encoder predictions and HTM predictions
         """Test two different InputFields feeding into one ColumnField."""
         # Create first InputField (scalar)
         scalar_params = RDSEParameters()

@@ -1,5 +1,7 @@
 """Tests for EnvAdapter construction and FinGym integration."""
 
+# TS-20: EnvAdapter and FinGym integration tests (Team 20 SWENG 481)
+
 from __future__ import annotations
 
 import numpy as np
@@ -10,6 +12,7 @@ from psu_capstone.environment.fin_gym import FinGym
 
 
 def test_env_adapter_accepts_instantiated_fingym() -> None:
+    # TC-170
     """EnvAdapter should wrap a pre-built FinGym instance directly."""
 
     frame = pd.DataFrame(
@@ -47,6 +50,7 @@ def test_env_adapter_accepts_instantiated_fingym() -> None:
 
 
 def test_env_adapter_accepts_make_kwargs() -> None:
+    # TC-171
     """EnvAdapter should forward kwargs when constructing Gym env from id."""
 
     adapter = EnvAdapter("CartPole-v1", render_mode="rgb_array")
@@ -56,6 +60,7 @@ def test_env_adapter_accepts_make_kwargs() -> None:
 
 
 def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
+    # TC-172
     """Passing gym kwargs with an env instance should raise ValueError."""
 
     frame = pd.DataFrame(

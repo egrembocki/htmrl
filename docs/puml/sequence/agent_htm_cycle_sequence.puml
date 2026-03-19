@@ -1,6 +1,7 @@
 @startuml
 ' Agent/Brain/HTM compute cycle
 skinparam style strictuml
+skinparam defaultFontSize 20
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 

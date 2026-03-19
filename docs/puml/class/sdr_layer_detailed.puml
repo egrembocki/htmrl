@@ -1,5 +1,6 @@
 @startuml sdr_layer_detailed
 skinparam style strictuml
+skinparam defaultFontSize 20
 !pragma layout smetana
 title SDR Layer - Sparse Distributed Representation
 
