@@ -1,0 +1,117 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title US-05 Train Model
+
+actor Developer as Dev
+participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
+participant "<u>adapter:EnvAdapter</u>" as EA
+participant "<u>trainer:Trainer</u>" as TR
+participant "<u>b:Brain</u>" as BR
+participant "<u>a:Agent</u>" as AG
+participant "<u>if:InputField</u>" as IF
+participant "<u>cf:ColumnField</u>" as CF
+participant "Gym Env" as ENV
+
+Dev -> Entry: train_cartpole_brain_policy(config)
+activate Entry
+Entry -> EA: EnvAdapter("CartPole-v1")
+activate EA
+EA --> Entry: adapter
+deactivate EA
+
+Entry -> Entry: build_cartpole_brain(adapter, config)
+Entry -> EA: reset_bridge()
+activate EA
+EA -> ENV: reset(seed=None, options=None)
+activate ENV
+ENV --> EA: obs, info
+EA -> EA: observation_to_inputs(obs)
+EA --> Entry: {obs, inputs, info}
+deactivate ENV
+deactivate EA
+
+Entry -> TR: Trainer(Brain({}))
+activate TR
+TR --> Entry: trainer
+
+loop for each adapter input name
+  Entry -> TR: add_input_field(f"{name}_input", input_size, RDSEParameters)
+  TR -> BR: main_brain.fields[f"{name}_input"] = InputField(...)
+end
+
+Entry -> TR: add_output_field("action_output", 4, motor_action=(0, 1))
+TR -> BR: main_brain.fields["action_output"] = OutputField(...)
+Entry -> TR: add_column_field("column_column", num_columns, cells_per_column)
+TR -> BR: main_brain.fields["column_column"] = ColumnField(...)
+TR --> Entry: trainer.main_brain
+
+Entry -> BR: Brain(remapped_fields)
+activate BR
+BR --> Entry: brain
+deactivate BR
+deactivate TR
+
+Entry -> AG: Agent(brain, adapter, episodes, policy_mode="brain")
+activate AG
+AG --> Entry: agent
+
+loop each episode
+  Entry -> AG: reset_episode()
+  AG -> EA: reset_bridge()
+  activate EA
+  EA -> ENV: reset(seed=None, options=None)
+  activate ENV
+  ENV --> EA: obs, info
+  EA -> EA: observation_to_inputs(obs)
+  EA --> AG: {obs, inputs, info}
+  deactivate ENV
+  deactivate EA
+
+  loop while not done and steps < max_steps_per_episode
+    Entry -> AG: step(learn=True)
+    activate AG
+    AG -> BR: step(current_inputs, learn=True)
+    activate BR
+    BR -> BR: encode_only(inputs)
+    loop for each input field
+      BR -> IF: encode(value)
+      activate IF
+      IF --> BR: encoded state updated
+      deactivate IF
+    end
+    BR -> BR: compute_only(learn=True)
+    BR -> CF: compute(learn=True)
+    activate CF
+    CF --> BR: HTM state updated
+    deactivate CF
+    BR --> AG: brain_outputs
+    deactivate BR
+
+    AG -> AG: select_action(current_obs, brain_outputs)
+    AG -> EA: step_bridge(action)
+    activate EA
+    EA -> ENV: step(action)
+    activate ENV
+    ENV --> EA: obs, reward, terminated, truncated, info
+    EA -> EA: observation_to_inputs(obs)
+    EA --> AG: {obs, inputs, reward, terminated, truncated, info}
+    deactivate ENV
+    deactivate EA
+
+    AG -> AG: update(current_obs, action, reward, next_obs, done)
+    AG -> BR: rl_policy_update()
+    BR --> AG: no-op / future RL update hook
+    AG --> Entry: transition
+    deactivate AG
+  end
+
+  Entry -> BR: print_stats()
+end
+
+Entry --> Dev: training metrics dict
+deactivate AG
+deactivate Entry
+@enduml
