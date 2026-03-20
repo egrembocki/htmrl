@@ -12,11 +12,12 @@ for encoding inputs and computing temporal memory in a single step.
 
 from typing import Any
 
+from psu_capstone.agent_layer.abstract_brain import AbstractBrain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.log import get_logger, logger
 
 
-class Brain:
+class Brain(AbstractBrain):
     """Manages HTM input fields and column fields with a unified API.
 
     Allows binding named inputs to InputFields and processing all inputs
@@ -27,7 +28,7 @@ class Brain:
             Can include InputField, OutputField, and ColumnField types.
 
     Example:
-        manager = FieldManager()
+        manager = Trainer()
         manager.add_input_field("consumption", consumption_field)
         manager.add_input_field("date", date_field)
         manager.set_column_field(column_field)

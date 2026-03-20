@@ -1,0 +1,61 @@
+@startuml act-05-env-adapter-loop
+skinparam style strictuml
+skinparam shadowing false
+
+title ACT-05: Env Adapter Loop (Brain -> Agent -> Environment)
+
+start
+
+partition Developer {
+	:Create Agent and Environment instances;
+	:Connect Brain output to Env Adapter;
+}
+
+partition "Environment" {
+	:Define observation_space and action_space;
+	:reset() -> initialize state;
+}
+
+while (Episode active?) is (yes)
+
+	partition "Brain" {
+		:encode_only(current_state);
+		:compute_only(learn=True);
+		:prediction() -> decoded value + confidence;
+	}
+
+	partition "Env Adapter Role" {
+		:Map Brain prediction to action_space;
+	}
+
+	partition "Agent" {
+		:select_action(state);
+	}
+
+	partition "Environment" {
+		:step(action);
+		:observe() -> reward, next_state, done;
+	}
+
+	partition "Agent" {
+		:update(state, action, reward, next_state);
+	}
+
+	if (done?) then (yes)
+		partition "Environment" {
+			:reset();
+		}
+		partition "Trainer" {
+			:print_train_stats() -> log episode metrics;
+		}
+	else (no)
+	endif
+
+endwhile (no)
+
+partition Developer {
+	:Review episode metrics and retrain if needed;
+}
+
+stop
+@enduml

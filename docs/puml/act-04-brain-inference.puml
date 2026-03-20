@@ -1,0 +1,41 @@
+@startuml act-04-brain-inference
+skinparam style strictuml
+skinparam shadowing false
+
+title ACT-04: Brain Inference (Pre-trained Brain)
+
+start
+
+partition Developer {
+	:Load pre-trained Brain instance;
+	:Prepare input data row;
+}
+
+partition "Brain" {
+	:step(inputs, learn=False);
+	note right
+		encode_only(inputs)
+		compute_only(learn=False)
+	end note
+
+	while (More InputFields?) is (yes)
+		:InputField.decode("predictive");
+		note right
+			Build bit_vector from
+			predictive cell states,
+			then encoder.decode()
+		end note
+		:Return (decoded_value, confidence);
+	endwhile (no)
+
+	:prediction() -> dict[field_name, (value, confidence)];
+}
+
+partition "Env Adapter Role" {
+	:Receive decoded value + confidence;
+	:Map to action_space for Environment;
+	note right: <<detail>> act-05-env-adapter-loop.puml
+}
+
+stop
+@enduml
