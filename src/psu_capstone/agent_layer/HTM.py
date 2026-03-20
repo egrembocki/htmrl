@@ -633,9 +633,11 @@ class ColumnField(Field):
             column.learn()
 
     def activate_top_k_columns(self, k: int) -> None:
+        # Page 43 phase 3 not in the spatial pooling? BaMI-Complete.pdf
         """Activate the top-k columns based on overlap."""
         sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
         for col in sorted_columns[:k]:
+
             self.active_columns.append(col)
             col.set_active()  # type: ignore
 
