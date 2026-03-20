@@ -178,7 +178,7 @@ class Trainer:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
             input_fields=self._trainer_input_fields,
-            non_spatial=True,
+            non_spatial=False,
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )
