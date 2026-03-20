@@ -34,8 +34,8 @@ def temp_path(tmp_path: Path) -> Path:
 
 
 def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
-    # TC-001
-    """Ensure CSV files are parsed into record dictionaries."""
+    # TS-01 TC-001
+    """[TS-01 TC-001] Ensure CSV files are parsed into record dictionaries."""
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b,c\n1,2,3\n4,5,6\n")
@@ -55,8 +55,8 @@ def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
 
 
 def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> None:
-    # TC-002
-    """Confirm XLSX ingestion yields the requested columns."""
+    # TS-01 TC-002
+    """[TS-01 TC-002] Confirm XLSX ingestion yields the requested columns."""
     # Arrange
     xlsx_path = temp_path / "sample.xlsx"
     workbook = Workbook()
@@ -77,8 +77,8 @@ def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> N
 
 
 def test_load_input_data_excel_xls_is_unsupported(temp_path: Path, handler: InputHandler) -> None:
-    # TC-003
-    """Validate legacy XLS files raise a ValueError without optional XLS readers."""
+    # TS-01 TC-003
+    """[TS-01 TC-003] Validate legacy XLS files raise a ValueError without optional XLS readers."""
     # Arrange
     xls_path = temp_path / "sample.xls"
     xls_path.write_text("placeholder")
@@ -90,8 +90,8 @@ def test_load_input_data_excel_xls_is_unsupported(temp_path: Path, handler: Inpu
 
 
 def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
-    # TC-004
-    """Check JSON records are converted into the expected record layout."""
+    # TS-01 TC-004
+    """[TS-01 TC-004] Check JSON records are converted into the expected record layout."""
     # Arrange
     json_path = temp_path / "sample.json"
     json_path.write_text('[{"a": 1, "b": 3}, {"a": 2, "b": 4}]')
@@ -107,11 +107,11 @@ def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
 
 
 def test_load_input_data_txt_returns_dataframe_of_lines(
-    # TC-005
+    # TS-01 TC-005
     temp_path: Path,
     handler: InputHandler,
 ) -> None:
-    """Verify plain-text files become line-per-row records."""
+    """[TS-01 TC-005] Verify plain-text files become line-per-row records."""
     # Arrange
     txt_path = temp_path / "sample.txt"
     lines = ["first line\n", "second line\n", "third line\n"]
@@ -130,11 +130,11 @@ def test_load_input_data_txt_returns_dataframe_of_lines(
 
 
 def test_load_input_data_unsupported_extension_treated_as_scalar(
-    # TC-006
+    # TS-01 TC-006
     temp_path: Path,
     handler: InputHandler,
 ) -> None:
-    """Unknown extensions are treated as scalar input when not supported."""
+    """[TS-01 TC-006] Unknown extensions are treated as scalar input when not supported."""
     # Arrange
     bad_path = temp_path / "sample.xml"
     bad_path.write_text("<root><a>1</a></root>")
@@ -150,8 +150,8 @@ def test_load_input_data_unsupported_extension_treated_as_scalar(
 
 
 def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHandler) -> None:
-    # TC-007
-    """Ensure missing files raise FileNotFoundError for clearer diagnostics."""
+    # TS-01 TC-007
+    """[TS-01 TC-007] Ensure missing files raise FileNotFoundError for clearer diagnostics."""
     # Arrange
     missing_path = temp_path / "missing.csv"
 
@@ -161,8 +161,8 @@ def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHand
 
 
 def test_load_input_data_accepts_pathlike(temp_path: Path, handler: InputHandler) -> None:
-    # TC-008
-    """PathLike inputs are accepted as file paths."""
+    # TS-01 TC-008
+    """[TS-01 TC-008] PathLike inputs are accepted as file paths."""
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")
@@ -175,8 +175,8 @@ def test_load_input_data_accepts_pathlike(temp_path: Path, handler: InputHandler
 
 
 def test_input_handler_is_singleton() -> None:
-    # TC-009
-    """Confirm InputHandler enforces a singleton instance."""
+    # TS-01 TC-009
+    """[TS-01 TC-009] Confirm InputHandler enforces a singleton instance."""
     # Arrange / Act
     h1 = InputHandler().get_instance()
     h2 = InputHandler().get_instance()
@@ -186,8 +186,8 @@ def test_input_handler_is_singleton() -> None:
 
 
 def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandler) -> None:
-    # TC-010
-    """Check the handler caches the latest records without sharing references."""
+    # TS-01 TC-010
+    """[TS-01 TC-010] Check the handler caches the latest records without sharing references."""
     # Arrange
     csv_path = temp_path / "sample.csv"
     csv_path.write_text("a,b\n1,2\n")

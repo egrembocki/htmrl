@@ -30,6 +30,7 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 
 
 def test_rdse_decode_returns_tuple_value_confidence():
+    # TS-07 TC-053
     """
     Verify decode() returns (value, confidence) tuple (not single value).
 
@@ -68,6 +69,7 @@ def test_rdse_decode_returns_tuple_value_confidence():
 
 
 def test_rdse_decode_round_trip_same_value():
+    # TS-07 TC-054
     """
     Verify round-trip encoding/decoding returns original value with high confidence.
 
@@ -106,6 +108,7 @@ def test_rdse_decode_round_trip_same_value():
 
 
 def test_rdse_decode_wrong_size_raises():
+    # TS-07 TC-055
     """
     Verify decode() validates input SDR length matches encoder size.
 
@@ -142,6 +145,7 @@ def test_rdse_decode_wrong_size_raises():
 
 
 def test_rdse_decode_no_candidates_raises():
+    # TS-07 TC-056
     """
     Verify decode() requires prior encode() to populate cache.
 

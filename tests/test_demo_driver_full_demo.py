@@ -4,6 +4,7 @@ import pytest
 
 
 def test_run_full_demo_generates_visual_artifacts(tmp_path: Path):
+    # TS-10 TC-097
     pytest.importorskip("matplotlib")
 
     from demo_driver import run_full_demo

@@ -103,6 +103,7 @@ def activate_noisy(cf: ColumnField, base_value: float, noise_prob: float) -> Non
 
 
 def test_active_ratio_matches_desired_sparsity():
+    # TS-09 TC-086
     """After compute, the number of active columns should match desired sparsity."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -120,6 +121,7 @@ def test_active_ratio_matches_desired_sparsity():
 
 
 def test_sparsity_invariant_to_input_density():
+    # TS-09 TC-087
     """Output sparsity stays fixed regardless of how many input bits are on."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -140,6 +142,7 @@ def test_sparsity_invariant_to_input_density():
 
 
 def test_activate_top_k_columns_respects_k():
+    # TS-09 TC-088
     """activate_top_k_columns should activate exactly k columns."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -162,6 +165,7 @@ def test_activate_top_k_columns_respects_k():
 
 
 def test_many_columns_participate_across_patterns():
+    # TS-09 TC-089
     """Over many RDSE encoded inputs, a large share of columns should activate at least once."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -187,6 +191,7 @@ def test_many_columns_participate_across_patterns():
 
 
 def test_no_single_column_dominates():
+    # TS-09 TC-090
     """No single column should be active in more than a small fraction of all patterns."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -211,6 +216,7 @@ def test_no_single_column_dominates():
 
 
 def test_duty_cycle_boosting_engages_inactive_columns():
+    # TS-09 TC-091
     """Duty cycle tracking should engage after repeated presentations."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -231,6 +237,7 @@ def test_duty_cycle_boosting_engages_inactive_columns():
 
 
 def test_similar_inputs_produce_similar_sdrs():
+    # TS-09 TC-092
     """Nearby scalar values should produce overlapping column activations."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -261,6 +268,7 @@ def test_similar_inputs_produce_similar_sdrs():
 
 
 def test_dissimilar_inputs_produce_dissimilar_sdrs():
+    # TS-09 TC-093
     """Values far apart should produce low column overlap."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -296,6 +304,7 @@ def test_dissimilar_inputs_produce_dissimilar_sdrs():
 
 
 def test_overlap_gradient():
+    # TS-09 TC-094
     """As encoded values move further from the base, column overlap should decrease."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -329,6 +338,7 @@ def test_overlap_gradient():
 
 
 def test_small_noise_preserves_most_of_sdr():
+    # TS-09 TC-095
     """Flipping a small fraction of encoded bits should keep most output columns the same."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -357,6 +367,7 @@ def test_small_noise_preserves_most_of_sdr():
 
 
 def test_repeated_noise_does_not_drift_representation():
+    # TS-09 TC-096
     """Repeatedly presenting noisy versions should not cause the clean representation to drift."""
     input_size = 2048
     in_fi = make_input_field(input_size)

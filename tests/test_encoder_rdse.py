@@ -42,7 +42,7 @@ def rdse_instance():
 
 
 def test_rdse_initialization():
-    # TC-038
+    # TS-04 TC-038
     """
     Test that RDSE correctly initializes with valid parameters.
 
@@ -64,7 +64,7 @@ def test_rdse_initialization():
 
 
 def test_size():
-    # TC-039
+    # TS-04 TC-039
     """
     Test that the encoder correctly reports its configured size.
 
@@ -85,7 +85,7 @@ def test_size():
 
 
 def test_dimensions():
-    # TC-040
+    # TS-04 TC-040
     """
     Ensure the encoder reports configured size via public property.
 
@@ -107,7 +107,7 @@ def test_dimensions():
 
 
 def test_encode_active_bits():
-    # TC-041
+    # TS-04 TC-041
     """
     Verify that when active_bits is specified, sparsity conform correctly.
 
@@ -141,7 +141,7 @@ def test_encode_active_bits():
 
 
 def test_resolution_plus_radius_plus_category():
-    # TC-042
+    # TS-04 TC-042
     """
     Validate that multiple resolution/radius/category constraint is enforced.
 
@@ -179,7 +179,7 @@ def test_resolution_plus_radius_plus_category():
 
 
 def test_sparsity_or_activebits():
-    # TC-043
+    # TS-04 TC-043
     """
     Validate mutual exclusivity: exactly ONE of {active_bits, sparsity} must be set.
 
@@ -213,7 +213,7 @@ def test_sparsity_or_activebits():
 
 
 def test_one_of_resolution_radius_category_should_be_entered():
-    # TC-044
+    # TS-04 TC-044
     """
     Validate that exactly ONE of {radius, resolution, category} must be specified.
 
@@ -242,7 +242,7 @@ def test_one_of_resolution_radius_category_should_be_entered():
 
 
 def test_one_of_activebit_or_sparsity_is_entered():
-    # TC-045
+    # TS-04 TC-045
     """
     Validate that exactly ONE of {active_bits, sparsity} must be specified (non-zero).
 
@@ -271,7 +271,7 @@ def test_one_of_activebit_or_sparsity_is_entered():
 
 
 def test_2048_bits_40_active_bits():
-    # TC-071
+    # TS-04 TC-071
     """This test is to check and make sure our current RDSE can handler this many bits."""
     parameters = RDSEParameters(
         size=2048, active_bits=40, sparsity=0.0, radius=1.0, resolution=0.0, category=False, seed=0
@@ -287,7 +287,7 @@ def test_2048_bits_40_active_bits():
 
 
 def test_deterministic_same_seed():
-    # TC-072
+    # TS-04 TC-072
     """
     This test assures that the same value encoded by two different
     RDSE encoders with the same seed will output the same sdrs.
@@ -309,7 +309,7 @@ def test_deterministic_same_seed():
 
 
 def test_different_seed_produces_different_sdr_with_same_input_value():
-    # TC-073
+    # TS-04 TC-073
     """
     This test assures that the same value encoded by two different
     RDSE encoders with different seeds will produce different sdrs.
@@ -336,7 +336,7 @@ def test_different_seed_produces_different_sdr_with_same_input_value():
 
 
 def test_resolution_boundary():
-    # TC-074
+    # TS-04 TC-074
     """The goal of this test to determine if the resolution is functioning
     correctly. The index inside of the rdse is determing by int(input_value/resolution).
     This means that a resolution of 1.0 when encoding 1.0 will be 1, resolution of 1.0 and
@@ -375,7 +375,7 @@ def hamming_distance_helper(first, second) -> int:
 
 
 def test_locality_checking_mmh3():
-    # TC-075
+    # TS-04 TC-075
     """
     This test compares the mean hamming distances between consecutive encoded values like 1 compared to 2 all
     of the way up to 1000. Then we take the mean of these hamming distances. On top of that it compares 1 through 500
@@ -465,7 +465,7 @@ def _overlap_count(first: list[int], second: list[int]) -> int:
 
 # By: Dr. Agrawal
 def test_rdse_encodings_are_mostly_orthogonal():
-    # TC-076
+    # TS-04 TC-076
     encoder = _make_large_encoder(radius=1.0)
     import random
 
@@ -490,7 +490,7 @@ def test_rdse_encodings_are_mostly_orthogonal():
 
 # By: Dr. Agrawal
 def test_rdse_no_overlap_outside_radius_large_encoding():
-    # TC-077
+    # TS-04 TC-077
     encoder = _make_large_encoder(radius=1.0)
     values = [i * 0.1 for i in range(200)]
     for value in values:

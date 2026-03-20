@@ -40,7 +40,7 @@ def base_encoder_instance() -> BaseEncoder:
 
 
 def test_base_encoder_initialization(base_encoder_instance):
-    # TC-065
+    # TS-08 TC-065
     """
     Unit
     Ensures the BaseEncoder correctly sets dimensions and computes size from these dimensions.
@@ -54,7 +54,7 @@ def test_base_encoder_initialization(base_encoder_instance):
 
 
 def test_base_encoder_size_setter(base_encoder_instance):
-    # TC 166
+    # TS-08 TC-166
     """Ensure size setter enforces constraints."""
 
     encoder = base_encoder_instance

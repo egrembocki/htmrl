@@ -1,3 +1,84 @@
+# System Functional (SF) Test Coverage Report
+
+This table maps each Software Feature (SF) from Team 20 SWENG 481 4.0 to the most relevant test file(s) in the codebase. Gaps are noted for missing or partial coverage.
+
+| SF ID     | Description (abridged)                                                                 | Test File(s) / Status                                   |
+|-----------|----------------------------------------------------------------------------------------|---------------------------------------------------------|
+| SF-A-1    | Input tool: input_data() method                                                        | test_input_handler_load_data.py                         |
+| SF-B-1    | Input tool: ensure no NaN                                                              | test_input_handler_validate_data.py                     |
+| SF-B-2    | Input tool: no missing values                                                          | test_input_handler_validate_data.py                     |
+| SF-B-3    | Input tool: validate file path                                                         | test_input_handler_load_data.py                         |
+| SF-B-4    | Input tool: validate file type                                                         | test_input_handler_load_data.py                         |
+| SF-B-5    | Input tool: detect/normalize date info                                                 | test_input_handler_validate_data.py (partial)           |
+| SF-B-6    | Input tool: detect duplicate columns                                                   | test_input_handler_validate_data.py                     |
+| SF-C-1    | Encoder: convert dataset to SDR                                                        | test_encoder_handler_suite.py, test_base_encoder.py      |
+| SF-C-2    | Encoder: SDR structure by size param                                                   | test_base_encoder.py, test_encoder_scalar.py, ...        |
+| SF-C-3    | Scalar Encoder: encode value                                                           | test_encoder_scalar.py                                  |
+| SF-C-4    | RDSE: encode value                                                                     | test_encoder_rdse.py                                    |
+| SF-C-5    | Date Encoder: season params                                                            | test_encoder_date.py                                    |
+| SF-C-6    | Date Encoder: day-of-week                                                              | test_encoder_date.py                                    |
+| SF-C-7    | Date Encoder: weekend                                                                  | test_encoder_date.py                                    |
+| SF-C-8    | Date Encoder: custom-days                                                              | test_encoder_date.py                                    |
+| SF-C-9    | Date Encoder: holiday                                                                  | test_encoder_date.py                                    |
+| SF-C-10   | Date Encoder: time-of-day                                                              | test_encoder_date.py                                    |
+| SF-C-11   | Category Encoder: category set                                                         | test_encoder_category.py, test_encoder_category_new.py   |
+| SF-C-12   | Fourier Encoder: wave                                                                  | test_encoder_fourier.py                                 |
+| SF-C-13   | Geospatial Encoder: coordinate                                                         | test_encoder_geospatial.py                              |
+| SF-D-1    | Agent config: model parameters                                                         | test_agent.py, test_trainer.py                          |
+| SF-D-2    | Agent config: cells per column                                                         | test_agent.py, test_trainer.py                          |
+| SF-D-3    | Agent config: number of columns                                                        | test_agent.py, test_trainer.py                          |
+| SF-E-1    | Trainer: start training                                                                | test_trainer.py, test_cartpole_brain_training.py        |
+| SF-E-2    | Trainer: build_brain method                                                            | test_trainer.py                                         |
+| SF-E-3    | Trainer: add input_fields                                                              | test_trainer.py                                         |
+| SF-E-4    | Trainer: add output_fields                                                             | test_trainer.py                                         |
+| SF-E-5    | Trainer: add column_fields                                                             | test_trainer.py                                         |
+| SF-E-6    | Trainer: maintain brain model ref                                                      | test_trainer.py                                         |
+| SF-E-7    | Trainer: test method for logger                                                        | test_trainer.py, test_demo_driver_full_demo.py          |
+| SF-F-1    | Logger: display training progress                                                      | test_trainer.py, test_demo_driver_full_demo.py          |
+| SF-F-2    | Logger: store RMSE in text file                                                        | test_trainer.py (partial/manual check)                  |
+| SF-F-3    | Logger: store shape in JSON                                                            | test_trainer.py (partial/manual check)                  |
+| SF-F-4    | Logger: output final performance to console                                            | test_trainer.py, test_demo_driver_full_demo.py          |
+| SF-F-5    | Logger: store final performance in text file                                           | test_trainer.py (partial/manual check)                  |
+| SF-F-6    | Logger: set report artifact path                                                       | test_trainer.py (partial/manual check)                  |
+| SF-F-7    | Logger: retrieve validated dataset                                                     | test_trainer.py (partial/manual check)                  |
+| SF-F-8    | Logger: retrieve last trainer params                                                   | test_trainer.py (partial/manual check)                  |
+| SF-F-9    | Logger: retrieve latest agent prediction reports                                       | test_trainer.py (partial/manual check)                  |
+| SF-F-10   | Logger: report method calls for brain                                                  | test_trainer.py (partial/manual check)                  |
+| SF-F-11   | Logger: report avg reward per step                                                     | test_trainer.py (partial/manual check)                  |
+| SF-F-12   | Logger: get_logger method                                                             | test_trainer.py (partial/manual check)                  |
+| SF-F-13   | Logger: show log origin by class name                                                  | test_trainer.py (partial/manual check)                  |
+| SF-F-14   | Logger: Enum {INFO, WARNING, ERROR, DEBUG}                                             | test_trainer.py (partial/manual check)                  |
+| SF-G-1    | Env: gymnasium setup with custom brain                                                 | test_env_adapter.py, test_fin_gym.py, test_cartpole_brain_training.py |
+| SF-G-2    | Agent: brain with HTM/RL hierarchy                                                     | test_htm_brain.py, test_agent.py                        |
+| SF-G-3    | Env: agent reads observations                                                          | test_env_adapter.py, test_fin_gym.py                    |
+| SF-G-4    | InputFields: base encoder delegation                                                   | test_htm_input_field.py, test_encoder_handler_suite.py   |
+| SF-G-5    | Env: reward tuple {action, state, reward}                                              | test_env_adapter.py, test_fin_gym.py                    |
+| SF-G-6    | Env: reward algorithm                                                                  | test_env_adapter.py, test_fin_gym.py                    |
+| SF-G-7    | Env: update observation state                                                          | test_env_adapter.py, test_fin_gym.py                    |
+| SF-G-8    | Env: get/set action space                                                              | test_env_adapter.py, test_fin_gym.py                    |
+| SF-G-9    | Env: get/set observation space                                                         | test_env_adapter.py, test_fin_gym.py                    |
+| SF-G-10   | Env: interface for decoded action                                                      | test_env_adapter.py, test_fin_gym.py                    |
+| SF-H-1    | Model: compute column states                                                           | test_htm_column.py, test_htm_cell.py                    |
+| SF-H-2    | Model: compute cell states                                                             | test_htm_cell.py                                        |
+| SF-H-3    | Model: compute segment states                                                          | test_htm_segments.py                                    |
+| SF-H-4    | Model: learn from active state, predict                                                | test_htm.py, test_htm_brain.py                          |
+| SF-H-5    | HTM: initialize input fields                                                           | test_htm_input_field.py                                 |
+| SF-H-6    | HTM: initialize column fields                                                          | test_htm_column.py                                      |
+| SF-H-7    | HTM: initialize output fields                                                          | test_htm_output_field.py                                |
+| SF-H-8    | HTM input fields: set cells/active cells                                               | test_htm_input_field.py                                 |
+| SF-H-9    | HTM input fields: encode/decode via delegation                                         | test_htm_input_field.py, test_encoder_handler_suite.py   |
+| SF-H-10   | HTM column fields: manage input fields/cell states                                     | test_htm_column.py                                      |
+| SF-I-1    | Trainer: save model with pytorch                                                       | test_trainer.py (partial/manual check)                  |
+| SF-I-2    | Trainer: load model with pytorch                                                       | test_trainer.py (partial/manual check)                  |
+| SF-J-1    | Scalar Encoder: decode SDR                                                             | test_encoder_scalar.py                                  |
+| SF-J-2    | RDSE: decode SDR                                                                       | test_encoder_rdse.py                                    |
+| SF-J-3    | Date Encoder: decode SDR                                                               | test_encoder_date.py                                    |
+| SF-J-4    | Category Encoder: decode SDR                                                           | test_encoder_category.py, test_encoder_category_new.py   |
+| SF-J-5    | Fourier Encoder: decode SDR                                                            | test_encoder_fourier.py                                 |
+| SF-J-6    | Geospatial Encoder: decode SDR                                                         | test_encoder_geospatial.py                              |
+| SF-K-1    | Trainer: grapher method for 2D matplotlib plot                                         | test_sdr_visual.py, test_demo_driver_full_demo.py       |
+
+*Partial/manual check* means the feature may be exercised by the code but not explicitly asserted in a test. See test files for details.
 # Team 20 Doc 3.5 SF Completion Report
 
 Source analyzed: `docs/reports/Team 20 SWENG 481 3.5.docx` (Table mapping UF->SF).

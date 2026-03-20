@@ -31,6 +31,7 @@ def category_instance():
 
 
 def test_category_initialization():
+    # TS-05 TC-078
     """
     This tests to make sure the Category Encoder can succesfully be created.
     Note: there is an optional dimensions parameter not being used here.
@@ -44,6 +45,7 @@ def test_category_initialization():
 
 
 def test_encode_us():
+    # TS-05 TC-079
     """
     This encodes the category "US" into an SDR of 1x12. That bit number is determined from
     3 categories and 1 unknown category. This is w or width of 3 times 4 which is 12 long.
@@ -57,6 +59,7 @@ def test_encode_us():
 
 
 def test_unknown_category():
+    # TS-05 TC-080
     """
     This encodes an unknown category. Here we use "NA" which as you can see is not one of
     the categories specified.
@@ -70,6 +73,7 @@ def test_unknown_category():
 
 
 def test_encode_es():
+    # TS-05 TC-081
     """
     This is almost idential to the "US" encoding, I am just deomonstrating that the encoding
     shows different active bits for different categories.
@@ -83,6 +87,7 @@ def test_encode_es():
 
 
 def test_with_width_one():
+    # TS-05 TC-082
     """This test is used to show how SDR outputs look with a single w or width."""
     categories = ["cat1", "cat2", "cat3", "cat4", "cat5"]
     """Note: I think since width is 1, each category is 1 bit and there is the first bit that is the unknown category."""
@@ -104,6 +109,7 @@ def test_with_width_one():
 
 
 def test_rdse_used():
+    # TS-05 TC-083
     """
     This test uses the RDSE and demonstrates that the same encoder encoding a category twice
     to two different SDRs yields the same encoding. This is important since it shows we can
@@ -133,6 +139,7 @@ def test_rdse_used():
 
 
 def test_category_encode_output_only_zeros_and_ones():
+    # TS-05 TC-084
     """CategoryEncoder output must contain only 0 and 1."""
     categories = ["ES", "GB", "US"]
     for rdse_used in (False, True):
@@ -146,6 +153,7 @@ def test_category_encode_output_only_zeros_and_ones():
 
 
 def test_category_encode_output_length_equals_size():
+    # TS-05 TC-085
     """CategoryEncoder output length must equal (num_categories + 1) * w."""
     categories = ["ES", "GB", "US"]
     w = 4
