@@ -1,28 +1,31 @@
 """
 Test suite for Category Encoder.
 
+Team 20 SWENG 481 Mapping:
+Test Suite ID: TS-06 (SDR Category Encoder)
+
 The Category Encoder produces one-hot style encodings for categorical data (discrete values).
 Each category gets a unique SDR representation, with no semantic relationship between categories.
 
 Key Features:
-  - One-hot or sparse encoding for categorical inputs
-  - Each category receives unique bit pattern
-  - No overlap expected between different categories (orthogonal representations)
-  - Deterministic encoding (same category → same SDR)
-  - Width parameter (w) controls encoding sparsity
+    - One-hot or sparse encoding for categorical inputs
+    - Each category receives unique bit pattern
+    - No overlap expected between different categories (orthogonal representations)
+    - Deterministic encoding (same category → same SDR)
+    - Width parameter (w) controls encoding sparsity
 
 Parameter Validation:
-  - size: total bits in encoded output
-  - w: number of active bits per encoding
-  - category_list: list of valid categories
-  - rdse_used: whether to use RDSE internally (False for basic category)
+    - size: total bits in encoded output
+    - w: number of active bits per encoding
+    - category_list: list of valid categories
+    - rdse_used: whether to use RDSE internally (False for basic category)
 
 Tests validate:
-  1. Encoder initialization with valid category list
-  2. Encoding specific categories produces expected SDR
-  3. Output format (binary only, correct length)
-  4. Orthogonality (different categories → no overlap)
-  5. Determinism and consistency
+    1. Encoder initialization with valid category list
+    2. Encoding specific categories produces expected SDR
+    3. Output format (binary only, correct length)
+    4. Orthogonality (different categories → no overlap)
+    5. Determinism and consistency
 """
 
 import numpy as np
@@ -45,6 +48,9 @@ def category_instance():
 
 def test_category_initialization():
     """
+    TC-053
+    Unit
+    Verifies the category encoder can initialize.
     This tests to make sure the Category Encoder can succesfully be created.
     Note: there is an optional dimensions parameter not being used here.
     """
@@ -58,6 +64,9 @@ def test_category_initialization():
 
 def test_encode_us():
     """
+    TC-054
+    Unit
+    Verifies the category encoder can encode a known category.
     This encodes the category "US" into an SDR of 1x12. That bit number is determined from
     3 categories and 1 unknown category. This is w or width of 3 times 4 which is 12 long.
     """
@@ -71,6 +80,9 @@ def test_encode_us():
 
 def test_unknown_category():
     """
+    TC-055
+    Unit
+    Verifies the category encoder can encode an unknown category.
     This encodes an unknown category. Here we use "NA" which as you can see is not one of
     the categories specified.
     """
@@ -84,6 +96,9 @@ def test_unknown_category():
 
 def test_encode_es():
     """
+    TC-056
+    Unit
+    Verifies the category encoder can encode another known category in the same category set.
     This is almost idential to the "US" encoding, I am just deomonstrating that the encoding
     shows different active bits for different categories.
     """
@@ -96,7 +111,12 @@ def test_encode_es():
 
 
 def test_with_width_one():
-    """This test is used to show how SDR outputs look with a single w or width."""
+    """
+    TC-057
+    Unit
+    Verifies that the w=1 parameter can encode five categories properly.
+    This test is used to show how SDR outputs look with a single w or width.
+    """
     categories = ["cat1", "cat2", "cat3", "cat4", "cat5"]
     """Note: I think since width is 1, each category is 1 bit and there is the first bit that is the unknown category."""
     expected = [
@@ -118,6 +138,9 @@ def test_with_width_one():
 
 def test_rdse_used():
     """
+    TC-058
+    Unit
+    Demonstrates the use of RDSE instead of Scalar where it yields the same SDR when encoding the same category twice.
     This test uses the RDSE and demonstrates that the same encoder encoding a category twice
     to two different SDRs yields the same encoding. This is important since it shows we can
     decode this if needed and get the category back from our SDR.

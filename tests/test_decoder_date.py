@@ -1,3 +1,4 @@
+# Test Suite: TS-05 (SDR Date Encoder)
 """
 tests.test_decoder_date
 
@@ -46,7 +47,13 @@ pytest_plugins = ["tests.config_test"]
     ],
 )
 def test_single_encoder_decode(
-    date_params_fixture, encoder_key, value_min, value_max, decoder_test_dates, request
+    # TC-046, TC-047, TC-048, TC-049, TC-050, TC-051
+    date_params_fixture,
+    encoder_key,
+    value_min,
+    value_max,
+    decoder_test_dates,
+    request,
 ):
     """Test decoding for single encoder component."""
     # Arrange
@@ -94,6 +101,7 @@ def test_single_encoder_decode(
 
 
 def test_rdse_decode_same_across_instances_with_same_params(date_params_day_of_week_only):
+    # TC-051
     """With same params, DateEncoder does not pass a seed to RDSE, so all instances use default seed and produce the same decode."""
     # Arrange
     date_params = date_params_day_of_week_only
@@ -114,6 +122,7 @@ def test_rdse_decode_same_across_instances_with_same_params(date_params_day_of_w
 
 
 def test_all_combined(date_params_all_combined, decoder_test_dates):
+    # TC-052
     """Decode with all six encoders enabled (RDSE): season, day_of_week, weekend, custom, holiday, time_of_day."""
     # Arrange
     date_params = date_params_all_combined

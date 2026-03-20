@@ -1,5 +1,6 @@
 @startuml input_layer_detailed
 skinparam style strictuml
+skinparam defaultFontSize 20
 !pragma layout smetana
 title Input Layer - Detailed Structure
 

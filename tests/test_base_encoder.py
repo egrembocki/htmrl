@@ -1,3 +1,4 @@
+# Test Suite: TS-08 (Base Encoder Initialization)
 """
 tests.test_base_encoder
 
@@ -39,7 +40,12 @@ def base_encoder_instance() -> BaseEncoder:
 
 
 def test_base_encoder_initialization(base_encoder_instance):
-    """Test that the BaseEncoder initializes correctly."""
+    # TC-065
+    """
+    Unit
+    Ensures the BaseEncoder correctly sets dimensions and computes size from these dimensions.
+    Test that the BaseEncoder initializes correctly.
+    """
     # Act
     encoder = base_encoder_instance
 
@@ -48,6 +54,7 @@ def test_base_encoder_initialization(base_encoder_instance):
 
 
 def test_base_encoder_size_setter(base_encoder_instance):
+    # TC 166
     """Ensure size setter enforces constraints."""
 
     encoder = base_encoder_instance

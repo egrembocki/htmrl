@@ -1,6 +1,7 @@
 @startuml
 ' End-to-end flow from raw input to HTM inference
 skinparam style strictuml
+skinparam defaultFontSize 20
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 

@@ -31,7 +31,7 @@ from psu_capstone.log import get_logger
 class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.datetime64 | None]):
     """Python port of the HTM DateEncoder using scalar encoders with default parameters.
 
-    Encodes up to 7 attributes using seven different encoders of a timestamp into one SDR:
+    Encodes up to 7 features using different encoders of a timestamp into one SDR:
     - year
     - season (day-of-year)
     - dayOfWeek
@@ -47,16 +47,6 @@ class DateEncoder(BaseEncoder[datetime | pd.Timestamp | time.struct_time | np.da
         date_params: DateEncoderParameters instance specifying encoding options.
             If None, defaults to DateEncoderParameters().
         force_size: If True, forces the total output size to match date_params.size by dividing it equally among enabled sub-encoders. Defaults to False.
-
-    Attributes:
-        YEAR: Index constant for year encoder (6).
-        SEASON: Index constant for season encoder (0).
-        DAYOFWEEK: Index constant for day of week encoder (1).
-        WEEKEND: Index constant for weekend encoder (2).
-        CUSTOM: Index constant for custom days encoder (3).
-        HOLIDAY: Index constant for holiday encoder (4).
-        TIMEOFDAY: Index constant for time of day encoder (5).
-        YEAR: Index constant for year encoder (6).
     """
 
     # !!enum!! type constants for indices

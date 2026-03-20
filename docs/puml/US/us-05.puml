@@ -1,108 +1,111 @@
 @startuml
+scale 2000 width
+scale 2000 height
 skinparam style strictuml
+skinparam defaultFontSize 32
+skinparam TitleFontSize 40
+skinparam ObjectFontSize 30
+
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-05 Train Model (TODO: Update to match Trainer Class)
+title US-05 Train Model
 
-actor Developer as D
-participant "<u>trainer:Trainer</u>" as TM
-participant "<u>b:Brain</u>" as B
-participant "<u>rla:RL Adapter\n(planned)</u>" as RLA
-participant "<u>rlm:RL Model\n(Policy/Value)</u>" as RLM
-participant "<u>env:Environment</u>" as ENV
-participant "<u>rb:Replay Buffer\n(planned)</u>" as RB
-participant "<u>tr:Trainer\n(planned)</u>" as TR
-participant "<u>mc:Metrics/Checkpoint\n(planned)</u>" as MC
+actor Developer as Dev
+participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
+participant "<u>trainer:Trainer</u>" as TR
+participant "<u>a:Agent</u>" as AG
+participant "<u>adapter:EnvAdapter</u>" as EA
+participant "<u>b:Brain</u>" as BR
+participant "<u>if:InputField</u>" as IF
+participant "<u>cf:ColumnField</u>" as CF
+participant "Gym Env" as ENV
 
-group US-05A Current Orchestration
-  D -> TM: start_training(dataset, epochs)
-  activate TM
+actor Developer as Dev
+participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
+participant "<u>trainer:Trainer</u>" as TR
+participant "<u>a:Agent</u>" as AG
+participant "<u>adapter:EnvAdapter</u>" as EA
+participant "<u>b:Brain</u>" as BR
+participant "<u>if:InputField</u>" as IF
+participant "<u>cf:ColumnField</u>" as CF
+participant "Gym Env" as ENV
 
-  loop each training row
-    TM -> B: step(row, learn=True)
-    activate B
-    note right of B
-      Brain owns encoding + HTM calls.
-      TrainModel does not call HTM directly.
-    end note
 
-    B --> TM: prediction, confidence, debug_stats
-    deactivate B
-  end
+Dev -> Entry: train_cartpole_brain_policy(config)
+activate Entry
+Entry -> EA: EnvAdapter("CartPole-v1")
+activate EA
+EA --> Entry: adapter
+deactivate EA
 
-  TM --> D: training summary / metrics
-  deactivate TM
-end
+Entry -> Entry: build_cartpole_brain(adapter, config)
+Entry -> EA: reset_bridge()
 
-group US-05B Planned RL Training Loop (Brain as RL Interface)
-  D -> TM: train_with_rl(config, episodes)
-  activate TM
+actor Developer as Dev
+  ENV --> EA: obs, info
 
-  loop each episode
-    TM -> B: reset episode context
-    activate B
-    B --> TM: initial state ready
-    deactivate B
+  deactivate ENV
+actor Developer as Dev
+participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
+participant "<u>trainer:Trainer</u>" as TR
+participant "<u>a:Agent</u>" as AG
+participant "<u>adapter:EnvAdapter</u>" as EA
+participant "<u>b:Brain</u>" as BR
+participant "<u>if:InputField</u>" as IF
+participant "<u>cf:ColumnField</u>" as CF
+participant "Gym Env" as ENV
+  deactivate EA
 
-    loop each timestep
-      TM -> B: step(observation_t, learn=True)
-      activate B
-      B -> RLA: export state/action context
-      activate RLA
-      RLA -> RLM: infer_action(state_t)
-      activate RLM
-      RLM --> RLA: action_t
-      deactivate RLM
-      RLA --> B: action_t
-      deactivate RLA
-
-      B -> ENV: apply(action_t)
-      activate ENV
-      ENV --> B: reward_t, next_state_t, done
-      deactivate ENV
-
-      B -> RB: append transition(s_t, a_t, r_t, s_t+1, done)
-      activate RB
-      RB --> B: stored
-      deactivate RB
-
-      alt training interval reached
-        B -> TR: train_step(sample_from=RB)
-        activate TR
-        TR -> RB: sample(batch)
-        RB --> TR: transitions
-        TR -> RLM: update parameters
-        activate RLM
-        RLM --> TR: updated weights
-        deactivate RLM
-        TR -> MC: log loss/reward + checkpoint
-        activate MC
-        MC --> TR: persisted
-        deactivate MC
-        TR --> B: training metrics
-        deactivate TR
-      end
-
-      B --> TM: reward_t, prediction_t, done
-      deactivate B
-
-      alt done == true
-        TM -> MC: write episode summary
-        activate MC
-        MC --> TM: summary path/id
-        deactivate MC
-        break
-      end
+  loop while not done and steps < max_steps_per_episode
+    Entry -> AG: step(learn=True)
+    activate AG
+    AG -> BR: step(current_inputs, learn=True)
+    activate BR
+    BR -> BR: encode_only(inputs)
+    loop for each input field
+      BR -> IF: encode(value)
+      activate IF
+      IF --> BR: encoded state updated
+      deactivate IF
     end
+    BR -> BR: compute_only(learn=True)
+    BR -> CF: compute(learn=True)
+    activate CF
+    CF --> BR: HTM state updated
+    deactivate CF
+    BR --> AG: brain_outputs
+    deactivate BR
+
+    AG -> AG: select_action(current_obs, brain_outputs)
+    AG -> EA: step_bridge(action)
+    activate EA
+    EA -> ENV: step(action)
+    activate ENV
+    ENV --> EA: obs, reward, terminated, truncated, info
+    EA -> EA: observation_to_inputs(obs)
+    EA --> AG: {obs, inputs, reward, terminated, truncated, info}
+    deactivate ENV
+    deactivate EA
+
+    AG -> AG: update(current_obs, action, reward, next_obs, done)
+    AG -> BR: rl_policy_update()
+    BR --> AG: no-op / future RL update hook
+    AG --> Entry: transition
+    deactivate AG
   end
 
-  TM --> D: RL training report + model refs
-  deactivate TM
-end
+  Entry -> BR: print_stats()
 
-note over B,RLM
-Planned architecture keeps Brain as the integration boundary
-between current HTM flow and future RL components (Figure 6-1 / 6-2).
+
+Entry --> Dev: training metrics dict
+deactivate AG
+deactivate Entry
+
+
+
+note over Dev, Agent
+This sequence shows how a developer trains a Brain/Model in a CartPole environment using Trainer, Agent, and EnvAdapter.
 end note
+
 @enduml
