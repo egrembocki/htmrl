@@ -104,7 +104,7 @@ deactivate Entry
 
 
 
-note over Dev, Agent
+note over Dev, ENV
 This sequence shows how a developer trains a Brain/Model in a CartPole environment using Trainer, Agent, and EnvAdapter.
 end note
 
