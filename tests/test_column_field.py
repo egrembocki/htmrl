@@ -326,12 +326,11 @@ def test_overlap_gradient():
         print(_overlap_count(cols_base, cols_test))
         overlaps.append(_overlap_count(cols_base, cols_test))
 
-    for i in range(len(overlaps)):
-        if i is not len(overlaps) - 50:
-            for j in range(50):
-                assert (
-                    overlaps[i] >= overlaps[i + j]
-                ), f"Overlap increased at index {i}: {overlaps[i]} < {overlaps[i + j]}"
+    for i in range(len(overlaps) - 50):
+        for j in range(50):
+            assert overlaps[i] >= overlaps[i + j], (
+                f"Overlap increased at index {i}: " f"{overlaps[i]} < {overlaps[i + j]}"
+            )
 
 
 """NOISE ROBUSTNESS"""
