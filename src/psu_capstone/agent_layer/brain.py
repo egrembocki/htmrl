@@ -104,6 +104,11 @@ class Brain(AbstractBrain):
                 predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
                     "predictive"
                 )
+                self.logger.info(
+                    "Decoded SDR into value: %s, with confidence: %s",
+                    predictions[input_name],
+                    predictions[input_name + ".conf"],
+                )
 
         return predictions  # type: ignore
 

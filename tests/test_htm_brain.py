@@ -61,7 +61,7 @@ def create_brain_helper_single_field() -> Brain:
         size=512,
         active_bits=0,
         sparsity=0.02,
-        resolution=0.001,
+        resolution=1.0,
         category=False,
         seed=5,
     )

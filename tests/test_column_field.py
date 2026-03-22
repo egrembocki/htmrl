@@ -27,7 +27,9 @@ def activate_cells(cf: ColumnField, input_value):
 
 def make_input_field(n_cells: int = 2048) -> InputField:
     """Create a simple input Field with n cells."""
-    return InputField(n_cells)  # this defaults to an rdse of n_cell as size
+    return InputField(
+        RDSEParameters(resolution=1.0), n_cells
+    )  # this defaults to an rdse of n_cell as size
 
 
 def make_standard_cf(
@@ -176,13 +178,13 @@ def test_many_columns_participate_across_patterns():
         cf.compute(learn=True)
         active_cols = {col for col in cf.columns if col.active}
         ever_active.update(active_cols)
-        print(len(ever_active))
+        print("Total columns ever active: ", len(ever_active))
         # for col in active_cols:
         #    print(col)
 
     participation = len(ever_active) / len(cf.columns)
     assert (
-        participation > 0.3
+        participation > 0.7
     ), f"Only {participation:.1%} of columns were ever active not distributed enough"
 
 
@@ -204,6 +206,7 @@ def test_no_single_column_dominates():
 
     if activation_counts:
         max_freq = max(activation_counts.values()) / 200
+        print(max_freq)
         threshold = min(1.0, 5 * DESIRED_LOCAL_SPARSITY)
         assert (
             max_freq < threshold
@@ -240,7 +243,7 @@ def test_similar_inputs_produce_similar_sdrs():
     similar_value = 51.0  # one resolution step away since default rdse is 1.0
 
     # train on base
-    for _ in range(10):
+    for _ in range(100):
         activate_cells(cf, base_value)
         cf.compute(learn=True)
 
@@ -255,6 +258,7 @@ def test_similar_inputs_produce_similar_sdrs():
     cols_similar = {i for i, col in enumerate(cf.columns) if col.active}
 
     sim = _overlap_count(cols_base, cols_similar)
+    print(sim)
     assert (
         sim > 0
     ), f"Similar inputs ({base_value} vs {similar_value}) produced SDRs with only {sim} overlapping columns"
@@ -266,15 +270,14 @@ def test_dissimilar_inputs_produce_dissimilar_sdrs():
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
-    value_a = 0.0
+    value_a = 1.0
     value_b = 1000.0  # far apart no rdse bit overlap expected
 
     activate_cells(cf, value_a)
     activate_cells(cf, value_b)
 
     # train on both
-    for _ in range(10):
-        cf.compute(learn=True)
+    for _ in range(100):
         cf.compute(learn=True)
 
     # test A
@@ -288,6 +291,7 @@ def test_dissimilar_inputs_produce_dissimilar_sdrs():
     cols_b = {i for i, col in enumerate(cf.columns) if col.active}
 
     sim = _overlap_count(cols_a, cols_b)
+    print(sim)
     expected_active = int(len(cf.columns) * DESIRED_LOCAL_SPARSITY)
     # overlap should be well below the number of active columns
     assert (
@@ -301,10 +305,10 @@ def test_overlap_gradient():
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
-    base_value = 50.0
+    base_value = 1
 
     # train on base
-    for _ in range(15):
+    for _ in range(100):
         activate_cells(cf, base_value)
         cf.compute(learn=True)
 
@@ -315,14 +319,19 @@ def test_overlap_gradient():
 
     # test increasing distances
     overlaps = []
-    for offset in (0, 1, 5, 20, 100):
-        activate_cells(cf, base_value + offset)
+    for i in range(1000):
+        activate_cells(cf, i)
         cf.compute(learn=False)
         cols_test = {i for i, col in enumerate(cf.columns) if col.active}
         print(_overlap_count(cols_base, cols_test))
         overlaps.append(_overlap_count(cols_base, cols_test))
 
-    assert overlaps[0] >= overlaps[-1], f"Overlap did not decrease with distance: {overlaps}"
+    for i in range(len(overlaps)):
+        if i is not len(overlaps) - 50:
+            for j in range(50):
+                assert (
+                    overlaps[i] >= overlaps[i + j]
+                ), f"Overlap increased at index {i}: {overlaps[i]} < {overlaps[i + j]}"
 
 
 """NOISE ROBUSTNESS"""
