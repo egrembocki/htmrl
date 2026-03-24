@@ -2,6 +2,7 @@
 
 [flake8]
 ignore = W291, E501
+exclude = tests/
     
 
 
