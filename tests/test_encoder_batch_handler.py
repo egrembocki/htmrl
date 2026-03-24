@@ -27,10 +27,9 @@ try:
     from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
 except ImportError:
     pytest.skip("BatchEncoderHandler not available", allow_module_level=True)
-from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.encoder_layer.category_encoder import CategoryParameters
+from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
+from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")

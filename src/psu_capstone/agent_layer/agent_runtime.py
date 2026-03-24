@@ -40,7 +40,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from psu_capstone.agent_layer.agent import Agent
 from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
-from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
 from psu_capstone.encoder_layer.rdse import RDSEParameters
@@ -204,78 +204,12 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
         raise
 
 
-def build_brain_for_adapter(adapter: Any, config: AgentRuntimeConfig) -> Brain:
-    """Build a Brain that matches the adapter's observation/action schema."""
-
-    reset_bridge = adapter.reset_bridge()
-    input_names = list(reset_bridge["inputs"].keys())
-
-    obs_spec = adapter.get_observation_spec()
-    action_spec = adapter.get_action_spec()
-    obs_space_type = obs_spec.get("space_type", "Box")
-
-    trainer = Trainer(Brain({}))
-
-    for index, name in enumerate(input_names):
-        if obs_space_type == "Discrete":
-            n_categories = int(obs_spec.get("n", 16))
-            params: RDSEParameters | CategoryParameters = CategoryParameters(
-                size=config.input_size,
-                w=3,
-                category_list=[str(i) for i in range(n_categories)],
-            )
-        else:
-            params = RDSEParameters(
-                size=config.input_size,
-                active_bits=0,
-                sparsity=0.02,
-                resolution=config.resolution,
-                category=False,
-                seed=config.seed + index,
-            )
-        trainer.add_input_field(f"{name}_input", config.input_size, params)
-
-    reward_params = RDSEParameters(
-        size=config.input_size,
-        active_bits=0,
-        sparsity=0.02,
-        resolution=0.01,
-        category=False,
-        seed=config.seed + len(input_names),
-    )
-    trainer.add_input_field("reward_input", config.input_size, reward_params)
-
-    action_space_type = action_spec.get("space_type", "Discrete")
-    if action_space_type == "Discrete":
-        n_actions = int(action_spec.get("n", 2))
-        motor_action: tuple[Any, ...] = tuple(range(n_actions))
-    else:
-        n_actions = 2
-        motor_action = (0, 1)
-
-    trainer.add_output_field("action_output", n_actions, motor_action)
-    trainer.add_column_field(
-        "column_column",
-        num_columns=config.input_size,
-        cells_per_column=config.cells_per_column,
-    )
-
-    trainer_brain = trainer.main_brain
-    remapped_fields: dict[str, Any] = {
-        name: trainer_brain.fields[f"{name}_input"] for name in input_names
-    }
-    remapped_fields["reward"] = trainer_brain.fields["reward_input"]
-    remapped_fields["action_output"] = trainer_brain.fields["action_output"]
-    remapped_fields["column"] = trainer_brain.fields["column_column"]
-
-    return Brain(remapped_fields)
-
-
 def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> AgentRuntime:
     """Build the adapter, Brain, and Agent for a requested environment."""
 
     adapter, is_frontend_env = build_adapter(config, allow_frontend_env=allow_frontend_env)
-    brain = build_brain_for_adapter(adapter, config)
+    trainer = Trainer(Brain({}))
+    brain = trainer.build_brain_for_env(adapter, config)
     agent = Agent(
         brain=brain,
         adapter=adapter,
@@ -286,13 +220,13 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
         force_brain_mode=False,
     )
 
-    if config.policy_mode == "ppo":
-        if not hasattr(adapter, "_env"):
-            raise ValueError(
-                f"PPO mode requires a Python Gym environment. Environment '{config.env_id}' is frontend-driven."
-            )
+    # Always pre-train PPO if the environment supports it, so fallback works
+    if hasattr(agent, "train_ppo") and hasattr(adapter, "_env") and adapter._env is not None:
         logger = get_logger(None)
-        logger.info("Pre-training PPO for %d timesteps...", config.ppo_pretrain_timesteps)
+        logger.info(
+            "Pre-training PPO for %d timesteps (for fallback support)...",
+            config.ppo_pretrain_timesteps,
+        )
         agent.train_ppo(total_timesteps=config.ppo_pretrain_timesteps)
         logger.info("PPO pre-training complete.")
 

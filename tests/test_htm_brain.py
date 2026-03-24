@@ -25,7 +25,7 @@ Tests validate:
 """
 
 from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.HTM import ColumnField, InputField, OutputField
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 
@@ -85,7 +85,9 @@ def test_initialize_brain():
     """Test initialize the brain with all field types."""
     b = create_brain_helper_multi_field()
     """
-    Refactored output field to require motor action, so this test is no longer failing. The test is still here to make sure that the brain can be initialized with all field types, and to make sure that the output field is properly initialized with the required motor action parameter.
+    Refactored output field to require motor action, so this test is no longer failing.
+    The test is still here to make sure that the brain can be initialized with all field types,
+    and to make sure that the output field is properly initialized with the required motor action parameter.
     """
     assert len(b._input_fields) == 1
     assert len(b._output_fields) == 1

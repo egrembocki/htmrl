@@ -24,8 +24,6 @@ Tests validate:
   5. Learning state management
 """
 
-import pytest
-
 from psu_capstone.agent_layer.HTM import Cell, DistalSynapse, Field, Segment
 
 

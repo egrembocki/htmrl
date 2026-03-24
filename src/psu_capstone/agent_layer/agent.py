@@ -20,7 +20,7 @@ from typing import Any, Literal
 import numpy as np
 from stable_baselines3 import PPO
 
-from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.log import get_logger
 
@@ -42,18 +42,19 @@ class Agent:
     - ``q_table``: epsilon-greedy action selection over a tabular value store
     - ``ppo``: action selection delegated to an injected PPO-style model
     - ``brain``: prefer Brain predictions when usable, otherwise fall back to
-      the Q-table selector
+    the Q-table selector. RL/TD error propagation is handled via the Brain's
+    ValueField(s) using the sungur_agent implementation.
 
     Args:
         brain: HTM Brain instance that consumes flattened observation inputs
-            and produces predictions.
+            and produces predictions. RL policy updates use ValueField for TD error.
         adapter: Environment adapter that bridges Gym-style spaces and raw
             values into forms usable by the Agent and Brain.
         episodes: Number of training episodes to run when ``train`` is called.
         policy_mode: Active action-selection strategy. ``q_table`` uses
             epsilon-greedy lookup over cached values. ``ppo`` delegates action
             selection to a PPO-like model. ``brain`` attempts to rank actions
-            using Brain predictions before falling back.
+            using Brain predictions before falling back, and updates ValueField(s).
         ppo_policy: Stable-Baselines3 policy class name used when creating
             a PPO model internally.
         ppo_kwargs: Optional keyword arguments forwarded to
@@ -63,26 +64,59 @@ class Agent:
 
     Raises:
         TypeError: If ``policy_mode`` is ``'q_table'`` but the environment
-            does not have a Discrete action space.
-    """
+            does not have a Discrete action space."""
+
+    def pretrain(
+        self,
+        trainer: Any = None,
+        pretrain_dataset: dict | None = None,
+        pretrain_steps: int = 0,
+        ppo_timesteps: int = 50000,
+    ) -> None:
+        """Pre-train the agent's policy according to the current policy_mode.
+
+        For 'ppo', calls train_ppo().
+        For 'brain', calls Trainer.train_full_brain() if trainer and dataset are provided.
+        For 'q_table', does nothing (tabular Q-learning is online only)."""
+
+        if self._policy_mode == "ppo":
+            self._logger.info("Pre-training PPO policy for %d timesteps...", ppo_timesteps)
+            self.train_ppo(total_timesteps=ppo_timesteps)
+            self._logger.info("PPO pre-training complete.")
+        elif self._policy_mode == "brain":
+            if trainer is not None and pretrain_dataset is not None and pretrain_steps > 0:
+                self._logger.info(
+                    "Pre-training Brain for %d steps on provided dataset...", pretrain_steps
+                )
+                trainer.train_full_brain(self._brain, pretrain_dataset, pretrain_steps)
+                self._logger.info("Brain pre-training complete.")
+            else:
+                self._logger.warning(
+                    "No trainer or dataset provided for Brain pre-training; skipping."
+                )
+        elif self._policy_mode == "q_table":
+            self._logger.info("Q-table policy does not support offline pre-training; skipping.")
+        else:
+            self._logger.warning(f"Unknown policy_mode '{self._policy_mode}' for pre-training.")
 
     def __init__(
         self,
-        brain: Brain,
-        adapter: EnvAdapter,
-        episodes: int = 500,  # num of episodes to run when train() is called
+        brain: Brain | None = None,
+        adapter: EnvAdapter | None = None,
+        episodes: int = 500,
         policy_mode: Literal["q_table", "brain", "ppo"] = "ppo",
         ppo_policy: str = "MlpPolicy",
         ppo_kwargs: dict[str, Any] | None = None,
         ppo_deterministic: bool = True,
         force_brain_mode: bool = False,
+        trainer: Any = None,
+        config: Any = None,
     ) -> None:
         self._learning_rate: float = 0.1
         self._discount_factor: float = 0.99
         self._epsilon: float = 1.0
         self._epsilon_decay: float = 0.01
 
-        self._brain = brain
         self._adapter = adapter
         self._logger = get_logger(self)
         self._policy_mode: Literal["q_table", "brain", "ppo"] = policy_mode
@@ -93,6 +127,16 @@ class Agent:
         self._brain_action_confidence_threshold: float = 0.1
         self._force_brain_mode: bool = force_brain_mode
         self._q_state_decimals: int = 2
+
+        # If brain is not provided but trainer and config are, build brain using trainer
+        if brain is None and trainer is not None and adapter is not None and config is not None:
+            self._brain = trainer.build_brain_for_env(adapter, config)
+        elif brain is not None:
+            self._brain = brain
+        else:
+            raise ValueError(
+                "Agent requires either a brain or a trainer+adapter+config to build one."
+            )
 
         # q_table policy only makes sense when actions can be indexed.
         action_spec = self._adapter.get_action_spec()
@@ -117,14 +161,35 @@ class Agent:
         if self._policy_mode == "ppo":
             self._ppo_model = self._build_ppo_model()
 
+    def _get_ppo_model_path(self) -> str:
+        """Return a unique PPO model path based on the environment id."""
+        env_id = getattr(self._adapter, "env_id", None)
+        if (
+            env_id is None
+            and hasattr(self._adapter, "_env")
+            and hasattr(self._adapter._env, "spec")
+        ):
+            env_id = getattr(self._adapter._env.spec, "id", None)
+        if env_id is None:
+            env_id = "unknown_env"
+        return f"ppo_model_{env_id}.zip"
+
     def _build_ppo_model(self) -> PPO:
-        """Create a Stable-Baselines3 PPO model bound to the adapter environment."""
+        """Create or load a Stable-Baselines3 PPO model bound to the adapter environment."""
+        import os
 
         if not hasattr(self._adapter, "_env"):
             raise ValueError("ppo policy mode requires an adapter with a Gym environment (_env).")
 
         env = self._adapter._env
         kwargs = {"device": "cpu", **self._ppo_kwargs}
+        model_path = self._get_ppo_model_path()
+        if os.path.exists(model_path):
+            self._logger.info(f"Loading pre-trained PPO model from {model_path}")
+            return PPO.load(model_path, env=env, **kwargs)
+        self._logger.info(
+            f"No pre-trained PPO model found for env {model_path}; creating new PPO model."
+        )
         return PPO(self._ppo_policy, env, verbose=0, **kwargs)
 
     def _select_ppo_action(self, obs: Any) -> Any:
@@ -140,19 +205,24 @@ class Agent:
         return action
 
     def train_ppo(self, total_timesteps: int = 50_000) -> None:
-        """Train the PPO model for the given number of environment timesteps.
+        """Train the PPO model for the given number of environment timesteps and save it per environment.
 
         Args:
             total_timesteps: Total environment steps to train for.
                 50 000 is enough for CartPole-v1 to converge reliably.
         """
+        import os
+
         if self._policy_mode != "ppo":
             raise RuntimeError("train_ppo() called but policy_mode is not 'ppo'.")
         if self._ppo_model is None:
             self._ppo_model = self._build_ppo_model()
         self._logger.info("Training PPO for %d timesteps...", total_timesteps)
         self._ppo_model.learn(total_timesteps=total_timesteps)
-        self._logger.info("PPO training complete.")
+        self._logger.info("PPO training complete. Saving model...")
+        model_path = self._get_ppo_model_path()
+        self._ppo_model.save(model_path)
+        self._logger.info(f"PPO model saved to {model_path}.")
 
     def switch_policy(self, new_mode: Literal["q_table", "brain", "ppo"]) -> None:
         """Switch the active policy mode at runtime.
@@ -566,9 +636,8 @@ class Agent:
                 # explicitly fell back to q_table behavior.
                 pass
             else:
-                # Brain RL update is intentionally a stub for now; we keep this
-                # explicit so a future reward-driven Brain update can drop in.
-                self._brain.rl_policy_update()
+                # Use ValueField-based RL/TD update in the Brain
+                self._brain.rl_policy_update(reward)
                 return
 
         if self._action_count is None:

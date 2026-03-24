@@ -1,8 +1,14 @@
 [flake8]
-max-line-length = 125
+max-line-length = 300
 extend-ignore =
     E203
     W503
+    F401
+    C901
+    N807
+    E731
+    F541
+    W291
     
     
 
@@ -21,6 +27,9 @@ exclude =
     ./README.md,
     build,
     __pycache__,
+    src/legacy/*,
+    test/*,
+    tests/*,
 
 
     

@@ -11,10 +11,10 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Iterable, cast, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.log import get_logger, logger
+from psu_capstone.log import get_logger
 
 
 class CategoryEncoderNew(BaseEncoder[str]):

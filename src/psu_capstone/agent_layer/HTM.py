@@ -789,7 +789,8 @@ class ColumnField(Field):
 
         print("ColumnField statistics:")
         print(
-            f"  Columns: {len(self.columns)} | Cells: {len(self.cells)} | Segments: {len(all_segments)} | Synapses: {len(all_synapses)}"
+            f"  Columns: {len(self.columns)} | Cells: {len(self.cells)} | Segments: {len(all_segments)} "
+            f"| Synapses: {len(all_synapses)}"
         )
         for line in table_lines:
             print(f"  {line}")

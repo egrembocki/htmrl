@@ -1,12 +1,19 @@
-"""Driver script to demonstrate the capabilities of the Brain and Trainer classes.
+"""
+Driver script to demonstrate the capabilities of the Brain and Trainer classes.
 Author: Chris Mills @millscb
 
 Date: 2025-02-21
 
-This script includes several demonstration functions that can be run to visualize and understand different components of the Brain and Trainer classes. Each function focuses on a specific aspect, such as data ingestion, encoding, brain structure, and training on datasets. The main function at the bottom can be modified to call any of these demonstration functions as needed.
+This script includes several demonstration functions that can be run to visualize and
+understand different components of the Brain and Trainer classes.
+Each function focuses on a specific aspect, such as data ingestion, encoding, brain
+structure, and training on datasets.
+The main function at the bottom can be modified to call any of these demonstration
+functions as needed.
 
-Note: Some of the demonstration functions may require specific datasets to be available in the DATA_PATH directory. Ensure that the necessary datasets are in place before running those demos.
-
+Note: Some of the demonstration functions may require specific datasets to be available
+in the DATA_PATH directory. Ensure that the necessary datasets are in place before
+running those demos.
 """
 
 import os

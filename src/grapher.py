@@ -1,3 +1,7 @@
+from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from psu_capstone.input_layer.input_handler import InputHandler
+from utils import PROJECT_ROOT
+
 """Visualization utilities for SDRs and encoder analysis.
 
 This module provides plotting functions for visualizing sparse distributed
@@ -17,13 +21,6 @@ from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq
 
 from legacy.sdr_layer.sdr import SDR
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
-from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
@@ -41,7 +38,10 @@ def show_active_columns(brain: Any, dataset_name: str | None = None) -> None:
         dataset_info = f" - {dataset_name}" if dataset_name else ""
         plot_sdr(
             sdr,
-            title=f"Active Columns: {column_field.name}{dataset_info}\n({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)",
+            title=(
+                f"Active Columns: {column_field.name}{dataset_info}\n"
+                f"({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)"
+            ),
         )
 
 
@@ -66,7 +66,10 @@ def show_heat_map(brain: Any, dataset_name: str | None = None) -> None:
     max_duty = float(positive.max()) if positive.size > 0 else 0.0
 
     dataset_info = f" - {dataset_name}" if dataset_name else ""
-    title = f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
+    title = (
+        f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n"
+        f"({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
+    )
 
     if positive.size > 0:
         vmax = max(max_duty, 1e-6)

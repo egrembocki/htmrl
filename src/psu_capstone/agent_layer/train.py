@@ -18,11 +18,10 @@ import numpy as np
 
 import grapher
 import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
-from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
 
 # Rebind encoder parameter types locally so callers can use short names without
@@ -36,6 +35,119 @@ RDSEParameters = el.RDSEParameters
 
 
 class Trainer:
+    def build_brain_for_env(
+        self,
+        adapter: Any,
+        config: Any,
+        pretrain_dataset: dict | None = None,
+        pretrain_steps: int = 0,
+    ) -> Brain:
+        """Build a Brain that matches the adapter's observation/action schema, with optional pre-training."""
+        logger = get_logger("Trainer.build_brain_for_env")
+        reset_bridge = adapter.reset_bridge()
+        input_names = list(reset_bridge["inputs"].keys())
+
+        obs_spec = adapter.get_observation_spec()
+        action_spec = adapter.get_action_spec()
+        obs_space_type = obs_spec.get("space_type", "Box")
+
+        logger.info(f"Building Brain for environment: {getattr(adapter, 'env_id', str(adapter))}")
+        logger.info(f"Observation space type: {obs_space_type}, Action spec: {action_spec}")
+
+        # Clear any previous fields
+        self._trainer_input_fields.clear()
+        self._trainer_output_fields.clear()
+        self._trainer_column_fields.clear()
+        self._main_brain.fields.clear()
+
+        for index, name in enumerate(input_names):
+            if obs_space_type == "Discrete":
+                n_categories = int(obs_spec.get("n", 16))
+                params = CategoryParameters(
+                    size=config.input_size,
+                    w=3,
+                    category_list=[str(i) for i in range(n_categories)],
+                )
+                logger.info(
+                    f"Adding discrete input field: {name}_input with {n_categories} categories."
+                )
+            else:
+                params = RDSEParameters(
+                    size=config.input_size,
+                    active_bits=0,
+                    sparsity=0.02,
+                    resolution=config.resolution,
+                    category=False,
+                    seed=config.seed + index,
+                )
+                logger.info(
+                    f"Adding continuous input field: {name}_input (RDSE, size={config.input_size})."
+                )
+            self.add_input_field(f"{name}_input", config.input_size, params)
+
+        reward_params = RDSEParameters(
+            size=config.input_size,
+            active_bits=0,
+            sparsity=0.02,
+            resolution=0.01,
+            category=False,
+            seed=config.seed + len(input_names),
+        )
+        self.add_input_field("reward_input", config.input_size, reward_params)
+        logger.info("Added reward_input field (RDSE).")
+
+        action_space_type = action_spec.get("space_type", "Discrete")
+        if action_space_type == "Discrete":
+            n_actions = int(action_spec.get("n", 2))
+            possible_actions = list(range(n_actions))
+            logger.info(f"Action space: Discrete with {n_actions} actions.")
+        else:
+            n_actions = 2
+            possible_actions = [0, 1]
+            logger.info(f"Action space: Non-discrete, defaulting to 2 actions.")
+
+        min_active_bits = max(1, int(round(n_actions * 0.02)))
+        encoder_params = RDSEParameters(
+            size=n_actions,
+            active_bits=min_active_bits,
+            sparsity=0.0,
+            resolution=0.01,
+            category=False,
+            seed=config.seed + 9999,
+        )
+        self.add_output_field(
+            "action_output", n_actions, encoder_params, possible_actions=possible_actions
+        )
+        logger.info(
+            f"Added action_output field (RDSE, size={n_actions}, actions={possible_actions})."
+        )
+        self.add_column_field(
+            "column_column",
+            num_columns=config.input_size,
+            cells_per_column=config.cells_per_column,
+        )
+        logger.info(
+            f"Added column_column field (num_columns={config.input_size}, cells_per_column={config.cells_per_column})."
+        )
+
+        trainer_brain = self.main_brain
+        remapped_fields = {name: trainer_brain.fields[f"{name}_input"] for name in input_names}
+        remapped_fields["reward"] = trainer_brain.fields["reward_input"]
+        remapped_fields["action_output"] = trainer_brain.fields["action_output"]
+        remapped_fields["column"] = trainer_brain.fields["column_column"]
+
+        logger.info(f"Brain fields: {list(remapped_fields.keys())}")
+        logger.info("Brain construction complete.")
+        brain = Brain(remapped_fields)
+
+        # Pre-train if dataset and steps are provided
+        if pretrain_dataset is not None and pretrain_steps > 0:
+            logger.info(f"Pre-training brain for {pretrain_steps} steps on provided dataset.")
+            self.train_full_brain(brain, pretrain_dataset, pretrain_steps)
+            logger.info("Pre-training complete.")
+
+        return brain
+
     """Build a Trainer for training Brains on a dataset.
 
     Args:
@@ -59,12 +171,12 @@ class Trainer:
     def __init__(self, brain: Brain) -> None:
         self.logger = get_logger(self)
         self._encoder_factory = EncoderFactory()
-        self._main_brain: Brain = brain
-        self._brains: list[Brain] = []
-        self._trainer_input_fields: list[Field] = []
-        self._trainer_output_fields: list[Field] = []
-        self._trainer_column_fields: list[Field] = []
-        self._values: list[Any] = []
+        self._main_brain = brain
+        self._brains = []
+        self._trainer_input_fields = []
+        self._trainer_output_fields = []
+        self._trainer_column_fields = []
+        self._values = []
 
     @staticmethod
     def _encoder_type_from_params(param: ParameterMarker) -> str:
@@ -124,7 +236,11 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
+    def _setup_io_fields(
+        self,
+        fields: list[tuple[str, int, ParameterMarker]],
+        possible_actions: list[Any] | None = None,
+    ) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -150,8 +266,23 @@ class Trainer:
                 type(param).__name__,
             )
             encoder_type = self._encoder_type_from_params(param)
+            # Only use asdict for known encoder parameter dataclasses
+            encoder_param_types = (
+                RDSEParameters,
+                CategoryParameters,
+                DateEncoderParameters,
+                FourierEncoderParameters,
+                GeospatialParameters,
+                CoordinateParameters,
+            )
+            if isinstance(param, encoder_param_types):
+                encoder_kwargs = asdict(param)
+            else:
+                raise ValueError(
+                    f"Encoder parameter {param} is not a supported encoder parameter dataclass instance."
+                )
             created_encoder = cast(
-                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, asdict(param))
+                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, encoder_kwargs)
             )
             encoder_params = param
 
@@ -161,11 +292,29 @@ class Trainer:
 
             if name.endswith("_input"):
                 field = InputField(size=size, encoder_params=encoder_params)
-
                 field.name = name
             elif name.endswith("_output"):
-                field = OutputField(size=size, motor_action=(None,))
+                # Use the first input field as the input_field for OutputField by default
+                if not self._trainer_input_fields:
+                    raise ValueError(
+                        "At least one input field must be defined before creating an OutputField."
+                    )
+                input_field = self._trainer_input_fields[0]
+                field = OutputField(
+                    input_field=input_field, encoder_params=encoder_params, size=size
+                )
                 field.name = name
+                # Register all possible actions with the encoder for OutputField
+                if possible_actions is not None:
+                    encoder = getattr(field, "encoder", None)
+                    if encoder is not None:
+                        for action in possible_actions:
+                            try:
+                                encoder.register_encoding(action)
+                            except Exception as e:
+                                self.logger.warning(
+                                    f"Failed to register action {action} with OutputField encoder: {e}"
+                                )
             else:
                 raise ValueError("Unsupported field type: {}".format(name))
 
@@ -296,7 +445,11 @@ class Trainer:
 
                     f.write("\n")
 
-    def build_brain(self, fields: list[tuple[str, int, el.ParameterMarker]]) -> Brain:
+    def build_brain(
+        self,
+        fields: list[tuple[str, int, el.ParameterMarker]],
+        possible_actions: list[Any] | None = None,
+    ) -> Brain:
         """Build the Brain for training. Building the Brain this way allows for more direct control over the fields and their parameters, which can be crucial for effective training.
 
         Args:
@@ -314,8 +467,8 @@ class Trainer:
         # build a brain based on the provided fields, using the maximum size from the fields to determine the number of columns in the column field and the size of the output SDR. This ensures that the column field can accommodate the largest input field
 
         size = max(field[1] for field in fields)  # Get the maximum size from the fields
-        # make the input/output fields
-        self._setup_io_fields(fields)
+        # make the input/output fields, passing possible_actions for output fields
+        self._setup_io_fields(fields, possible_actions=possible_actions)
         # make column fields
         self._setup_column_fields(num_columns=size, cells_per_column=16)
         # create the Brain with fields
@@ -341,15 +494,33 @@ class Trainer:
         else:
             raise ValueError("Input field name must end with '_input'.")
 
-    def add_output_field(self, name: str, size: int, motor_action: tuple[Any, ...]) -> None:
-        """Add an output field to the Brain."""
+    def add_output_field(
+        self, name: str, size: int, encoder_params: Any, possible_actions: list[Any] | None = None
+    ) -> None:
+        """Add an output field to the Brain using the new OutputField signature."""
 
         if self._main_brain is None:
             raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
 
         if name.endswith("_output"):
-            field = OutputField(size=size, motor_action=motor_action)
+            if not self._trainer_input_fields:
+                raise ValueError(
+                    "At least one input field must be defined before creating an OutputField."
+                )
+            input_field = self._trainer_input_fields[0]
+            field = OutputField(input_field=input_field, encoder_params=encoder_params, size=size)
             field.name = name
+            # Register all possible actions with the encoder for OutputField
+            if possible_actions is not None:
+                encoder = getattr(field, "encoder", None)
+                if encoder is not None:
+                    for action in possible_actions:
+                        try:
+                            encoder.register_encoding(action)
+                        except Exception as e:
+                            self.logger.warning(
+                                f"Failed to register action {action} with OutputField encoder: {e}"
+                            )
             self._trainer_output_fields.append(field)
             self._main_brain.fields[name] = field
         else:
@@ -482,7 +653,9 @@ class Trainer:
             inputs = {name: series[step % len(series)] for name, series in dataset.items()}
             brain.step(inputs, learn=False)
 
-            bursts = sum(len(column_field.bursting_columns) for column_field in brain.column_fields)
+            bursts = sum(
+                len(column_field.bursting_columns) for column_field in brain._column_fields.values()
+            )
             evaluation_bursts.append(bursts)
 
         flattened_errors = [err for errors in field_errors.values() for err in errors]
@@ -561,9 +734,15 @@ class Trainer:
                 }, size=2048, params=RDSEParameters(size=2048, sparsity=0.02, resolution=0.01, category=False, seed=5)
             )
 
-        This method automatically determines the appropriate encoder type for each field based on the data type of the values in the dataset. It then builds the Brain with input fields for each column, a column field that connects to all input fields, and output fields as needed.
+        This method automatically determines the appropriate encoder type for each field based
+        on the data type of the values in the dataset. It then builds the Brain with input fields for each column,
+        a column field that connects to all input fields, and output fields as needed.
 
-        # TODO: add a dict of ParameterMarker-compatible configs to specify encoder parameters for each field when building the brain, and use those parameters to build the brain with the appropriate encoders for each field type. This allows for more flexible and customized brain building based on the dataset characteristics.
+        # TODO: add a dict of ParameterMarker-compatible configs to specify encoder parameters
+        # for each field when building the brain, and use those parameters to build the brain with
+        # the appropriate encoders for each field type. This allows for more flexible and customized brain building
+        #
+        # based on the dataset characteristics.
 
         Mapping of data types to encoder parameters:
         - Numerical (int, float): el.RDSEParameters
@@ -680,4 +859,4 @@ class Trainer:
     def load_brain(self, filename: str) -> Brain:
         """Load a Brain from a file."""
         # Implement loading logic, e.g., using joblib or pickle
-        return Brain()  # Placeholder return
+        return Brain({})  # Placeholder return

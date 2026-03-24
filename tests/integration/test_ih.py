@@ -7,7 +7,5 @@ Note: This test suite is currently under development. Placeholder for integratio
 tests validating the complete data pipeline from input handling to encoding.
 """
 
-from psu_capstone.encoder_layer.date_encoder import DateEncoder
-
 # def test_date_encoder_pipeline():
 #     encoder = DateEncoder
