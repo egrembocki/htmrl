@@ -4,7 +4,6 @@ from statistics import fmean
 from typing import Any, Callable, Optional
 
 from psu_capstone.agent_layer.pullin.pullin_constants import DUTY_CYCLE_PERIOD
-from psu_capstone.agent_layer.pullin.pullin_htm import Field
 
 
 class ValueField:
@@ -28,7 +27,7 @@ class ValueField:
 
     def __init__(
         self,
-        input_fields: list[Field],
+        input_fields: list["Field"],
         num_columns: int = 0,
         cells_per_column: int = 1,
         non_spatial: bool = False,

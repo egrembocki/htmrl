@@ -285,15 +285,32 @@ class AgentWebSocketServer:
             self._logger.info(f"Auto-started episode {state['episode_num']} for client {client_id}")
 
         try:
-            # Normalise observation: the web app sends a named dict; the Brain needs an array.
             import numpy as np
 
-            if isinstance(obs, dict):
-                obs_value = obs
-            elif isinstance(obs, list):
-                obs_value = np.array(obs, dtype=np.float32)
-            else:
-                obs_value = obs
+            obs_value = obs
+            # If the adapter's observation_space is Box, convert dict/list to np.array
+            adapter = getattr(self._agent, "_adapter", None)
+            obs_space = getattr(adapter, "observation_space", None)
+
+            if obs_space is not None:
+                from gymnasium import spaces as gym_spaces
+
+                if isinstance(obs_space, gym_spaces.Box):
+                    # If obs is a dict, try to convert to array by value order
+                    if isinstance(obs, dict):
+                        obs_value = np.array(list(obs.values()), dtype=np.float32)
+                    elif isinstance(obs, list):
+                        obs_value = np.array(obs, dtype=np.float32)
+                elif isinstance(obs_space, gym_spaces.Discrete):
+                    # If obs is a dict, extract the first value
+                    if isinstance(obs, dict):
+                        # Accept dicts with a single key or take the first value
+                        if len(obs) == 1:
+                            obs_value = next(iter(obs.values()))
+                        else:
+                            obs_value = list(obs.values())[0]
+                    else:
+                        obs_value = obs
 
             state["step_num"] += 1
             state["total_reward"] += float(reward)

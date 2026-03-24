@@ -26,6 +26,37 @@ from psu_capstone.log import get_logger
 
 
 class Agent:
+
+    def save(self, path=None):
+        """Save the PPO model to disk using Stable-Baselines3's .save().
+
+        Args:
+            path: Optional path to save the PPO model. If not provided, uses the default PPO model path.
+        """
+        if self._policy_mode != "ppo":
+            raise RuntimeError("save() is only supported for PPO policy mode.")
+        if self._ppo_model is None:
+            raise RuntimeError("No PPO model to save.")
+        model_path = path or self._get_ppo_model_path()
+        self._ppo_model.save(model_path)
+        self._logger.info("PPO model saved to %s.", model_path)
+
+    def load(self, path=None):
+        """Load the PPO model from disk using Stable-Baselines3's .load().
+
+        Args:
+            path: Optional path to load the PPO model from. If not provided, uses the default PPO model path.
+        """
+        if self._policy_mode != "ppo":
+            raise RuntimeError("load() is only supported for PPO policy mode.")
+        model_path = path or self._get_ppo_model_path()
+        env = self._adapter._env
+        kwargs = {"device": "cpu"}
+        if hasattr(self, "_ppo_kwargs"):
+            kwargs.update(self._ppo_kwargs)
+        self._ppo_model = PPO.load(model_path, env=env, **kwargs)
+        self._logger.info("PPO model loaded from %s.", model_path)
+
     """Coordinate Brain inference, policy selection, and environment interaction.
 
     The Agent is the runtime owner of the RL loop. On each timestep it:
@@ -112,21 +143,21 @@ class Agent:
         trainer: Any = None,
         config: Any = None,
     ) -> None:
-        self._learning_rate: float = 0.1
-        self._discount_factor: float = 0.99
-        self._epsilon: float = 1.0
-        self._epsilon_decay: float = 0.01
+        self._learning_rate = 0.1
+        self._discount_factor = 0.99
+        self._epsilon = 1.0
+        self._epsilon_decay = 0.01
 
         self._adapter = adapter
         self._logger = get_logger(self)
-        self._policy_mode: Literal["q_table", "brain", "ppo"] = policy_mode
+        self._policy_mode = policy_mode
         self._ppo_policy = ppo_policy
         self._ppo_kwargs = ppo_kwargs or {}
-        self._ppo_model: PPO | None = None
+        self._ppo_model = None
         self._ppo_deterministic = ppo_deterministic
-        self._brain_action_confidence_threshold: float = 0.1
-        self._force_brain_mode: bool = force_brain_mode
-        self._q_state_decimals: int = 2
+        self._brain_action_confidence_threshold = 0.1
+        self._force_brain_mode = force_brain_mode
+        self._q_state_decimals = 2
 
         # If brain is not provided but trainer and config are, build brain using trainer
         if brain is None and trainer is not None and adapter is not None and config is not None:
@@ -147,16 +178,16 @@ class Agent:
         ):
             raise TypeError("q_table policy requires a Discrete action space.")
 
-        self._action_count: int | None = int(action_count) if is_integer_like else None
-        self._q_values: defaultdict[Any, np.ndarray] = defaultdict(self._new_q_row)
+        self._action_count = int(action_count) if is_integer_like else None
+        self._q_values = defaultdict(self._new_q_row)
 
-        self._training_episodes: int = episodes
-        self._training_error: list[float] = []
-        self._obs: Any | None = None
-        self._inputs: dict[str, Any] = {}
+        self._training_episodes = episodes
+        self._training_error = []
+        self._obs = None
+        self._inputs = {}
         self._rng = random.Random()
-        self._last_action_source: str = "unknown"
-        self._last_reward: float = 0.0
+        self._last_action_source = "unknown"
+        self._last_reward = 0.0
 
         if self._policy_mode == "ppo":
             self._ppo_model = self._build_ppo_model()
@@ -199,6 +230,7 @@ class Agent:
             self._ppo_model = self._build_ppo_model()
 
         action, _state = self._ppo_model.predict(obs, deterministic=self._ppo_deterministic)
+        self._logger.info("PPO observation: %s | PPO selected action: %s", obs, action)
         self._last_action_source = "ppo"
         if isinstance(action, np.ndarray) and action.shape == ():
             return action.item()
@@ -213,12 +245,59 @@ class Agent:
         """
         import os
 
+        import numpy as np
+
         if self._policy_mode != "ppo":
             raise RuntimeError("train_ppo() called but policy_mode is not 'ppo'.")
         if self._ppo_model is None:
             self._ppo_model = self._build_ppo_model()
         self._logger.info("Training PPO for %d timesteps...", total_timesteps)
-        self._ppo_model.learn(total_timesteps=total_timesteps)
+
+        # Custom callback to log action distribution and rewards
+        from stable_baselines3.common.callbacks import BaseCallback
+
+        class ActionRewardLogger(BaseCallback):
+            def __init__(self, logger, verbose=0):
+                super().__init__(verbose)
+                self._logger = logger
+                self.actions = []
+                self.episode_rewards = []
+                self.current_rewards = []
+
+            def _on_step(self) -> bool:
+                action = self.locals.get("actions")
+                reward = self.locals.get("rewards")
+                if action is not None:
+                    if isinstance(action, np.ndarray):
+                        self.actions.extend(action.flatten().tolist())
+                    else:
+                        self.actions.append(action)
+                if reward is not None:
+                    if isinstance(reward, np.ndarray):
+                        self.current_rewards.extend(reward.flatten().tolist())
+                    else:
+                        self.current_rewards.append(reward)
+                # Detect end of episode
+                dones = self.locals.get("dones")
+                if dones is not None and np.any(dones):
+                    self.episode_rewards.append(np.sum(self.current_rewards))
+                    self.current_rewards = []
+                return True
+
+            def _on_training_end(self) -> None:
+                if self.actions:
+                    unique, counts = np.unique(self.actions, return_counts=True)
+                    dist = dict(zip(unique, counts))
+                    self._logger.info("PPO action distribution during training: %s", dist)
+                if self.episode_rewards:
+                    self._logger.info(
+                        "PPO mean reward per episode during training: %.3f",
+                        np.mean(self.episode_rewards),
+                    )
+
+        callback = ActionRewardLogger(self._logger)
+        self._ppo_model.learn(total_timesteps=total_timesteps, callback=callback)
+        # After training, PPO action distribution and mean reward will be logged.
         self._logger.info("PPO training complete. Saving model...")
         model_path = self._get_ppo_model_path()
         self._ppo_model.save(model_path)
@@ -574,6 +653,13 @@ class Agent:
 
         next_obs = result["obs"]
         reward = result["reward"]
+        self._logger.info(
+            "PPO step: obs=%s, action=%s, reward=%s, next_obs=%s",
+            current_obs,
+            action,
+            reward,
+            next_obs,
+        )
         self._last_reward = float(reward)
 
         self.update(
