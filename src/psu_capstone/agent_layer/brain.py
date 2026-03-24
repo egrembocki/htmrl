@@ -106,6 +106,11 @@ class Brain:
 
         return predictions  # type: ignore
 
+    def rl_policy_update(self) -> None:
+        """RL policy prediction method that returns the next action based on reward fields."""
+        # TODO: Brain needs fully functioning RL reward fields. (GO, NO-GO)
+        pass
+
     def encode_only(self, inputs: dict[str, Any]) -> None:
         """Encode inputs without computing (useful for getting predictions first).
 

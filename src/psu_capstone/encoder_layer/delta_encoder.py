@@ -118,12 +118,9 @@ class DeltaEncoderParameters:
 
 if __name__ == "__main__":
 
-    params = DeltaEncoderParameters(size=2048, sparsity=0.02, active_bits=40)
-    encoder = DeltaEncoder(params)
+    encoder = DeltaEncoder()
 
     input_value = [(10.0, 5.0), (1.0, 3.5)]
-    # encoding = encoder.encode(input_value)
+    encoding = encoder.encode(input_value)
 
-    # print(f"Input: {input_value}, Encoding: {encoding}")
-
-    assert isinstance(params, ParameterMarker)
+    print(f"Input: {input_value}, Encoding: {encoding}")

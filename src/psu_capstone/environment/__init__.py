@@ -1,11 +1,4 @@
-"""Public exports for the environment layer.
+from psu_capstone.environment.env_adapter import EnvAdapter
+from psu_capstone.environment.fin_gym import FinGym
 
-This mirrors the import-cleanup pattern used by the agent and encoder layers so
-callers can depend on the environment layer as a package rather than reaching into
-individual modules for the common concrete types and protocol.
-"""
-
-from psu_capstone.environment.env import Environment, EnvironmentConfig
-from psu_capstone.environment.env_interface import EnvInterface
-
-__all__ = ["Environment", "EnvironmentConfig", "EnvInterface"]
+__all__ = ["EnvAdapter", "FinGym"]

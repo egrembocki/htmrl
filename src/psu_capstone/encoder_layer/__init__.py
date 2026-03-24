@@ -1,10 +1,3 @@
-"""Public exports for the encoder layer.
-
-This package boundary exposes the common encoder classes and parameter marker
-types so cross-layer modules can import the encoder layer once instead of
-repeating per-module imports throughout the codebase.
-"""
-
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
