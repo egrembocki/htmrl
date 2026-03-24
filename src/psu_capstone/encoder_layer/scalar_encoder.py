@@ -129,7 +129,7 @@ class ScalarEncoder(BaseEncoder[int]):
         if self._periodic:
             for i, bit in enumerate(sparse):
                 if bit >= self.size:
-                    sparse[i] = bit - self.size.size
+                    sparse[i] = bit - self.size
             sparse.sort()
 
         dense = [0] * self.size

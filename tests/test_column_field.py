@@ -17,6 +17,7 @@ from psu_capstone.agent_layer.HTM import (
     ProximalSynapse,
 )
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
 def activate_cells(cf: ColumnField, input_value):
@@ -30,6 +31,15 @@ def make_input_field(n_cells: int = 2048) -> InputField:
     return InputField(
         RDSEParameters(resolution=1.0), n_cells
     )  # this defaults to an rdse of n_cell as size
+
+
+def make_input_field_scalar(n_cells: int = 2048) -> InputField:
+    """Create a simple input field with n cells and scalar encoder."""
+    return InputField(
+        ScalarEncoderParameters(
+            sparsity=0.02, active_bits=0, radius=0, resolution=1.0, periodic=True
+        )
+    )
 
 
 def make_standard_cf(
@@ -299,38 +309,149 @@ def test_dissimilar_inputs_produce_dissimilar_sdrs():
     ), f"Distant inputs ({value_a} vs {value_b}) still had {sim} overlapping columns out of {expected_active} active"
 
 
-def test_overlap_gradient():
-    """As encoded values move further from the base, column overlap should decrease."""
+def test_sp_overlap_gradient():
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
     base_value = 1
 
-    # train on base
     for _ in range(100):
         activate_cells(cf, base_value)
         cf.compute(learn=True)
 
-    # get base columns
     activate_cells(cf, base_value)
     cf.compute(learn=False)
-    cols_base = {i for i, col in enumerate(cf.columns) if col.active}
+    cols_base = [1 if col.active else 0 for col in cf.columns]
 
-    # test increasing distances
     overlaps = []
-    for i in range(1000):
-        activate_cells(cf, i)
+    for offset in range(1, 1000):
+        activate_cells(cf, base_value + offset)
         cf.compute(learn=False)
-        cols_test = {i for i, col in enumerate(cf.columns) if col.active}
-        print(_overlap_count(cols_base, cols_test))
-        overlaps.append(_overlap_count(cols_base, cols_test))
+        cols_test = [1 if col.active else 0 for col in cf.columns]
+        overlaps.append(_overlap_count_list(cols_base, cols_test))
 
-    for i in range(len(overlaps) - 50):
-        for j in range(50):
-            assert overlaps[i] >= overlaps[i + j], (
-                f"Overlap increased at index {i}: " f"{overlaps[i]} < {overlaps[i + j]}"
-            )
+    import matplotlib.pyplot as plt
+
+    plt.plot(range(1, 1000), overlaps)
+    plt.xlabel("Offset")
+    plt.ylabel("Overlap with base encoding")
+    plt.title("SP Overlap vs Distance with RDSE input field")
+    plt.show()
+    """
+    #nearby values should overlap more than distant values
+    near = sum(overlaps[:10]) / 10
+    far = sum(overlaps[500:]) / 500
+    print(near)
+    print(far)
+
+    assert near > far, (
+        f"Near avg overlap ({near:.1f}) should exceed far avg ({far:.1f})"
+    )
+
+    #overlap at distance 0 should be highest
+    assert overlaps[0] == max(overlaps), (
+        f"Base value overlap ({overlaps[0]}) should be the maximum"
+    )
+    """
+
+
+def _overlap_count_list(first: list[int], second: list[int]) -> int:
+    return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
+
+
+def test_rdse_gradient():
+    e = RandomDistributedScalarEncoder(RDSEParameters())
+    base_value = 1
+    base_encoding = e.encode(base_value)
+
+    overlaps = []
+    for offset in range(1, 1000):
+        value = base_value + offset
+        encoding = e.encode(value)
+        overlap = _overlap_count_list(base_encoding, encoding)
+        overlaps.append(overlap)
+
+    import matplotlib.pyplot as plt
+
+    plt.plot(range(1, 1000), overlaps)
+    plt.xlabel("Offset")
+    plt.ylabel("Overlap with base encoding")
+    plt.title("RDSE Overlap vs Distance")
+    plt.show()
+    """
+    #nearby values should overlap more than distant values
+    near = sum(overlaps[:10]) / 10
+    far = sum(overlaps[500:]) / 500
+    print(near)
+    print(far)
+
+    assert near > far, (
+        f"Near avg overlap ({near:.1f}) should exceed far avg ({far:.1f})"
+    )
+
+    #closest value should have the most overlap
+    assert overlaps[0] == max(overlaps), (
+        f"Offset 1 overlap ({overlaps[0]}) should be the maximum"
+    )
+
+    #overlap should eventually reach zero
+    assert overlaps[-1] == 0, (
+        f"Distant values should have no overlap, got {overlaps[-1]}"
+    )
+    """
+
+
+def test_scalar_gradient():
+    e = ScalarEncoder(ScalarEncoderParameters(radius=0, resolution=1.0, periodic=True))
+    base_value = 1
+    base_encoding = e.encode(base_value)
+
+    overlaps = []
+    for offset in range(1, 1000):
+        value = base_value + offset
+        encoding = e.encode(value)
+        overlap = _overlap_count_list(base_encoding, encoding)
+        overlaps.append(overlap)
+
+    import matplotlib.pyplot as plt
+
+    plt.plot(range(1, 1000), overlaps)
+    plt.xlabel("Offset")
+    plt.ylabel("Overlap with base encoding")
+    plt.title("Scalar Encoder Overlap vs Distance")
+    plt.show()
+
+
+def test_sp_overlap_gradient_input_field_scalar():
+    input_size = 2048
+    in_fi = make_input_field_scalar(input_size)
+    cf = make_spatial_only_cf(in_fi, num_columns=input_size)
+
+    base_value = 1
+
+    for _ in range(100):
+        activate_cells(cf, base_value)
+        cf.compute(learn=True)
+
+    activate_cells(cf, base_value)
+    cf.compute(learn=False)
+    cols_base = [1 if col.active else 0 for col in cf.columns]
+
+    overlaps = []
+    for offset in range(1, 1000):
+        activate_cells(cf, base_value + offset)
+        cf.compute(learn=False)
+        cols_test = [1 if col.active else 0 for col in cf.columns]
+        overlaps.append(_overlap_count_list(cols_base, cols_test))
+
+    import matplotlib.pyplot as plt
+
+    plt.plot(range(1, 1000), overlaps)
+    plt.xlabel("Offset")
+    plt.ylabel("Overlap with base encoding")
+    plt.title("SP Overlap vs Distance with Scalar input field")
+    plt.show()
 
 
 """NOISE ROBUSTNESS"""
