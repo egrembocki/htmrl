@@ -12,19 +12,6 @@ from psu_capstone.log import get_logger
 
 
 class Brain:
-    def rl_policy_update(self, reward: float | None = None) -> None:
-        """
-        Update all ValueFields using TD error propagation.
-
-        Args:
-            reward: The reward signal to use for TD update. If None, attempts to use the most recent reward.
-        """
-        if reward is None:
-            # Try to get reward from a known field, fallback to 0.0
-            reward = getattr(self, "_last_reward", 0.0)
-        for name, value_field in self._value_fields.items():
-            value_field.update_values(reward)
-
     """Manages HTM input fields and column fields with a unified API.
 
     Allows binding named inputs to InputFields and processing all inputs
@@ -105,6 +92,19 @@ class Brain:
         behavior = self.generate_behavior()
         self._logger.debug(f"generate_behavior() output: {behavior}")
         return behavior
+
+    def rl_policy_update(self, reward: float | None = None) -> None:
+        """
+        Update all ValueFields using TD error propagation.
+
+        Args:
+            reward: The reward signal to use for TD update. If None, attempts to use the most recent reward.
+        """
+        if reward is None:
+            # Try to get reward from a known field, fallback to 0.0
+            reward = getattr(self, "_last_reward", 0.0)
+        for name, value_field in self._value_fields.items():
+            value_field.update_values(reward)
 
     def estimate_value(self, reward: float | None = None) -> None:
         for name, field in self._value_fields.items():

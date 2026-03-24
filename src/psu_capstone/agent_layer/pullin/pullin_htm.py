@@ -41,7 +41,7 @@ def make_state_class(label: str):
     prev_attr = f"prev_{attr}"
     new_class = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: N807
         super(new_class, self).__init__(*args, **kwargs)  # type: ignore
         setattr(self, attr, getattr(self, attr, False))
         setattr(self, prev_attr, getattr(self, prev_attr, False))
@@ -252,10 +252,14 @@ class Segment(Active, Learning, Matching):
         self.prev_matching = False
 
     def adapt(
-        self, strength: float = 1.0, active_predicate: Callable[["Synapse"], bool] | None = None
+        self, strength: float = 1.0, active_predicate: Callable[[Synapse], bool] | None = None
     ) -> None:
         if active_predicate is None:
-            active_predicate = lambda syn: syn.source_cell.prev_active
+
+            def default_active_predicate(syn):
+                return syn.source_cell.prev_active
+
+            active_predicate = default_active_predicate
         kept = []
         for syn in self.synapses:
             syn._adjust_permanence(increase=active_predicate(syn), strength=strength)

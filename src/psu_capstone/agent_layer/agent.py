@@ -13,6 +13,7 @@ The Brain processes observations, while the Agent decides how to turn the
 current state and Brain outputs into a concrete environment action.
 """
 
+import os
 import random
 from collections import defaultdict
 from typing import Any, Literal
@@ -26,37 +27,6 @@ from psu_capstone.log import get_logger
 
 
 class Agent:
-
-    def save(self, path=None):
-        """Save the PPO model to disk using Stable-Baselines3's .save().
-
-        Args:
-            path: Optional path to save the PPO model. If not provided, uses the default PPO model path.
-        """
-        if self._policy_mode != "ppo":
-            raise RuntimeError("save() is only supported for PPO policy mode.")
-        if self._ppo_model is None:
-            raise RuntimeError("No PPO model to save.")
-        model_path = path or self._get_ppo_model_path()
-        self._ppo_model.save(model_path)
-        self._logger.info("PPO model saved to %s.", model_path)
-
-    def load(self, path=None):
-        """Load the PPO model from disk using Stable-Baselines3's .load().
-
-        Args:
-            path: Optional path to load the PPO model from. If not provided, uses the default PPO model path.
-        """
-        if self._policy_mode != "ppo":
-            raise RuntimeError("load() is only supported for PPO policy mode.")
-        model_path = path or self._get_ppo_model_path()
-        env = self._adapter._env
-        kwargs = {"device": "cpu"}
-        if hasattr(self, "_ppo_kwargs"):
-            kwargs.update(self._ppo_kwargs)
-        self._ppo_model = PPO.load(model_path, env=env, **kwargs)
-        self._logger.info("PPO model loaded from %s.", model_path)
-
     """Coordinate Brain inference, policy selection, and environment interaction.
 
     The Agent is the runtime owner of the RL loop. On each timestep it:
@@ -97,39 +67,6 @@ class Agent:
         TypeError: If ``policy_mode`` is ``'q_table'`` but the environment
             does not have a Discrete action space."""
 
-    def pretrain(
-        self,
-        trainer: Any = None,
-        pretrain_dataset: dict | None = None,
-        pretrain_steps: int = 0,
-        ppo_timesteps: int = 50000,
-    ) -> None:
-        """Pre-train the agent's policy according to the current policy_mode.
-
-        For 'ppo', calls train_ppo().
-        For 'brain', calls Trainer.train_full_brain() if trainer and dataset are provided.
-        For 'q_table', does nothing (tabular Q-learning is online only)."""
-
-        if self._policy_mode == "ppo":
-            self._logger.info("Pre-training PPO policy for %d timesteps...", ppo_timesteps)
-            self.train_ppo(total_timesteps=ppo_timesteps)
-            self._logger.info("PPO pre-training complete.")
-        elif self._policy_mode == "brain":
-            if trainer is not None and pretrain_dataset is not None and pretrain_steps > 0:
-                self._logger.info(
-                    "Pre-training Brain for %d steps on provided dataset...", pretrain_steps
-                )
-                trainer.train_full_brain(self._brain, pretrain_dataset, pretrain_steps)
-                self._logger.info("Brain pre-training complete.")
-            else:
-                self._logger.warning(
-                    "No trainer or dataset provided for Brain pre-training; skipping."
-                )
-        elif self._policy_mode == "q_table":
-            self._logger.info("Q-table policy does not support offline pre-training; skipping.")
-        else:
-            self._logger.warning(f"Unknown policy_mode '{self._policy_mode}' for pre-training.")
-
     def __init__(
         self,
         brain: Brain | None = None,
@@ -143,23 +80,22 @@ class Agent:
         trainer: Any = None,
         config: Any = None,
     ) -> None:
-        self._learning_rate = 0.1
-        self._discount_factor = 0.99
-        self._epsilon = 1.0
-        self._epsilon_decay = 0.01
-
+        # --- Shared attributes ---
         self._adapter = adapter
         self._logger = get_logger(self)
         self._policy_mode = policy_mode
-        self._ppo_policy = ppo_policy
-        self._ppo_kwargs = ppo_kwargs or {}
-        self._ppo_model = None
-        self._ppo_deterministic = ppo_deterministic
         self._brain_action_confidence_threshold = 0.1
         self._force_brain_mode = force_brain_mode
         self._q_state_decimals = 2
+        self._training_episodes = episodes
+        self._training_error = []
+        self._obs = None
+        self._inputs = {}
+        self._rng = random.Random()
+        self._last_action_source = "unknown"
+        self._last_reward = 0.0
 
-        # If brain is not provided but trainer and config are, build brain using trainer
+        # --- Brain setup ---
         if brain is None and trainer is not None and adapter is not None and config is not None:
             self._brain = trainer.build_brain_for_env(adapter, config)
         elif brain is not None:
@@ -169,28 +105,60 @@ class Agent:
                 "Agent requires either a brain or a trainer+adapter+config to build one."
             )
 
-        # q_table policy only makes sense when actions can be indexed.
-        action_spec = self._adapter.get_action_spec()
-        action_count = action_spec.get("n")
-        is_integer_like = isinstance(action_count, (int, np.integer))
-        if self._policy_mode == "q_table" and (
-            action_spec.get("space_type") != "Discrete" or not is_integer_like
-        ):
-            raise TypeError("q_table policy requires a Discrete action space.")
-
-        self._action_count = int(action_count) if is_integer_like else None
-        self._q_values = defaultdict(self._new_q_row)
-
-        self._training_episodes = episodes
-        self._training_error = []
-        self._obs = None
-        self._inputs = {}
-        self._rng = random.Random()
-        self._last_action_source = "unknown"
-        self._last_reward = 0.0
-
-        if self._policy_mode == "ppo":
+        # --- Policy-specific setup ---
+        if self._policy_mode == "q_table":
+            self._learning_rate = 0.1
+            self._discount_factor = 0.99
+            self._epsilon = 1.0
+            self._epsilon_decay = 0.001
+            # q_table policy only makes sense when actions can be indexed.
+            action_spec = self._adapter.get_action_spec() if self._adapter else {}
+            action_count = action_spec.get("n")
+            is_integer_like = isinstance(action_count, (int, np.integer))
+            if action_spec.get("space_type") != "Discrete" or not is_integer_like:
+                raise TypeError("q_table policy requires a Discrete action space.")
+            self._action_count = int(action_count) if is_integer_like else None
+            self._q_values = defaultdict(self._new_q_row)
+        elif self._policy_mode == "ppo":
+            self._ppo_policy = ppo_policy
+            self._ppo_kwargs = ppo_kwargs or {}
+            self._ppo_deterministic = ppo_deterministic
             self._ppo_model = self._build_ppo_model()
+        elif self._policy_mode == "brain":
+            # Brain mode uses fallback logic, no extra setup needed here
+            pass
+        else:
+            raise ValueError(f"Unknown policy_mode: {self._policy_mode}")
+
+    def save(self, path=None):
+        """Save the PPO model to disk using Stable-Baselines3's .save().
+
+        Args:
+            path: Optional path to save the PPO model. If not provided, uses the default PPO model path.
+        """
+        if self._policy_mode != "ppo":
+            raise RuntimeError("save() is only supported for PPO policy mode.")
+        if self._ppo_model is None:
+            raise RuntimeError("No PPO model to save.")
+        model_path = path or self._get_ppo_model_path()
+        self._ppo_model.save(model_path)
+        self._logger.info("PPO model saved to %s.", model_path)
+
+    def load(self, path=None):
+        """Load the PPO model from disk using Stable-Baselines3's .load().
+
+        Args:
+            path: Optional path to load the PPO model from. If not provided, uses the default PPO model path.
+        """
+        if self._policy_mode != "ppo":
+            raise RuntimeError("load() is only supported for PPO policy mode.")
+        model_path = path or self._get_ppo_model_path()
+        env = self._adapter._env
+        kwargs = {"device": "cpu"}
+        if hasattr(self, "_ppo_kwargs"):
+            kwargs.update(self._ppo_kwargs)
+        self._ppo_model = PPO.load(model_path, env=env, **kwargs)
+        self._logger.info("PPO model loaded from %s.", model_path)
 
     def _get_ppo_model_path(self) -> str:
         """Return a unique PPO model path based on the environment id."""
@@ -207,7 +175,6 @@ class Agent:
 
     def _build_ppo_model(self) -> PPO:
         """Create or load a Stable-Baselines3 PPO model bound to the adapter environment."""
-        import os
 
         if not hasattr(self._adapter, "_env"):
             raise ValueError("ppo policy mode requires an adapter with a Gym environment (_env).")
@@ -243,9 +210,6 @@ class Agent:
             total_timesteps: Total environment steps to train for.
                 50 000 is enough for CartPole-v1 to converge reliably.
         """
-        import os
-
-        import numpy as np
 
         if self._policy_mode != "ppo":
             raise RuntimeError("train_ppo() called but policy_mode is not 'ppo'.")
@@ -253,51 +217,8 @@ class Agent:
             self._ppo_model = self._build_ppo_model()
         self._logger.info("Training PPO for %d timesteps...", total_timesteps)
 
-        # Custom callback to log action distribution and rewards
-        from stable_baselines3.common.callbacks import BaseCallback
-
-        class ActionRewardLogger(BaseCallback):
-            def __init__(self, logger, verbose=0):
-                super().__init__(verbose)
-                self._logger = logger
-                self.actions = []
-                self.episode_rewards = []
-                self.current_rewards = []
-
-            def _on_step(self) -> bool:
-                action = self.locals.get("actions")
-                reward = self.locals.get("rewards")
-                if action is not None:
-                    if isinstance(action, np.ndarray):
-                        self.actions.extend(action.flatten().tolist())
-                    else:
-                        self.actions.append(action)
-                if reward is not None:
-                    if isinstance(reward, np.ndarray):
-                        self.current_rewards.extend(reward.flatten().tolist())
-                    else:
-                        self.current_rewards.append(reward)
-                # Detect end of episode
-                dones = self.locals.get("dones")
-                if dones is not None and np.any(dones):
-                    self.episode_rewards.append(np.sum(self.current_rewards))
-                    self.current_rewards = []
-                return True
-
-            def _on_training_end(self) -> None:
-                if self.actions:
-                    unique, counts = np.unique(self.actions, return_counts=True)
-                    dist = dict(zip(unique, counts))
-                    self._logger.info("PPO action distribution during training: %s", dist)
-                if self.episode_rewards:
-                    self._logger.info(
-                        "PPO mean reward per episode during training: %.3f",
-                        np.mean(self.episode_rewards),
-                    )
-
-        callback = ActionRewardLogger(self._logger)
-        self._ppo_model.learn(total_timesteps=total_timesteps, callback=callback)
-        # After training, PPO action distribution and mean reward will be logged.
+        # Use self._logger to log PPO training progress directly
+        self._ppo_model.learn(total_timesteps=total_timesteps)
         self._logger.info("PPO training complete. Saving model...")
         model_path = self._get_ppo_model_path()
         self._ppo_model.save(model_path)
@@ -437,173 +358,123 @@ class Agent:
         self._last_action_source = "q_table"
         return candidate_actions[best_index]
 
-    def _score_predicted_action(
-        self,
-        action_inputs: dict[str, Any],
-        predictions: dict[str, Any],
-    ) -> float:
-        """Score how well a candidate action aligns with Brain predictions.
-
-        Numeric predictions are scored by distance, optionally weighted by a
-        ``<field>.conf`` confidence value. Non-numeric predictions receive a
-        positive score when they match exactly.
-
-        Args:
-            action_inputs: Flattened representation of one candidate action.
-            predictions: Brain prediction mapping, including optional
-                confidence entries.
-
-        Returns:
-            A larger score for better alignment with the predicted action-like
-            outputs.
-        """
-
-        score = 0.0
-
-        for key, value in action_inputs.items():
-            if key not in predictions or predictions[key] is None:
-                continue
-
-            prediction = predictions[key]
-            confidence = predictions.get(f"{key}.conf", 1.0)
-            weight = float(confidence) if isinstance(confidence, (int, float)) else 1.0
-
-            if isinstance(prediction, (int, float)) and isinstance(value, (int, float)):
-                score -= abs(float(prediction) - float(value)) * weight
-            else:
-                score += weight if prediction == value else 0.0
-
-        return score
-
-    def _select_brain_action(self, obs: Any) -> Any:
-        """Select an action using Brain predictions when available.
-
-        This strategy asks the Brain for predictions, filters for fields that
-        look like action outputs, and ranks candidate actions against those
-        predictions. If the Brain does not expose usable action predictions,
-        selection falls back to the Q-table policy.
-
-        Args:
-            obs: Current environment observation.
-
-        Returns:
-            A concrete environment action.
-        """
-
-        return self._select_brain_action_from_outputs(obs, brain_outputs=None)
-
-    def _extract_action_from_brain_outputs(
-        self, brain_outputs: dict[str, Any]
-    ) -> tuple[Any | None, float]:
-        """Extract direct action hint and confidence from Brain.step output payloads."""
-
-        for _name, payload in brain_outputs.items():
-            if isinstance(payload, dict) and "action" in payload:
-                confidence = payload.get("confidence", 1.0)
-                confidence_value = (
-                    float(confidence) if isinstance(confidence, (int, float)) else 1.0
-                )
-                return payload["action"], confidence_value
-
-        return None, 0.0
-
-    def _select_brain_action_from_outputs(
-        self,
-        obs: Any,
-        brain_outputs: dict[str, Any] | None,
-    ) -> Any:
-        """Select action from output-field hints, then prediction scoring.
-
-        Fallback chain: brain → ppo → q_table.
-        """
-
-        if isinstance(brain_outputs, dict):
-            action_hint, confidence = self._extract_action_from_brain_outputs(brain_outputs)
-            if action_hint is not None and (
-                confidence >= self._brain_action_confidence_threshold or self._force_brain_mode
-            ):
-                self._last_action_source = "brain"
-                if self._force_brain_mode and confidence < self._brain_action_confidence_threshold:
-                    self._logger.info(
-                        "force_brain_mode: using brain action with low confidence %.3f.",
-                        confidence,
-                    )
-                return action_hint
-            if action_hint is not None:
-                self._logger.info(
-                    "Brain action confidence %.3f below threshold %.3f; falling back to ppo.",
-                    confidence,
-                    self._brain_action_confidence_threshold,
-                )
-                return self._select_ppo_or_q_action(obs)
-
-        candidate_actions = self._candidate_actions()
-
-        if not candidate_actions:
-            self._last_action_source = "brain"
-            return self._adapter._action_space.sample()
-
-        predictions = self._brain.prediction()
-        if not isinstance(predictions, dict):
-            self._logger.info("Brain predictions unavailable; falling back to ppo.")
-            return self._select_ppo_or_q_action(obs)
-
-        action_predictions = {
-            key: value for key, value in predictions.items() if key.startswith("action")
-        }
-
-        if not action_predictions:
-            self._logger.info("No action-like brain predictions; falling back to ppo.")
-            return self._select_ppo_or_q_action(obs)
-
-        action = max(
-            candidate_actions,
-            key=lambda action: self._score_predicted_action(
-                self._adapter.action_to_inputs(action),
-                action_predictions,
-            ),
-        )
-        self._last_action_source = "brain"
-        return action
-
-    def _select_ppo_or_q_action(self, obs: Any) -> Any:
-        """Use PPO first, then q-table as the final safety net.
-
-        This helper is used when brain mode cannot confidently choose an action.
-        If PPO cannot produce an action (for example, model init issues), we
-        still return a valid action by delegating to q-table selection.
-        """
-        try:
-            return self._select_ppo_action(obs)
-        except Exception:
-            self._logger.info("PPO unavailable; falling back to q_table.")
-            return self._select_q_action(obs)
-
     def select_action(self, obs: Any, brain_outputs: dict[str, Any] | None = None) -> Any:
-        """Dispatch action selection to the active policy implementation.
-
-        Args:
-            obs: Current environment observation.
-            brain_outputs: Optional dict of Brain prediction outputs used when
-                ``policy_mode`` is ``'brain'``.
-
-        Returns:
-            The environment action chosen by the active policy mode.
-
-        Notes:
-            - ``mode`` is the configured top-level policy.
-            - ``source`` (logged each step) is the component that actually
-              produced the action after fallback logic.
-              Example: mode=brain, source=ppo.
-        """
-
+        """Select an action using the current policy mode only (no fallback chains, all logic in this method)."""
         if self._policy_mode == "brain":
-            action = self._select_brain_action_from_outputs(obs, brain_outputs)
-        elif self._policy_mode == "ppo":
-            action = self._select_ppo_action(obs)
-        else:
-            action = self._select_q_action(obs)
+            # --- Brain policy logic ---
+            action = None
+            if isinstance(brain_outputs, dict):
+                # Try direct action hint from outputs
+                for _name, payload in brain_outputs.items():
+                    if isinstance(payload, dict) and "action" in payload:
+                        confidence = payload.get("confidence", 1.0)
+                        confidence_value = (
+                            float(confidence) if isinstance(confidence, (int, float)) else 1.0
+                        )
+                        if (
+                            confidence_value >= self._brain_action_confidence_threshold
+                            or self._force_brain_mode
+                        ):
+                            self._last_action_source = "brain"
+                            if (
+                                self._force_brain_mode
+                                and confidence_value < self._brain_action_confidence_threshold
+                            ):
+                                self._logger.info(
+                                    "force_brain_mode: using brain action with low confidence %.3f.",
+                                    confidence_value,
+                                )
+                            action = payload["action"]
+                            break
+            if action is None:
+                # Score all candidate actions against brain predictions
+                candidate_actions = self._candidate_actions()
+                if not candidate_actions:
+                    self._last_action_source = "brain"
+                    action = self._adapter._action_space.sample()
+                else:
+                    predictions = self._brain.prediction()
+                    if not isinstance(predictions, dict):
+                        self._logger.info("Brain predictions unavailable; choosing random action.")
+                        action = self._adapter._action_space.sample()
+                    else:
+                        action_predictions = {
+                            key: value
+                            for key, value in predictions.items()
+                            if key.startswith("action")
+                        }
+                        if not action_predictions:
+                            self._logger.info(
+                                "No action-like brain predictions; choosing random action."
+                            )
+                            action = self._adapter._action_space.sample()
+                        else:
 
+                            def score_predicted_action(action):
+                                action_inputs = self._adapter.action_to_inputs(action)
+                                score = 0.0
+                                for key, value in action_inputs.items():
+                                    if (
+                                        key not in action_predictions
+                                        or action_predictions[key] is None
+                                    ):
+                                        continue
+                                    prediction = action_predictions[key]
+                                    confidence = action_predictions.get(f"{key}.conf", 1.0)
+                                    weight = (
+                                        float(confidence)
+                                        if isinstance(confidence, (int, float))
+                                        else 1.0
+                                    )
+                                    if isinstance(prediction, (int, float)) and isinstance(
+                                        value, (int, float)
+                                    ):
+                                        score -= abs(float(prediction) - float(value)) * weight
+                                    else:
+                                        score += weight if prediction == value else 0.0
+                                return score
+
+                            action = max(candidate_actions, key=score_predicted_action)
+                            self._last_action_source = "brain"
+        elif self._policy_mode == "ppo":
+            # --- PPO policy logic ---
+            if self._ppo_model is None:
+                self._ppo_model = self._build_ppo_model()
+            action, _state = self._ppo_model.predict(obs, deterministic=self._ppo_deterministic)
+            self._logger.info("PPO observation: %s | PPO selected action: %s", obs, action)
+            self._last_action_source = "ppo"
+            if isinstance(action, np.ndarray) and action.shape == ():
+                action = action.item()
+        elif self._policy_mode == "q_table":
+            # --- Q-table policy logic ---
+            state_key = self._initialize_q_values(obs)
+            if self._epsilon > 0.1:
+                self._epsilon -= self._epsilon_decay
+            candidate_actions = self._candidate_actions()
+            if not candidate_actions:
+                self._last_action_source = "q_table"
+                action = self._adapter._action_space.sample()
+            elif self._rng.random() < self._epsilon:
+                self._last_action_source = "q_table"
+                action = self._adapter._action_space.sample()
+            else:
+                q_row = self._q_values[state_key]
+                if len(q_row) != len(candidate_actions):
+                    self._last_action_source = "q_table"
+                    action = self._adapter._action_space.sample()
+                else:
+                    max_q = float(np.max(q_row))
+                    best_indices = [
+                        index for index, value in enumerate(q_row) if float(value) == max_q
+                    ]
+                    best_index = self._rng.choice(best_indices)
+                    self._last_action_source = "q_table"
+                    action = candidate_actions[best_index]
+        else:
+            self._logger.warning(
+                f"Unknown policy_mode: {self._policy_mode}, choosing random action."
+            )
+            action = self._adapter._action_space.sample()
         self._logger.info(
             "Policy step: mode=%s source=%s action=%s",
             self._policy_mode,
@@ -696,13 +567,11 @@ class Agent:
     ) -> None:
         """Update policy state from a transition.
 
-                Plain-language policy update rules:
-
-                - ``q_table``: apply one-step TD update.
-                - ``ppo``: no update here; PPO training is managed separately.
-                - ``brain``: keep the current RL update stub in place. If this step
-                    actually used q-table fallback, run the q-table TD update so those
-                    fallback actions can still learn tabular values.
+        - ``q_table``: apply one-step TD update.
+        - ``ppo``: no update here; PPO training is managed separately.
+        - ``brain``: keep the current RL update stub in place. If this step
+            actually used q-table fallback, run the q-table TD update so those
+            fallback actions can still learn tabular values.
 
         Args:
             obs: Observation before the action was taken.

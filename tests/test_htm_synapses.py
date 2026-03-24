@@ -117,13 +117,15 @@ def test_synapse_adjust_permanence_negative_strength_decrease_asserts(cell):
 
 
 def test_apical_synapse_uses_predictive(predictive_cell):
-    """If the apical segment has a predictive cell and connected permanence threshold, it should be active."""
+    """If the apical segment has a predictive cell and connected permanence threshold,
+    it should be active."""
     syn = ApicalSynapse(predictive_cell, CONNECTED_PERM)
     assert syn.active is True
 
 
 def test_apical_synapse_not_active_if_not_predictive(cell):
-    """If the apical segment has a normal cell and connected permanence threshold it should not be active."""
+    """If the apical segment has a normal cell and connected permanence
+    threshold it should not be active."""
     syn = ApicalSynapse(cell, CONNECTED_PERM)
     assert syn.active is False
 
@@ -132,7 +134,8 @@ def test_apical_synapse_not_active_if_not_predictive(cell):
 
 
 def test_distal_synapse_inherits_active_behavior(active_cell):
-    """If the distal synapse has an active cell and connected permanence threshold it should be active."""
+    """If the distal synapse has an active cell and connected permanence
+    threshold it should be active."""
     syn = DistalSynapse(active_cell, CONNECTED_PERM)
     assert syn.active is True
 

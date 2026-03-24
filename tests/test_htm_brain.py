@@ -87,7 +87,8 @@ def test_initialize_brain():
     """
     Refactored output field to require motor action, so this test is no longer failing.
     The test is still here to make sure that the brain can be initialized with all field types,
-    and to make sure that the output field is properly initialized with the required motor action parameter.
+    and to make sure that the output field is properly initialized with the required
+    motor action parameter.
     """
     assert len(b._input_fields) == 1
     assert len(b._output_fields) == 1

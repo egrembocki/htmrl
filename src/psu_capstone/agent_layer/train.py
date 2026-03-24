@@ -104,7 +104,7 @@ class Trainer:
         else:
             n_actions = 2
             possible_actions = [0, 1]
-            logger.info(f"Action space: Non-discrete, defaulting to 2 actions.")
+            logger.info("Action space: Non-discrete, defaulting to 2 actions.")
 
         min_active_bits = max(1, int(round(n_actions * 0.02)))
         encoder_params = RDSEParameters(

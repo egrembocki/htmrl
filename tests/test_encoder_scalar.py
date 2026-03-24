@@ -37,7 +37,8 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 
 @pytest.fixture
 def scalar_encoder_instance():
-    """Fixture to create a ScalarEncoder instance for testing. This may change when we get Union working properly."""
+    """Fixture to create a ScalarEncoder instance for testing. This may change when we get Union
+    working properly."""
 
 
 # Helper -- may need to be implemented later
@@ -574,10 +575,11 @@ def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
 
 def test_scalar_hamming_distance():
     """
-    This test compares the mean hamming distances between consecutive encoded values like 1 compared to 2 all
-    of the way up to 1000. Then we take the mean of these hamming distances. On top of that it compares 1 through 500
-    of encoded values to 9000 through 10000. We then compare these hamming distances. The thought is that the values
-    right next to each other should have less bit differences than ones far away.
+    This test compares the mean hamming distances between consecutive encoded values
+    like 1 compared to 2 all of the way up to 1000. Then we take the mean of these
+    hamming distances. On top of that it compares 1 through 500 of encoded values to
+    9000 through 10000. We then compare these hamming distances. The thought is that
+    the values right next to each other should have less bit differences than ones far away.
     """
     import random
 
