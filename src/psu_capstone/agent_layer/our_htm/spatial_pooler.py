@@ -75,8 +75,8 @@ class SpatialPoolerParams:
     """All tuneable parameters for the Spatial Pooling algorithm."""
 
     # structure
-    column_dimensions: tuple = (2048,)
-    input_dimensions: tuple = (400,)
+    column_dimensions: tuple = 2048
+    input_dimensions: tuple = 2048
     potential_radius: int = 16
     potential_pct: float = 0.75  # fraction of inputs within radius to init as potential
 
@@ -130,13 +130,13 @@ class SpatialPooler:
         raise NotImplementedError
 
     def _map_column_to_input_center(self, column_index: int) -> int:
-        """Map a column index to its natural centre in the input space."""
+        """Map a column index to its natural center in the input space."""
         raise NotImplementedError
 
     def _init_permanence(self, column_center: int, input_index: int) -> float:
         """
         Generate an initial permanence value for a potential synapse. Values are drawn from a small range around connected_perm with
-        a bias towards the column's natural centre.
+        a bias towards the column's natural center.
         """
         raise NotImplementedError
 
@@ -146,6 +146,12 @@ class SpatialPooler:
         """
         For each column, count its connected synapses that align with active input bits, then multiply by the columns boost factor.
         """
+        # code from paper
+        #       for c in columns
+        #           overlap(c) = 0
+        #               for s in connectedSynapses(c)
+        #                   overlap(c) = overlap(c) + input(t, s.sourceInput)
+        #       overlap(c) = overlap(c) * boost(c)
         raise NotImplementedError
 
     # phase 3 inhibition
@@ -159,6 +165,11 @@ class SpatialPooler:
 
         Returns the list of active columns.
         """
+        #       for c in columns
+        #           minLocalActivity = kthScore(neighbors(c), numActiveColumnsPerInhArea)
+        #           if overlap(c) > stimulusThreshold and
+        #               overlap(c) ≥ minLocalActivity then
+        #               activeColumns(t).append(c)
         raise NotImplementedError
 
     def _inhibit_columns_global(self) -> List[Column]:
