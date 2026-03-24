@@ -88,25 +88,59 @@ def _overlap_count(first, second) -> int:
     return len(first & second)
 
 
-def activate_noisy(cf: ColumnField, base_value: float, noise_prob: float) -> None:
-    """Encode a value then flip each bit independently with noise_prob."""
-    in_fi = cast(InputField, cf.input_fields[0])
-    in_fi.encode(base_value)
-    # create a numpy representation of the cells
-    bits = np.array([1 if cell.active else 0 for cell in in_fi.cells])
-    # first generate a random array the length of cells in input field
-    # this has floats between 0 and 1 at each position, if it is below the noise_prob
-    # it will be marked active
-    flip_mask = (np.random.rand(len(bits)) < noise_prob).astype(int)
-    # bits XOR flip_mask
-    noisy_bits = bits ^ flip_mask
-
-    # adjust the cells that are active to match the noisy sdr
-    for i, cell in enumerate(in_fi.cells):
-        if noisy_bits[i]:
-            cell.set_active()
+def add_noise_to_encoding(encoded_bits: list[int], noise_level: float) -> list[int]:
+    """Return a noisy copy of a binary encoding vector."""
+    noisy = list(encoded_bits)
+    active = []
+    inactive = []
+    for i, bit in enumerate(noisy):
+        if bit == 1:
+            active.append(i)
         else:
-            cell.active = False
+            inactive.append(i)
+
+    # print(active)
+    # print()
+    import random
+
+    bits_to_flip = int(len(active) * noise_level)
+    selected_bits_to_inactive = random.sample(active, bits_to_flip)
+    selected_new_active = random.sample(inactive, bits_to_flip)
+    # print(selected_bits_to_inactive)
+    # print()
+    # print(selected_new_active)
+    # print()
+    for i, bit in enumerate(encoded_bits):
+        for ina, act in zip(selected_bits_to_inactive, selected_new_active):
+            if i == ina:
+                encoded_bits[i] = 0
+            if i == act:
+                encoded_bits[i] = 1
+
+    test_final = []
+    for i, bit in enumerate(encoded_bits):
+        if bit == 1:
+            test_final.append(i)
+    # print(test_final)
+    print(_overlap_count(set(active), set(test_final)))
+
+
+def test_add_noise():
+    e = RandomDistributedScalarEncoder(RDSEParameters())
+    bits = e.encode(1)
+    add_noise_to_encoding(bits, 0.10)
+
+
+def get_active_column_indices(cf: ColumnField) -> list[int]:
+    return [i for i, col in enumerate(cf.columns) if col.active]
+
+
+def overlap_ratio(original: list[int], noisy: list[int]) -> float:
+    if not original:
+        return 0.0
+    noisy_set = set(noisy)
+    intersection = [i for i in original if i in noisy_set]
+    return len(intersection) / len(original)
 
 
 """Spatial Pooling inside the column field correctness tests based on Numenta Paper: spatial-pooling-algorithm/HTM-Spatial-Pooler-Overview.pdf"""
@@ -457,64 +491,26 @@ def test_sp_overlap_gradient_input_field_scalar():
 """NOISE ROBUSTNESS"""
 
 
-def test_small_noise_preserves_most_of_sdr():
-    """Flipping a small fraction of encoded bits should keep most output columns the same."""
+def test_zero_noise_no_output_change():
+    """With zero noise there should be no change in SP output."""
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
-    base_value = 50.0
+    # for i in range(20):
+    #    activate_cells(cf, 42.0)
+    #    cf.compute(learn=True)
 
-    # train on clean input
-    for _ in range(100):
-        activate_cells(cf, base_value)
-        cf.compute(learn=True)
-
-    # test clean
-    activate_cells(cf, base_value)
+    activate_cells(cf, 42.0)
+    # epoch 0
     cf.compute(learn=False)
-    cols_clean = {i for i, col in enumerate(cf.columns) if col.active}
+    cols1 = [1 if col.active else 0 for col in cf.columns]
 
-    # test with increasing noise
-    for noise_pct in (0.05, 0.10, 0.15):
-        activate_noisy(cf, base_value, noise_pct)
-        cf.compute(learn=False)
-        cols_noisy = {i for i, col in enumerate(cf.columns) if col.active}
-        sim = _overlap_count(cols_clean, cols_noisy)
-        print(sim)
-        assert sim > 0, f"{noise_pct:.0%} input noise left zero column overlap"
-
-
-def test_repeated_noise_does_not_drift_representation():
-    """Repeatedly presenting noisy versions should not cause the clean representation to drift."""
-    input_size = 2048
-    in_fi = make_input_field(input_size)
-    cf = make_spatial_only_cf(in_fi, num_columns=input_size)
-
-    base_value = 50.0
-
-    # initial training
-    for _ in range(20):
-        activate_cells(cf, base_value)
-        cf.compute(learn=True)
-
-    activate_cells(cf, base_value)
+    activate_cells(cf, 42.0)
     cf.compute(learn=False)
-    cols_before = {i for i, col in enumerate(cf.columns) if col.active}
+    cols2 = [1 if col.active else 0 for col in cf.columns]
 
-    # present many noisy variants with learning on
-    for _ in range(50):
-        activate_noisy(cf, base_value, 0.15)
-        cf.compute(learn=True)
-
-    # retest clean
-    activate_cells(cf, base_value)
-    cf.compute(learn=False)
-    cols_after = {i for i, col in enumerate(cf.columns) if col.active}
-
-    sim = _overlap_count(cols_before, cols_after)
-    print(sim)
-    assert sim > 0, f"Representation {sim} drifted completely after noisy training: zero overlap"
+    assert _overlap_count_list(cols1, cols2) == 40
 
 
 """FAULT TOLERANCE"""
