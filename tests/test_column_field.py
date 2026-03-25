@@ -217,8 +217,6 @@ def test_many_columns_participate_across_patterns():
         active_cols = {col for col in cf.columns if col.active}
         ever_active.update(active_cols)
         print("Total columns ever active: ", len(ever_active))
-        # for col in active_cols:
-        #    print(col)
 
     participation = len(ever_active) / len(cf.columns)
     assert (
@@ -249,6 +247,38 @@ def test_no_single_column_dominates():
         assert (
             max_freq < threshold
         ), f"Most used column was active {max_freq:.1%} of the time threshold {threshold:.1%}"
+
+
+def test_activation_converge_on_desired_sparsity():
+    input_size = 2048
+    in_fi = make_input_field(input_size)
+    cf = make_spatial_only_cf(in_fi, num_columns=input_size)
+
+    # pattern_a = list(range(0, 50))
+    rng = random.Random(42)
+    pattern_a = rng.sample(range(input_size), 100)
+    num_presentations = len(pattern_a)
+
+    # train for 50 epochs
+    for _ in range(50):
+        for value in pattern_a:
+            activate_cells(cf, value)
+            cf.compute(learn=True)
+
+    # measure activation frequency across the full pattern
+    activation_counts: dict = {}
+    for value in pattern_a:
+        activate_cells(cf, value)
+        cf.compute(learn=False)
+        for col in cf.columns:
+            if col.active:
+                activation_counts[col] = activation_counts.get(col, 0) + 1
+    print(activation_counts)
+    print("Percent of columns ever active: ", (len(activation_counts) / 2048) * 100)
+    fraction_of_sp = []
+    for active in activation_counts:
+        fraction_of_sp.append(activation_counts[active] / num_presentations)
+    print(fraction_of_sp)
 
 
 def test_duty_cycle_boosting_engages_inactive_columns():
