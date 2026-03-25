@@ -6,6 +6,8 @@ satisfy for data loading, validation, and normalization.
 
 from typing import Any, Protocol, runtime_checkable
 
+from psu_capstone.agent_layer.HTM import Field, InputField
+
 
 @runtime_checkable
 class InputInterface(Protocol):
@@ -23,6 +25,11 @@ class InputInterface(Protocol):
         Returns:
             Dictionary mapping column names to lists of values.
         """
+        ...
+
+    @property
+    def fields(self) -> list[Field]:
+        """Return the primary input fields used for processing."""
         ...
 
     def input_data(

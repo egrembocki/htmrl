@@ -27,7 +27,7 @@ class Brain:
             Can include InputField, OutputField, and ColumnField types.
 
     Example:
-        manager = FieldManager()
+        manager = Trainer()
         manager.add_input_field("consumption", consumption_field)
         manager.add_input_field("date", date_field)
         manager.set_column_field(column_field)
@@ -105,6 +105,11 @@ class Brain:
                 )
 
         return predictions  # type: ignore
+
+    def rl_policy_update(self) -> None:
+        """RL policy prediction method that returns the next action based on reward fields."""
+        # TODO: Brain needs fully functioning RL reward fields. (GO, NO-GO)
+        pass
 
     def encode_only(self, inputs: dict[str, Any]) -> None:
         """Encode inputs without computing (useful for getting predictions first).

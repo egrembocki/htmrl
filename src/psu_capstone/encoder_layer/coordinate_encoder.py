@@ -8,15 +8,20 @@ from typing import Iterable, override
 import mmh3
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
 class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
     """Encode integer grid coordinates and radius into an SDR."""
 
-    def __init__(self, parameters: CoordinateParameters, dimensions: list[int] | None = None):
-        self._parameters = copy.deepcopy(parameters)
+    def __init__(
+        self, parameters: CoordinateParameters | None = None, dimensions: list[int] | None = None
+    ):
+
+        self._parameters = (
+            copy.deepcopy(parameters) if parameters is not None else CoordinateParameters()
+        )
 
         self._n = self._parameters.n
         self._w = self._parameters.w
@@ -173,9 +178,10 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
 
 
 @dataclass
-class CoordinateParameters(ParentDataClass):
+class CoordinateParameters:
     """Configuration parameters for :class:`CoordinateEncoder`."""
 
+    size: int = 2048
     n: int = 2048
     w: int = 25
     seed: int = 42

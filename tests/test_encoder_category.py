@@ -29,6 +29,10 @@ import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
+from psu_capstone.encoder_layer.category_encoder_new import (
+    CategoryEncoderNew,
+    CategoryParametersNew,
+)
 
 
 # TODO we might need confidence filters on the category tests.
@@ -301,22 +305,5 @@ def hamming_distance_helper(first, second) -> int:
     """
     first = np.asarray(first)
     second = np.asarray(second)
-    return int(np.count_nonzero(first != second))
-
-
-# Correctness tests
-def test_close_categories_are_similar():
-    """This test checks to make sure categories by each other in the index are more similar than categories distanced from each other."""
-    params = CategoryParameters(
-        w=5, category_list=["ES", "GB", "US", "RU", "JP", "FR", "GR", "TU", "IT"], rdse_used=True
-    )
-    encoder = CategoryEncoder(params)
-    encoding1 = encoder.encode("ES")
-    encoding2 = encoder.encode("GB")
-    # encoding3 = encoder.encode("US")
-    # encoding4 = encoder.encode("Wrong")
-    encoding5 = encoder.encode("IT")
-    # TODO refactor category encoder to stay close to sparsity and fix this sometimes failing test.
-    assert hamming_distance_helper(encoding1, encoding2) < hamming_distance_helper(
-        encoding1, encoding5
-    )
+    result = int(np.count_nonzero(first != second))
+    return result

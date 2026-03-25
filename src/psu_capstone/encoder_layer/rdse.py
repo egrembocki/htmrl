@@ -24,11 +24,11 @@ import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParentDataClass
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.log import get_logger, logger
 
 
-class RandomDistributedScalarEncoder(BaseEncoder[float]):
+class RandomDistributedScalarEncoder(BaseEncoder[float | int]):
     """Random Distributed Scalar Encoder using MurmurHash3 for stable encodings.
 
     The RDSE encodes numeric scalar values into SDRs using hash-based random
@@ -61,7 +61,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         super().__init__(self._size)
 
     @override
-    def encode(self, input_value: Any) -> list[int]:
+    def encode(self, input_value: float | int) -> list[int]:
         """Encode the input value into a binary vector."""
         if type(input_value) is not int and type(input_value) is not float:
             raise ValueError("A scalar encoder can only encode floats or ints.")
@@ -69,7 +69,9 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
         self.logger.info("RDSE encoded value: %s", input_value)
         return self._compute_encoding(input_value)
 
-    def register_encoding(self, input_value: float, encoded: list[int] | None = None) -> list[int]:
+    def register_encoding(
+        self, input_value: float | int, encoded: list[int] | None = None
+    ) -> list[int]:
         """Caches an encoding so decode_closest can compare against it."""
         vector = encoded if encoded is not None else self._compute_encoding(input_value)
         if len(vector) != self.size:
@@ -281,7 +283,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float]):
 
 
 @dataclass
-class RDSEParameters(ParentDataClass):
+class RDSEParameters:
     """Configuration parameters for :class:`RandomDistributedScalarEncoder`."""
 
     size: int = 2048
