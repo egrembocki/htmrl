@@ -1,3 +1,4 @@
+import copy
 import random
 from collections import Counter
 from typing import cast
@@ -98,18 +99,12 @@ def add_noise_to_encoding(encoded_bits: list[int], noise_level: float) -> list[i
             active.append(i)
         else:
             inactive.append(i)
-
-    # print(active)
-    # print()
     import random
 
     bits_to_flip = int(len(active) * noise_level)
     selected_bits_to_inactive = random.sample(active, bits_to_flip)
     selected_new_active = random.sample(inactive, bits_to_flip)
-    # print(selected_bits_to_inactive)
-    # print()
-    # print(selected_new_active)
-    # print()
+
     for i, bit in enumerate(encoded_bits):
         for ina, act in zip(selected_bits_to_inactive, selected_new_active):
             if i == ina:
@@ -121,8 +116,7 @@ def add_noise_to_encoding(encoded_bits: list[int], noise_level: float) -> list[i
     for i, bit in enumerate(encoded_bits):
         if bit == 1:
             test_final.append(i)
-    # print(test_final)
-    print(_overlap_count(set(active), set(test_final)))
+    # print(_overlap_count(set(active), set(test_final)))
 
 
 def test_add_noise():
@@ -511,6 +505,112 @@ def test_zero_noise_no_output_change():
     cols2 = [1 if col.active else 0 for col in cf.columns]
 
     assert _overlap_count_list(cols1, cols2) == 40
+
+
+def test_noise_gradient_plot():
+    """Plot noise robustness across epochs like the research paper. Eventually add asserts to make it a test."""
+    input_size = 2048
+    in_fi = make_input_field(input_size)
+    cf = make_spatial_only_cf(in_fi, num_columns=input_size)
+
+    noise_levels = [
+        0.00,
+        0.05,
+        0.10,
+        0.15,
+        0.20,
+        0.25,
+        0.30,
+        0.35,
+        0.40,
+        0.45,
+        0.50,
+        0.55,
+        0.60,
+        0.65,
+        0.70,
+        0.75,
+        0.80,
+        0.85,
+        0.90,
+        0.95,
+        1.00,
+    ]
+    epoch_checkpoints = [0, 5, 10, 20, 40]
+    results = {}
+
+    epoch = 0
+    for checkpoint in epoch_checkpoints:
+        # train the amount of epochs in checkpoint, 0-5-10-20-40 like the paper
+        while epoch < checkpoint:
+            activate_cells(cf, 42.0)
+            cf.compute(learn=True)
+            epoch += 1
+
+        # get a baseline of the active columns
+        activate_cells(cf, 42.0)
+        cf.compute(learn=False)
+        cols1 = [1 if col.active else 0 for col in cf.columns]
+        num_active = sum(cols1)
+
+        # get input_field cells
+        cells = []
+        for cell in cf.input_fields[0].cells:
+            cells.append(1 if cell.active else 0)
+
+        overlaps = []
+        for noise_pct in noise_levels:
+            if noise_pct == 0.0:
+                overlaps.append(1.0)
+                continue
+
+            # add the noise to the input_field cells, but deep copy so we do not change the base cells for futre run throughs
+            noisy_cells = copy.deepcopy(cells)
+            add_noise_to_encoding(noisy_cells, noise_pct)
+            # clear cells to false and set active based on noise
+            for cell in in_fi.cells:
+                cell.active = False
+            for cell, n_cell in zip(in_fi.cells, noisy_cells):
+                if n_cell == 1:
+                    cell.set_active()
+            # clear column states and their cells
+            for col in cf.columns:
+                col.active = False
+                for cell in col.cells:
+                    cell.active = False
+            # compute the new overlaps
+            for col in cf.columns:
+                col.compute_overlap()
+            # activate columns and cells of columns
+            cf.activate_columns()
+            for col in cf.active_columns:
+                for cell in col.cells:
+                    cell.set_active()
+            # get new active columns
+            cols2 = [1 if col.active else 0 for col in cf.columns]
+            # calculate overlap with original active columns
+            overlap = _overlap_count_list(cols1, cols2)
+            overlaps.append(overlap / num_active if num_active > 0 else 0)
+
+        results[checkpoint] = overlaps
+        print(f"epoch {checkpoint}: {overlaps}")
+
+    import matplotlib.pyplot as plt
+
+    colors = {0: "#3366CC", 5: "#009966", 10: "#CC3333", 20: "#00CCCC", 40: "#993399"}
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for ep, overlap_ratios in results.items():
+        ax.plot(noise_levels, overlap_ratios, linewidth=2.5, label=f"epoch {ep}", color=colors[ep])
+
+    ax.set_xlabel("Noise Level", fontsize=14)
+    ax.set_ylabel("Change of SP Output", fontsize=14)
+    ax.set_title("Properties of SP noise robustness", fontsize=16)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.05)
+    ax.legend(fontsize=12, loc="upper right", edgecolor="black")
+
+    plt.show()
 
 
 """FAULT TOLERANCE"""
