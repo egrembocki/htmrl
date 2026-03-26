@@ -56,7 +56,7 @@ class FinGym(gym.Env):
     ) -> None:
         super().__init__()
 
-        # Load the raw data and optionally cap it to max_rows for testing/prototyping
+        # Load the raw data and optionally cap it to max_rows for testing
         self._raw_frame = self._load_frame(data_source)
 
         if max_rows is not None:
