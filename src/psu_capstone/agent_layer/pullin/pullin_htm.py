@@ -13,7 +13,7 @@ from typing import (
 )
 
 from psu_capstone.agent_layer.pullin.pullin_constants import DUTY_CYCLE_PERIOD
-from psu_capstone.agent_layer.pullin.sungur_agent import ValueField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 # Constants
@@ -83,8 +83,8 @@ NoGoDepolarized = make_state_class("nogo_depolarized")
 class Field:
     """A collection of cells."""
 
-    def __init__(self, cells: Iterable[Cell], name: str = None) -> None:
-        self.cells: list["Cell"] = list(cells)
+    def __init__(self, cells: Iterable[Cell], name: str | None = None) -> None:
+        self.cells: list[Cell] = list(cells)
         self.name: str = name if name is not None else ""
 
     def __iter__(self):
