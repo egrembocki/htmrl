@@ -9,6 +9,8 @@ import pytest
 from psu_capstone.agent_layer.HTM import (
     CONNECTED_PERM,
     DESIRED_LOCAL_SPARSITY,
+    PERMANENCE_DEC,
+    PERMANENCE_INC,
     RECEPTIVE_FIELD_PCT,
     Cell,
     Column,
@@ -250,35 +252,77 @@ def test_no_single_column_dominates():
 
 
 def test_activation_converge_on_desired_sparsity():
+    import psu_capstone.agent_layer.HTM
+
+    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
+    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
-    # pattern_a = list(range(0, 50))
     rng = random.Random(42)
-    pattern_a = rng.sample(range(input_size), 100)
+    pattern_a = rng.sample(range(-10000, 10000), 100)
     num_presentations = len(pattern_a)
 
-    # train for 50 epochs
-    for _ in range(50):
+    # train for 70 epochs
+    for _ in range(70):
         for value in pattern_a:
             activate_cells(cf, value)
             cf.compute(learn=True)
 
     # measure activation frequency across the full pattern
-    activation_counts: dict = {}
+    activation_counts = {}
     for value in pattern_a:
         activate_cells(cf, value)
         cf.compute(learn=False)
         for col in cf.columns:
             if col.active:
                 activation_counts[col] = activation_counts.get(col, 0) + 1
-    print(activation_counts)
-    print("Percent of columns ever active: ", (len(activation_counts) / 2048) * 100)
-    fraction_of_sp = []
+    freqs = []
     for active in activation_counts:
-        fraction_of_sp.append(activation_counts[active] / num_presentations)
-    print(fraction_of_sp)
+        freqs.append(activation_counts[active] / num_presentations)
+    print(freqs)
+    n_active = sum(1 for f in freqs if f > 0)
+    pct_active = (n_active / len(cf.columns)) * 100
+    print(f"Percent of columns ever active: {pct_active:.2f}")
+
+    # plot
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    bin_edges = np.linspace(0, 0.25, 21)
+
+    freq_array = np.array(freqs)
+    counts, _ = np.histogram(freq_array, bins=bin_edges)
+    fractions = counts / len(freq_array)
+
+    ax.bar(
+        bin_edges[:-1],
+        fractions,
+        width=np.diff(bin_edges),
+        align="edge",
+        color="#3366CC",
+        edgecolor="white",
+        linewidth=0.5,
+    )
+    ax.set_title("Activation Frequency Distribution\n(epoch 70)", fontsize=13, fontweight="bold")
+    ax.set_xlabel("Activation Frequency", fontsize=11)
+    ax.set_ylabel("Fraction of SP Columns", fontsize=11)
+    ax.set_xlim(0.0, 0.25)
+    ax.set_ylim(0.0, 0.80)
+    ax.text(
+        0.95,
+        0.95,
+        f"{n_active} / {len(cf.columns)} cols active ({pct_active:.1f}%)",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=9,
+        color="gray",
+    )
+
+    plt.tight_layout()
+    plt.show()
 
 
 def test_duty_cycle_boosting_engages_inactive_columns():
