@@ -1,49 +1,60 @@
 @startuml
+scale 2000 width
+
 skinparam style strictuml
+skinparam defaultFontSize 22
+skinparam TitleFontSize 24
+skinparam ObjectFontSize 30
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-06 Train Brain (TODO: Update to match Brain Class and HTM Interface)
 
-actor "Developer" as Dev
-participant "<u>b:Brain</u>" as B
-participant "<u>if:InputField(s)</u>" as IF
+title US-06 Train Brain
+
+actor Developer as Dev
+participant "<u>trainer:Trainer</u>" as TR
+participant "<u>b:Brain</u>" as BR
+participant "<u>if:InputField</u>" as IF
 participant "<u>cf:ColumnField</u>" as CF
-participant "<u>h:HTM Engine</u>" as H
-participant "<u>of:OutputField(s)</u>" as OF
 
-Dev -> B: step(inputs, learn=True)
-activate B
+Dev -> TR: build_brain(fields)
+activate TR
+TR -> TR: _setup_io_fields(fields)
+TR -> TR: _setup_column_fields(num_columns=max(size), cells_per_column=16)
+TR -> TR: _create_brain()
+TR -> BR: Brain({input_fields, output_fields, column_fields})
+activate BR
+BR --> TR: brain
+TR --> Dev: built Brain
 
-== 1) Encode inputs ==
-B -> IF: encode(value)
-activate IF
-IF --> B: encoded SDRs
+group Pre-train outside RL loop
+  Dev -> TR: train_full_brain(brain, dataset, steps)
+  activate TR
+  loop step in range(steps)
+    TR -> TR: column_data = {key: dataset[key][step % len(dataset[key])] for key in dataset}
+    TR -> TR: build input_dict from _trainer_input_fields
+    TR -> BR: step(inputs=input_dict, learn=True)
+    activate BR
+    BR -> BR: encode_only(inputs)
+    loop for each input field in inputs
+      BR -> IF: encode(value)
+      activate IF
+      IF --> BR: encoded state updated
+      deactivate IF
+    end
+    BR -> BR: compute_only(learn=True)
+    BR -> CF: compute(learn=True)
+    activate CF
+    CF --> BR: HTM state updated
+    deactivate CF
+    BR --> TR: decoded outputs
+    deactivate BR
+  end
 
-deactivate IF
+  TR -> TR: print_train_stats(save_path?, test_results?, training_steps?)
+  TR --> Dev: trained brain stats/report
+  deactivate TR
+end
 
-== 2) Delegate learning to HTM via ColumnField ==
-B -> CF: compute(encoded SDRs, learn=True)
-activate CF
-CF -> H: compute(learn=True)
-activate H
-H -> H: advance_states()
-H -> H: spatial pooling overlap + inhibition
-H -> H: temporal memory activation + prediction
-H -> H: learning updates (grow/adapt/weaken)
-H --> CF: active_columns,predictive_cells, anomaly_score,learning_state
-
-deactivate H
-CF --> B: HTM state package
-
-deactivate CF
-
-== 3) Decode and publish result ==
-B -> OF: decode(predictive state)
-activate OF
-OF --> B: decoded value + confidence
-
-deactivate OF
-B --> Dev: prediction payload
-
-deactivate B
+deactivate BR
+deactivate TR
 @enduml
