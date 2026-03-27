@@ -3,8 +3,8 @@ from __future__ import annotations
 from statistics import fmean
 from typing import Any, Callable, Optional
 
+from psu_capstone.agent_layer.pullin.field_base import Field
 from psu_capstone.agent_layer.pullin.pullin_constants import DUTY_CYCLE_PERIOD
-from psu_capstone.agent_layer.pullin.pullin_htm import Field
 
 
 class ValueField:
