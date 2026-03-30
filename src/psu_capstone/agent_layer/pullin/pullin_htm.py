@@ -12,8 +12,9 @@ from typing import (
     cast,
 )
 
+from psu_capstone.agent_layer.pullin.field_base import Field
 from psu_capstone.agent_layer.pullin.pullin_constants import DUTY_CYCLE_PERIOD
-from psu_capstone.agent_layer.pullin.sungur_agent import ValueField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 # Constants
@@ -35,102 +36,131 @@ LEARNING_THRESHOLD_PCT = 0.25  # Learning threshold as a percentage of synapses 
 debug = False
 
 
-def make_state_class(label: str):
-    """Create a mixin that tracks current and previous boolean states for `label`."""
-    attr = label.lower()
-    prev_attr = f"prev_{attr}"
-    new_class = None
+# --- State mixins: only one class per state, with all expected methods/attributes ---
+class Active:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.active = False
+        self.prev_active = False
 
-    def __init__(self, *args, **kwargs):  # noqa: N807
-        super(new_class, self).__init__(*args, **kwargs)  # type: ignore
-        setattr(self, attr, getattr(self, attr, False))
-        setattr(self, prev_attr, getattr(self, prev_attr, False))
-
-    def set_state(self):
-        setattr(self, attr, True)
+    def set_active(self):
+        self.active = True
 
     def advance_state(self):
-        setattr(self, prev_attr, getattr(self, attr))
-        setattr(self, attr, False)
+        self.prev_active = self.active
+        self.active = False
 
     def clear_state(self):
-        setattr(self, attr, False)
-        setattr(self, prev_attr, False)
-
-    namespace = {
-        "__init__": __init__,
-        "state_name": attr,
-        "prev_state_name": prev_attr,
-        f"set_{attr}": set_state,
-        "advance_state": advance_state,
-        "clear_state": clear_state,
-    }
-
-    new_class = type(label.capitalize(), (object,), namespace)
-    return new_class
+        self.active = False
+        self.prev_active = False
 
 
-Active = make_state_class("active")
-Winner = make_state_class("winner")
-Predictive = make_state_class("predictive")
-Bursting = make_state_class("bursting")
-Learning = make_state_class("learning")
-Matching = make_state_class("matching")
-GoDepolarized = make_state_class("go_depolarized")
-NoGoDepolarized = make_state_class("nogo_depolarized")
+class Winner:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.winner = False
+        self.prev_winner = False
+
+    def set_winner(self):
+        self.winner = True
+
+    def advance_state(self):
+        self.prev_winner = self.winner
+        self.winner = False
+
+    def clear_state(self):
+        self.winner = False
+        self.prev_winner = False
 
 
-class Field:
-    """A collection of cells."""
+class Predictive:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.predictive = False
+        self.prev_predictive = False
 
-    def __init__(self, cells: Iterable[Cell], name: str = None) -> None:
-        self.cells: list["Cell"] = list(cells)
-        self.name: str = name if name is not None else ""
+    def set_predictive(self):
+        self.predictive = True
 
-    def __iter__(self):
-        return iter(self.cells)
+    def advance_state(self):
+        self.prev_predictive = self.predictive
+        self.predictive = False
 
-    def sample(self, pct: float) -> set[Cell]:
-        """Sample 'pct' percent cells from the field."""
-        n = int(len(self.cells) * pct)
-        if n > len(self.cells):
-            raise ValueError("Cannot sample more cells than are in the field.")
-        return set(random.sample(self.cells, n))
+    def clear_state(self):
+        self.predictive = False
+        self.prev_predictive = False
 
-    def reset(self) -> None:
-        """Reset all cells in the field to initial state."""
-        for cell in self.cells:
-            cell.clear_state()
 
-    @property
-    def active_cells(self) -> set[Cell]:
-        """Return set of currently active cells in the field."""
-        return {cell for cell in self.cells if cell.active}
+class Bursting:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.bursting = False
 
-    @property
-    def prev_active_cells(self) -> set[Cell]:
-        """Return set of previously active cells in the field."""
-        return {cell for cell in self.cells if cell.prev_active}
+    def set_bursting(self):
+        self.bursting = True
 
-    @property
-    def predictive_cells(self) -> set[Cell]:
-        """Return set of currently predictive cells in the field."""
-        return {cell for cell in self.cells if cell.predictive}
+    def clear_state(self):
+        self.bursting = False
 
-    @property
-    def prev_predictive_cells(self) -> set[Cell]:
-        """Return set of previously predictive cells in the field."""
-        return {cell for cell in self.cells if cell.prev_predictive}
 
-    @property
-    def prev_learning_cells(self) -> set[Cell]:
-        """Return set of previously learning cells in the field."""
-        return {cell for cell in self.cells if cell.prev_learning}
+class Learning:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.learning = False
+        self.prev_learning = False
 
-    @property
-    def prev_winner_cells(self) -> set[Cell]:
-        """Return set of previously winning cells in the field."""
-        return {cell for cell in self.cells if cell.prev_winner}
+    def set_learning(self):
+        self.learning = True
+
+    def advance_state(self):
+        self.prev_learning = self.learning
+        self.learning = False
+
+    def clear_state(self):
+        self.learning = False
+        self.prev_learning = False
+
+
+class Matching:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.matching = False
+        self.prev_matching = False
+
+    def set_matching(self):
+        self.matching = True
+
+    def advance_state(self):
+        self.prev_matching = self.matching
+        self.matching = False
+
+    def clear_state(self):
+        self.matching = False
+        self.prev_matching = False
+
+
+class GoDepolarized:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.go_depolarized = False
+
+    def set_go_depolarized(self):
+        self.go_depolarized = True
+
+    def clear_state(self):
+        self.go_depolarized = False
+
+
+class NoGoDepolarized:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.nogo_depolarized = False
+
+    def set_nogo_depolarized(self):
+        self.nogo_depolarized = True
+
+    def clear_state(self):
+        self.nogo_depolarized = False
 
 
 # ===== Basic Building Blocks =====
@@ -152,17 +182,21 @@ class Synapse:
     @property
     def active(self) -> bool:
         """Return whether the source cell is currently active."""
-        return self.source_cell.active and self.permanence >= CONNECTED_PERM
+        return (
+            self.source_cell is not None
+            and self.source_cell.active
+            and self.permanence >= CONNECTED_PERM
+        )
 
     @property
     def potentially_active(self) -> bool:
         """Return whether the source cell is currently active, regardless of permanence."""
-        return self.source_cell.active and self.permanence > 0.0
+        return self.source_cell is not None and self.source_cell.active and self.permanence > 0.0
 
     @property
     def prev_active(self) -> bool:
         """Return whether the source cell was previously active."""
-        return self.source_cell.prev_active
+        return self.source_cell is not None and self.source_cell.prev_active
 
 
 class ApicalSynapse(Synapse):
@@ -223,9 +257,13 @@ class Segment(Active, Learning, Matching):
         connected_synapses = [syn for syn in self.synapses if syn.potentially_active]
         return len(connected_synapses) > self.learning_threshold_connected_pct * len(self.synapses)
 
-    def potential_prev_active_synapses(self) -> int:
-        """Return count of previously active synapses, regardless of permanence."""
-        return [syn for syn in self.synapses if syn.source_cell.prev_active]
+    def potential_prev_active_synapses(self) -> list:
+        """Return list of previously active synapses, regardless of permanence."""
+        return [
+            syn
+            for syn in self.synapses
+            if syn.source_cell is not None and syn.source_cell.prev_active
+        ]
 
     def activate_segment(self) -> None:
         if self.is_potentially_active():
@@ -519,12 +557,14 @@ class Column(Active, Predictive, Bursting):
 
     def compute_overlap(self) -> None:
         """Compute overlap with current binary input vector."""
-        self.overlap = sum(s.source_cell.active for s in self.connected_synapses)
+        self.overlap = sum(
+            s.source_cell.active for s in self.connected_synapses if s.source_cell is not None
+        )
 
     def learn(self) -> None:
         """Learn on proximal synapses based on current input."""
         for syn in self.potential_synapses:
-            if syn.source_cell.active:
+            if syn.source_cell is not None and syn.source_cell.active:
                 syn._adjust_permanence(increase=True)
             else:
                 syn._adjust_permanence(increase=False)
@@ -1049,14 +1089,18 @@ class OutputField(InputField):
         return sum(
             1
             for synapse in segment.synapses
-            if synapse.permanence >= self.connected_perm and synapse.source_cell.go_depolarized
+            if synapse.permanence >= self.connected_perm
+            and synapse.source_cell is not None
+            and synapse.source_cell.go_depolarized
         )
 
     def _connected_nogo_count(self, segment: Segment) -> int:
         return sum(
             1
             for synapse in segment.synapses
-            if synapse.permanence >= self.connected_perm and synapse.source_cell.nogo_depolarized
+            if synapse.permanence >= self.connected_perm
+            and synapse.source_cell is not None
+            and synapse.source_cell.nogo_depolarized
         )
 
     def _activate_cells_from_action(self, action: Any) -> None:
