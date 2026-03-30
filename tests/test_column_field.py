@@ -36,6 +36,13 @@ def make_input_field(n_cells: int = 2048) -> InputField:
     )  # this defaults to an rdse of n_cell as size
 
 
+def make_input_field_sin(n_cells: int = 2048) -> InputField:
+    """Create a simple input Field with n cells."""
+    return InputField(
+        RDSEParameters(resolution=0.001), n_cells
+    )  # this defaults to an rdse of n_cell as size
+
+
 def make_input_field_scalar(n_cells: int = 2048) -> InputField:
     """Create a simple input field with n cells and scalar encoder."""
     return InputField(
@@ -91,9 +98,9 @@ def _overlap_count(first, second) -> int:
     return len(first & second)
 
 
-def add_noise_to_encoding(encoded_bits: list[int], noise_level: float) -> list[int]:
+def add_noise_to_encoding(encoded_bits: list[int], noise_level: float):
     """Return a noisy copy of a binary encoding vector."""
-    noisy = list(encoded_bits)
+    noisy = encoded_bits
     active = []
     inactive = []
     for i, bit in enumerate(noisy):
@@ -251,7 +258,7 @@ def test_no_single_column_dominates():
         ), f"Most used column was active {max_freq:.1%} of the time threshold {threshold:.1%}"
 
 
-def test_activation_converge_on_desired_sparsity():
+def test_activation_converge_on_desired_sparsity_random_once():
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
@@ -260,12 +267,11 @@ def test_activation_converge_on_desired_sparsity():
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
-    rng = random.Random(42)
-    pattern_a = rng.sample(range(-10000, 10000), 100)
-    num_presentations = len(pattern_a)
+    # rng = random.Random(42)
+    pattern_a = random.sample(range(-10000, 10000), 100)
 
-    # train for 70 epochs
-    for _ in range(70):
+    # train for 49 epochs
+    for _ in range(49):
         for value in pattern_a:
             activate_cells(cf, value)
             cf.compute(learn=True)
@@ -279,8 +285,11 @@ def test_activation_converge_on_desired_sparsity():
             if col.active:
                 activation_counts[col] = activation_counts.get(col, 0) + 1
     freqs = []
-    for active in activation_counts:
-        freqs.append(activation_counts[active] / num_presentations)
+    for col in cf.columns:
+        if col in activation_counts:
+            freqs.append(activation_counts[col] / 100)
+        else:
+            freqs.append(0.0)
     print(freqs)
     n_active = sum(1 for f in freqs if f > 0)
     pct_active = (n_active / len(cf.columns)) * 100
@@ -290,26 +299,188 @@ def test_activation_converge_on_desired_sparsity():
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(6, 5))
-    bin_edges = np.linspace(0, 0.25, 21)
+    max_freq = max(freqs) if max(freqs) > 0 else 0.10
+    bin_edges = np.linspace(0, max_freq, int(max_freq / 0.01) + 1)
 
     freq_array = np.array(freqs)
     counts, _ = np.histogram(freq_array, bins=bin_edges)
     fractions = counts / len(freq_array)
-
+    bin_widths = np.diff(bin_edges)
+    bin_centers = bin_edges[:-1]
     ax.bar(
-        bin_edges[:-1],
+        bin_centers,
         fractions,
-        width=np.diff(bin_edges),
-        align="edge",
+        width=bin_widths,
+        align="center",
         color="#3366CC",
         edgecolor="white",
         linewidth=0.5,
     )
-    ax.set_title("Activation Frequency Distribution\n(epoch 70)", fontsize=13, fontweight="bold")
+    ax.set_title(
+        "Activation Frequency Distribution with Random data once\n(epoch 49)",
+        fontsize=13,
+        fontweight="bold",
+    )
     ax.set_xlabel("Activation Frequency", fontsize=11)
     ax.set_ylabel("Fraction of SP Columns", fontsize=11)
-    ax.set_xlim(0.0, 0.25)
-    ax.set_ylim(0.0, 0.80)
+    ax.set_xlim(-0.005, max_freq)
+    ax.set_ylim(0.0, 1.00)
+    ax.text(
+        0.95,
+        0.95,
+        f"{n_active} / {len(cf.columns)} cols active ({pct_active:.1f}%)",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=9,
+        color="gray",
+    )
+
+    plt.tight_layout()
+    plt.show()
+
+
+def test_activation_zero_epoch():
+    import psu_capstone.agent_layer.HTM
+
+    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
+    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    input_size = 2048
+    in_fi = make_input_field(input_size)
+    cf = make_spatial_only_cf(in_fi, num_columns=input_size)
+    pattern_a = random.sample(range(-10000, 10000), 100)
+
+    # measure activation frequency across the full pattern
+    activation_counts = {}
+    for value in pattern_a:
+        activate_cells(cf, value)
+        cf.compute(learn=False)
+        for col in cf.columns:
+            if col.active:
+                activation_counts[col] = activation_counts.get(col, 0) + 1
+    freqs = []
+    for col in cf.columns:
+        if col in activation_counts:
+            freqs.append(activation_counts[col] / 100)
+        else:
+            freqs.append(0.0)
+    print(freqs)
+    n_active = sum(1 for f in freqs if f > 0)
+    pct_active = (n_active / len(cf.columns)) * 100
+    print(f"Percent of columns ever active: {pct_active:.2f}")
+
+    # plot
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    max_freq = max(freqs) if max(freqs) > 0 else 0.10
+    bin_edges = np.linspace(0, max_freq, int(max_freq / 0.01) + 1)
+
+    freq_array = np.array(freqs)
+    counts, _ = np.histogram(freq_array, bins=bin_edges)
+    fractions = counts / len(freq_array)
+    bin_widths = np.diff(bin_edges)
+    bin_centers = bin_edges[:-1]
+    ax.bar(
+        bin_centers,
+        fractions,
+        width=bin_widths,
+        align="center",
+        color="#3366CC",
+        edgecolor="white",
+        linewidth=0.5,
+    )
+    ax.set_title(
+        "Activation Frequency Distribution with Random data zero epoch",
+        fontsize=13,
+        fontweight="bold",
+    )
+    ax.set_xlabel("Activation Frequency", fontsize=11)
+    ax.set_ylabel("Fraction of SP Columns", fontsize=11)
+    ax.set_xlim(-0.005, max_freq)
+    ax.set_ylim(0.0, 1.00)
+    ax.text(
+        0.95,
+        0.95,
+        f"{n_active} / {len(cf.columns)} cols active ({pct_active:.1f}%)",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=9,
+        color="gray",
+    )
+
+    plt.tight_layout()
+    plt.show()
+
+
+def test_activation_converge_on_desired_sparsity_with_sin_wave():
+    import psu_capstone.agent_layer.HTM
+
+    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
+    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    input_size = 2048
+    in_fi = make_input_field_sin(input_size)
+    cf = make_spatial_only_cf(in_fi, num_columns=input_size)
+
+    x = np.linspace(0, 1, 100, endpoint=False)
+    pattern_a = np.sin(2 * np.pi * 1 * x)
+
+    # train for 49 epochs
+    for _ in range(49):
+        for value in pattern_a:
+            activate_cells(cf, float(value))
+            cf.compute(learn=True)
+
+    # measure activation frequency across the full pattern
+    activation_counts = {}
+    for value in pattern_a:
+        activate_cells(cf, float(value))
+        cf.compute(learn=False)
+        for col in cf.columns:
+            if col.active:
+                activation_counts[col] = activation_counts.get(col, 0) + 1
+    freqs = []
+    for col in cf.columns:
+        if col in activation_counts:
+            freqs.append(activation_counts[col] / 100)
+        else:
+            freqs.append(0.0)
+    print(freqs)
+    n_active = sum(1 for f in freqs if f > 0)
+    pct_active = (n_active / len(cf.columns)) * 100
+    print(f"Percent of columns ever active: {pct_active:.2f}")
+
+    # plot
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    max_freq = max(freqs) if max(freqs) > 0 else 0.10
+    bin_edges = np.linspace(0, max_freq, int(max_freq / 0.01) + 1)
+
+    freq_array = np.array(freqs)
+    counts, _ = np.histogram(freq_array, bins=bin_edges)
+    fractions = counts / len(freq_array)
+    bin_widths = np.diff(bin_edges)
+    bin_centers = bin_edges[:-1]
+    ax.bar(
+        bin_centers,
+        fractions,
+        width=bin_widths,
+        align="center",
+        color="#3366CC",
+        edgecolor="white",
+        linewidth=0.5,
+    )
+    ax.set_title(
+        "Activation Frequency Distribution with sin wave\n(epoch 49)",
+        fontsize=13,
+        fontweight="bold",
+    )
+    ax.set_xlabel("Activation Frequency", fontsize=11)
+    ax.set_ylabel("Fraction of SP Columns", fontsize=11)
+    ax.set_xlim(-0.005, max_freq)
+    ax.set_ylim(0.0, 1.0)
     ax.text(
         0.95,
         0.95,
@@ -565,12 +736,7 @@ def test_zero_noise_no_output_change():
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
-    # for i in range(20):
-    #    activate_cells(cf, 42.0)
-    #    cf.compute(learn=True)
-
     activate_cells(cf, 42.0)
-    # epoch 0
     cf.compute(learn=False)
     cols1 = [1 if col.active else 0 for col in cf.columns]
 
