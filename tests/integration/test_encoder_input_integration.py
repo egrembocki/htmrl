@@ -39,7 +39,7 @@ def fourier_helper():
             "scalar",
             {"minimum": 0, "maximum": 1000},
         ),
-        (  # Had errors here because of the
+        (  # Had errors here because of the inputs being incorrect
             "coor",
             [
                 {"coor": ((10, 20, 1), 2)},
