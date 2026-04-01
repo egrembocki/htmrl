@@ -141,7 +141,9 @@ class Brain:
         """
         for name in self._input_fields:
             if name in inputs:
-                self._input_fields[name].encode(inputs[name])
+                raw_value = inputs[name]
+                self._input_fields[name].encode(raw_value)
+                self._logger.info(f"Input '{name}': raw={raw_value}")
 
     def compute_only(self, learn: bool = True) -> None:
         """Compute column field without encoding (inputs already encoded).

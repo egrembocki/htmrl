@@ -1,7 +1,8 @@
 import random
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
-from psu_capstone.agent_layer.pullin.pullin_htm import Cell
+if TYPE_CHECKING:
+    from psu_capstone.agent_layer.pullin.pullin_htm import Cell
 
 
 class Field:

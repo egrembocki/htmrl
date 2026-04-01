@@ -91,7 +91,12 @@ class Agent:
         self._training_error = []
         self._obs = None
         self._inputs = {}
-        self._rng = random.Random()
+        # Use config.seed if available for reproducibility
+        seed = getattr(config, "seed", None) if config is not None else None
+        if seed is not None:
+            self._rng = random.Random(seed)
+        else:
+            self._rng = random.Random()
         self._last_action_source = "unknown"
         self._last_reward = 0.0
 
@@ -387,12 +392,59 @@ class Agent:
                             action = payload["action"]
                             break
             if action is None:
-                # Score all candidate actions against brain predictions
                 candidate_actions = self._candidate_actions()
-                if not candidate_actions:
-                    self._last_action_source = "brain"
-                    action = self._adapter._action_space.sample()
-                else:
+                action_space = getattr(self._adapter, "_action_space", None)
+                # If no candidate actions, handle continuous (Box) action space
+                if (
+                    not candidate_actions
+                    and action_space is not None
+                    and hasattr(action_space, "sample")
+                ):
+                    # Try to use Brain output if available
+                    if isinstance(brain_outputs, dict):
+                        # Look for a continuous action output
+                        for _name, payload in brain_outputs.items():
+                            if isinstance(payload, dict) and "action" in payload:
+                                val = payload["action"]
+                                # If action space is Box, clip to valid range
+                                if hasattr(action_space, "low") and hasattr(action_space, "high"):
+                                    import numpy as np
+
+                                    val = np.clip(val, action_space.low, action_space.high)
+                                action = val
+                                self._last_action_source = "brain"
+                                break
+                    if action is None:
+                        # Fallback: sample a valid action from the space
+                        action = action_space.sample()
+                        self._last_action_source = "brain"
+                    # Ensure action is correct shape for Box spaces
+                    if (
+                        hasattr(action_space, "shape")
+                        and hasattr(action_space, "dtype")
+                        and hasattr(action_space, "low")
+                        and hasattr(action_space, "high")
+                    ):
+                        import numpy as np
+
+                        # Handle all possible scalar/int/float/array cases
+                        if isinstance(action, (int, float, np.integer, np.floating)):
+                            action = np.full(action_space.shape, action, dtype=action_space.dtype)
+                        else:
+                            action = np.asarray(action, dtype=action_space.dtype)
+                            if action.shape == ():
+                                action = np.full(
+                                    action_space.shape, action.item(), dtype=action_space.dtype
+                                )
+                            elif action.shape != action_space.shape:
+                                try:
+                                    action = action.reshape(action_space.shape)
+                                except Exception:
+                                    action = np.broadcast_to(action, action_space.shape).astype(
+                                        action_space.dtype
+                                    )
+                        action = np.clip(action, action_space.low, action_space.high)
+                elif candidate_actions:
                     predictions = self._brain.prediction()
                     if not isinstance(predictions, dict):
                         self._logger.info("Brain predictions unavailable; choosing random action.")
@@ -481,6 +533,33 @@ class Agent:
             self._last_action_source,
             action,
         )
+
+        # --- FINAL Box action enforcement for all selection paths ---
+        action_space = getattr(self._adapter, "_action_space", None)
+        if (
+            action_space is not None
+            and hasattr(action_space, "shape")
+            and hasattr(action_space, "dtype")
+            and hasattr(action_space, "low")
+            and hasattr(action_space, "high")
+        ):
+            import numpy as np
+
+            if isinstance(action, (int, float, np.integer, np.floating)):
+                action = np.full(action_space.shape, action, dtype=action_space.dtype)
+            else:
+                action = np.asarray(action, dtype=action_space.dtype)
+                if action.shape == ():
+                    action = np.full(action_space.shape, action.item(), dtype=action_space.dtype)
+                elif action.shape != action_space.shape:
+                    try:
+                        action = action.reshape(action_space.shape)
+                    except Exception:
+                        action = np.broadcast_to(action, action_space.shape).astype(
+                            action_space.dtype
+                        )
+            action = np.clip(action, action_space.low, action_space.high)
+
         return action
 
     def step(self, learn: bool = True) -> dict[str, Any]:
@@ -524,13 +603,30 @@ class Agent:
 
         next_obs = result["obs"]
         reward = result["reward"]
-        self._logger.info(
-            "PPO step: obs=%s, action=%s, reward=%s, next_obs=%s",
-            current_obs,
-            action,
-            reward,
-            next_obs,
-        )
+        if self._policy_mode == "ppo":
+            self._logger.info(
+                "PPO step: obs=%s, action=%s, reward=%s, next_obs=%s",
+                current_obs,
+                action,
+                reward,
+                next_obs,
+            )
+        elif self._policy_mode == "brain":
+            self._logger.info(
+                "Brain step: obs=%s, action=%s, reward=%s, next_obs=%s",
+                current_obs,
+                action,
+                reward,
+                next_obs,
+            )
+        elif self._policy_mode == "q_table":
+            self._logger.info(
+                "Q-table step: obs=%s, action=%s, reward=%s, next_obs=%s",
+                current_obs,
+                action,
+                reward,
+                next_obs,
+            )
         self._last_reward = float(reward)
 
         self.update(
