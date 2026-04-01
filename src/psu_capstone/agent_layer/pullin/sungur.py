@@ -38,7 +38,7 @@ class ValueField:
         nogo_field: "ValueField|None" = None,
         weight_fn: Optional[Callable[[Any], float]] = None,
     ) -> None:
-        from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field
+        from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField
 
         self._column_field = ColumnField(
             input_fields=input_fields,
@@ -50,7 +50,7 @@ class ValueField:
             go_field=go_field,
             nogo_field=nogo_field,
         )
-        self._field = self
+        self._field = self._column_field
         self.values = [0.0] * len(self._field.cells)
         self.traces = [0.0] * len(self._field.cells)
         self.td_learning_rate = 0.1
