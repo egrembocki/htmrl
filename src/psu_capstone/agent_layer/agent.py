@@ -591,7 +591,6 @@ class Agent:
                 # explicitly fell back to q_table behavior.
                 pass
             else:
-                # Use ValueField-based RL/TD update in the Brain
                 self._brain.rl_policy_update(reward)
                 return
 

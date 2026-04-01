@@ -61,6 +61,18 @@ class FrontendEnvSpec(TypedDict):
 
 
 FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
+    "gym_trading_env": {
+        "observation_labels": ["price", "volume", "indicator1", "indicator2", "position"],
+        "action_count": 3,  # e.g., 0=hold, 1=buy, 2=sell
+        "initial_observation": {
+            "price": 100.0,
+            "volume": 0.0,
+            "indicator1": 0.0,
+            "indicator2": 0.0,
+            "position": 0.0,
+        },
+        "max_steps_per_episode": 500,
+    },
     "CartPole-v1": {
         "observation_labels": [
             "Cart Position",
@@ -106,6 +118,30 @@ FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
             "theta_dot": 0.0,
         },
         "max_steps_per_episode": 200,
+    },
+    "LunarLander-v3": {
+        "observation_labels": [
+            "x_position",
+            "y_position",
+            "x_velocity",
+            "y_velocity",
+            "angle",
+            "angular_velocity",
+            "left_leg_contact",
+            "right_leg_contact",
+        ],
+        "action_count": 4,
+        "initial_observation": {
+            "x_position": 0.0,
+            "y_position": 0.0,
+            "x_velocity": 0.0,
+            "y_velocity": 0.0,
+            "angle": 0.0,
+            "angular_velocity": 0.0,
+            "left_leg_contact": 0.0,
+            "right_leg_contact": 0.0,
+        },
+        "max_steps_per_episode": 1000,
     },
 }
 
@@ -220,11 +256,16 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
         force_brain_mode=False,
     )
 
-    # Always pre-train PPO if the environment supports it, so fallback works
-    if hasattr(agent, "train_ppo") and hasattr(adapter, "_env") and adapter._env is not None:
+    # Only pre-train PPO if policy_mode is 'ppo'
+    if (
+        hasattr(agent, "train_ppo")
+        and hasattr(adapter, "_env")
+        and adapter._env is not None
+        and config.policy_mode == "ppo"
+    ):
         logger = get_logger(None)
         logger.info(
-            "Pre-training PPO for %d timesteps (for fallback support)...",
+            "PPO mode selected: pre-training PPO for %d timesteps before normal execution...",
             config.ppo_pretrain_timesteps,
         )
         agent.train_ppo(total_timesteps=config.ppo_pretrain_timesteps)

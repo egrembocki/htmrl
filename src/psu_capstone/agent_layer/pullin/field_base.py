@@ -1,6 +1,8 @@
 import random
 from typing import Iterable
 
+from psu_capstone.agent_layer.pullin.pullin_htm import Cell
+
 
 class Field:
     """A collection of cells."""

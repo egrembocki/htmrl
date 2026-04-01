@@ -7,7 +7,7 @@ for encoding inputs and computing temporal memory in a single step.
 from typing import Any
 
 from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
-from psu_capstone.agent_layer.pullin.sungur_agent import ValueField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.log import get_logger
 
 
