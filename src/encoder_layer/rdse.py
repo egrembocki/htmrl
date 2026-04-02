@@ -1,0 +1,229 @@
+import copy
+import random
+import struct
+from dataclasses import dataclass
+from typing import Iterable, List, Tuple, override
+
+import mmh3
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from encoder_layer.base_encoder import BaseEncoder
+
+"""Parameters for the RandomDistributedScalarEncoder (RDSE).
+
+Members "activeBits" and "sparsity" are mutually exclusive; specify exactly one.
+Members "radius", "resolution", and "category" are mutually exclusive; specify exactly one.
+
+Encodes a real number as a set of randomly generated activations.
+
+The RDSE encodes a numeric scalar (floating point) value into an SDR. The RDSE
+is more flexible than the ScalarEncoder. This encoder does not need to know the
+minimum and maximum of the input range. It does not assign an input-to-output
+mapping at construction. Instead the encoding is determined at runtime.
+"""
+
+
+class RandomDistributedScalarEncoder(BaseEncoder[float]):
+    """Random Distributed Scalar Encoder (RDSE) implementation."""
+
+    def __init__(self, parameters: 'RDSEParameters', dimensions: List[int] | None = None):
+        self._parameters = copy.deepcopy(parameters)
+        self._parameters = self.check_parameters(self._parameters)
+
+        self._size = self._parameters.size
+        self._active_bits = self._parameters.active_bits
+        self._sparsity = self._parameters.sparsity
+        self._radius = self._parameters.radius
+        self._resolution = self._parameters.resolution
+        self._category = self._parameters.category
+        self._seed = self._parameters.seed
+        self._encoding_cache: dict[float, List[int]] = {}
+
+        super().__init__(self._size)
+
+    @property
+    def size(self) -> int:
+        """Total number of bits in the encoded output SDR."""
+        return self._size
+
+    @property
+    def sparsity(self) -> float:
+        """Fraction of bits in the encoded output which this encoder will activate."""
+        return self._sparsity
+
+    @override
+    def encode(self, input_value: float) -> List[int]:
+        """Encode the input value into a binary vector."""
+        self.register_encoding(input_value)
+        return self._compute_encoding(input_value)
+
+    def register_encoding(self, input_value: float, encoded: List[int] | None = None) -> List[int]:
+        """Caches an encoding so decode_closest can compare against it."""
+        vector = encoded if encoded is not None else self._compute_encoding(input_value)
+        if len(vector) != self.size:
+            raise ValueError("Stored encoding must be the same length as encoder size")
+        self._encoding_cache[input_value] = vector
+        return vector
+
+    def decode(
+        self, encoded: List[int], candidates: Iterable[float] | None = None
+    ) -> Tuple[float | None, float]:
+        """Returns the value whose encoding overlaps the most with the provided SDR."""
+        if len(encoded) != self.size:
+            raise ValueError("Encoded input must match encoder size")
+
+        search_values = list(candidates) if candidates is not None else list(self._encoding_cache.keys())
+        if not search_values:
+            return None, 0.0
+
+        best_value: float | None = None
+        best_overlap = -1
+
+        for candidate in search_values:
+            candidate_encoding = self._encoding_cache.get(candidate)
+            if candidate_encoding is None:
+                candidate_encoding = self.register_encoding(candidate)
+            overlap = self._overlap(encoded, candidate_encoding)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_value = candidate
+
+        confidence = best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
+        return best_value, confidence
+
+    def clear_registered_encodings(self) -> None:
+        """Clears cached encodings used for nearest-neighbor decoding."""
+        self._encoding_cache.clear()
+
+    def _compute_encoding(self, input_value: float) -> List[int]:
+        if self._category:
+            if input_value != int(input_value) or input_value < 0:
+                raise ValueError("Input to category encoder must be an unsigned integer")
+
+        data = [0] * self.size
+
+        index = int(input_value / self._resolution)
+
+        for offset in range(self._active_bits):
+            hash_buffer = index + offset
+
+            bucket = mmh3.hash(struct.pack("i", hash_buffer), self._seed, signed=False)
+            bucket = bucket % self.size
+            data[bucket] = 1
+        return data
+
+    @staticmethod
+    def _overlap(first: List[int], second: List[int]) -> int:
+        if len(first) != len(second):
+            raise ValueError("Vectors must be the same length to compute overlap")
+        return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
+
+    # After encode we may need a check_parameters method since most of the encoders have this
+    def check_parameters(self, parameters: 'RDSEParameters'):
+        assert parameters.size > 0
+
+        num_active_args = 0
+        if parameters.active_bits > 0:
+            num_active_args += 1
+        if parameters.sparsity > 0:
+            num_active_args += 1
+
+        assert num_active_args != 0, "Missing argument, need one of: 'activeBits' or 'sparsity'."
+        assert (
+            num_active_args == 1
+        ), "Too many arguments, choose only one of: 'activeBits' or 'sparsity'."
+
+        num_resolution_args = 0
+        if parameters.radius > 0:
+            num_resolution_args += 1
+        if parameters.category:
+            num_resolution_args += 1
+        if parameters.resolution > 0:
+            num_resolution_args += 1
+
+        assert (
+            num_resolution_args != 0
+        ), "Missing argument, need one of: 'radius', 'resolution', 'category'."
+        assert (
+            num_resolution_args == 1
+        ), "Too many arguments, choose only one of: 'radius', 'resolution', 'category'."
+
+        args = parameters
+
+        if args.sparsity > 0:
+            assert 0 <= args.sparsity <= 1
+            args.active_bits = int(round(args.size * args.sparsity))
+            assert args.active_bits > 0
+
+        if args.category:
+            args.radius = 1
+
+        if args.radius > 0:
+            args.resolution = args.radius / args.active_bits
+        elif args.resolution > 0:
+            args.radius = args.active_bits * args.resolution
+
+        while args.seed == 0:
+            args.seed = random.getrandbits(32)
+
+        return args
+
+def sparsify(vector: List[int]) -> List[int]:
+    """Converts a binary vector to a list of active bit indices."""
+    return [i for i, bit in enumerate(vector) if bit == 1]
+
+@dataclass
+class RDSEParameters:
+
+    size: int = 0
+    """Total number of bits in the encoded output SDR."""
+
+    active_bits: int = 0
+    """Number of true bits in the encoded output SDR."""
+
+    sparsity: float = 0
+    """Fraction of bits in the encoded output which this encoder will activate.
+    This is an alternative way to specify active_bits."""
+
+    radius: float = 0
+    """Two inputs separated by more than the radius have non-overlapping
+    representations. Two inputs separated by less than the radius will in
+    general overlap in at least some of their bits."""
+
+    resolution: float = 0
+    """Two inputs separated by greater than or equal to the resolution will
+    in general have different representations."""
+
+    category: bool = False
+    """If true, inputs are enumerated categories. The encoder will only encode
+    unsigned integers, and all inputs will have unique, non-overlapping
+    representations."""
+
+    seed: int = 0
+    """Forces different encoders to produce different outputs, even if the
+    inputs and all other parameters are the same. Two encoders with the same
+    seed, parameters, and input will produce identical outputs.
+    The seed 0 is special and is replaced with a random number."""
+    encoder_class = RandomDistributedScalarEncoder
+
+if __name__ == "__main__":
+    # Tests
+    params = RDSEParameters(
+        size=1000, active_bits=20, sparsity=0.0, radius=0, resolution=.1, category=False, seed=1
+    )
+    e1 = RandomDistributedScalarEncoder(params)
+    a = sparsify(e1.encode(1001.0))
+    b = sparsify(e1.encode(12.0))
+    print(a)
+    print(b)
+    print("Overlap between 1.0 and 19.0:", (set(a) & set(b)))
+    print(sparsify(e1.encode(1000.0)))
+    """encoder = RandomDistributedScalarEncoder(params)
+    output = SDR([encoder.size])
+    encoder.encode(10.0, output)
+    print(output.get_sparse())
+    output2 = SDR([encoder.size])
+    encoder.encode(10.0, output2)
+    print(output2.get_sparse())"""
