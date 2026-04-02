@@ -59,7 +59,7 @@ def make_input_field_sin(n_cells: int = 2048) -> InputField:
 
 
 def make_input_field_scalar(
-    n_cells: int = 2048, res: float = 1.0, min: int = 0, max: int = 1000
+    n_cells: int = 2048, res: float = 1.0, min: int = 0, max: int = 1000, periodic: bool = False
 ) -> InputField:
     """Create a simple input field with n cells and scalar encoder."""
     return InputField(
@@ -70,7 +70,7 @@ def make_input_field_scalar(
             active_bits=0,
             radius=0,
             resolution=res,
-            periodic=False,
+            periodic=periodic,
         )
     )
 
@@ -609,7 +609,7 @@ def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
     psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
-    in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1)
+    in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=True)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
     x = np.linspace(0, 1, 100, endpoint=False)

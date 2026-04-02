@@ -639,6 +639,7 @@ class ColumnField(Field):
         randomly select among the tied columns to meet exactly k.
         """
         sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
+
         if k >= len(sorted_columns):
             for col in sorted_columns:
                 self.active_columns.append(col)
