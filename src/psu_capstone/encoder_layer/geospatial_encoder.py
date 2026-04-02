@@ -30,25 +30,26 @@ class GeospatialEncoder(
 
     def __init__(
         self,
-        geo_params: "GeospatialParameters",
-        coord_params: CoordinateParameters,
+        geo_params: GeospatialParameters,
+        coord_params: CoordinateParameters | None = None,
     ):
         self._geo_params = copy.deepcopy(geo_params)
-        self._coord_params = copy.deepcopy(coord_params)
+        self._coord_params = copy.deepcopy(
+            coord_params if coord_params is not None else CoordinateParameters()
+        )
 
         dims = 3 if self._geo_params.use_altitude else 2
 
         coord_params = CoordinateParameters(
-            n=coord_params.n,
-            w=coord_params.w,
-            seed=coord_params.seed,
+            n=self._coord_params.n,
+            w=self._coord_params.w,
+            seed=self._coord_params.seed,
             max_radius=self._geo_params.max_radius,
             dims=dims,
-            use_all_neighbors=coord_params.use_all_neighbors,
+            use_all_neighbors=self._coord_params.use_all_neighbors,
         )
 
         self._encoder = CoordinateEncoder(coord_params)
-
         super().__init__(self._encoder.size)
 
     @override

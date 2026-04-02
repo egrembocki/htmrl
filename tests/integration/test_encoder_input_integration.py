@@ -49,11 +49,11 @@ def fourier_helper():
             "coordinate",
             {"n": 2048, "w": 25, "dims": 3},
         ),
-        (
+        (  # Had errors because I forgot to give it coordinate defaults
             "geo",
             [{"geo": ((5.0, -177.0365, 38.8977, 10.0))}],
             "geospatial",
-            {"size": 2048, "scale": 5.0},
+            {},
         ),
         (
             "categore",
