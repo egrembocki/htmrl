@@ -422,6 +422,7 @@ class InputHandler:
                     np.datetime64,
                     np.ndarray,
                     tuple,
+                    list,
                 }
                 for t in primitive_types
             )
