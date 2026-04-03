@@ -26,6 +26,7 @@ class Brain:
     Args:
         fields: Optional dictionary of named Field instances to initialize with.
             Can include InputField, OutputField, and ColumnField types.
+        brain_id: To save the id of the brain.
 
     Example:
         manager = Trainer()
