@@ -1,0 +1,13 @@
+@startuml input_layer_pipeline
+skinparam style strictuml
+skinparam linetype ortho
+title Input Layer Class Diagram
+
+package "psu_capstone.input_layer" {
+  interface InputInterface <<Protocol>>
+  class InputHandler
+}
+
+InputHandler ..|> InputInterface : realizes
+
+@enduml

@@ -1,0 +1,42 @@
+@startuml pipeline_layer_integration
+skinparam style strictuml
+skinparam linetype ortho
+title Pipeline Layer Integration (Input -> Encoder -> Agent -> Environment)
+
+package "Input Layer" {
+  class InputHandler
+}
+
+package "Encoder Layer" {
+  class EncoderFactory
+  class BatchEncoderHandler
+  class EncoderHandler
+  abstract class BaseEncoder
+}
+
+package "Agent Layer" {
+  class Trainer
+  class Brain
+  class Agent
+  class InputField
+}
+
+package "Environment Layer" {
+  class EnvAdapter
+  class FinGym
+}
+
+InputHandler ..> BatchEncoderHandler : provides normalized records
+InputHandler ..> EncoderHandler : provides normalized records
+
+Trainer ..> InputHandler : ingests dataset
+Trainer ..> EncoderFactory : creates encoder instances
+Trainer ..> BaseEncoder : configures via parameters
+Trainer ..> InputField : binds encoders to fields
+Trainer --> Brain : constructs/trains
+
+Agent --> Brain : inference/prediction cycle
+Agent --> EnvAdapter : reset/step bridge
+EnvAdapter --> FinGym : wraps environment
+
+@enduml
