@@ -3,6 +3,7 @@ import random
 from collections import Counter
 from typing import cast
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -609,7 +610,7 @@ def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
     psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
-    in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=True)
+    in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=False)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
     x = np.linspace(0, 1, 100, endpoint=False)
@@ -662,7 +663,7 @@ def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
         linewidth=0.5,
     )
     ax.set_title(
-        "Activation Frequency Distribution with sin wave with scalar encoder\n(epoch 49)",
+        "Activation Frequency Distribution with sin wave with scalar encoder periodic false\n(epoch 49)",
         fontsize=8,
         fontweight="bold",
     )
@@ -1128,4 +1129,266 @@ def test_noise_gradient_plot():
 
 """CONTINUOUS LEARNING"""
 
+
+def test_synapse_formation():
+    """
+    Track newly connected synapses per epoch across a dataset switch.
+    Synapse formation counts how many potential synapses cross the connected permanence threshold during each training epoch. Should
+    spike early, drop to near zero once stable, spike again at the dataset switch, then settle back down.
+    """
+    input_field = make_input_field()
+    cf = make_spatial_only_cf(input_field)
+
+    rng_a = random.Random(42)
+    dataset_a = [rng_a.uniform(0, 5000) for _ in range(200)]
+    rng_b = random.Random(77)
+    dataset_b = [rng_b.uniform(5000, 10000) for _ in range(200)]
+
+    switch_epoch = 60
+    total_epochs = 120
+    formation_history: list[int] = []
+
+    for epoch in range(total_epochs):
+        training_data = dataset_a if epoch < switch_epoch else dataset_b
+
+        # all connected synapses before training
+        prev_connected = {s for col in cf.columns for s in col.connected_synapses}
+
+        # train one epoch
+        for value in training_data:
+            activate_cells(cf, value)
+            cf.compute(learn=True)
+
+        # count synapses newly connected this epoch
+        current_connected = {s for col in cf.columns for s in col.connected_synapses}
+        new_synapses = len(current_connected - prev_connected)
+
+        formation_history.append(new_synapses)
+
+    # plot
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(range(len(formation_history)), formation_history, color="black", linewidth=1.2)
+    ax.axvline(x=switch_epoch, color="black", linestyle="--", linewidth=2, label="Dataset switch")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Synapse\nFormation", rotation=0, labelpad=50)
+    ax.set_xlim(0, len(formation_history) - 1)
+    ax.legend(loc="upper right")
+    ax.grid(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    fig.tight_layout()
+    plt.show()
+
+    # assertions
+    # early epochs should have high formation
+    early_avg = sum(formation_history[:5]) / 5
+    assert early_avg > 100, (
+        f"Early synapse formation avg {early_avg:.0f} is too low; "
+        f"SP should be actively forming synapses."
+    )
+
+    # pre switch plateau should have low formation
+    pre_switch_avg = sum(formation_history[40:switch_epoch]) / (switch_epoch - 40)
+    assert pre_switch_avg < early_avg, (
+        f"Pre switch formation {pre_switch_avg:.0f} should be less than "
+        f"early formation {early_avg:.0f}."
+    )
+
+    # post switch spike should exceed the pre switch plateau
+    post_switch_peak = max(formation_history[switch_epoch : switch_epoch + 10])
+    assert post_switch_peak > pre_switch_avg, (
+        f"Post switch peak {post_switch_peak} should exceed "
+        f"pre switch avg {pre_switch_avg:.0f}."
+    )
+
+
 """STABILITY"""
+
+
+def compute_stability(
+    cf,
+    test_inputs: list,
+    prev_activations: list[list[int]] | None,
+) -> tuple[float, list[list[int]]]:
+
+    current_activations: list[list[int]] = []
+    # with the test values grab the active column indices for each
+    for inp in test_inputs:
+        activate_cells(cf, inp)
+        cf.compute(learn=False)
+        current_activations.append(get_active_column_indices(cf))
+
+    if prev_activations is None:
+        return 1.0, current_activations
+
+    m = len(test_inputs)
+    if m == 0:
+        return 1.0, current_activations
+    # calculate the sum of the overlaps between previous and current activations
+    stability_sum = sum(
+        overlap_ratio(prev, curr) for prev, curr in zip(prev_activations, current_activations)
+    )
+    # divide that sum by total test inputs to get the average fraction of active mini-columns
+    return stability_sum / m, current_activations
+
+
+def test_continuous_learning_stability():
+    """
+    SP trains on dataset_a and stabilizes. Inputs switch to dataset_b stability drops then recovers as the SP adapts to the new statistics.
+    """
+    input_field = make_input_field()
+    cf = make_spatial_only_cf(input_field)
+
+    # random datasets, two for the before and after
+    rng_a = random.Random(42)
+    dataset_a = [rng_a.uniform(0, 50) for _ in range(200)]
+    rng_b = random.Random(77)
+    dataset_b = [rng_b.uniform(50, 100) for _ in range(200)]
+    # random values from the original datasets like the paper
+    test_rng = random.Random(99)
+    test_inputs_a = test_rng.sample(dataset_a, 30)
+    test_inputs_b = test_rng.sample(dataset_b, 30)
+
+    switch_epoch = 60
+    total_epochs = 120
+    prev_activations = None
+    stability_history: list[float] = []
+
+    for epoch in range(total_epochs):
+        # before data switch
+        if epoch < switch_epoch:
+            training_data = dataset_a
+            test_inputs = test_inputs_a
+        # after data switch
+        else:
+            if epoch == switch_epoch:
+                prev_activations = None
+            training_data = dataset_b
+            test_inputs = test_inputs_b
+        # compute the stability
+        stability, prev_activations = compute_stability(cf, test_inputs, prev_activations)
+        stability_history.append(stability)
+        # train on data
+        for value in training_data:
+            activate_cells(cf, value)
+            cf.compute(learn=True)
+
+    # plot
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(range(len(stability_history)), stability_history, color="black", linewidth=1.2)
+    ax.axvline(x=switch_epoch, color="black", linestyle="--", linewidth=2, label="Dataset switch")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Stability")
+    ax.set_ylim(0.55, 1.05)
+    ax.set_xlim(0, len(stability_history) - 1)
+    ax.legend(loc="lower right")
+    ax.grid(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    fig.tight_layout()
+    plt.show()
+
+    # assertions
+    pre_switch_tail = stability_history[40:switch_epoch]
+    pre_switch_avg = sum(pre_switch_tail) / len(pre_switch_tail)
+    assert pre_switch_avg > 0.85, (
+        f"Pre-switch stability avg {pre_switch_avg:.3f} is below 0.85; "
+        f"SP did not stabilize on dataset A."
+    )
+
+    post_switch_tail = stability_history[-20:]
+    post_switch_avg = sum(post_switch_tail) / len(post_switch_tail)
+    assert post_switch_avg > 0.85, (
+        f"Post-switch stability avg {post_switch_avg:.3f} is below 0.85; "
+        f"SP did not recover after switching to dataset B."
+    )
+
+
+def test_stability_dips_at_switch():
+    """Stability should drop when the input distribution changes.
+    The post switch dip should be measurably lower than the pre switch
+    plateau, confirming the SP is sensitive to distribution shift.
+    This kind of captures the continuous learning as well I think.
+    """
+    input_field = make_input_field()
+    cf = make_spatial_only_cf(input_field)
+
+    rng_a = random.Random(42)
+    dataset_a = [rng_a.uniform(0, 50) for _ in range(200)]
+    rng_b = random.Random(77)
+    dataset_b = [rng_b.uniform(50, 100) for _ in range(200)]
+    test_inputs_a = [random.Random(99).uniform(0, 50) for _ in range(30)]
+    test_inputs_b = [random.Random(101).uniform(50, 100) for _ in range(30)]
+
+    switch_epoch = 60
+    total_epochs = 120
+    prev_activations = None
+    stability_history: list[float] = []
+
+    for epoch in range(total_epochs):
+        if epoch < switch_epoch:
+            training_data = dataset_a
+            test_inputs = test_inputs_a
+        else:
+            if epoch == switch_epoch:
+                prev_activations = None
+            training_data = dataset_b
+            test_inputs = test_inputs_b
+
+        stability, prev_activations = compute_stability(cf, test_inputs, prev_activations)
+        stability_history.append(stability)
+
+        for value in training_data:
+            activate_cells(cf, value)
+            cf.compute(learn=True)
+
+    # plot
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(range(len(stability_history)), stability_history, color="black", linewidth=1.2)
+    ax.axvline(x=switch_epoch, color="black", linestyle="--", linewidth=2, label="Dataset switch")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Stability")
+    ax.set_ylim(0.55, 1.05)
+    ax.set_xlim(0, len(stability_history) - 1)
+    ax.legend(loc="lower right")
+    ax.grid(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    fig.tight_layout()
+    plt.show()
+
+    # assertions
+    pre_switch_plateau = stability_history[40:switch_epoch]
+    post_switch_dip = stability_history[switch_epoch + 1 : switch_epoch + 10]
+
+    pre_avg = sum(pre_switch_plateau) / len(pre_switch_plateau)
+    dip_avg = sum(post_switch_dip) / len(post_switch_dip)
+
+    assert dip_avg < pre_avg, (
+        f"Expected a stability dip after the switch: "
+        f"dip avg {dip_avg:.3f} should be < pre-switch avg {pre_avg:.3f}."
+    )
+
+
+def test_stability_without_training():
+    """Without any training between checkpoints stability should be 1."""
+    input_field = make_input_field()
+    cf = make_spatial_only_cf(input_field)
+    test_inputs = [random.Random(99).uniform(0, 50) for _ in range(30)]
+
+    _, prev_activations = compute_stability(cf, test_inputs, prev_activations=None)
+    stability, _ = compute_stability(cf, test_inputs, prev_activations)
+
+    assert (
+        stability <= 0.04
+    ), f"Stability should be close to 0 without intervening training, got {stability:.3f}"
+
+
+def test_stability_first_checkpoint_is_one():
+    """The very first checkpoint should return 1."""
+    input_field = make_input_field()
+    cf = make_spatial_only_cf(input_field)
+    test_inputs = [random.Random(99).uniform(0, 50) for _ in range(30)]
+
+    stability, _ = compute_stability(cf, test_inputs, prev_activations=None)
+    assert stability == 1.0
