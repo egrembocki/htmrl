@@ -1,0 +1,57 @@
+@startuml agent_layer_pipeline
+skinparam style strictuml
+skinparam linetype ortho
+title Agent Layer Class Diagram
+
+package "psu_capstone.agent_layer" {
+  interface AgentInterface <<Protocol>>
+  abstract class AbstractBrain
+
+  class Agent
+  class Brain
+  class Trainer
+  class CartPoleTrainingConfig <<dataclass>>
+
+  class Field
+  class InputField
+  class OutputField
+  class ColumnField
+
+  class Synapse
+  class ApicalSynapse
+  class DistalSynapse
+  class ProximalSynapse
+  class Segment
+  class ApicalSegment
+  class Cell
+  class Column
+}
+
+Brain --|> AbstractBrain
+
+InputField --|> Field
+OutputField --|> Field
+ColumnField --|> Field
+
+ApicalSynapse --|> Synapse
+DistalSynapse --|> Synapse
+ProximalSynapse --|> Synapse
+ApicalSegment --|> Segment
+
+Agent --> Brain : association
+Agent ..> AgentInterface : conforms
+Trainer --> Brain : builds/trains
+Trainer ..> InputField : creates
+Trainer ..> OutputField : creates
+Trainer ..> ColumnField : creates
+
+ColumnField *-- Column : contains
+Column *-- Cell : contains
+Cell *-- Segment : contains
+Segment *-- Synapse : contains
+
+Brain o-- InputField : manages
+Brain o-- OutputField : manages
+Brain o-- ColumnField : manages
+
+@enduml

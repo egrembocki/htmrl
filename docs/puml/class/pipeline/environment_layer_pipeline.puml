@@ -1,0 +1,19 @@
+@startuml environment_layer_pipeline
+skinparam style strictuml
+skinparam linetype ortho
+title Environment Layer Class Diagram
+
+package "psu_capstone.environment" {
+  interface EnvInterface <<Protocol>>
+  class EnvAdapter
+  class FinGym
+  class "gym.Wrapper" as GymWrapper
+  class "gym.Env" as GymEnv
+}
+
+EnvAdapter --|> GymWrapper
+FinGym --|> GymEnv
+EnvAdapter ..> EnvInterface : conforms
+EnvAdapter --> GymEnv : wraps
+
+@enduml
