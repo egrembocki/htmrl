@@ -28,6 +28,7 @@ from psu_capstone.agent_layer.pullin.pullin_htm import OutputField
 """++++++++++Output Field Testing++++++++++"""
 
 
+# commit: unit test
 def test_outputfield_creation():
     o = OutputField(size=16, motor_action=(0, 1))
     assert isinstance(o, OutputField)
