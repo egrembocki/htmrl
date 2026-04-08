@@ -22,6 +22,7 @@ import numpy as np
 from stable_baselines3 import PPO
 
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.log import get_logger
 
@@ -687,7 +688,12 @@ class Agent:
                 # explicitly fell back to q_table behavior.
                 pass
             else:
-                self._brain.rl_policy_update(reward)
+                has_value_field = any(
+                    isinstance(field, ValueField)
+                    for field in getattr(self._brain, "fields", {}).values()
+                )
+                if has_value_field:
+                    self._brain.rl_policy_update(reward)
                 return
 
         if self._action_count is None:
