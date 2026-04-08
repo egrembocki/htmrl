@@ -20,6 +20,25 @@ Requires-Dist: scipy>=1.15.3
 Requires-Dist: tqdm>=4.67.3
 Requires-Dist: gymnasium>=1.2.3
 Requires-Dist: stable-baselines3>=2.7.1
+Requires-Dist: pygame>=2.6.1
+Requires-Dist: websockets>=16.0
+Requires-Dist: gym-trading-env>=0.3.5
+Requires-Dist: swig>=4.4.1
+Requires-Dist: box2d>=2.3.10
+Requires-Dist: pydocstyle>=6.3.0
+Requires-Dist: interrogate>=1.7.0
+Requires-Dist: pydoclint>=0.5.0
+Provides-Extra: formatters
+Requires-Dist: black>=23.7.0; extra == "formatters"
+Requires-Dist: isort>=6.0.1; extra == "formatters"
+Provides-Extra: dev
+Requires-Dist: pre-commit>=4.5.1; extra == "dev"
+Requires-Dist: flake8>=7.3.0; extra == "dev"
+Requires-Dist: flake8-pyproject>=1.2.4; extra == "dev"
+Requires-Dist: pytest>=9.0.3; extra == "dev"
+Requires-Dist: pytest-cov>=7.1.0; extra == "dev"
+Requires-Dist: coverage>=7.13.5; extra == "dev"
+Requires-Dist: python-discovery>=1.2.2; extra == "dev"
 
 # PSU Capstone Project (FORK - millscb)
 

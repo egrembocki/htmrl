@@ -40,7 +40,7 @@ install: ## Install package and pre-commit hooks (Unix)
 		uv python install 3.12 && uv python pin 3.12; \
 	fi
 	@uv lock --upgrade
-	@uv sync --all-groups
+	@uv sync --all-groups --all-extras
 	@git rev-parse --git-dir >/dev/null 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
 	@uv run --active pre-commit install
@@ -56,12 +56,12 @@ else
 endif
 	@uv python install 3.12
 	@uv python pin 3.12
-	@uv sync --all-groups
+	@uv sync --all-groups --all-extras
 	@echo "✅ Environment recreated"
 
 setup-dev: ## Setup development environment
 	@echo "📚 Installing development dependencies..."
-	@uv sync --all-groups
+	@uv sync --all-groups --all-extras
 	@echo "✅ Development environment ready. Try `make test` to verify everything works"
 
 format: ## Format code with isort and black
