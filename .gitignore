@@ -163,11 +163,11 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-#.env
 .venv
 .vscode
 .requirements.txt
-.flake8
+#.flake8
+
 
 
 # Spyder project settings

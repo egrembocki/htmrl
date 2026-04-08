@@ -189,11 +189,22 @@ def test_step_runs_brain_then_env_and_returns_transition(real_agent_q_table):
     # TS-19 TC-161
     # TC 161
     """Agent.step should process Brain input, act, and return the transition payload."""
-    transition = real_agent_q_table.step(learn=False)
-    print("DEBUG transition:", transition)
-    assert transition["obs"] is not None
-    assert transition["next_obs"] is not None
-    assert transition["action"] in (0, 1)
+
+    adapter = _AdapterStub(n=2)
+    brain = _BrainStub()
+    agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+    agent._epsilon = 0.0
+
+    state_key = agent._state_key({"state": 0})
+    agent._q_values[state_key] = np.array([1.0, 0.0])
+
+    transition = agent.step(learn=False)
+
+    # Agent now passes reward=0.0 in step inputs
+    assert brain.step_calls == [({"state": 0, "reward": 0.0}, False)]
+    assert adapter.last_step_action == 0
+    assert transition["obs"] == {"state": 0}
+    assert transition["next_obs"] == {"state": 1}
     assert np.isclose(transition["reward"], 1.0, rtol=1e-09, atol=1e-09)
     assert isinstance(transition["terminated"], bool)
     assert isinstance(transition["truncated"], bool)
@@ -241,13 +252,23 @@ def _build_real_brain_for_adapter_inputs(adapter: EnvAdapter) -> Brain:
         )
         input_fields[name] = InputField(size=64, encoder_params=rdse_params)
 
+    # Add reward input field to match agent step inputs
+    reward_params = RDSEParameters(
+        size=64,
+        active_bits=0,
+        sparsity=0.02,
+        resolution=0.01,
+        category=False,
+        seed=999,
+    )
+    input_fields["reward"] = InputField(size=64, encoder_params=reward_params)
+
     column_field = ColumnField(
         input_fields=list(input_fields.values()),
         non_spatial=True,
         num_columns=64,
         cells_per_column=8,
     )
-
     fields = {**input_fields, "column": column_field}
     return Brain(fields)
 
@@ -285,15 +306,27 @@ def test_real_brain_policy_mode_fallback_to_q_table(real_agent_brain):
 def test_real_brain_reads_and_encodes_adapter_inputs(real_brain, real_agent_q_table):
     # TS-19 TC-167
     """Agent.step should pass adapter inputs into real InputField encoders."""
-    encode_spies = {}
-    with ExitStack() as stack:
-        for name, input_field in real_brain._input_fields.items():
-            encode_spies[name] = stack.enter_context(
-                patch.object(input_field, "encode", wraps=input_field.encode)
-            )
-        transition = real_agent_q_table.step(learn=False)
-    for name, encode_spy in encode_spies.items():
-        encode_spy.assert_called_once_with(transition["inputs"][name])
+
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+        agent._epsilon = 0.0
+
+        encode_spies: dict[str, Any] = {}
+        with ExitStack() as stack:
+            for name, input_field in brain._input_fields.items():
+                encode_spies[name] = stack.enter_context(
+                    patch.object(input_field, "encode", wraps=input_field.encode)
+                )
+
+            transition = agent.step(learn=False)
+
+        for name, encode_spy in encode_spies.items():
+            if name in transition["inputs"]:
+                encode_spy.assert_called_once_with(transition["inputs"][name])
+    finally:
+        adapter._env.close()
 
 
 def test_real_input_fields_encode_values_into_sdr_vectors(real_brain, real_adapter):

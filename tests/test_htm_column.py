@@ -28,10 +28,8 @@ Tests validate:
   5. Inhibition and activation computation
 """
 
-import pytest
-
 from psu_capstone.agent_layer import HTM
-from psu_capstone.agent_layer.HTM import Column, InputField, OutputField, ProximalSynapse, Segment
+from psu_capstone.agent_layer.HTM import Column, InputField, OutputField, ProximalSynapse
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 
 """++++++++++Column Testing++++++++++"""

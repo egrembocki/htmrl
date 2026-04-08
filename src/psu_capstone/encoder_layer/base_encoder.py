@@ -1,3 +1,5 @@
+from typing import Any
+
 """Base class for all encoders.
 
 This module provides the abstract base class for encoder implementations,
@@ -21,8 +23,7 @@ Reference:
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any, Generic, Protocol, TypeVar, override, runtime_checkable
+from typing import Generic, Protocol, TypeVar, runtime_checkable
 
 T = TypeVar("T")
 

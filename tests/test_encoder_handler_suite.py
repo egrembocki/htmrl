@@ -15,7 +15,6 @@ These tests validate the encoder coordination layer that converts tabular record
 with mixed data types into unified SDR representations for HTM processing.
 """
 
-import copy
 from datetime import datetime
 
 import pytest

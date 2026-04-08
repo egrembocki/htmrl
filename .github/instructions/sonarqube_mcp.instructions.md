@@ -1,7 +1,7 @@
 ---
 applyTo: "**/*"
 ---
-
+analyze_file_list: [src/psu_capstone/agent_layer/pullin/pullin_brain.py]
 These are some guidelines when using the SonarQube MCP server.
 
 # Important Tool Guidelines

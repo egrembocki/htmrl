@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from psu_capstone.log import get_logger
+
 """Scalar encoder for numeric values with semantic similarity.
 
 This module provides a ScalarEncoder that converts numeric (floating point)
@@ -11,15 +15,12 @@ parameters: size, radius, category, or resolution.
 Based on NuPIC's C++ implementation ported to Python.
 """
 
-from __future__ import annotations
-
 import copy
 import math
 from dataclasses import dataclass
 from typing import Any, Iterable, override
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
-from psu_capstone.log import get_logger, logger
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 
 
 class ScalarEncoder(BaseEncoder[int]):

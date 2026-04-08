@@ -1,20 +1,11 @@
 import os
-import time
 import warnings
 
 import numpy as np
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsRegressor
 
-from legacy.legacy_htm.spatial_pooler import SpatialPooler
-from legacy.legacy_htm.temporal_memory import TemporalMemory
-from legacy.sdr_layer.sdr import SDR
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField
-from psu_capstone.encoder_layer.batch_encoder_handler import BatchEncoderHandler
-from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder
 from psu_capstone.input_layer.improved_input_handler import InputHandler
 
 warnings.simplefilter(action="ignore", category=FutureWarning)

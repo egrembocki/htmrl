@@ -72,8 +72,8 @@ format: ## Format code with isort and black
 
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
-	@uv run --active flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
-	@uv run --active flake8 . --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
+	@uv run --active flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
+	@uv run --active flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
 lint-docs: ## Check docstring coverage and style

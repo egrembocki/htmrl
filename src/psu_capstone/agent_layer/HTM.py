@@ -791,7 +791,8 @@ class ColumnField(Field):
 
         print("ColumnField statistics:")
         print(
-            f"  Columns: {len(self.columns)} | Cells: {len(self.cells)} | Segments: {len(all_segments)} | Synapses: {len(all_synapses)}"
+            f"  Columns: {len(self.columns)} | Cells: {len(self.cells)} | Segments: {len(all_segments)} "
+            f"| Synapses: {len(all_synapses)}"
         )
         for line in table_lines:
             print(f"  {line}")
@@ -927,6 +928,14 @@ class OutputField(Field):
             return {"action": None, "confidence": 0.0}
 
         active_indices = [idx for idx, cell in enumerate(cells) if bool(getattr(cell, state))]
+
+        # In active-mode decoding, allow predictive bits to provide a weak
+        # action hint when no active bits are currently set.
+        if state == "active" and not active_indices:
+            predictive_indices = [idx for idx, cell in enumerate(cells) if bool(cell.predictive)]
+            if predictive_indices:
+                active_indices = predictive_indices
+
         confidence = len(active_indices) / len(cells)
 
         # Treat motor_action as an ordered action candidate tuple.

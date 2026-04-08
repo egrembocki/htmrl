@@ -221,11 +221,13 @@ class InputHandler:
         if ext == ".xlsx":
             return pd.read_excel(
                 path
-            )  # use openpyxl engine for XLSX files, which is the default in recent pandas versions and supports modern Excel formats. For legacy XLS files, xlrd may be required but is not guaranteed to be available in all environments.
+            )  # use openpyxl engine for XLSX files, which is the default in
+            # recent pandas versions and supports modern Excel formats. For legacy XLS files, xlrd may be required but is not guaranteed to be available in all environments.
         if ext == ".xls":
             return pd.read_excel(
                 path
-            )  # use xlrd engine for legacy XLS files if available, otherwise fallback to openpyxl which may not support XLS
+            )  # use xlrd engine for legacy XLS files if available, otherwise fallback
+            # to openpyxl which may not support XLS
         if ext == ".parquet":
             return pd.read_parquet(path)
         if ext == ".txt":

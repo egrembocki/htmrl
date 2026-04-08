@@ -23,7 +23,7 @@ from typing import Any, Iterable, cast, override
 import numpy as np
 from scipy.fft import fft, fftfreq
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.log import logger
 

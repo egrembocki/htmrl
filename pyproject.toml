@@ -25,22 +25,12 @@ dependencies = [
   "scipy>=1.15.3",
   "tqdm>=4.67.3",
   "gymnasium>=1.2.3",
-  "stable-baselines3>=2.7.1"
-]
-
-
-[dependency-groups]
-dev = [
-    "mypy>=1.17.0",
-    "snakeviz>=2.2.2",
-    "pre-commit>=4.2.0",
-    "pdoc>=16.0.0",
-]
-tests = ["pytest>=8.4.1", "pytest-cov>=6.2.1", "pytest-mock>=3.14.0"]
-linters = [
-    "flake8>=7.3.0",
-    "flake8-pyproject>=1.2.3",
-    "pep8-naming>=0.15.1",
+  "stable-baselines3>=2.7.1",
+  "pygame>=2.6.1",
+  "websockets>=16.0",
+  "gym-trading-env>=0.3.5",
+  "swig>=4.4.1",
+  "box2d>=2.3.10",
     "pydocstyle>=6.3.0",
     "interrogate>=1.7.0",
     "pydoclint>=0.5.0",
