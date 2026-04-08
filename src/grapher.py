@@ -101,7 +101,12 @@ def show_heat_map(brain: Any, dataset_name: str | None = None) -> None:
     plt.colorbar(label="Duty Cycle")
     plt.xticks([])
     plt.yticks([])
-    plt.show(block=True)
+
+    # Save the plot to a file
+    filename = f"Heat_Map_{column_field.name.replace(' ', '_').replace(':', '').replace('(', '').replace(')', '').replace('/', '_')}.png"
+    plt.savefig(filename)
+    print(f"Plot saved to {filename}")
+    plt.close()
 
 
 def plot_sdr(data: list[int], title: str | None = None) -> None:
@@ -139,7 +144,12 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
-    plt.close()  # Close without showing
+
+    # Save the plot to a file
+    filename = f"{plot_title.replace(' ', '_').replace(':', '').replace('(', '').replace(')', '').replace('/', '_')}.png"
+    plt.savefig(filename)
+    print(f"Plot saved to {filename}")
+    plt.close()
 
 
 def plot_signal(
