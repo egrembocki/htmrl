@@ -32,8 +32,10 @@ src/psu_capstone/agent_layer/agent_server.py
 src/psu_capstone/agent_layer/brain.py
 src/psu_capstone/agent_layer/cartpole_brain_training.py
 src/psu_capstone/agent_layer/train.py
-src/psu_capstone/agent_layer/our_htm/spatial_pooler.py
-src/psu_capstone/agent_layer/our_htm/temporal_memory.py
+src/psu_capstone/agent_layer/our_htm_new/cell.py
+src/psu_capstone/agent_layer/our_htm_new/column.py
+src/psu_capstone/agent_layer/our_htm_new/spatial_pooler.py
+src/psu_capstone/agent_layer/our_htm_new/synapse.py
 src/psu_capstone/agent_layer/pullin/field_base.py
 src/psu_capstone/agent_layer/pullin/pullin_brain.py
 src/psu_capstone/agent_layer/pullin/pullin_constants.py
@@ -96,8 +98,8 @@ tests/test_htm_segments.py
 tests/test_htm_synapses.py
 tests/test_input_handler_load_data.py
 tests/test_input_handler_validate_data.py
+tests/test_our_spatial_pooler_correctness.py
 tests/test_sdr_suite.py
 tests/test_sdr_visual.py
-tests/test_spatial_pooler.py
 tests/test_temporal_pooler.py
 tests/test_trainer.py
