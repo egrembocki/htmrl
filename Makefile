@@ -1,7 +1,8 @@
 exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 
 # SSL Certificate configuration for Zscaler/corporate proxy
-export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
+# export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
+export SSL_CERT_FILE := /etc/ssl/certs/ca-certificates.crt
 export UV_NATIVE_TLS := 1
 
 # Ensure Java-based tools (e.g., PlantUML) run without an X11 display

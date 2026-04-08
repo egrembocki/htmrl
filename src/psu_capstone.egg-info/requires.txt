@@ -1,7 +1,13 @@
+numpy>=1.26.4
 sympy>=1.11
-pandas>=2.1
 openpyxl>=3.1.2
+pandas>=2.2.2
 mmh3>=3.0
 matplotlib>=3.7
-scikit-learn>=1.8.0
-Gymnasium>=1.2.0
+scikit-learn>=1.7.2
+xlrd>=2.0.2
+pyproj>=3.7.1
+scipy>=1.15.3
+tqdm>=4.67.3
+gymnasium>=1.2.3
+stable-baselines3>=2.7.1
