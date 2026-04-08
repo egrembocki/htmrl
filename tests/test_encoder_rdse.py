@@ -41,6 +41,7 @@ def rdse_instance():
     """Fixture to create an RDSE instance for tests."""
 
 
+# commit: unit test
 def test_rdse_initialization():
     # TS-04 TC-038
     """
@@ -63,6 +64,7 @@ def test_rdse_initialization():
     assert isinstance(encoder, RandomDistributedScalarEncoder)
 
 
+# commit: unit test
 def test_size():
     # TS-04 TC-039
     """
@@ -84,6 +86,7 @@ def test_size():
     assert encoder._size == 1000
 
 
+# commit: unit test
 def test_dimensions():
     # TS-04 TC-040
     """
@@ -106,6 +109,7 @@ def test_dimensions():
     assert encoder.size == 1000
 
 
+# commit: unit test
 def test_encode_active_bits():
     # TS-04 TC-041
     """
@@ -140,6 +144,7 @@ def test_encode_active_bits():
     assert dense_size == 1000
 
 
+# commit: unit test
 def test_resolution_plus_radius_plus_category():
     # TS-04 TC-042
     """
@@ -178,6 +183,7 @@ def test_resolution_plus_radius_plus_category():
     RandomDistributedScalarEncoder(parameters)
 
 
+# commit: unit test
 def test_sparsity_or_activebits():
     # TS-04 TC-043
     """
@@ -212,6 +218,7 @@ def test_sparsity_or_activebits():
     RandomDistributedScalarEncoder(parameters)
 
 
+# commit: unit test
 def test_one_of_resolution_radius_category_should_be_entered():
     # TS-04 TC-044
     """
@@ -241,6 +248,7 @@ def test_one_of_resolution_radius_category_should_be_entered():
         RandomDistributedScalarEncoder(parameters)
 
 
+# commit: unit test
 def test_one_of_activebit_or_sparsity_is_entered():
     # TS-04 TC-045
     """
@@ -270,6 +278,7 @@ def test_one_of_activebit_or_sparsity_is_entered():
         RandomDistributedScalarEncoder(parameters)
 
 
+# commit: unit test
 def test_2048_bits_40_active_bits():
     # TS-04 TC-071
     """This test is to check and make sure our current RDSE can handler this many bits."""
@@ -286,6 +295,7 @@ def test_2048_bits_40_active_bits():
     assert len(a) == 2048
 
 
+# commit: unit test
 def test_deterministic_same_seed():
     # TS-04 TC-072
     """
@@ -308,6 +318,7 @@ def test_deterministic_same_seed():
     assert sdr1 == sdr2
 
 
+# commit: unit test
 def test_different_seed_produces_different_sdr_with_same_input_value():
     # TS-04 TC-073
     """
@@ -335,6 +346,7 @@ def test_different_seed_produces_different_sdr_with_same_input_value():
     assert sdr1 != sdr2
 
 
+# commit: unit test
 def test_resolution_boundary():
     # TS-04 TC-074
     """The goal of this test to determine if the resolution is functioning
@@ -374,6 +386,7 @@ def hamming_distance_helper(first, second) -> int:
     return int(np.count_nonzero(first != second))
 
 
+# commit: unit test
 def test_locality_checking_mmh3():
     # TS-04 TC-075
     """
@@ -464,6 +477,7 @@ def _overlap_count(first: list[int], second: list[int]) -> int:
 
 
 # By: Dr. Agrawal
+# commit: unit test
 def test_rdse_encodings_are_mostly_orthogonal():
     # TS-04 TC-076
     encoder = _make_large_encoder(radius=1.0)
@@ -489,6 +503,7 @@ def test_rdse_encodings_are_mostly_orthogonal():
 
 
 # By: Dr. Agrawal
+# commit: unit test
 def test_rdse_no_overlap_outside_radius_large_encoding():
     # TS-04 TC-077
     encoder = _make_large_encoder(radius=1.0)
@@ -503,6 +518,7 @@ def test_rdse_no_overlap_outside_radius_large_encoding():
 # ---------------------------------------------------------------------------
 
 
+# commit: unit test
 def test_rdse_encode_output_only_zeros_and_ones():
     # TC-078
     """
@@ -537,6 +553,7 @@ def test_rdse_encode_output_only_zeros_and_ones():
         assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
 
 
+# commit: unit test
 def test_rdse_encode_output_length_equals_size():
     # TC-079
     """
@@ -571,6 +588,7 @@ def test_rdse_encode_output_length_equals_size():
     assert len(out) == 512, f"Output length must equal size (512), got {len(out)}"
 
 
+# commit: unit test
 def test_rdse_encode_output_active_bits_conforms():
     """
     Verify that when active_bits is specified, output has ~active_bits ones.
@@ -613,6 +631,7 @@ def test_rdse_encode_output_active_bits_conforms():
         ), f"Too few ones ({num_ones}), expected ~{active_bits}"
 
 
+# commit: unit test
 def test_rdse_encode_output_sparsity_conforms():
     """
     Verify that when sparsity is specified, output has ~sparsity fraction of ones.
@@ -656,6 +675,7 @@ def test_rdse_encode_output_sparsity_conforms():
 """Correctness tests below."""
 
 
+# commit: unit test
 def test_rdse_encode_improper_values():
     """
     This test tries to encode with multiple entry types.
@@ -678,6 +698,7 @@ def test_rdse_encode_improper_values():
         encoder.encode(((10, 20), 2))
 
 
+# commit: unit test
 def test_rdse_encode_empty_values():
     """
     Tests that encoder properly raises an exception if no input value is entered.
@@ -698,6 +719,7 @@ def test_rdse_encode_empty_values():
         encoder.encode(None)
 
 
+# commit: unit test
 def test_rdse_decode_empty_sdr():
     """Tests that the decode method can raise an exception when an empty sdr is entered."""
     params = RDSEParameters(
@@ -715,6 +737,7 @@ def test_rdse_decode_empty_sdr():
         encoder.decode([])
 
 
+# commit: unit test
 def test_clear_registry_decode():
     """
     This tests that a value error is raised if there are no registered
@@ -744,6 +767,7 @@ overlap to the input SDR. Cache is populated on encode().
 """
 
 
+# commit: unit test
 def test_rdse_decode_returns_tuple_value_confidence():
     """decode() returns (value, confidence) tuple."""
     params = RDSEParameters(
@@ -765,6 +789,7 @@ def test_rdse_decode_returns_tuple_value_confidence():
     assert 0 <= confidence <= 1
 
 
+# commit: unit test
 def test_rdse_decode_round_trip_same_value():
     """decode(encode(x)) returns (x, high confidence) for same encoder instance."""
     params = RDSEParameters(
@@ -784,6 +809,7 @@ def test_rdse_decode_round_trip_same_value():
         assert confidence >= 0.9, f"Round-trip confidence should be high, got {confidence}"
 
 
+# commit: unit test
 def test_rdse_decode_wrong_size_raises():
     """decode() with wrong-length SDR raises ValueError."""
     params = RDSEParameters(
@@ -803,6 +829,7 @@ def test_rdse_decode_wrong_size_raises():
         encoder.decode([0] * 300)
 
 
+# commit: unit test
 def test_rdse_decode_no_candidates_raises():
     """decode() with no prior encode (empty cache) raises ValueError."""
     params = RDSEParameters(

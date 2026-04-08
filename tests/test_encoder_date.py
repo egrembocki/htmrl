@@ -32,6 +32,7 @@ def date_encoder_instance() -> DateEncoder:
     """Fixture to create a DateEncoder instance for testing. This can be used to test any defualt DateEncoder object.
 
     Usage:
+        # commit: unit test
         def test_example(date_encoder_instance):
             # Use date_encoder_instance in your test
             pass
@@ -41,6 +42,7 @@ def date_encoder_instance() -> DateEncoder:
     return DateEncoder()
 
 
+# commit: unit test
 def test_season_encode():
     """Verify ScalarEncoder correctly encodes season (day of year) values.
 
@@ -104,6 +106,7 @@ def test_season_encode():
     assert actual_encoding == expected_encoding, "DateEncoder season test failed!"
 
 
+# commit: unit test
 def test_day_of_week_encode():
     """Verify ScalarEncoder correctly encodes day of week values (0-6).
 
@@ -154,6 +157,7 @@ def test_day_of_week_encode():
     assert actual_encoding == expected_encoding, "DateEncoder day_of_week test failed!"
 
 
+# commit: unit test
 def test_weekend_encode():
     """Verify ScalarEncoder correctly encodes weekend vs weekday (binary flag).
 
@@ -217,6 +221,7 @@ def test_weekend_encode():
     assert actual_encoding == expected_encoding, "DateEncoder weekend test failed!"
 
 
+# commit: unit test
 def test_holiday_encode():
     """Verify ScalarEncoder correctly encodes holiday proximity (ramp value).
 
@@ -283,6 +288,7 @@ def test_holiday_encode():
     assert actual_encoding == expected_encoding, "DateEncoder holiday test failed!"
 
 
+# commit: unit test
 def test_time_of_day_encode():
     """Verify ScalarEncoder correctly encodes time of day (0-24 hours).
 
@@ -345,6 +351,7 @@ def test_time_of_day_encode():
     assert actual_encoding == expected_encoding, "DateEncoder time_of_day test failed!"
 
 
+# commit: unit test
 def test_custom_day_encode():
     """Verify ScalarEncoder correctly encodes custom day groups (binary flag).
 
@@ -408,6 +415,7 @@ def test_custom_day_encode():
     assert actual_encoding == expected_encoding, "DateEncoder custom_day test failed!"
 
 
+# commit: unit test
 def test_all_combined_encode():
     """Verify ScalarEncoder correctly encodes all temporal features simultaneously.
 
@@ -501,6 +509,7 @@ def test_all_combined_encode():
 # ---------------------------------------------------------------------------
 
 
+# commit: unit test
 def test_date_encode_output_only_zeros_and_ones():
     """Verify DateEncoder output is strictly binary (only 0 and 1 values).
 
@@ -527,6 +536,7 @@ def test_date_encode_output_only_zeros_and_ones():
     assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
 
 
+# commit: unit test
 def test_date_encode_output_length_equals_size():
     """Verify DateEncoder output length matches the configured encoder size.
 
@@ -582,6 +592,7 @@ back to interpretable datetime values, enabling HTM predictions of temporal patt
 """
 
 
+# commit: unit test
 def test_season():
     """Verify ScalarEncoder correctly encodes and decodes season values.
 
@@ -655,6 +666,7 @@ def test_season():
     ), "Round-trip should be deterministic for same encoder instance"
 
 
+# commit: unit test
 def test_rdse_decode_same_across_instances_with_same_params():
     """Verify RDSE produces identical decodings across different encoder instances.
 
@@ -690,6 +702,7 @@ def test_rdse_decode_same_across_instances_with_same_params():
     ), f"With same params (no seed override), all instances should produce same decode; got {decoded_values}"
 
 
+# commit: unit test
 def test_day_of_week():
     """Verify RDSE correctly decodes day of week (0-6) from encoded SDR.
 
@@ -775,6 +788,7 @@ _DECODER_TEST_CASES = [
 ]
 
 
+# commit: unit test
 def test_weekend():
     """Verify RDSE correctly decodes weekend flag (0=weekday, 1=weekend).
 
@@ -822,6 +836,7 @@ def test_weekend():
     ), "Round-trip should be deterministic for same encoder instance"
 
 
+# commit: unit test
 def test_custom_days():
     """Verify RDSE correctly decodes custom day group membership (0 or 1).
 
@@ -870,6 +885,7 @@ def test_custom_days():
     ), "Round-trip should be deterministic for same encoder instance"
 
 
+# commit: unit test
 def test_holiday():
     """Verify RDSE correctly decodes holiday proximity ramp from encoded SDR.
 
@@ -920,6 +936,7 @@ def test_holiday():
     ), "Round-trip should be deterministic for same encoder instance"
 
 
+# commit: unit test
 def test_time_of_day():
     """Verify RDSE correctly decodes time of day (0-24 hours) from encoded SDR.
 
@@ -969,6 +986,7 @@ def test_time_of_day():
     ), "Round-trip should be deterministic for same encoder instance"
 
 
+# commit: unit test
 def test_all_combined():
     """Verify RDSE correctly decodes all temporal features when combined.
 

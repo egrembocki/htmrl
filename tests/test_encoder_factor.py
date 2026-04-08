@@ -18,6 +18,7 @@ from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
         ("coordinate", el.CoordinateEncoder),
     ],
 )
+# commit: unit test
 def test_factory_creates_supported_encoders_with_defaults(
     encoder_type: str, expected_type: type
 ) -> None:
@@ -26,18 +27,21 @@ def test_factory_creates_supported_encoders_with_defaults(
     assert isinstance(encoder, expected_type)
 
 
+# commit: unit test
 def test_factory_rejects_unsupported_encoder_type() -> None:
     """Ensure unsupported encoder types raise a clear error."""
     with pytest.raises(ValueError, match="Unsupported encoder type"):
         EncoderFactory.create_encoder("not-an-encoder")
 
 
+# commit: unit test
 def test_factory_creates_geospatial_with_defaults() -> None:
     """Ensure geospatial encoder can be created with default parameters."""
     encoder = EncoderFactory.create_encoder("geospatial")
     assert isinstance(encoder, el.GeospatialEncoder)
 
 
+# commit: unit test
 def test_factory_parameter_unpacking_for_category() -> None:
     """Ensure dict params are unpacked into CategoryParameters dataclass correctly."""
     encoder = EncoderFactory.create_encoder(

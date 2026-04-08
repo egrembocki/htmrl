@@ -31,17 +31,20 @@ def distal_synapse(cell):
 # Cell Tests
 
 
+# commit: unit test
 def test_cell_initialization(cell):
     assert isinstance(cell.segments, list)
     assert cell.segments == []
 
 
+# commit: unit test
 def test_cell_store_segments(cell, segment):
     cell.segments.append(segment)
     assert len(cell.segments) == 1
     assert cell.segments[0] is segment
 
 
+# commit: unit test
 def test_cell_repr(cell):
     r = repr(cell)
     assert r.startswith("Cell(id=")
@@ -51,6 +54,7 @@ def test_cell_repr(cell):
 # DistalSynapse Tests
 
 
+# commit: unit test
 def test_distal_synapse_initialization(distal_synapse, cell):
     assert distal_synapse.source_cell is cell
     assert distal_synapse.permanence == pytest.approx(0.5)
@@ -59,6 +63,7 @@ def test_distal_synapse_initialization(distal_synapse, cell):
 # Segment Tests
 
 
+# commit: unit test
 def test_segment_initialization(segment):
     assert segment.synapses == []
     assert segment.sequence_segment is False
@@ -87,6 +92,7 @@ def segment_with_synapses(cell, three_distal_synapses):
     return seg
 
 
+# commit: unit test
 def test_segment_with_synapses(segment_with_synapses, three_distal_synapses):
     assert len(segment_with_synapses.synapses) == 3
     assert segment_with_synapses.synapses == three_distal_synapses
@@ -95,6 +101,7 @@ def test_segment_with_synapses(segment_with_synapses, three_distal_synapses):
 # Synapse Tests
 
 
+# commit: unit test
 def test_synapse_source_and_permanence():
     s = Synapse(source_cell=None, permanence=0.7)
     assert s.permanence == pytest.approx(0.7)
@@ -104,6 +111,7 @@ def test_synapse_source_and_permanence():
 # Segment API tests
 
 
+# commit: unit test
 def test_segment_is_active_and_potentially_active(cell):
     seg = Segment(parent_cell=cell)
     # Add three synapses to meet threshold logic

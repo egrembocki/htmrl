@@ -30,6 +30,7 @@ def category_instance():
     """
 
 
+# commit: unit test
 def test_category_initialization():
     # TS-05 TC-078
     """
@@ -44,6 +45,7 @@ def test_category_initialization():
     """Checking if the instance is correct."""
 
 
+# commit: unit test
 def test_encode_us():
     # TS-05 TC-079
     """
@@ -58,6 +60,7 @@ def test_encode_us():
     assert a == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
 
 
+# commit: unit test
 def test_unknown_category():
     # TS-05 TC-080
     """
@@ -72,6 +75,7 @@ def test_unknown_category():
     assert a == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
+# commit: unit test
 def test_encode_es():
     # TS-05 TC-081
     """
@@ -86,6 +90,7 @@ def test_encode_es():
     assert a == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
 
 
+# commit: unit test
 def test_with_width_one():
     # TS-05 TC-082
     """This test is used to show how SDR outputs look with a single w or width."""
@@ -108,6 +113,7 @@ def test_with_width_one():
         i = i + 1
 
 
+# commit: unit test
 def test_rdse_used():
     # TS-05 TC-083
     """
@@ -138,6 +144,7 @@ def test_rdse_used():
 # ---------------------------------------------------------------------------
 
 
+# commit: unit test
 def test_category_encode_output_only_zeros_and_ones():
     # TS-05 TC-084
     """CategoryEncoder output must contain only 0 and 1."""
@@ -152,6 +159,7 @@ def test_category_encode_output_only_zeros_and_ones():
             ), f"Output must be binary (0/1), rdse_used={rdse_used}, cat={cat!r}, got {set(out)}"
 
 
+# commit: unit test
 def test_category_encode_output_length_equals_size():
     # TS-05 TC-085
     """CategoryEncoder output length must equal (num_categories + 1) * w."""

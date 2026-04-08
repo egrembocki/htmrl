@@ -47,6 +47,7 @@ def encoder() -> ScalarEncoder:
     return ScalarEncoder(_make_scalar_params())
 
 
+# commit: integration test
 def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     """
     This test verifies that InputHandler yields record dictionaries and that
@@ -76,6 +77,7 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     assert encoded_from_sequence == encoded_reference
 
 
+# commit: integration test
 def test_sine_wave_through_input_handler(input_handler, encoder):
     """Send a scaled sine wave through the InputHandler and verify encoder shape.
 
