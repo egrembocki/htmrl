@@ -7,7 +7,7 @@ satisfy for data loading, validation, and normalization.
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from psu_capstone.agent_layer.HTM import Field
+from psu_capstone.agent_layer.pullin.pullin_htm import Field
 
 
 @runtime_checkable

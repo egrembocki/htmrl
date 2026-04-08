@@ -18,7 +18,7 @@ import gymnasium as gym
 
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
-from psu_capstone.agent_layer.pullin.sungur_agent import ValueField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters  # find the new one
 from psu_capstone.environment.pullin.pullin_gym_adapter import GymBrain
 

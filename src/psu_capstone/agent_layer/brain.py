@@ -15,7 +15,7 @@ for encoding inputs and computing temporal memory in a single step.
 from typing import Any
 
 from psu_capstone.agent_layer.abstract_brain import AbstractBrain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
 
 
 class Brain(AbstractBrain):
