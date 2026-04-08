@@ -17,7 +17,10 @@ SDR encoding, ensuring data integrity across component boundaries.
 import numpy as np
 import pytest
 
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.input_layer.input_interface import InputInterface
 
@@ -77,29 +80,75 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     assert encoded_from_sequence == encoded_reference
 
 
-# commit: integration test
+# commit: system/integration test
 def test_sine_wave_through_input_handler(input_handler, encoder):
-    """Send a scaled sine wave through the InputHandler and verify encoder shape.
+    """Run a sine wave through the full input->encode->compute->predict pipeline.
 
-    The ScalarEncoder used in these tests expects inputs in [0, 100], so the
-    sine wave is scaled accordingly before ingestion.
+    This test is intentionally closer to an acceptance/system test than a
+    narrow component integration test:
+      1) InputHandler ingests an end-to-end signal stream.
+      2) Brain executes encode/compute/learn steps via InputField+ColumnField.
+      3) Prediction quality is checked on a held-out cycle.
     """
 
-    # Arrange: generate a 50-sample sine wave scaled to [0, 100] using numpy
-    n = 50
-    t = np.arange(n)
-    values = ((np.sin(2 * np.pi * t / n) + 1.0) * 50.0).tolist()
+    # Arrange: generate a deterministic sine wave scaled to [0, 100]
+    cycle_len = 60
+    train_cycles = 6
+    eval_cycles = 1
+    t = np.arange(cycle_len)
+    cycle_values = ((np.sin(2 * np.pi * t / cycle_len) + 1.0) * 50.0).tolist()
+    values = cycle_values * (train_cycles + eval_cycles)
 
-    # Act: feed through the input handler and extract the encoder-ready sequence
+    # Act: feed the full stream through InputHandler
     input_handler.input_data(values, required_columns=["value"])
     seq_values = input_handler.get_column_data("value")
 
-    # Assert: sequence shape and encoder outputs
-    assert isinstance(seq_values, list)
-    assert len(seq_values) == n
-    assert all(isinstance(v, (int, float)) for v in seq_values)
+    # Build a full HTM pipeline (InputField -> ColumnField -> Brain)
+    rdse_params = RDSEParameters(size=512, active_bits=0, sparsity=0.02, resolution=1.0, seed=7)
+    input_field = InputField(size=512, encoder_params=rdse_params)
+    column_field = ColumnField(
+        input_fields=[input_field],
+        non_spatial=True,
+        num_columns=512,
+        cells_per_column=16,
+    )
+    brain = Brain({"value": input_field, "column": column_field})
 
+    # Train on multiple full cycles
+    for value in seq_values[: cycle_len * train_cycles]:
+        brain.step({"value": float(value)})
+
+    # Evaluate one held-out cycle without learning (acceptance-style gate)
+    errors: list[float] = []
+    predictions: list[float] = []
+    missing_predictions = 0
+    eval_values = seq_values[cycle_len * train_cycles :]
+    for value in eval_values:
+        prediction = brain.prediction()["value"]
+        if prediction is None:
+            missing_predictions += 1
+            prediction_value = float(value)
+        else:
+            prediction_value = float(prediction)
+            predictions.append(prediction_value)
+            errors.append(abs(prediction_value - float(value)))
+        brain.step({"value": float(value)}, learn=False)
+
+    # Assert: full pipeline produced stable, bounded predictions on held-out data
+    assert isinstance(seq_values, list)
+    assert len(seq_values) == cycle_len * (train_cycles + eval_cycles)
+    assert all(isinstance(v, (int, float)) for v in seq_values)
+    assert all(0.0 <= float(v) <= 100.0 for v in seq_values)
+
+    # Keep existing scalar-encoder shape checks as a compatibility guard
     encoded = [encoder.encode(v) for v in seq_values]
-    assert len(encoded) == n
+    assert len(encoded) == len(seq_values)
     assert all(isinstance(enc, list) for enc in encoded)
     assert all(len(enc) == encoder.size for enc in encoded)
+
+    # Acceptance/system-level quality checks
+    assert missing_predictions <= max(5, cycle_len // 10)
+    assert len(errors) >= cycle_len * eval_cycles - missing_predictions
+    assert np.mean(errors) < 20.0
+    assert np.max(errors) < 60.0
+    assert np.std(predictions) > 1.0
