@@ -1,16 +1,17 @@
-#!/usr/bin/env python3
+#!/home/millscb/repos/psu-capstone/.venv/bin/python3
 """
 run_all_envs.py
 
 Easily run all supported RL environments locally and graph performance after training.
 
 Usage:
-    python run_all_envs.py [--episodes N] [--render] [--graph]
+    python run_all_envs.py [--episodes N] [--render] [--graph] [--env ENV]
 
 Options:
     --episodes N   Number of episodes to run (default: 200)
     --render       Show environment window (human render mode)
     --graph        Plot episode rewards after all runs
+    --env ENV      Run only the specified environment (default: run all)
 
 Environments tested:
     - CartPole-v1
@@ -18,7 +19,7 @@ Environments tested:
     - MountainCar-v0
     - Pendulum-v1
     - LunarLander-v3
-    - (add more as needed)
+    - TradingEnv
 
 Requires: matplotlib, pandas, gymnasium, numpy
 """
@@ -38,9 +39,8 @@ envs = [
     "MountainCar-v0",
     "Pendulum-v1",
     "LunarLander-v3",
+    "TradingEnv",
 ]
-
-REWARD_FILE_TEMPLATE = "episode_rewards_{env}.json"
 
 
 def run_env(env, episodes, render):
@@ -56,8 +56,6 @@ def run_env(env, episodes, render):
         "brain",
         "--episodes",
         str(episodes),
-        "--reward-file",
-        REWARD_FILE_TEMPLATE.format(env=env),
     ]
     if render:
         cmd += ["--render-mode", "human"]
@@ -71,21 +69,11 @@ def run_env(env, episodes, render):
 
 
 def plot_rewards(envs, episodes):
-    plt.figure(figsize=(10, 6))
-    for env in envs:
-        reward_file = REWARD_FILE_TEMPLATE.format(env=env)
-        if not os.path.exists(reward_file):
-            print(f"[WARN] No reward file for {env}, skipping plot.")
-            continue
-        with open(reward_file, "r") as f:
-            rewards = json.load(f)
-        plt.plot(rewards, label=env)
-    plt.xlabel("Episode")
-    plt.ylabel("Reward")
-    plt.title(f"Episode Rewards over {episodes} Episodes")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    print(
+        f"\n[INFO] Graphing not implemented yet - would plot rewards for {envs} over {episodes} episodes"
+    )
+    # TODO: Implement reward logging in run_agent_server.py and graphing here
+    pass
 
 
 def main():
@@ -97,13 +85,25 @@ def main():
         "--render", action="store_true", help="Show environment window (human render mode)"
     )
     parser.add_argument("--graph", action="store_true", help="Plot episode rewards after all runs")
+    parser.add_argument(
+        "--env", type=str, help="Run only the specified environment (default: run all)"
+    )
     args = parser.parse_args()
 
-    for env in envs:
+    # Determine which environments to run
+    if args.env:
+        if args.env not in envs:
+            print(f"[ERROR] Environment '{args.env}' not in supported list: {envs}")
+            sys.exit(1)
+        envs_to_run = [args.env]
+    else:
+        envs_to_run = envs
+
+    for env in envs_to_run:
         run_env(env, args.episodes, args.render)
 
     if args.graph:
-        plot_rewards(envs, args.episodes)
+        plot_rewards(envs_to_run, args.episodes)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 from utils import PROJECT_ROOT
@@ -9,8 +11,6 @@ representations, FFT analysis of time-series data, and encoder behaviors.
 Includes tools for comparing encodings, analyzing frequency spectra, and
 displaying SDR patterns as 2D grids.
 """
-
-from __future__ import annotations
 
 import os
 from typing import Any

@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.input_layer.improved_input_handler import InputHandler
 
 warnings.simplefilter(action="ignore", category=FutureWarning)

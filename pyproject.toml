@@ -31,9 +31,9 @@ dependencies = [
   "gym-trading-env>=0.3.5",
   "swig>=4.4.1",
   "box2d>=2.3.10",
-    "pydocstyle>=6.3.0",
-    "interrogate>=1.7.0",
-    "pydoclint>=0.5.0",
+  "pydocstyle>=6.3.0",
+  "interrogate>=1.7.0",
+  "pydoclint>=0.5.0",
 ]
 
 [project.optional-dependencies]

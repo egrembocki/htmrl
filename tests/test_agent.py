@@ -18,6 +18,55 @@ from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.environment.env_adapter import EnvAdapter
 
 
+# Test stub classes for isolated testing
+class _AdapterStub(EnvAdapter):
+    """Test stub for EnvAdapter that simulates a simple discrete environment."""
+
+    def __init__(self, n: int = 2, space_type: str = "Discrete"):
+        # Create a mock environment
+        from unittest.mock import MagicMock
+
+        import gymnasium as gym
+
+        mock_env = MagicMock()
+        if space_type == "Discrete":
+            mock_env.action_space = gym.spaces.Discrete(n)
+            mock_env.observation_space = gym.spaces.Discrete(10)
+        elif space_type == "Box":
+            mock_env.action_space = gym.spaces.Box(low=-1, high=1, shape=(n,))
+            mock_env.observation_space = gym.spaces.Box(low=-10, high=10, shape=(4,))
+
+        super().__init__(mock_env)
+        self._obs = 0
+        self._step_count = 0
+
+    def reset(self, *, seed=None, options=None):
+        self._obs = 0
+        self._step_count = 0
+        return self._obs, {}
+
+    def step(self, action):
+        self._step_count += 1
+        reward = 1.0 if action == 0 else -1.0
+        terminated = self._step_count >= 10
+        truncated = False
+        self._obs = (self._obs + 1) % 10
+        return self._obs, reward, terminated, truncated, {}
+
+    def observation_to_inputs(self, obs):
+        return {"state": obs}
+
+
+class _BrainStub:
+    """Test stub for Brain that provides minimal interface."""
+
+    def __init__(self):
+        self.fields = {}
+
+    def step(self, inputs, learn=True):
+        return {"predictions": {}}
+
+
 @pytest.fixture(scope="module")
 def real_adapter():
     adapter = EnvAdapter("CartPole-v1")
@@ -190,8 +239,8 @@ def test_step_runs_brain_then_env_and_returns_transition(real_agent_q_table):
     # TC 161
     """Agent.step should process Brain input, act, and return the transition payload."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
+    adapter = _AdapterStub(n=2)  # noqa: F821
+    brain = _BrainStub()  # noqa: F821
     agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
     agent._epsilon = 0.0
 
