@@ -460,7 +460,7 @@ def _make_large_encoder(radius: float = 1.0) -> RandomDistributedScalarEncoder:
 
 
 def _overlap_count(first: list[int], second: list[int]) -> int:
-    return int(np.count_nonzero(first == second))
+    return sum(1 for a, b in zip(first, second) if a == 1 and b == 1)
 
 
 # By: Dr. Agrawal

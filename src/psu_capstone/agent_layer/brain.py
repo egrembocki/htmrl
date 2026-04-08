@@ -102,13 +102,14 @@ class Brain(AbstractBrain):
         for input_name in self._input_fields:
             input_field = self._input_fields[input_name]
             if hasattr(input_field.encoder, "decode"):
-                try:
-                    predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
-                        "predictive"
-                    )
-                except ValueError:
-                    predictions[input_name] = None
-                    predictions[input_name + ".conf"] = 0.0
+                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
+                    "predictive"
+                )
+                self.logger.info(
+                    "Decoded SDR into value: %s, with confidence: %s",
+                    predictions[input_name],
+                    predictions[input_name + ".conf"],
+                )
 
         return predictions  # type: ignore
 

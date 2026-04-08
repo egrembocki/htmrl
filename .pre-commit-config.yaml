@@ -36,4 +36,6 @@ repos:
         pass_filenames: false
         types: [python]
         language: system
+        env:
+          PYTHONPATH: src
         exclude: ^(htmrl_env/|tests/)

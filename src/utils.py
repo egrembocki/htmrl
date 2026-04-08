@@ -80,7 +80,6 @@ def register_envs(id: str, entry: str, args: dict, max_episode_step: int) -> Non
     Example:
         register_envs()  # Call this at the top level of your module to register environments.
     """
-
     register(id=id, entry_point=entry, kwargs=args, max_episode_steps=max_episode_step)
 
 
