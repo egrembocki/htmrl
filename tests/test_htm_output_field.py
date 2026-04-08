@@ -23,7 +23,7 @@ Tests validate:
   5. Multi-field motor coordination
 """
 
-from psu_capstone.agent_layer.HTM import OutputField
+from psu_capstone.agent_layer.pullin.pullin_htm import OutputField
 
 """++++++++++Output Field Testing++++++++++"""
 

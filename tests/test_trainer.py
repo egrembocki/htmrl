@@ -5,8 +5,8 @@
 import pytest
 
 import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, InputField, OutputField
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from psu_capstone.agent_layer.train import Trainer
 
 

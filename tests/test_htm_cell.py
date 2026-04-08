@@ -24,7 +24,7 @@ Tests validate:
   5. Learning state management
 """
 
-from psu_capstone.agent_layer.HTM import Cell, DistalSynapse, Field, Segment
+from psu_capstone.agent_layer.pullin.pullin_htm import Cell, DistalSynapse, Field, Segment
 
 
 class DummySegment:
@@ -177,7 +177,7 @@ def test_segment_does_not_activate_when_synapses_not_connected():
 
 # Needs table
 # Had one fail because seg.potential_prev_active_synapses does not return a count
-# result was this: tests\test_htm_cell.py [<psu_capstone.agent_layer.HTM.DistalSynapse
+# result was this: tests\test_htm_cell.py [<psu_capstone.agent_layer.pullin.pullin_htm.DistalSynapse
 #  object at 0x000001DD1942FB60>]
 def test_potential_prev_active_synapses_returns_count():
     distal = Field([Cell() for _ in range(10)])

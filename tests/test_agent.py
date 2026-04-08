@@ -12,8 +12,8 @@ import numpy as np
 import pytest
 
 from psu_capstone.agent_layer.agent import Agent
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, InputField, OutputField
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.environment.env_adapter import EnvAdapter
 

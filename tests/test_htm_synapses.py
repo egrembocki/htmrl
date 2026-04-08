@@ -25,7 +25,7 @@ Tests validate:
 
 import pytest
 
-from psu_capstone.agent_layer.HTM import (
+from psu_capstone.agent_layer.pullin.pullin_htm import (
     CONNECTED_PERM,
     INITIAL_PERMANENCE,
     PERMANENCE_DEC,

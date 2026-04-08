@@ -30,7 +30,7 @@ Tests validate:
   5. Reset functionality clears state
 """
 
-from psu_capstone.agent_layer.HTM import InputField
+from psu_capstone.agent_layer.pullin.pullin_htm import InputField
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters

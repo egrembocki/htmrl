@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.HTM import (
+from psu_capstone.agent_layer.pullin.pullin_htm import (
     CONNECTED_PERM,
     DESIRED_LOCAL_SPARSITY,
     PERMANENCE_DEC,
@@ -288,10 +288,10 @@ def test_no_single_column_dominates():
 
 
 def test_activation_with_random_cells_excluding_encoder():
-    import psu_capstone.agent_layer.HTM
+    import psu_capstone.agent_layer.pullin.pullin_htm as HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    HTM.PERMANENCE_INC = 0.10
+    HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -373,10 +373,10 @@ def test_activation_with_random_cells_excluding_encoder():
 
 
 def test_activation_converge_on_desired_sparsity_random_once():
-    import psu_capstone.agent_layer.HTM
+    import psu_capstone.agent_layer.pullin.pullin_htm as HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    HTM.PERMANENCE_INC = 0.10
+    HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -455,10 +455,10 @@ def test_activation_converge_on_desired_sparsity_random_once():
 
 
 def test_activation_zero_epoch_exclude_encoder():
-    import psu_capstone.agent_layer.HTM
+    import psu_capstone.agent_layer.pullin.pullin_htm as HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    HTM.PERMANENCE_INC = 0.10
+    HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -536,10 +536,10 @@ def test_activation_zero_epoch_exclude_encoder():
 
 
 def test_activation_zero_epoch():
-    import psu_capstone.agent_layer.HTM
+    import psu_capstone.agent_layer.pullin.pullin_htm as HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    HTM.PERMANENCE_INC = 0.10
+    HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -610,10 +610,10 @@ def test_activation_zero_epoch():
 
 
 def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
-    import psu_capstone.agent_layer.HTM
+    import psu_capstone.agent_layer.pullin.pullin_htm as HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    HTM.PERMANENCE_INC = 0.10
+    HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=False)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -692,10 +692,10 @@ def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
 
 
 def test_activation_converge_on_desired_sparsity_with_sin_wave():
-    import psu_capstone.agent_layer.HTM
+    import psu_capstone.agent_layer.pullin.pullin_htm as HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    HTM.PERMANENCE_INC = 0.10
+    HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field_sin(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
