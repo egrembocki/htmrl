@@ -246,7 +246,11 @@ class TestAddFields:
     # commit: unit test
     def test_add_output_field_is_output_field_instance(self, trainer):
         trainer.build_brain([("base_input", 512, el.RDSEParameters(size=512, resolution=1.0))])
-        trainer.add_output_field("motor_output", 128, motor_action=(None,))
+        trainer.add_output_field(
+            "motor_output",
+            128,
+            encoder_params=el.RDSEParameters(size=128, resolution=1.0),
+        )
         assert isinstance(trainer.main_brain.fields["motor_output"], OutputField)
 
     # TC-199
@@ -254,7 +258,11 @@ class TestAddFields:
     def test_add_output_field_bad_name_raises(self, trainer):
         trainer.build_brain([("base_input", 512, el.RDSEParameters(size=512, resolution=1.0))])
         with pytest.raises(ValueError):
-            trainer.add_output_field("motor", 128, motor_action=(None,))
+            trainer.add_output_field(
+                "motor",
+                128,
+                encoder_params=el.RDSEParameters(size=128, resolution=1.0),
+            )
 
     # TC-200
     # commit: unit test
