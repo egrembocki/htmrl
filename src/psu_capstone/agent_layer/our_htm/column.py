@@ -64,7 +64,7 @@ class Column:
         self.active_duty_cycle = 0.0
         self.overlap_duty_cycle = 0.0
 
-    def add_potential_synapse(self, synapse, connected_perm):
+    def add_potential_synapse(self, synapse: Synapse, connected_perm: float) -> None:
         """
         Add a synapse to this columns potential pool, and also to its
         connected list if its permanence is already above the threshold.
@@ -93,21 +93,23 @@ class Column:
         """
         Update the maintained connected_synapses list in response to a
         permanence change that crossed the connected threshold.
-                Args:
-        synapse: The Synapse whose connection state changed.
-        crossing: +1 for an upward crossing, -1 for a downward
-            crossing.
+
+        Args:
+            synapse: The Synapse whose connection state changed.
+            crossing: +1 for an upward crossing, -1 for a downward
+                crossing.
         """
         if crossing == 1:
             self.connected_synapses.append(synapse)
         elif crossing == -1:
             self.connected_synapses.remove(synapse)
 
-    def connected_synapse(self, connected_perm):
+    def connected_synapse(self, connected_perm: float) -> list[Synapse]:
         """
         Recompute the connected-synapse list from scratch by filtering
         potential_synapses against the given threshold.
-                Args:
+
+        Args:
             connected_perm: The connected-permanence threshold.
 
         Returns:
@@ -120,9 +122,9 @@ class Column:
                 result.append(s)
         return result
 
-    def compute_overlap(self, input_vector):
+    def compute_overlap(self, input_vector: list[int]) -> float:
         """
-                Compute this column's overlap with the given input vector.
+        Compute this column's overlap with the given input vector.
 
         Implements Phase 2 of the algorithm at the column level. From the
         paper:
@@ -136,6 +138,7 @@ class Column:
             for s in connectedSynapses(c):
                 overlap(c) += input(t, s.sourceInput)
             overlap(c) *= boost(c)
+
         Args:
             input_vector: A sequence of 0/1 values indexed by source input
                 index.
