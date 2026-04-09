@@ -5,7 +5,6 @@ from sklearn import metrics
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.HTM import ColumnField, InputField
-from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
@@ -24,7 +23,6 @@ def build_dataset(csv_path):
 
 
 def build_brain(encoder_type):
-
     if encoder_type == "rdse":
         passenger_input = InputField(
             size=2048,
@@ -58,12 +56,14 @@ def build_brain(encoder_type):
                 seed=44,
             ),
         )
+
     elif encoder_type == "scalar":
         passenger_input = InputField(
             size=2048,
             encoder_params=ScalarEncoderParameters(
                 size=2048,
-                maximum=1000000,
+                minimum=0,
+                maximum=26000,
                 periodic=False,
                 category=False,
                 sparsity=0.2,
@@ -77,8 +77,9 @@ def build_brain(encoder_type):
             size=2048,
             encoder_params=ScalarEncoderParameters(
                 size=2048,
-                maximum=1000000,
-                periodic=False,
+                minimum=0,
+                maximum=23,
+                periodic=True,
                 category=False,
                 sparsity=0.2,
                 resolution=1.0,
@@ -91,9 +92,10 @@ def build_brain(encoder_type):
             size=2048,
             encoder_params=ScalarEncoderParameters(
                 size=2048,
-                maximum=1000000,
+                minimum=0,
+                maximum=6,
                 periodic=False,
-                category=False,
+                category=True,
                 sparsity=0.2,
                 resolution=1.0,
                 active_bits=0,
@@ -117,7 +119,15 @@ def build_brain(encoder_type):
     return brain
 
 
-def run_experiment(dataset, train_steps, learn, start_idx=0, end_idx=None, encoder_type="rdse"):
+def run_experiment(
+    dataset,
+    train_steps,
+    learn,
+    start_idx=0,
+    end_idx=None,
+    encoder_type="rdse",
+    window=960,
+):
     passenger = dataset["passenger_count_input"]
     timeofday = dataset["timeofday_input"]
     dayofweek = dataset["dayofweek_input"]
@@ -146,8 +156,6 @@ def run_experiment(dataset, train_steps, learn, start_idx=0, end_idx=None, encod
     eval_predictions = []
 
     for i in range(n):
-
-        # learn for a while then stop learning
         brain.step(
             {
                 "passenger_count_input": passenger[i],
@@ -165,16 +173,21 @@ def run_experiment(dataset, train_steps, learn, start_idx=0, end_idx=None, encod
             eval_actuals.append(passenger[i])
             eval_predictions.append(pred_pass)
 
-            mape_curve[i] = metrics.mean_absolute_percentage_error(
-                eval_actuals,
-                eval_predictions,
-            )
+            if len(eval_actuals) >= window:
+                mape_curve[i] = metrics.mean_absolute_percentage_error(
+                    eval_actuals[-window:],
+                    eval_predictions[-window:],
+                )
+
+    first_mape_idx = min(train_steps + window - 1, n - 1)
 
     return {
         "timestamps": timestamps,
         "predictions_passenger": predictions_pass,
         "mape_curve": mape_curve,
         "train_steps": train_steps,
+        "first_mape_idx": first_mape_idx,
+        "window": window,
     }
 
 
@@ -191,17 +204,20 @@ def test_taxi_dataset():
         start_idx=0,
         end_idx=2000,
         encoder_type="rdse",
+        window=400,
     )
 
     print("SP Learning result:", sp_learning)
 
-    ax1 = plt.subplot2grid((2, 3), (0, 0), colspan=2)
-    ax1.plot(sp_learning["timestamps"], sp_learning["mape_curve"], label="SP Learning")
-    ax1.axvline(
-        sp_learning["timestamps"][sp_learning["train_steps"]],
-        linestyle="--",
-        label="Train/Test Split",
-    )
+    first_valid_idx = sp_learning["first_mape_idx"]
+
+    timestamps = sp_learning["timestamps"][first_valid_idx:]
+    mape = sp_learning["mape_curve"][first_valid_idx:]
+
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+
+    ax1.plot(timestamps, mape, label="SP Learning")
+
     ax1.set_ylabel("Mean Absolute Percent Error (MAPE)")
     ax1.set_xlabel("Timestamp")
     ax1.legend()
