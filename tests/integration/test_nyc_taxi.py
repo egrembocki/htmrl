@@ -139,8 +139,8 @@ def run_experiment(dataset, train_steps, learn, start_idx=0, end_idx=None, encod
 
     train_steps = min(train_steps, n)
 
-    predictions_pass = []
-    mape_curve = []
+    predictions_pass = [np.nan] * n
+    mape_curve = [np.nan] * n
 
     eval_actuals = []
     eval_predictions = []
