@@ -1,6 +1,6 @@
 class Synapse:
     """
-    A synapse on a column's dendritic segment in the Spatial Pooler.
+    A synapse on a columns dendritic segment in the Spatial Pooler.
 
     From the paper's terminology section:
         "Synapse: A junction between cells. In the Spatial Pooling

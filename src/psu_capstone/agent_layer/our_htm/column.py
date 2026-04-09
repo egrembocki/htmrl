@@ -81,9 +81,9 @@ class Column:
 
         Args:
             synapse: The Synapse to add.
-            connected_perm: The Spatial Pooler's connected-permanence
+            connected_perm: The Spatial Poolers connected-permanence
                 threshold, used to decide whether the synapse should also
-                go into `connected_synapses`.
+                go into connected_synapses.
         """
         self.potential_synapses.append(synapse)
         if synapse.is_connected(connected_perm):
@@ -112,7 +112,7 @@ class Column:
 
         Returns:
             A new list of synapses whose permanence is at or above
-            `connected_perm`.
+            connected_perm.
         """
         result = []
         for s in self.potential_synapses:

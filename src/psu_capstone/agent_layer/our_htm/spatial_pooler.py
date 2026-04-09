@@ -39,17 +39,17 @@ class SpatialPooler:
                 this as the input space that columns can potentially connect to.
             column_count: Total number of columns in the HTM region. The paper
                 recommends "a minimum value of 2048."
-            potential_radius: This value will determine the spread of a column’s
-                influence across the HTM layer. A small potential radius will keep a column’s receptive field local, while a very large potential
+            potential_radius: This value will determine the spread of a columns
+                influence across the HTM layer. A small potential radius will keep a columns receptive field local, while a very large potential
                 radius will give the column global coverage over the input space.
             potential_pct: The percent of the inputs, within a column's potential radius, that are initialized to be in
-                this column’s potential synapses. This should be set so that on average, at least 15-20
+                this columns potential synapses. This should be set so that on average, at least 15-20
                 input bits are connected when the Spatial Pooling algorithm is initialized. For example,
                 suppose the input to a column typically contains 40 ON bits and that permanences are
                 initialized such that 50% of the synapses are initially connected. In this case you will want
                 potentialPct to be at least 0.75 since 40*0.5*0.75 = 15.
             global_inhibition: With global inhibition (globalInhibition=True), the most active columns are selected from the entire layer. Otherwise the winning
-                columns are selected with respect to the columns’ local neighborhoods. The former offers a significant performance boost, and is
+                columns are selected with respect to the columns local neighborhoods. The former offers a significant performance boost, and is
                 often what we use in practice. With global inhibition turned off, the columnar inhibition takes effect in local neighborhoods.
             num_active_columns_per_inh_area: A parameter controlling the number of columns that will be winners after the inhibition
                 step. We usually set this to be 2% of the expected inhibition radius. For 2048 columns and
@@ -67,7 +67,7 @@ class SpatialPooler:
             connected_perm:  the minimum permanence value at which a synapse is
                 considered "connected".
             min_pct_overlap_duty_cycle: Before inhibition, if a
-                column’s overlap duty cycle is below its minimum acceptable value (calculated dynamically as a function of
+                columns overlap duty cycle is below its minimum acceptable value (calculated dynamically as a function of
                 minPctOverlapDutyCycle and the overlap duty cycle of neighboring columns), then all its permanence values are boosted by the
                 increment amount. A subpar duty cycle implies either a column's previously learned inputs are no longer ever active, or the vast
                 majority of them have been "hijacked" by other columns. By raising all synapse permanences in response to a subpar duty cycle
@@ -188,7 +188,7 @@ class SpatialPooler:
             List of column indices that became active after inhibition.
 
         Raises:
-            ValueError: If the input vector length does not match `input_size`.
+            ValueError: If the input vector length does not match input_size.
         """
         if len(input_vector) != self.input_size:
             raise ValueError(
@@ -230,7 +230,7 @@ class SpatialPooler:
         so the inner loop reads from that list directly rather than filtering
         potential synapses by permanence on every call.
         Args:
-            input_vector: A sequence of 0/1 values of length `input_size`.
+            input_vector: A sequence of 0/1 values of length input_size.
         """
         for col in self.columns:
             col.compute_overlap(input_vector)
@@ -244,7 +244,7 @@ class SpatialPooler:
             the inhibition step. localAreaDensity is a parameter that controls
             the desired density of active columns within a local inhibition
             area. Alternatively, the density can be controlled by parameter
-            numActiveColumnsPerInhArea. [...] The inhibition logic will ensure
+            numActiveColumnsPerInhArea. The inhibition logic will ensure
             that at most numActiveColumnsPerInhArea columns become active in
             each local inhibition area. For example, if
             numActiveColumnsPerInhArea is 10, a column will be a winner if it
@@ -314,7 +314,7 @@ class SpatialPooler:
         Return the indices of all columns within inhibition_radiu of the
         given column.
 
-        From the paper's Table 1:
+        From the papers Table 1:
             "neighbors(c): A list of all the columns that are within
             inhibitionRadius of column c."
 
@@ -421,16 +421,16 @@ class SpatialPooler:
 
     def _update_active_duty_cycle(self, col, c_active):
         """
-        Update a column's active duty cycle with the current iteration's
+        Update a columns active duty cycle with the current iterations
         activation.
 
-        From the paper's Table 1:
+        From the papers Table 1:
             "activeDutyCycle(c): A sliding average representing how often
             column c has been active after inhibition (e.g. over the last
             1000 iterations)."
 
         Implemented as an exponential moving average with a warm-up period
-        equal to `duty_cycle_period`: during the first `duty_cycle_period`
+        equal to duty_cycle_period: during the first duty_cycle_period
         iterations the effective window grows with the iteration count, so
         early measurements are not dominated by the zero initial value.
         Args:
@@ -444,15 +444,15 @@ class SpatialPooler:
 
     def _update_overlap_duty_cycle(self, col):
         """
-        Update a column's overlap duty cycle.
+        Update a columns overlap duty cycle.
 
-        From the paper's Table 1:
+        From the papers Table 1:
             "overlapDutyCycle(c): A sliding average representing how often
             column c has had significant overlap (i.e. greater than
             stimulusThreshold) with its inputs (e.g. over the last 1000
             iterations)."
 
-        A "significant overlap" here means the column's boosted overlap is
+        A significant overlap here means the columns boosted overlap is
         both strictly greater than zero and at or above the stimulus
         threshold for this iteration.
         Args:
@@ -474,10 +474,10 @@ class SpatialPooler:
         Form used:
             boost = exp(-boost_strength * (active_duty_cycle - mean_neighbors))
 
-        When the column's duty cycle is below the mean, the exponent is
+        When the columns duty cycle is below the mean, the exponent is
         positive and boost > 1 (the column is encouraged to win). When it
         is above the mean, boost < 1 (the column is discouraged). When
-        `boost_strength` is 0, boost is always 1 and boosting is disabled.
+        boost_strength is 0, boost is always 1 and boosting is disabled.
         Args:
             active_duty_cycle: the columns active duty cycle.
             neighbor_mean_duty_cycle: the columns surrounding the column average duty cycles.
@@ -490,7 +490,7 @@ class SpatialPooler:
 
         Used by Phase 4's overlap-duty-cycle boosting path. From the paper:
             "If a column's overlap duty cycle is below its minimum
-            acceptable value [...] then all its permanence values are
+            acceptable value then all its permanence values are
             boosted by the increment amount. A subpar duty cycle implies
             either a column's previously learned inputs are no longer ever
             active, or the vast majority of them have been 'hijacked' by
@@ -499,7 +499,7 @@ class SpatialPooler:
             search for new inputs."
 
         Because this can push permanences across the connected threshold,
-        crossings are reported to the column so its `connected_synapses`
+        crossings are reported to the column so its connected_synapses
         list stays up to date.
         Args:
             col: the column to increase permanence for.
