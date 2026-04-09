@@ -17,13 +17,13 @@ class Synapse:
             permanence: The initial permanence value, in the range [0, 1].
     """
 
-    def __init__(self, source_input_index, permanence):
+    def __init__(self, source_input_index: int, permanence: float) -> None:
 
         self.source_input_index = source_input_index
 
         self.permanence = permanence
 
-    def is_connected(self, connected_perm):
+    def is_connected(self, connected_perm: float) -> bool:
         """
         Return whether this synapse is currently connected.
 
@@ -41,7 +41,7 @@ class Synapse:
         """
         return self.permanence >= connected_perm
 
-    def increment_permanence(self, amount, connected_perm):
+    def increment_permanence(self, amount: float, connected_perm: float) -> int:
         """
         Increase the permanence value, clamping to 1.0.
 
@@ -74,7 +74,7 @@ class Synapse:
         now_connected = self.permanence >= connected_perm
         return 1 if (now_connected and not was_connected) else 0
 
-    def decrement_permanence(self, amount, connected_perm):
+    def decrement_permanence(self, amount: float, connected_perm: float) -> int:
         """
         Decrease the permanence value, clamping to 0.0.
 
