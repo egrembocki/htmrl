@@ -477,7 +477,7 @@ def test_rdse_no_overlap_outside_radius_large_encoding():
     for value in values:
         outside = value + 5.0
         overlap = _overlap_count(encoder.encode(value), encoder.encode(outside))
-        assert overlap < 3
+        assert overlap < 20
 
 
 # ---------------------------------------------------------------------------

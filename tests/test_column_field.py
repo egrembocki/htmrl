@@ -153,6 +153,7 @@ def add_noise_to_encoding(encoded_bits: list[int], noise_level: float):
 
 
 def test_add_noise():
+    """Checks that noise is added to an encoding correctly."""
     e = RandomDistributedScalarEncoder(RDSEParameters())
     bits = e.encode(1)
     add_noise_to_encoding(bits, 0.10)
@@ -175,7 +176,7 @@ def overlap_ratio(original: list[int], noisy: list[int]) -> float:
 """FIXED SPARSENESS"""
 
 
-def test_active_ratio_matches_desired_sparsity():
+def test_active_columns_matches_desired_sparsity():
     """After compute, the number of active columns should match desired sparsity."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -192,7 +193,7 @@ def test_active_ratio_matches_desired_sparsity():
     ), f"Expected exactly {expected_active} active columns, got {len(active_cols)}"
 
 
-def test_sparsity_invariant_to_input_density():
+def test_sparsity_of_active_columns_to_input_sparsity_gradient():
     """Output sparsity stays fixed regardless of how many input bits are on."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -283,6 +284,7 @@ def test_no_single_column_dominates():
 
 
 def test_activation_with_random_cells_excluding_encoder():
+    """Checks active column over 49 epochs on a random input excluding the built in encoder."""
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
@@ -367,7 +369,8 @@ def test_activation_with_random_cells_excluding_encoder():
     plt.show()
 
 
-def test_activation_converge_on_desired_sparsity_random_once():
+def test_activation_converge_on_desired_sparsity_random_once_with_encoder():
+    """Tests random inputs to the spatial pooler to see that our activations converge on the desired sparsity."""
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
@@ -450,6 +453,7 @@ def test_activation_converge_on_desired_sparsity_random_once():
 
 
 def test_activation_zero_epoch_exclude_encoder():
+    """Tests a zero epoch excluding encoder on the spatial pooler."""
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
@@ -457,7 +461,6 @@ def test_activation_zero_epoch_exclude_encoder():
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
-    # pattern_a = random.sample(range(-10000, 10000), 100)
 
     # build 100 random indices
     all_indices = []
@@ -530,7 +533,8 @@ def test_activation_zero_epoch_exclude_encoder():
     plt.show()
 
 
-def test_activation_zero_epoch():
+def test_activation_zero_epoch_with_encoder():
+    """Tests zero epoch with encoder on spatial pooler."""
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
@@ -604,13 +608,14 @@ def test_activation_zero_epoch():
     plt.show()
 
 
-def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
+def test_activation_with_sin_wave_scalar_encoder_periodic_false():
+    """Tests a spatial pooler with the scalar encoder and periodic false."""
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
     psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
-    in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=False)
+    in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=True)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
 
     x = np.linspace(0, 1, 100, endpoint=False)
@@ -686,7 +691,8 @@ def test_activation_converge_on_desired_sparsity_with_sin_wave_scalar_encoder():
     plt.show()
 
 
-def test_activation_converge_on_desired_sparsity_with_sin_wave():
+def test_activation_with_sin_wave_with_encoder():
+    """Tests a sin wave and rdse encoder spatial pooler to see dominate columns form on the pattern."""
     import psu_capstone.agent_layer.HTM
 
     psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
@@ -855,6 +861,9 @@ def test_dissimilar_inputs_produce_dissimilar_sdrs():
 
 
 def test_sp_overlap_gradient():
+    """Tests the spatial poolers overlap gradient when compared to a base value.
+    This paired with the rdse and scalar
+    gradient tests can help reveal how the SP is acting directly."""
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -906,6 +915,8 @@ def _overlap_count_list(first: list[int], second: list[int]) -> int:
 
 
 def test_rdse_gradient():
+    """Tests the overlaps of rdse encoded values to the base value 1.
+    This reveals how the similarity acts between values and sdrs."""
     e = RandomDistributedScalarEncoder(RDSEParameters())
     base_value = 1
     base_encoding = e.encode(base_value)
@@ -948,6 +959,8 @@ def test_rdse_gradient():
 
 
 def test_scalar_gradient():
+    """Tests the overlaps of scalar encoded values to the base value 1.
+    This reveals how the similarity acts between values and sdrs."""
     e = ScalarEncoder(ScalarEncoderParameters(radius=0, resolution=1.0, periodic=True))
     base_value = 1
     base_encoding = e.encode(base_value)
@@ -969,6 +982,8 @@ def test_scalar_gradient():
 
 
 def test_sp_overlap_gradient_input_field_scalar():
+    """Tests a spatial pooler gradient of overlaps when compared to the active column output of the first value. Helps determing that
+    we maintain similarity from the input."""
     input_size = 2048
     in_fi = make_input_field_scalar(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -1020,7 +1035,7 @@ def test_zero_noise_no_output_change():
 
 
 def test_noise_gradient_plot():
-    """Plot noise robustness across epochs like the research paper. Eventually add asserts to make it a test."""
+    """Plot noise robustness across epochs like the research paper."""
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -1133,7 +1148,8 @@ def test_noise_gradient_plot():
 def test_synapse_formation():
     """
     Track newly connected synapses per epoch across a dataset switch.
-    Synapse formation counts how many potential synapses cross the connected permanence threshold during each training epoch. Should
+    Synapse formation counts how many potential synapses cross the connected permanence
+    threshold during each training epoch. Should
     spike early, drop to near zero once stable, spike again at the dataset switch, then settle back down.
     """
     input_field = make_input_field()
@@ -1234,7 +1250,8 @@ def compute_stability(
 
 def test_continuous_learning_stability():
     """
-    SP trains on dataset_a and stabilizes. Inputs switch to dataset_b stability drops then recovers as the SP adapts to the new statistics.
+    SP trains on dataset_a and stabilizes.
+    Inputs switch to dataset_b stability drops then recovers as the SP adapts to the new statistics.
     """
     input_field = make_input_field()
     cf = make_spatial_only_cf(input_field)

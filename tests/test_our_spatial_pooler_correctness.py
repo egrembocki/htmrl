@@ -3,8 +3,8 @@ import random
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.our_htm_new.column import Column
-from psu_capstone.agent_layer.our_htm_new.spatial_pooler import SpatialPooler
+from psu_capstone.agent_layer.our_htm.column import Column
+from psu_capstone.agent_layer.our_htm.spatial_pooler import SpatialPooler
 from psu_capstone.encoder_layer import RandomDistributedScalarEncoder, RDSEParameters
 
 
@@ -28,7 +28,7 @@ def make_rdse():
     return RandomDistributedScalarEncoder(RDSEParameters())
 
 
-def test_active_ratio_matches_desired_sparsity():
+def test_our_sp_active_ratio_matches_desired_sparsity():
     """After compute, the number of active columns should match desired sparsity."""
     input_size = 2048
     desired_sparsity = 0.02
@@ -45,7 +45,7 @@ def test_active_ratio_matches_desired_sparsity():
     ), f"Expected exactly {expected_active} active columns, got {len(active_cols)}"
 
 
-def test_sparsity_invariant_to_input_density():
+def test_our_sp_sparsity_invariant_to_input_density():
     """Output sparsity stays fixed regardless of how many input bits are on."""
     input_size = 2048
     desired_sparsity = 0.02
@@ -69,7 +69,7 @@ def test_sparsity_invariant_to_input_density():
 """DISTRIBUTED CODING"""
 
 
-def test_many_columns_participate_across_patterns():
+def test_our_sp_many_columns_participate_across_patterns():
     """Over many RDSE encoded inputs, a large share of columns should activate at least once."""
     input_size = 2048
     e = make_rdse()
@@ -90,7 +90,7 @@ def test_many_columns_participate_across_patterns():
     ), f"Only {participation:.1%} of columns were ever active not distributed enough"
 
 
-def test_no_single_column_dominates():
+def test_our_sp_no_single_column_dominates():
     """No single column should be active in more than a small fraction of all patterns."""
     input_size = 2048
     desired_sparsity = 0.02
@@ -115,7 +115,8 @@ def test_no_single_column_dominates():
         ), f"Most used column was active {max_freq:.1%} of the time threshold {threshold:.1%}"
 
 
-def test_activation_converge_on_desired_sparsity_random_once():
+def test_our_sp_activation_converge_on_desired_sparsity_random_once():
+    """With random inputs, we should see the active column activation converging on the sparsity desired."""
     input_size = 2048
     e = make_rdse()
     sp = make_spatial_pooler(
@@ -196,7 +197,8 @@ def test_activation_converge_on_desired_sparsity_random_once():
     plt.show()
 
 
-def test_activation_converge_on_desired_sparsity_with_sin_wave():
+def test_our_sp_activation_sparsity_with_sin_wave():
+    """Tests that the spatial pooler when trained on a sequence will show dominate active columns."""
     input_size = 2048
     e = make_rdse()
     sp = make_spatial_pooler(
@@ -286,7 +288,7 @@ def _overlap_count(first, second) -> int:
     return len(first & second)
 
 
-def test_similar_inputs_produce_similar_sdrs():
+def test_our_sp_similar_inputs_produce_similar_sdrs():
     """Nearby scalar values should produce overlapping column activations."""
     input_size = 2048
     e = make_rdse()
@@ -321,7 +323,7 @@ def test_similar_inputs_produce_similar_sdrs():
     ), f"Similar inputs ({base_value} vs {similar_value}) produced SDRs with only {sim} overlapping columns"
 
 
-def test_dissimilar_inputs_produce_dissimilar_sdrs():
+def test_our_sp_dissimilar_inputs_produce_dissimilar_sdrs():
     """Values far apart should produce low column overlap."""
     input_size = 2048
     desired_sparsity = 0.02
@@ -363,7 +365,7 @@ def test_dissimilar_inputs_produce_dissimilar_sdrs():
 """NOISE ROBUSTNESS"""
 
 
-def add_noise_to_encoding(encoded_bits: list[int], noise_level: float):
+def add_our_sp_noise_to_encoding(encoded_bits: list[int], noise_level: float):
     """Return a noisy copy of a binary encoding vector."""
     noisy = encoded_bits
     active = []
@@ -392,7 +394,7 @@ def add_noise_to_encoding(encoded_bits: list[int], noise_level: float):
             test_final.append(i)
 
 
-def test_zero_noise_no_output_change():
+def test_our_sp_zero_noise_no_output_change():
     """With zero noise there should be no change in SP output."""
     input_size = 2048
     e = make_rdse()
