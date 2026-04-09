@@ -82,21 +82,21 @@ class SpatialPooler:
 
     def __init__(
         self,
-        input_size,
-        column_count=2048,
-        potential_radius=None,
-        potential_pct=0.75,
-        global_inhibition=True,
-        num_active_columns_per_inh_area=40,
-        stimulus_threshold=0,
-        syn_perm_active_inc=0.03,
-        syn_perm_inactive_dec=0.015,
-        connected_perm=0.2,
-        min_pct_overlap_duty_cycle=0.001,
-        duty_cycle_period=1000,
-        boost_strength=2.0,
-        seed=42,
-    ):
+        input_size: int,
+        column_count: int = 2048,
+        potential_radius: int | None = None,
+        potential_pct: float = 0.75,
+        global_inhibition: bool = True,
+        num_active_columns_per_inh_area: int = 40,
+        stimulus_threshold: int = 0,
+        syn_perm_active_inc: float = 0.03,
+        syn_perm_inactive_dec: float = 0.015,
+        connected_perm: float = 0.2,
+        min_pct_overlap_duty_cycle: float = 0.001,
+        duty_cycle_period: int = 1000,
+        boost_strength: float = 2.0,
+        seed: int = 42,
+    ) -> None:
 
         self.input_size = input_size
         self.column_count = column_count
@@ -162,7 +162,7 @@ class SpatialPooler:
                 syn = Synapse(src, perm)
                 col.add_potential_synapse(syn, self.connected_perm)
 
-    def compute(self, input_vector, learn=True):
+    def compute(self, input_vector: list[int], learn: bool = True) -> list[int]:
         """
         Run one iteration of the Spatial Pooler on an input vector.
 
@@ -209,7 +209,7 @@ class SpatialPooler:
 
         return active_columns
 
-    def _phase2_overlap(self, input_vector):
+    def _phase2_overlap(self, input_vector: list[int]) -> None:
         """
         Phase 2: compute the overlap of each column with the current input.
 
@@ -309,7 +309,7 @@ class SpatialPooler:
 
         return active
 
-    def _neighbors(self, column_index):
+    def _neighbors(self, column_index: int) -> list[int]:
         """
         Return the indices of all columns within inhibition_radiu of the
         given column.
@@ -323,6 +323,8 @@ class SpatialPooler:
         the size of a column's neighborhood adapts as learning proceeds.
         Args:
             column_index: the index of the column to find neighbors for.
+        Returns:
+            List of column indices within the inhibition radius.
         """
         low = max(0, column_index - self.inhibition_radius)
         high = min(self.column_count, column_index + self.inhibition_radius + 1)
@@ -332,7 +334,7 @@ class SpatialPooler:
             neighbors.append(i)
         return neighbors
 
-    def _phase4_learn(self, input_vector, active_columns):
+    def _phase4_learn(self, input_vector: list[int], active_columns: list[int]) -> None:
         """
         Phase 4: update synapse permanences, duty cycles, boost values, and
         the inhibition radius.
@@ -419,7 +421,7 @@ class SpatialPooler:
 
         self.inhibition_radius = self._average_receptive_field_size()
 
-    def _update_active_duty_cycle(self, col, c_active):
+    def _update_active_duty_cycle(self, col: Column, c_active: bool) -> None:
         """
         Update a columns active duty cycle with the current iterations
         activation.
@@ -442,7 +444,7 @@ class SpatialPooler:
             col.active_duty_cycle * (period - 1) + (1.0 if c_active else 0.0)
         ) / period
 
-    def _update_overlap_duty_cycle(self, col):
+    def _update_overlap_duty_cycle(self, col: Column) -> None:
         """
         Update a columns overlap duty cycle.
 
@@ -462,7 +464,11 @@ class SpatialPooler:
         had_overlap = 1.0 if col.overlap >= self.stimulus_threshold and col.overlap > 0 else 0.0
         col.overlap_duty_cycle = (col.overlap_duty_cycle * (period - 1) + had_overlap) / period
 
-    def _boost_function(self, active_duty_cycle, neighbor_mean_duty_cycle):
+    def _boost_function(
+        self,
+        active_duty_cycle: float,
+        neighbor_mean_duty_cycle: float,
+    ) -> float:
         """
         Compute the boost factor for a column.
 
@@ -481,10 +487,12 @@ class SpatialPooler:
         Args:
             active_duty_cycle: the columns active duty cycle.
             neighbor_mean_duty_cycle: the columns surrounding the column average duty cycles.
+        Returns:
+            The computed boost factor.
         """
         return math.exp(-self.boost_strength * (active_duty_cycle - neighbor_mean_duty_cycle))
 
-    def _increase_permanences(self, col, scale):
+    def _increase_permanences(self, col: Column, scale: float) -> None:
         """
         Raise all permanences in a column by a scalar amount.
 

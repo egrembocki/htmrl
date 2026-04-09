@@ -89,7 +89,7 @@ class Column:
         if synapse.is_connected(connected_perm):
             self.connected_synapses.append(synapse)
 
-    def on_crossing(self, synapse, crossing):
+    def on_crossing(self, synapse: Synapse, crossing: int) -> None:
         """
         Update the maintained connected_synapses list in response to a
         permanence change that crossed the connected threshold.
