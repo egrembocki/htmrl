@@ -924,6 +924,7 @@ class OutputField(Field):
     def __init__(self, size: int, motor_action: tuple) -> None:
         cells = {Cell() for _ in range(size)}
         Field.__init__(self, cells)
+        self.motor_action = motor_action
 
     def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
@@ -933,10 +934,38 @@ class OutputField(Field):
         self,
         state: str = "active",
         encoded: Field = None,  # type: ignore
-        candidates: Iterable[float] | None = None,
-    ) -> dict[str, tuple[float | None]]:
-        """Convert active cells back to output value using RDSE decoding."""
-        raise NotImplementedError("OutputField does not support decoding")
+        _candidates: Iterable[float] | None = None,
+    ) -> dict[str, Any]:
+        """Map output cell activity into a motor action payload.
+
+        Returns a lightweight dictionary so Brain.step can expose a direct
+        action hint to Agent policy code.
+        """
+        if state not in ("active", "predictive"):
+            raise ValueError(f"Invalid state '{state}'; must be 'active' or 'predictive'")
+
+        if encoded is None:
+            encoded = self.cells
+
+        cells = list(encoded)
+        if not cells:
+            return {"action": None, "confidence": 0.0}
+
+        active_indices = [idx for idx, cell in enumerate(cells) if bool(getattr(cell, state))]
+        confidence = len(active_indices) / len(cells)
+
+        # Treat motor_action as an ordered action candidate tuple.
+        if not self.motor_action:
+            return {"action": None, "confidence": confidence}
+
+        if not active_indices:
+            return {"action": self.motor_action[0], "confidence": 0.0}
+
+        selected_index = max(active_indices) % len(self.motor_action)
+        return {
+            "action": self.motor_action[selected_index],
+            "confidence": confidence,
+        }
 
 
 input_field = Field(cells={Cell() for _ in range(10)})

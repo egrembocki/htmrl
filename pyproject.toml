@@ -22,6 +22,8 @@ dependencies = [
  "xlrd>=2.0.2",
  "pyproj>=3.7.1",
  "scipy>=1.15.3",
+ "gymnasium>=1.2.3",
+ "stable-baselines3>=2.7.1",
 ]
 
 

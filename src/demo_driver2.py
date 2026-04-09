@@ -12,13 +12,15 @@ Note: Some of the demonstration functions may require specific datasets to be av
 import os
 
 import grapher
-
-# Import each layer once so the demos read like the architecture they exercise.
-# This keeps example code focused on workflow rather than repeated module paths.
-import psu_capstone.agent_layer as ag
-import psu_capstone.encoder_layer as en
-import psu_capstone.input_layer as il
-from psu_capstone.log import logger
+from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.log_train import Trainer
+from psu_capstone.encoder_layer.base_encoder import ParameterMarker
+from psu_capstone.encoder_layer.category_encoder import CategoryParameters
+from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
+from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
+from psu_capstone.encoder_layer.rdse import RDSEParameters
+from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.log import logger, set_report_artifact_path
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
@@ -33,7 +35,7 @@ def show_input_data_demo() -> None:
     Use Case Input Data --> Validate Data
     """
 
-    ih = il.InputHandler()
+    ih = InputHandler()
     data = ih.input_data(ESD)
 
     for name, value in data.items():
@@ -43,9 +45,9 @@ def show_input_data_demo() -> None:
 def show_input_to_encoder_demo(s: int = 5) -> None:
     """Demonstrate the InputHandler's ability to convert raw input data to encoder-ready format."""
 
-    ih = il.InputHandler()
-    brain = ag.Brain()
-    trainer = ag.Trainer(brain)
+    ih = InputHandler()
+    brain = Brain()
+    trainer = Trainer(brain)
 
     columns: list[str] = []
     data = ih.input_data(ESD)
@@ -58,7 +60,7 @@ def show_input_to_encoder_demo(s: int = 5) -> None:
     column_data = ih.get_column_data(column=columns[1])
 
     trainer.main_brain = trainer.build_brain(
-        [(f"{columns[1]}_input", 2048, en.RDSEParameters(resolution=0.01))]
+        [(f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.01))]
     )  # fin markets
 
     values = column_data[:s]  # Take the first 's' values for demonstration
@@ -88,19 +90,19 @@ def show_brain_creation_demo() -> None:
     Use Case Input Parameters
     """
 
-    brain = ag.Brain()
-    trainer = ag.Trainer(brain)
+    brain = Brain()
+    trainer = Trainer(brain)
 
-    input_fields: list[tuple[str, int, en.ParameterMarker]] = []
+    input_fields: list[tuple[str, int, ParameterMarker]] = []
 
     # Example of building a brain with specific input fields
     input_fields = [
-        ("temperature_input", 2048, en.RDSEParameters()),
-        ("humidity_input", 2048, en.RDSEParameters()),
-        ("energy_consumption_input", 2048, en.RDSEParameters()),
-        ("date_input", 2048, en.DateEncoderParameters()),
-        ("category_input", 2048, en.CategoryParameters()),
-        ("wave_input", 2048, en.FourierEncoderParameters()),
+        ("temperature_input", 2048, RDSEParameters()),
+        ("humidity_input", 2048, RDSEParameters()),
+        ("energy_consumption_input", 2048, RDSEParameters()),
+        ("date_input", 2048, DateEncoderParameters()),
+        ("category_input", 2048, CategoryParameters()),
+        ("wave_input", 2048, FourierEncoderParameters()),
     ]
 
     trainer.main_brain = trainer.build_brain(input_fields)
@@ -130,10 +132,10 @@ def sine_wave_demo(steps: int = 100) -> None:
     x = np.linspace(0, 1, 2048, endpoint=False)
     y = np.sin(2 * np.pi * 1 * x)
     data = {"sine_wave_input": y}
-    brain = ag.Brain()
-    trainer = ag.Trainer(brain)
+    brain = Brain()
+    trainer = Trainer(brain)
     trainer.main_brain = trainer.build_brain(
-        [("sine_wave_input", 2048, en.RDSEParameters(resolution=0.001))]
+        [("sine_wave_input", 2048, RDSEParameters(resolution=0.001))]
     )
     brain = trainer.main_brain
 
@@ -150,8 +152,7 @@ def sine_wave_demo(steps: int = 100) -> None:
     trainer.show_active_columns(brain, dataset_name="sine wave")
     trainer.show_heat_map(brain, dataset_name="sine wave")
 
-    report_path = os.path.join(PROJECT_ROOT, "docs/reports/sine_wave_training_stats.txt")
-    trainer.print_train_stats(report_path, test_results=test_results, training_steps=steps)
+    trainer.print_train_stats(test_results=test_results, training_steps=steps)
 
 
 def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
@@ -160,13 +161,13 @@ def fin_data_demo(column: str | None = None, steps: int = 100) -> None:
     Use Cace Input Data -> Validate Data -> Input Parameters -> Train Model -> Train Brain -> Use HTM -> Encode/Decode SDR
     """
 
-    ih = il.InputHandler()
+    ih = InputHandler()
     data = ih.input_data(ESD)
 
-    brain = ag.Brain()
-    trainer = ag.Trainer(brain)
+    brain = Brain()
+    trainer = Trainer(brain)
     # resolution changes the spatial pooler representation
-    trainer.main_brain = trainer.build_full_brain(data, 2048, en.RDSEParameters(resolution=0.01))
+    trainer.main_brain = trainer.build_full_brain(data, 2048, RDSEParameters(resolution=0.01))
     brain = trainer.main_brain
 
     if not column:
@@ -193,9 +194,9 @@ def rec_center_demo(steps: int = 100) -> None:
     """Demonstrate loading and visualizing the rec_center dataset."""
 
     columns: list[str] = []
-    ih = il.InputHandler()
-    brain = ag.Brain()
-    trainer = ag.Trainer(brain)
+    ih = InputHandler()
+    brain = Brain()
+    trainer = Trainer(brain)
     data = ih.input_data(REC_CENTER)
 
     for key in data.keys():
@@ -205,8 +206,8 @@ def rec_center_demo(steps: int = 100) -> None:
 
     trainer.main_brain = trainer.build_brain(
         [
-            (f"{columns[0]}_input", 2048, en.DateEncoderParameters()),
-            (f"{columns[1]}_input", 2048, en.RDSEParameters(resolution=0.1)),
+            (f"{columns[0]}_input", 2048, DateEncoderParameters()),
+            (f"{columns[1]}_input", 2048, RDSEParameters(resolution=0.1)),
         ]
     )
 
@@ -229,13 +230,13 @@ def rec_center_demo(steps: int = 100) -> None:
 def show_field_single_encoding_demo() -> None:
     """Demonstrate encoding a sample input through the Brain's input fields."""
 
-    brain = ag.Brain()
-    trainer = ag.Trainer(brain)
+    brain = Brain()
+    trainer = Trainer(brain)
 
-    input_fields: list[tuple[str, int, en.ParameterMarker]] = []
+    input_fields: list[tuple[str, int, ParameterMarker]] = []
     # Create a simple brain with one input field and one column field
     input_fields = [
-        ("temperature_input", 2048, en.RDSEParameters(resolution=0.1)),
+        ("temperature_input", 2048, RDSEParameters(resolution=0.1)),
     ]
     trainer.main_brain = trainer.build_brain(input_fields)
 
@@ -256,18 +257,15 @@ if __name__ == "__main__":
     # Ensure we're in the project root directory for consistent file operations
     os.chdir(PROJECT_ROOT)
 
+    set_report_artifact_path(os.path.join(PROJECT_ROOT, "docs", "reports"))
+
     # Example usage of the Brain and Trainer classes
 
-    # show_input_data_demo()
-    # show_input_to_encoder_demo(3)
-    # show_brain_creation_demo()
     # show_input_data_demo()
     # show_input_to_encoder_demo(3)
     # show_brain_creation_demo()
     sine_wave_demo(200)
     # fin_data_demo(steps=3)
 
-    # rec_center_demo(200)
-    # show_field_single_encoding_demo()
     # rec_center_demo(200)
     # show_field_single_encoding_demo()
