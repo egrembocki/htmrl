@@ -633,11 +633,38 @@ class ColumnField(Field):
             column.learn()
 
     def activate_top_k_columns(self, k: int) -> None:
-        """Activate the top-k columns based on overlap."""
+        """Activate the top-k columns based on overlap.
+
+        If there are ties at the lowest overlap value in top-k,
+        randomly select among the tied columns to meet exactly k.
+        """
         sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
-        for col in sorted_columns[:k]:
+
+        if k >= len(sorted_columns):
+            for col in sorted_columns:
+                self.active_columns.append(col)
+                col.set_active()
+            return
+
+        # Find the threshold overlap (the k-th highest value)
+        threshold_overlap = sorted_columns[k - 1].overlap
+
+        # Separate columns above threshold from those at threshold
+        above_threshold = [col for col in sorted_columns if col.overlap > threshold_overlap]
+        at_threshold = [col for col in sorted_columns if col.overlap == threshold_overlap]
+
+        # Activate all columns above threshold
+        for col in above_threshold:
             self.active_columns.append(col)
-            col.set_active()  # type: ignore
+            col.set_active()
+
+        # Randomly select from tied columns to fill remaining spots
+        remaining_spots = k - len(above_threshold)
+        if remaining_spots > 0 and at_threshold:
+            selected = random.sample(at_threshold, remaining_spots)
+            for col in selected:
+                self.active_columns.append(col)
+                col.set_active()
 
     def activate_cells(self) -> None:
         """Activate, burst, and select winner cells based on prior predictions."""
@@ -877,8 +904,8 @@ class InputField(Field):
             raise ValueError(f"Invalid state '{state}'; must be 'active' or 'predictive'")
         if encoded is None:
             encoded = self.cells
-        bit_vector = [getattr(cell, state) for cell in encoded]
-        return self.encoder.decode(bit_vector, candidates)  # type: ignore
+        self.bit_vector = [getattr(cell, state) for cell in encoded]
+        return self.encoder.decode(self.bit_vector, candidates)  # type: ignore
 
     def advance_states(self) -> None:
         """Advance state on all input cells before writing a new encoding."""
@@ -897,6 +924,7 @@ class OutputField(Field):
     def __init__(self, size: int, motor_action: tuple) -> None:
         cells = {Cell() for _ in range(size)}
         Field.__init__(self, cells)
+        self.motor_action = motor_action
 
     def encode(self, input_value: Any) -> list[int]:
         """Encode the input value into a binary vector."""
@@ -906,10 +934,38 @@ class OutputField(Field):
         self,
         state: str = "active",
         encoded: Field = None,  # type: ignore
-        candidates: Iterable[float] | None = None,
-    ) -> dict[str, tuple[float | None]]:
-        """Convert active cells back to output value using RDSE decoding."""
-        raise NotImplementedError("OutputField does not support decoding")
+        _candidates: Iterable[float] | None = None,
+    ) -> dict[str, Any]:
+        """Map output cell activity into a motor action payload.
+
+        Returns a lightweight dictionary so Brain.step can expose a direct
+        action hint to Agent policy code.
+        """
+        if state not in ("active", "predictive"):
+            raise ValueError(f"Invalid state '{state}'; must be 'active' or 'predictive'")
+
+        if encoded is None:
+            encoded = self.cells
+
+        cells = list(encoded)
+        if not cells:
+            return {"action": None, "confidence": 0.0}
+
+        active_indices = [idx for idx, cell in enumerate(cells) if bool(getattr(cell, state))]
+        confidence = len(active_indices) / len(cells)
+
+        # Treat motor_action as an ordered action candidate tuple.
+        if not self.motor_action:
+            return {"action": None, "confidence": confidence}
+
+        if not active_indices:
+            return {"action": self.motor_action[0], "confidence": 0.0}
+
+        selected_index = max(active_indices) % len(self.motor_action)
+        return {
+            "action": self.motor_action[selected_index],
+            "confidence": confidence,
+        }
 
 
 input_field = Field(cells={Cell() for _ in range(10)})

@@ -55,11 +55,11 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
         super().__init__(self._size)
 
     @override
-    def encode(self, input_value: tuple[tuple[int, ...] | list[int], int]) -> list[int]:
+    def encode(self, input_value: tuple[list[int], int]) -> list[int]:
         """Encode ``(coordinate, radius)`` into a fixed-size binary SDR."""
         return self.register_encoding(input_value)
 
-    def _compute_encoding(self, key: tuple[tuple[int, ...], int]) -> list[int]:
+    def _compute_encoding(self, key: tuple[list[int], int]) -> list[int]:
         coordinate, radius = key
 
         if len(coordinate) != self._dims:
@@ -95,14 +95,9 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
         return out
 
     def register_encoding(
-        self, input_value: tuple[tuple[int, ...] | list[int], int], encoded: list[int] | None = None
+        self, input_value: tuple[list[int], int], encoded: list[int] | None = None
     ) -> list[int]:
-        """Cache and return the encoding for a coordinate/radius key.
-
-        ? why do we need to this to be tuple of tuple, why not just tuple[list[int], int] for coordinate?
-        I think it maybe less confusing to simply use the tuple[list[int], int] as the key, since the coordinate is already a tuple of ints, and the radius is an int, so we can just use that directly as the key without needing to wrap it in another tuple. This would also make the code simpler and easier to read, since we wouldn't need to unpack the coordinate from the outer tuple every time we want to access it.
-
-        """
+        """Cache and return the encoding for a coordinate/radius key."""
         coordinate, radius = input_value
 
         key = (tuple(int(v) for v in coordinate), int(radius))
@@ -141,8 +136,8 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
     def decode(
         self,
         encoded: list[int],
-        candidates: Iterable[tuple[tuple[int, ...], int]] | None = None,
-    ) -> tuple[tuple[tuple[int, ...], int] | None, float]:
+        candidates: Iterable[tuple[list[int], int]] | None = None,
+    ) -> tuple[tuple[list[int], int] | None, float]:
         """Decode an SDR to the nearest cached coordinate/radius candidate."""
         if len(encoded) != self.size:
             raise ValueError(
@@ -181,11 +176,10 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
 class CoordinateParameters:
     """Configuration parameters for :class:`CoordinateEncoder`."""
 
-    size: int = 2048
     n: int = 2048
     w: int = 25
     seed: int = 42
-    max_radius: int = 2
+    max_radius: int = 10
     dims: int = 2
     use_all_neighbors: bool = False
     encoder_class = CoordinateEncoder

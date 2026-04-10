@@ -61,7 +61,7 @@ def create_brain_helper_single_field() -> Brain:
         size=512,
         active_bits=0,
         sparsity=0.02,
-        resolution=0.001,
+        resolution=1.0,
         category=False,
         seed=5,
     )
@@ -104,6 +104,15 @@ def test_get_field():
 
 def test_step_and_prediction_method():
     b = create_brain_helper_single_field()
-    b.step({"input": 10})
-    prediction = b.prediction()["input"]
-    assert prediction == 10
+
+    for _ in range(101):
+        b.step({"input": 1})
+
+    b.step({"input": 1}, learn=False)
+
+    predictive_count = sum(1 for cell in b["input"].cells if cell.predictive)
+    assert predictive_count > 0
+
+    prediction = b.prediction()
+    assert prediction["input"] == 1
+    assert prediction["input.conf"] > 0.0

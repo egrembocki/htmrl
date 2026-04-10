@@ -10,6 +10,7 @@ from ctypes import c_bool, c_float, c_int
 from math import isclose
 
 import numpy as np
+from gymnasium.envs.registration import register
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data")
@@ -61,6 +62,26 @@ def overlap(sdr1: np.ndarray | list[int], sdr2: np.ndarray | list[int]) -> int:
         raise ValueError("SDRs must have the same shape for overlap calculation.")
 
     return int(np.sum(np.logical_and(sdr1, sdr2)))
+
+
+def register_envs(id: str, entry: str, args: dict, max_episode_step: int) -> None:
+    """Register custom environments with Gymnasium.
+
+    This function can be called at module import time to ensure that any
+    custom environments defined in this project are registered and available
+    for use with gym.make().
+
+    Args:
+        id: Unique identifier for the environment (e.g., "CustomEnv-v0").
+        entry: The Python path to the environment class (e.g., "my_module:MyEnvClass").
+        args: A dictionary of keyword arguments to pass to the environment constructor.
+        max_episode_step: The maximum number of steps per episode for this environment.
+
+    Example:
+        register_envs()  # Call this at the top level of your module to register environments.
+    """
+
+    register(id=id, entry_point=entry, kwargs=args, max_episode_steps=max_episode_step)
 
 
 class Parameters(Struct):
