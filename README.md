@@ -208,7 +208,7 @@ This figure shows continuous learning in the Spatial Pooler. We can see at epoch
 
 #Testing performed on HTM core python bindings for comparison
 
-![rdse overlap versus distance](test_image/htm_core_python_bindings/rdse_overlap_vs_distance.png)
+![rdse overlap versus distance](test_images/htm_core_python_bindings/rdse_overlap_vs_distance.png)
 
 ![Scalar encoder overlap versus distance periodic](test_images\htm_core_python_bindings\Scalar_encoder_overlap_vs_distance_periodic.png)
 
