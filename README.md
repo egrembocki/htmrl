@@ -208,34 +208,34 @@ This figure shows continuous learning in the Spatial Pooler. We can see at epoch
 
 #Testing performed on HTM core python bindings for comparison
 
-![rdse overlap versus distance](test_image/htm_core_python_bindings/rdse_overlap_vs_distance.png)
+![rdse overlap versus distance](test_images/htm_core_python_bindings/rdse_overlap_vs_distance.png)
 
-![Scalar encoder overlap versus distance periodic](test_images\htm_core_python_bindings\Scalar_encoder_overlap_vs_distance_periodic.png)
+![Scalar encoder overlap versus distance periodic](test_images/htm_core_python_bindings/Scalar_encoder_overlap_vs_distance_periodic.png)
 
-![Spatial Pooler active columns overlap vs distance with rdse](test_images\htm_core_python_bindings\sp_overlap_vs_distance_with_rdse.png)
+![Spatial Pooler active columns overlap vs distance with rdse](test_images/htm_core_python_bindings/sp_overlap_vs_distance_with_rdse.png)
 
-![Spatial Pooler active columns activation frequency distribution with random cells excluding encoder](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_cells_excluding_encoder.png)
+![Spatial Pooler active columns activation frequency distribution with random cells excluding encoder](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_cells_excluding_encoder.png)
 
-![Spatial Pooler active columns activation frequency distribution with random cells excluding encoder with boosting](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_cells_excluding_encoder_with_100_boost.png)
+![Spatial Pooler active columns activation frequency distribution with random cells excluding encoder with boosting](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_cells_excluding_encoder_with_100_boost.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data zero epoch excluding encoder](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_zero_epoch_excluding_encoder.png)
+![Spatial Pooler active columns activation frequency distribution with random data zero epoch excluding encoder](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_zero_epoch_excluding_encoder.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data zero epoch scalar encoder](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_zero_epoch_scalar_encoder.png)
+![Spatial Pooler active columns activation frequency distribution with random data zero epoch scalar encoder](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_zero_epoch_scalar_encoder.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data zero epoch rdse](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_zero_epoch_rdse.png)
+![Spatial Pooler active columns activation frequency distribution with random data zero epoch rdse](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_zero_epoch_rdse.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data once with scalar encoder](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_once_with_scalar_encoder.png)
+![Spatial Pooler active columns activation frequency distribution with random data once with scalar encoder](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_once_with_scalar_encoder.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data once with scalar encoder with boosting](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_once_with_scalar_encoder_and_boost.png)
+![Spatial Pooler active columns activation frequency distribution with random data once with scalar encoder with boosting](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_once_with_scalar_encoder_and_boost.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data once with rdse](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_once_with_rdse.png)
+![Spatial Pooler active columns activation frequency distribution with random data once with rdse](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_once_with_rdse.png)
 
-![Spatial Pooler active columns activation frequency distribution with random data once with rdse and boosting](test_images\htm_core_python_bindings\activation_frequency_distribution_with_random_data_once_with_rdse_and_boost.png)
+![Spatial Pooler active columns activation frequency distribution with random data once with rdse and boosting](test_images/htm_core_python_bindings/activation_frequency_distribution_with_random_data_once_with_rdse_and_boost.png)
 
-![Spatial Pooler active columns activation frequency distribution with sine wave, scalar encoder, and periodic false](test_images\htm_core_python_bindings\activation_frequency_distribution_with_sin_wave_with_scalar_encoder_periodic_false.png)
+![Spatial Pooler active columns activation frequency distribution with sine wave, scalar encoder, and periodic false](test_images/htm_core_python_bindings/activation_frequency_distribution_with_sin_wave_with_scalar_encoder_periodic_false.png)
 
-![Spatial Pooler active columns activation frequency distribution with sine wave, scalar encoder, and periodic false with boosting](test_images\htm_core_python_bindings\activation_frequency_distribution_with_sin_wave_with_scalar_encoder_periodic_false_and_boosting.png)
+![Spatial Pooler active columns activation frequency distribution with sine wave, scalar encoder, and periodic false with boosting](test_images/htm_core_python_bindings/activation_frequency_distribution_with_sin_wave_with_scalar_encoder_periodic_false_and_boosting.png)
 
-![Spatial Pooler active columns activation frequency distribution with sine wave and rdse](test_images\htm_core_python_bindings\activation_frequency_distribution_with_sin_wave_with_rdse.png)
+![Spatial Pooler active columns activation frequency distribution with sine wave and rdse](test_images/htm_core_python_bindings/activation_frequency_distribution_with_sin_wave_with_rdse.png)
 
-![Spatial Pooler active columns activation frequency distribution with sine wave and rdse with boosting](test_images\htm_core_python_bindings\activation_frequency_distribution_with_sin_wave_with_rdse_and_boosting.png)
+![Spatial Pooler active columns activation frequency distribution with sine wave and rdse with boosting](test_images/htm_core_python_bindings/activation_frequency_distribution_with_sin_wave_with_rdse_and_boosting.png)
