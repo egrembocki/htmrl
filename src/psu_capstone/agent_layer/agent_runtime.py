@@ -63,7 +63,7 @@ class FrontendEnvSpec(TypedDict):
 
 
 FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
-    "gym_trading_env": {
+    "TradingEnv": {
         "observation_labels": ["open", "high", "low", "close", "volume"],
         "action_count": 3,
         "initial_observation": {
