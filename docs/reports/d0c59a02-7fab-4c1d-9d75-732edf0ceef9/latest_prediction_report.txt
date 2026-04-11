@@ -1,0 +1,10 @@
+Prediction Summary:
+  Global MSE: 0.111557
+  Total prediction failures: 0
+  Avg bursting columns: 40.470
+  Per-field metrics:
+    +----------------------------+---------------+-----------+
+    | Field                      |     MSE       | Failures |
+    +----------------------------+---------------+-----------+
+    | sine_wave_input            |    0.111557 |         0 |
+    +----------------------------+---------------+-----------+

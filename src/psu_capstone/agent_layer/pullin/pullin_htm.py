@@ -38,6 +38,8 @@ debug = False
 
 # --- State mixins: only one class per state, with all expected methods/attributes ---
 class Active:
+    """Mixin for active state of cells and segments."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.active = False
@@ -56,6 +58,8 @@ class Active:
 
 
 class Winner:
+    """Mixin for winner state of cells and segments."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.winner = False
@@ -74,6 +78,8 @@ class Winner:
 
 
 class Predictive:
+    """Mixin for predictive state of cells and segments."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.predictive = False
@@ -92,74 +98,96 @@ class Predictive:
 
 
 class Bursting:
+    """Mixin tracking whether a column is currently bursting."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bursting = False
 
     def set_bursting(self):
+        """Mark the owning object as bursting for the current timestep."""
         self.bursting = True
 
     def clear_state(self):
+        """Reset bursting state."""
         self.bursting = False
 
 
 class Learning:
+    """Mixin tracking whether a segment is selected for learning."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.learning = False
         self.prev_learning = False
 
     def set_learning(self):
+        """Mark the owning object as learning for the current timestep."""
         self.learning = True
 
     def advance_state(self):
+        """Shift current learning state into previous-learning state."""
         self.prev_learning = self.learning
         self.learning = False
 
     def clear_state(self):
+        """Reset learning state history."""
         self.learning = False
         self.prev_learning = False
 
 
 class Matching:
+    """Mixin tracking whether a segment is matching but not fully active."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.matching = False
         self.prev_matching = False
 
     def set_matching(self):
+        """Mark the owning object as matching for the current timestep."""
         self.matching = True
 
     def advance_state(self):
+        """Shift current matching state into previous-matching state."""
         self.prev_matching = self.matching
         self.matching = False
 
     def clear_state(self):
+        """Reset matching state history."""
         self.matching = False
         self.prev_matching = False
 
 
 class GoDepolarized:
+    """Mixin tracking positive (Go) apical depolarization."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.go_depolarized = False
 
     def set_go_depolarized(self):
+        """Mark the owning object as Go-depolarized."""
         self.go_depolarized = True
 
     def clear_state(self):
+        """Reset Go depolarization state."""
         self.go_depolarized = False
 
 
 class NoGoDepolarized:
+    """Mixin tracking negative (NoGo) apical depolarization."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.nogo_depolarized = False
 
     def set_nogo_depolarized(self):
+        """Mark the owning object as NoGo-depolarized."""
         self.nogo_depolarized = True
 
     def clear_state(self):
+        """Reset NoGo depolarization state."""
         self.nogo_depolarized = False
 
 
@@ -167,6 +195,7 @@ class NoGoDepolarized:
 
 
 class Synapse:
+    """Connection from a source cell with a learnable permanence value."""
 
     def __init__(self, source_cell: "Cell|None", permanence: float) -> None:
         self.source_cell: "Cell|None" = source_cell
@@ -250,10 +279,12 @@ class Segment(Active, Learning, Matching):
         self.learning_threshold_connected_pct: float = LEARNING_THRESHOLD_PCT
 
     def is_active(self) -> bool:
+        """Return whether enough connected synapses are active to fire the segment."""
         connected_synapses = [syn for syn in self.synapses if syn.active]
         return len(connected_synapses) > self.activation_threshold * len(self.synapses)
 
     def is_potentially_active(self) -> bool:
+        """Return whether enough potential synapses are active to mark matching."""
         connected_synapses = [syn for syn in self.synapses if syn.potentially_active]
         return len(connected_synapses) > self.learning_threshold_connected_pct * len(self.synapses)
 
@@ -266,12 +297,14 @@ class Segment(Active, Learning, Matching):
         ]
 
     def activate_segment(self) -> None:
+        """Update active/matching flags based on current synapse activity."""
         if self.is_potentially_active():
             self.set_matching()
             if self.is_active():
                 self.set_active()
 
     def advance_state(self) -> None:
+        """Advance per-timestep state flags for the segment."""
         self.prev_active = self.active
         self.active = False
 
@@ -282,6 +315,7 @@ class Segment(Active, Learning, Matching):
         self.matching = False
 
     def clear_state(self) -> None:
+        """Reset all segment state flags."""
         self.active = False
         self.prev_active = False
         self.learning = False
@@ -292,6 +326,7 @@ class Segment(Active, Learning, Matching):
     def adapt(
         self, strength: float = 1.0, active_predicate: Callable[[Synapse], bool] | None = None
     ) -> None:
+        """Reinforce or punish synapses according to an activity predicate."""
         if active_predicate is None:
 
             def default_active_predicate(syn):
@@ -323,6 +358,7 @@ class Segment(Active, Learning, Matching):
                 self.synapses.append(new_syn)
 
     def weaken(self, strength=1.0) -> None:
+        """Decrease permanence for all synapses and drop dead synapses."""
         # Weaken synapses to active cells
         # add synpase deletion
         kept = []
@@ -417,6 +453,7 @@ class Cell(Active, Winner, Predictive, GoDepolarized, NoGoDepolarized):
         return self.distal_segments + self.apical_segments
 
     def initialize(self, distal_field: "Field") -> None:
+        """Attach this cell to its distal source field."""
         self.distal_field = distal_field
 
     def depolarize_apical(self) -> None:
@@ -441,6 +478,7 @@ class Cell(Active, Winner, Predictive, GoDepolarized, NoGoDepolarized):
         return f"Cell(id={id(self)})"
 
     def advance_state(self) -> None:
+        """Roll all cell state flags forward one timestep."""
         self.prev_active = self.active
         self.active = False
 
@@ -462,6 +500,7 @@ class Cell(Active, Winner, Predictive, GoDepolarized, NoGoDepolarized):
             segment.advance_state()
 
     def clear_state(self) -> None:
+        """Reset all cell and segment states."""
         self.active = False
         self.prev_active = False
         self.winner = False
@@ -526,6 +565,7 @@ class Column(Active, Predictive, Bursting):
         )
 
     def advance_state(self) -> None:
+        """Roll column and child-cell state flags forward one timestep."""
         self.prev_active = self.active
         self.active = False
 
@@ -539,6 +579,7 @@ class Column(Active, Predictive, Bursting):
             cell.advance_state()
 
     def clear_state(self) -> None:
+        """Reset column and child-cell states."""
         self.active = False
         self.prev_active = False
         self.bursting = False
@@ -616,6 +657,7 @@ class ColumnField(Field):
         self.initialize()
 
     def initialize(self) -> None:
+        """Build columns, cells, and field links from current configuration."""
         self.input_field = Field(chain.from_iterable(self.input_fields))
         if self.non_temporal:
             self.cells_per_column = 1
@@ -672,6 +714,7 @@ class ColumnField(Field):
                 column._update_connected_synapses()
 
     def __iter__(self):
+        """Iterate over columns in this field."""
         return iter(self.columns)
 
     @property
@@ -690,6 +733,7 @@ class ColumnField(Field):
         return self._prev_winner_cells
 
     def advance_states(self) -> None:
+        """Advance field, column, and cell states to the next timestep."""
         for cls in ColumnField.__mro__:
             if hasattr(cls, "advance_state") and cls not in (ColumnField, object):
                 cls.advance_state(self)
@@ -698,6 +742,7 @@ class ColumnField(Field):
         self._prev_winner_cells = set(cell for cell in self.cells if cell.prev_winner)
 
     def clear_states(self) -> None:
+        """Reset all field, column, and cell state for a fresh episode."""
         for cls in ColumnField.__mro__:
             if hasattr(cls, "clear_state") and cls not in (ColumnField, object):
                 cls.clear_state(self)
@@ -706,6 +751,7 @@ class ColumnField(Field):
         self._prev_winner_cells = set()
 
     def compute(self, learn: bool = True) -> None:
+        """Run one HTM timestep over spatial, temporal, and apical phases."""
         self.advance_states()
 
         if self.non_spatial:
@@ -741,6 +787,7 @@ class ColumnField(Field):
         self._update_duty_cycles()
 
     def apical_compute(self, learn: bool = True) -> None:
+        """Run apical learning/depolarization for Go and NoGo segments."""
         self.select_learning_cells(
             segments_attr="go_segments",
             segment_factory=lambda cell: ApicalSegment(
@@ -758,9 +805,11 @@ class ColumnField(Field):
             self.learn(segments_attr="apical_segments")
 
     def activate_columns(self) -> None:
+        """Activate a sparse set of columns by overlap ranking."""
         self.activate_top_k_columns(int(len(self.columns) * DESIRED_LOCAL_SPARSITY))
 
     def learn_columns(self) -> None:
+        """Apply proximal learning to currently active columns."""
         for column in self.active_columns:
             column.learn()
 
@@ -799,6 +848,7 @@ class ColumnField(Field):
                 col.set_active()
 
     def activate_cells(self, segments_attr: str = "distal_segments") -> None:
+        """Activate cells in active columns via prediction or bursting."""
         for column in self.active_columns:
             if any(cell.prev_predictive for cell in column.cells):  # Same as 1) L3
                 column.set_predictive()
@@ -818,6 +868,7 @@ class ColumnField(Field):
         segments_attr: str = "distal_segments",
         segment_factory: Callable[["Cell"], Segment] | None = None,
     ) -> None:
+        """Choose learning segments/cells for predictive and bursting columns."""
         if segment_factory is None:
             segment_factory = Segment
         for column in self.active_columns:
@@ -856,6 +907,7 @@ class ColumnField(Field):
                 learning_segment.set_learning()  # Same as 1) L39
 
     def depolarize(self, segments_attr: str = "distal_segments") -> None:
+        """Depolarize cells using either distal or apical segments."""
         for column in self.columns:
             for cell in column.cells:
                 if segments_attr == "distal_segments":
@@ -864,6 +916,7 @@ class ColumnField(Field):
                     cell.depolarize_apical()
 
     def learn(self, segments_attr: str = "distal_segments") -> None:
+        """Apply learning updates to active, bursting, and matching segments."""
         for column in self.active_columns:
             if not column.bursting:
                 for cell in column.cells:
@@ -896,6 +949,7 @@ class ColumnField(Field):
             return self.input_fields
 
     def _update_duty_cycles(self) -> None:
+        """Maintain exponential moving averages of column/cell activity."""
         self._duty_cycle_window = min(self.duty_cycle_period, self._duty_cycle_window + 1)
         alpha = 1.0 / self._duty_cycle_window
         for column in self.columns:
@@ -1086,6 +1140,7 @@ class OutputField(InputField):
             self._output_synapses[cell] = segment
 
     def _connected_go_count(self, segment: Segment) -> int:
+        """Count connected synapses whose source cells are Go-depolarized."""
         return sum(
             1
             for synapse in segment.synapses
@@ -1095,6 +1150,7 @@ class OutputField(InputField):
         )
 
     def _connected_nogo_count(self, segment: Segment) -> int:
+        """Count connected synapses whose source cells are NoGo-depolarized."""
         return sum(
             1
             for synapse in segment.synapses
@@ -1104,6 +1160,7 @@ class OutputField(InputField):
         )
 
     def _activate_cells_from_action(self, action: Any) -> None:
+        """Activate output cells according to the encoder bits for an action."""
         encoded_bits = self.encoder.encode(action)
         for cell in self.cells:
             cell.active = False
@@ -1112,6 +1169,7 @@ class OutputField(InputField):
                 cell.set_active()
 
     def _pick_random_action(self) -> Any | None:
+        """Pick an exploratory action from encoder candidates."""
         candidates = self._encoder_action_candidates()
         if not candidates:
             return None
@@ -1120,9 +1178,11 @@ class OutputField(InputField):
         return random.choice(candidates)
 
     def _encoder_action_candidates(self) -> list[Any]:
+        """Return currently registered action values known by the encoder."""
         return list(self.encoder.encoding_cache.keys())
 
     def compute(self, learn: bool = True) -> None:
+        """Compute one output step by decoding probabilities, then optionally learn."""
         self.advance_states()
 
         action = self.decode_from_probabilities(probabilities=self.activation_probabilities())
@@ -1138,6 +1198,7 @@ class OutputField(InputField):
             self.learn()
 
     def learn(self) -> None:
+        """Adapt output synapses from recent activation and depolarization context."""
         growth_targets = set(
             cell
             for cell in self.input_field.cells
@@ -1160,6 +1221,7 @@ class OutputField(InputField):
         encoded: Field | None = None,
         candidates: Iterable[Any] | None = None,
     ):
+        """Decode output cells to value/confidence, tolerant to missing decodes."""
         decoded_value = None
         confidence = None
         try:
