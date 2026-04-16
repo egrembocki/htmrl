@@ -13,15 +13,21 @@ here would make lightweight package imports unexpectedly expensive and brittle.
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
-HTM_MODULE = "psu_capstone.agent_layer.HTM"
+HTM_MODULE = "psu_capstone.agent_layer.pullin.pullin_htm"
 
 if TYPE_CHECKING:
     from psu_capstone.agent_layer.agent import Agent
     from psu_capstone.agent_layer.agent_interface import AgentInterface
     from psu_capstone.agent_layer.agent_runtime import AgentRuntimeConfig
     from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
-    from psu_capstone.agent_layer.brain import Brain
-    from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+    from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+    from psu_capstone.agent_layer.pullin.pullin_htm import (
+        ColumnField,
+        Field,
+        InputField,
+        OutputField,
+        ValueField,
+    )
     from psu_capstone.agent_layer.train import Trainer
 
 __all__ = [
@@ -33,6 +39,7 @@ __all__ = [
     "ColumnField",
     "Field",
     "InputField",
+    "ValueField",
     "OutputField",
     "Trainer",
 ]
@@ -42,7 +49,7 @@ _EXPORTS = {
     "Agent": ("psu_capstone.agent_layer.agent", "Agent"),
     "AgentRuntimeConfig": ("psu_capstone.agent_layer.agent_runtime", "AgentRuntimeConfig"),
     "AgentInterface": ("psu_capstone.agent_layer.agent_interface", "AgentInterface"),
-    "Brain": ("psu_capstone.agent_layer.brain", "Brain"),
+    "Brain": ("psu_capstone.agent_layer.pullin.pullin_brain", "Brain"),
     "ColumnField": (HTM_MODULE, "ColumnField"),
     "Field": (HTM_MODULE, "Field"),
     "Cell": (HTM_MODULE, "Cell"),

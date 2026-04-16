@@ -35,6 +35,7 @@ def sdr_fixture():
     return SDR([3, 5])
 
 
+# commit: unit test
 def test_sdr_creation():
     # TS-02 TC-011
     """[TS-02 TC-011] Test SDR creation and basic properties."""
@@ -51,6 +52,7 @@ def test_sdr_creation():
     assert sdr.get_sparse() == []
 
 
+# commit: unit test
 def test_sdr_initialization_and_properties(sdr_fixture):
     # TS-02 TC-012
     # Arrange
@@ -65,6 +67,7 @@ def test_sdr_initialization_and_properties(sdr_fixture):
     assert dims_copy == [3, 5]
 
 
+# commit: unit test
 def test_sdr_zero_and_dense_sparse(sdr_fixture):
     # TS-02 TC-013
     # Arrange
@@ -84,6 +87,7 @@ def test_sdr_zero_and_dense_sparse(sdr_fixture):
     assert dense_after_sparse[1] == 1 and dense_after_sparse[3] == 1
 
 
+# commit: unit test
 def test_sdr_set_coordinates_and_get_coordinates(sdr_fixture):
     # TS-02 TC-014
     # Arrange
@@ -96,6 +100,7 @@ def test_sdr_set_coordinates_and_get_coordinates(sdr_fixture):
     assert out == coords
 
 
+# commit: unit test
 def test_sdr_reshape(sdr_fixture):
     # TS-02 TC-015
     # Arrange
@@ -108,6 +113,7 @@ def test_sdr_reshape(sdr_fixture):
     assert sdr.size == 15
 
 
+# commit: unit test
 def test_sdr_at_byte(sdr_fixture):
     # TS-02 TC-016
     # Arrange
@@ -120,6 +126,7 @@ def test_sdr_at_byte(sdr_fixture):
     assert sdr.at_byte([2, 4]) == 1
 
 
+# commit: unit test
 def test_sdr_set_sdr(sdr_fixture):
     # TS-02 TC-017
     # Arrange
@@ -132,6 +139,7 @@ def test_sdr_set_sdr(sdr_fixture):
     assert sdr1.get_sparse() == [1, 3]
 
 
+# commit: unit test
 def test_sdr_metrics(sdr_fixture):
     # TS-02 TC-018
     # Arrange
@@ -145,6 +153,7 @@ def test_sdr_metrics(sdr_fixture):
     assert sparsity == 3 / 5
 
 
+# commit: unit test
 def test_sdr_get_overlap(sdr_fixture):
     # TS-02 TC-019
     # Arrange
@@ -158,6 +167,7 @@ def test_sdr_get_overlap(sdr_fixture):
     assert overlap == 2
 
 
+# commit: unit test
 def test_sdr_intersection_and_union(sdr_fixture):
     # TS-02 TC-020
     # Arrange
@@ -177,6 +187,7 @@ def test_sdr_intersection_and_union(sdr_fixture):
     assert sdr1.get_sparse() == [0, 1, 2]
 
 
+# commit: unit test
 def test_sdr_concatenate(sdr_fixture):
     # TS-02 TC-021
     # Arrange
@@ -192,6 +203,7 @@ def test_sdr_concatenate(sdr_fixture):
     assert result == [1, 0, 0, 1]
 
 
+# commit: unit test
 def test_sdr_callbacks(sdr_fixture):
     # TS-02 TC-022
     # Arrange
@@ -221,6 +233,7 @@ def test_sdr_callbacks(sdr_fixture):
     assert called
 
 
+# commit: unit test
 def test_sdr_randomize_add_noise_kill_cells(sdr_fixture):
     # TS-02 TC-023
     # Arrange
@@ -239,6 +252,7 @@ def test_sdr_randomize_add_noise_kill_cells(sdr_fixture):
     assert sum_after_kill <= 5
 
 
+# commit: unit test
 def test_sdr_eq_repr(sdr_fixture):
     # TS-02 TC-024
     # Arrange
@@ -254,6 +268,7 @@ def test_sdr_eq_repr(sdr_fixture):
     assert "SDR(dimensions=[3], size=3, active=2)" in repr_result
 
 
+# commit: unit test
 def test_sdr_set_and_get_sparse():
     # TS-02 TC-025
     """[TS-02 TC-025] Test setting and getting sparse representation."""
@@ -269,6 +284,7 @@ def test_sdr_set_and_get_sparse():
     assert sdr.get_sparse() == [1, 3, 5]
 
 
+# commit: unit test
 def test_sdr_zero():
     # TS-02 TC-026
     """[TS-02 TC-026] Test zeroing the SDR."""
@@ -285,6 +301,7 @@ def test_sdr_zero():
     assert sdr.get_sparse() == []
 
 
+# commit: unit test
 def test_sdr_set_dense():
     # TS-02 TC-027
     """[TS-02 TC-027] Test setting dense representation and converting to sparse."""
@@ -301,6 +318,7 @@ def test_sdr_set_dense():
     assert sdr.get_sparse() == [1, 3, 4]
 
 
+# commit: unit test
 def test_sdr_64_32_init():
     # TS-02 TC-028
     """[TS-02 TC-028] Test SDR creation with dimensions [64, 32]."""
@@ -319,6 +337,7 @@ def test_sdr_64_32_init():
     assert sdr.get_sparse() == test_bits
 
 
+# commit: unit test
 def test_sdr_destroy():
     # TS-02 TC-029
     """[TS-02 TC-029] Test SDR destruction."""
@@ -336,6 +355,7 @@ def test_sdr_destroy():
     assert sdr.size == 0
 
 
+# commit: unit test
 def test_sdr_interface_object(sdr_fixture: SDR):
     """Test that SDR implements SDRInterface."""
 

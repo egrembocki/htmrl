@@ -32,6 +32,7 @@ DateEncoderParameters = el.DateEncoderParameters
 FourierEncoderParameters = el.FourierEncoderParameters
 GeospatialParameters = el.GeospatialParameters
 RDSEParameters = el.RDSEParameters
+ScalarEncoderParameters = el.ScalarEncoderParameters
 
 
 class Trainer:
@@ -42,7 +43,7 @@ class Trainer:
         pretrain_dataset: dict | None = None,
         pretrain_steps: int = 0,
     ) -> Brain:
-        """Build a Brain that matches the adapter's observation/action schema, with optional pre-training."""
+        """Build a Brain that matches the adapter's observation/action          schema,      with optional pre-training."""
         logger = get_logger("Trainer.build_brain_for_env")
         reset_bridge = adapter.reset_bridge()
         input_names = list(reset_bridge["inputs"].keys())
@@ -274,6 +275,7 @@ class Trainer:
                 FourierEncoderParameters,
                 GeospatialParameters,
                 CoordinateParameters,
+                ScalarEncoderParameters,
             )
             if isinstance(param, encoder_param_types):
                 encoder_kwargs = asdict(param)
@@ -327,7 +329,6 @@ class Trainer:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
             input_fields=self._trainer_input_fields,
-            non_spatial=True,
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )
@@ -535,7 +536,7 @@ class Trainer:
         if name.endswith("_column"):
             field = ColumnField(
                 input_fields=self._trainer_input_fields,
-                non_spatial=True,
+                non_spatial=False,
                 num_columns=num_columns,
                 cells_per_column=cells_per_column,
             )
@@ -617,7 +618,16 @@ class Trainer:
         if not isinstance(dataset, dict) or not dataset:
             raise ValueError("Dataset must be a non-empty dict mapping field names to data.")
 
-        steps = steps or min(len(values) for values in dataset.values())
+        empty_fields = [name for name, values in dataset.items() if len(values) == 0]
+        if empty_fields:
+            raise ValueError(
+                "Dataset contains empty series for fields: " + ", ".join(sorted(empty_fields))
+            )
+
+        if steps is None:
+            steps = min(len(values) for values in dataset.values())
+        if steps < 0:
+            raise ValueError("steps must be non-negative.")
         field_errors: dict[str, list[float]] = {name: [] for name in dataset}
         prediction_failures: dict[str, int] = dict.fromkeys(dataset, 0)
         evaluation_bursts: list[int] = []

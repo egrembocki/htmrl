@@ -1,0 +1,74 @@
+@startuml encoder_layer_pipeline
+skinparam style strictuml
+skinparam linetype ortho
+title Encoder Layer Class Diagram
+
+package "psu_capstone.encoder_layer" {
+  interface EncoderInterface <<Protocol>>
+  interface ParameterMarker <<Protocol>>
+  abstract class BaseEncoder
+
+  class EncoderFactory
+  class EncoderHandler
+  class BatchEncoderHandler
+
+  class ScalarEncoder
+  class RandomDistributedScalarEncoder
+  class CategoryEncoder
+  class CategoryEncoderNew
+  class DateEncoder
+  class FourierEncoder
+  class CoordinateEncoder
+  class GeospatialEncoder
+  class DeltaEncoder
+
+  class ScalarEncoderParameters <<dataclass>>
+  class RDSEParameters <<dataclass>>
+  class CategoryParameters <<dataclass>>
+  class CategoryParametersNew <<dataclass>>
+  class DateEncoderParameters <<dataclass>>
+  class FourierEncoderParameters <<dataclass>>
+  class CoordinateParameters <<dataclass>>
+  class GeospatialParameters <<dataclass>>
+  class DeltaEncoderParameters <<dataclass>>
+}
+
+BaseEncoder ..|> EncoderInterface : realizes
+ScalarEncoder --|> BaseEncoder
+RandomDistributedScalarEncoder --|> BaseEncoder
+CategoryEncoder --|> BaseEncoder
+CategoryEncoderNew --|> BaseEncoder
+DateEncoder --|> BaseEncoder
+FourierEncoder --|> BaseEncoder
+CoordinateEncoder --|> BaseEncoder
+GeospatialEncoder --|> BaseEncoder
+DeltaEncoder --|> BaseEncoder
+
+ScalarEncoderParameters ..|> ParameterMarker
+RDSEParameters ..|> ParameterMarker
+CategoryParameters ..|> ParameterMarker
+CategoryParametersNew ..|> ParameterMarker
+DateEncoderParameters ..|> ParameterMarker
+FourierEncoderParameters ..|> ParameterMarker
+CoordinateParameters ..|> ParameterMarker
+GeospatialParameters ..|> ParameterMarker
+DeltaEncoderParameters ..|> ParameterMarker
+
+EncoderFactory ..> BaseEncoder : creates
+EncoderFactory ..> ParameterMarker : builds from
+BatchEncoderHandler ..> ScalarEncoder : uses
+BatchEncoderHandler ..> RandomDistributedScalarEncoder : uses
+BatchEncoderHandler ..> CategoryEncoder : uses
+BatchEncoderHandler ..> DateEncoder : uses
+BatchEncoderHandler ..> EncoderHandler : compatibility wrapper
+EncoderHandler ..> BaseEncoder : orchestrates
+GeospatialEncoder *-- CoordinateEncoder : composition
+CoordinateEncoder *-- RandomDistributedScalarEncoder : composition
+DateEncoder *-- ScalarEncoder : composition
+DateEncoder *-- RandomDistributedScalarEncoder : composition
+CategoryEncoder *-- ScalarEncoder : composition
+CategoryEncoder *-- RandomDistributedScalarEncoder : composition
+DeltaEncoder *-- CoordinateEncoder : composition
+DeltaEncoder *-- RandomDistributedScalarEncoder : composition
+
+@enduml

@@ -36,6 +36,7 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
         "scalar",
     ],
 )
+# commit: unit test
 def test_encoder_parameter_is_parameter_marker(params):
     """All encoder parameter classes should satisfy the ParameterMarker protocol."""
     assert isinstance(params, ParameterMarker)

@@ -633,13 +633,38 @@ class ColumnField(Field):
             column.learn()
 
     def activate_top_k_columns(self, k: int) -> None:
-        # Page 43 phase 3 not in the spatial pooling? BaMI-Complete.pdf
-        """Activate the top-k columns based on overlap."""
-        sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
-        for col in sorted_columns[:k]:
+        """Activate the top-k columns based on overlap.
 
+        If there are ties at the lowest overlap value in top-k,
+        randomly select among the tied columns to meet exactly k.
+        """
+        sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
+
+        if k >= len(sorted_columns):
+            for col in sorted_columns:
+                self.active_columns.append(col)
+                col.set_active()
+            return
+
+        # Find the threshold overlap (the k-th highest value)
+        threshold_overlap = sorted_columns[k - 1].overlap
+
+        # Separate columns above threshold from those at threshold
+        above_threshold = [col for col in sorted_columns if col.overlap > threshold_overlap]
+        at_threshold = [col for col in sorted_columns if col.overlap == threshold_overlap]
+
+        # Activate all columns above threshold
+        for col in above_threshold:
             self.active_columns.append(col)
-            col.set_active()  # type: ignore
+            col.set_active()
+
+        # Randomly select from tied columns to fill remaining spots
+        remaining_spots = k - len(above_threshold)
+        if remaining_spots > 0 and at_threshold:
+            selected = random.sample(at_threshold, remaining_spots)
+            for col in selected:
+                self.active_columns.append(col)
+                col.set_active()
 
     def activate_cells(self) -> None:
         """Activate, burst, and select winner cells based on prior predictions."""
@@ -880,8 +905,8 @@ class InputField(Field):
             raise ValueError(f"Invalid state '{state}'; must be 'active' or 'predictive'")
         if encoded is None:
             encoded = self.cells
-        bit_vector = [getattr(cell, state) for cell in encoded]
-        return self.encoder.decode(bit_vector, candidates)  # type: ignore
+        self.bit_vector = [getattr(cell, state) for cell in encoded]
+        return self.encoder.decode(self.bit_vector, candidates)  # type: ignore
 
     def advance_states(self) -> None:
         """Advance state on all input cells before writing a new encoding."""

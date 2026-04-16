@@ -14,7 +14,7 @@ from statistics import fmean
 from typing import Any
 
 from psu_capstone.agent_layer.agent import Agent
-from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.rdse import RDSEParameters
 from psu_capstone.environment.env_adapter import EnvAdapter

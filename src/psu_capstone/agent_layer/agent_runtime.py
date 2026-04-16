@@ -38,6 +38,8 @@ from dataclasses import dataclass
 from statistics import fmean
 from typing import Any, Literal, TypedDict, cast
 
+import gym_trading_env  # Ensure TradingEnv is registered with Gymnasium
+
 from psu_capstone.agent_layer.agent import Agent
 from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
@@ -61,6 +63,18 @@ class FrontendEnvSpec(TypedDict):
 
 
 FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
+    "TradingEnv": {
+        "observation_labels": ["open", "high", "low", "close", "volume"],
+        "action_count": 3,
+        "initial_observation": {
+            "open": 1769.5,
+            "high": 1773.5,
+            "low": 1739.75,
+            "close": 1749.25,
+            "volume": 1623508.0,
+        },
+        "max_steps_per_episode": 500,
+    },
     "CartPole-v1": {
         "observation_labels": [
             "Cart Position",
@@ -107,6 +121,30 @@ FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
         },
         "max_steps_per_episode": 200,
     },
+    "LunarLander-v3": {
+        "observation_labels": [
+            "x_position",
+            "y_position",
+            "x_velocity",
+            "y_velocity",
+            "angle",
+            "angular_velocity",
+            "left_leg_contact",
+            "right_leg_contact",
+        ],
+        "action_count": 4,
+        "initial_observation": {
+            "x_position": 0.0,
+            "y_position": 0.0,
+            "x_velocity": 0.0,
+            "y_velocity": 0.0,
+            "angle": 0.0,
+            "angular_velocity": 0.0,
+            "left_leg_contact": 0.0,
+            "right_leg_contact": 0.0,
+        },
+        "max_steps_per_episode": 1000,
+    },
 }
 
 
@@ -135,7 +173,7 @@ class AgentRuntimeConfig:
     max_steps_per_episode: int = 200
     input_size: int = 256
     cells_per_column: int = 8
-    resolution: float = 0.001
+    resolution: float = 0.01
     seed: int = 5
     render_mode: str | None = None
     host: str = "localhost"
@@ -188,6 +226,32 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
         adapter_kwargs["render_mode"] = config.render_mode
     if hasattr(config, "max_steps_per_episode") and config.max_steps_per_episode is not None:
         adapter_kwargs["max_steps_per_episode"] = config.max_steps_per_episode
+    # Special handling for TradingEnv: provide a default DataFrame
+    if config.env_id == "TradingEnv":
+        import pandas as pd
+
+        df = pd.read_csv("data/fin_test.csv")
+        # Rename columns to feature_* as required by gym_trading_env
+        feature_cols = ["open", "high", "low", "close", "volume"]
+        for col in feature_cols:
+            # Normalize volume to avoid struct errors in encoding
+            if col == "volume":
+                df[f"feature_{col}"] = df[col] / 1e6
+            else:
+                df[f"feature_{col}"] = df[col]
+        # Drop open_interest if present
+        if "open_interest" in df.columns:
+            df = df.drop(columns=["open_interest"])
+        adapter_kwargs.clear()  # Remove any default keys
+        adapter_kwargs.update(
+            {
+                "name": "BTCUSD",
+                "df": df,
+                "positions": [-1, 0, 1],
+                "trading_fees": 0.01 / 100,
+                "borrow_interest_rate": 0.0003 / 100,
+            }
+        )
 
     try:
         return EnvAdapter(config.env_id, **adapter_kwargs), False
@@ -207,6 +271,14 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
 def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> AgentRuntime:
     """Build the adapter, Brain, and Agent for a requested environment."""
 
+    # --- Set random seeds for reproducibility ---
+    import random
+
+    import numpy as np
+
+    random.seed(config.seed)
+    np.random.seed(config.seed)
+
     adapter, is_frontend_env = build_adapter(config, allow_frontend_env=allow_frontend_env)
     trainer = Trainer(Brain({}))
     brain = trainer.build_brain_for_env(adapter, config)
@@ -218,13 +290,19 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
         # Keep confidence-threshold fallback behavior active in brain mode:
         # brain (>= threshold) -> ppo -> q_table.
         force_brain_mode=False,
+        config=config,  # Pass config so Agent can use the seed
     )
 
-    # Always pre-train PPO if the environment supports it, so fallback works
-    if hasattr(agent, "train_ppo") and hasattr(adapter, "_env") and adapter._env is not None:
+    # Only pre-train PPO if policy_mode is 'ppo'
+    if (
+        hasattr(agent, "train_ppo")
+        and hasattr(adapter, "_env")
+        and adapter._env is not None
+        and config.policy_mode == "ppo"
+    ):
         logger = get_logger(None)
         logger.info(
-            "Pre-training PPO for %d timesteps (for fallback support)...",
+            "PPO mode selected: pre-training PPO for %d timesteps before normal execution...",
             config.ppo_pretrain_timesteps,
         )
         agent.train_ppo(total_timesteps=config.ppo_pretrain_timesteps)
@@ -309,7 +387,7 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
                 steps,
             )
 
-        return {
+        results = {
             "env_id": config.env_id,
             "episodes": config.episodes,
             "max_steps_per_episode": config.max_steps_per_episode,
@@ -318,5 +396,11 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
             "mean_reward": float(fmean(episode_rewards)) if episode_rewards else 0.0,
             "best_reward": float(max(episode_rewards)) if episode_rewards else 0.0,
         }
+        # Save results to file for graphing
+        import json
+
+        with open("episode_rewards.json", "w") as f:
+            json.dump(results, f, indent=2)
+        return results
     finally:
         runtime.close()

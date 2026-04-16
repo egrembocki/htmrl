@@ -1,7 +1,8 @@
 exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 
 # SSL Certificate configuration for Zscaler/corporate proxy
-export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
+# export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
+export SSL_CERT_FILE := /etc/ssl/certs/ca-certificates.crt
 export UV_NATIVE_TLS := 1
 
 # Ensure Java-based tools (e.g., PlantUML) run without an X11 display
@@ -39,7 +40,7 @@ install: ## Install package and pre-commit hooks (Unix)
 		uv python install 3.12 && uv python pin 3.12; \
 	fi
 	@uv lock --upgrade
-	@uv sync --all-groups
+	@uv sync --all-groups --all-extras
 	@git rev-parse --git-dir >/dev/null 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
 	@uv run --active pre-commit install
@@ -55,30 +56,29 @@ else
 endif
 	@uv python install 3.12
 	@uv python pin 3.12
-	@uv sync --all-groups
+	@uv sync --all-groups --all-extras
 	@echo "✅ Environment recreated"
 
 setup-dev: ## Setup development environment
 	@echo "📚 Installing development dependencies..."
-	@uv sync --all-groups
+	@uv sync --all-groups --all-extras
 	@echo "✅ Development environment ready. Try `make test` to verify everything works"
 
 format: ## Format code with isort and black
 	@echo "🎨 Formatting code..."
-	@uv run --active isort . --line-length=100
-	@uv run --active black . --line-length=100
+	@uv run --active --no-sync isort . --line-length=100
+	@uv run --active --no-sync black . --line-length=100
 	@echo "✅ Code formatted"
 
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
-	@uv run --active flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
-	@uv run --active flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
+	./lint.sh
 	@echo "✅ Linting complete"
 
 lint-docs: ## Check docstring coverage and style
 	@echo "📝 Checking docstring coverage and style..."
-	@uv run --active pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
-	@uv run --active interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
+	@PYTHONPATH=$(PWD)/src uv run --active --no-sync pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
+	@PYTHONPATH=$(PWD)/src uv run --active --no-sync interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
 	@echo "✅ Docstring checks complete"
 
 lint-docs-strict: ## Strict docstring validation with pydoclint

@@ -7,7 +7,7 @@ for encoding inputs and computing temporal memory in a single step.
 from typing import Any
 
 from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
-from psu_capstone.agent_layer.pullin.sungur_agent import ValueField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.log import get_logger
 
 
@@ -18,7 +18,7 @@ class Brain:
     with a single `step()` call instead of manually calling encode/compute.
 
     Example:
-        manager = Brain(fields={})
+        manager = Brain()
         manager.add_input_field("consumption", consumption_field)
         manager.add_input_field("date", date_field)
         manager.set_column_field(column_field)
@@ -31,7 +31,10 @@ class Brain:
             })
     """
 
-    def __init__(self, fields: dict[str, Field]) -> None:
+    def __init__(self, fields: dict[str, Field] | None = None) -> None:
+        if fields is None:
+            fields = {}
+
         self._output_fields: dict[str, OutputField] = {
             k: v for k, v in fields.items() if isinstance(v, OutputField)
         }
@@ -169,6 +172,21 @@ class Brain:
         """Clear all states in the column field."""
         for field in self.fields:
             self.fields[field].reset()
+
+    @property
+    def input_fields(self) -> list[InputField]:
+        """Return list of input fields."""
+        return list(self._input_fields.values())
+
+    @property
+    def column_fields(self) -> list[ColumnField]:
+        """Return list of column fields."""
+        return list(self._column_fields.values())
+
+    @property
+    def output_fields(self) -> list[OutputField]:
+        """Return list of output fields."""
+        return list(self._output_fields.values())
 
     def prediction(self) -> tuple[Any, ...]:
         """Get the current prediction for all input and output fields.

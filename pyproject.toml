@@ -13,44 +13,47 @@ classifiers = [
 ]
 
 dependencies = [
- "sympy>=1.11",
- "pandas>=2.1",
- "openpyxl>=3.1.2",
- "mmh3>=3.0",
- "matplotlib>=3.7",
- "scikit-learn>=1.7.2",
- "xlrd>=2.0.2",
- "pyproj>=3.7.1",
- "scipy>=1.15.3",
- "gymnasium>=1.2.3",
- "stable-baselines3>=2.7.1",
- "pygame>=2.6.1",
- "websockets>=16.0",
- "flake8>=7.3.0",
+  "numpy>=1.26.4",
+  "sympy>=1.11",
+  "openpyxl>=3.1.2",
+  "pandas>=2.2.2",
+  "mmh3>=3.0",
+  "matplotlib>=3.7",
+  "scikit-learn>=1.7.2",
+  "xlrd>=2.0.2",
+  "pyproj>=3.7.1",
+  "scipy>=1.15.3",
+  "tqdm>=4.67.3",
+  "gymnasium>=1.2.3",
+  "stable-baselines3>=2.7.1",
+  "pygame>=2.6.1",
+  "websockets>=16.0",
+  "gym-trading-env>=0.3.5",
+  "swig>=4.4.1",
+  "box2d>=2.3.10",
+  "pydocstyle>=6.3.0",
+  "interrogate>=1.7.0",
+  "pydoclint>=0.5.0",
 ]
 
-
-[dependency-groups]
-dev = [
-    "mypy>=1.17.0",
-    "snakeviz>=2.2.2",
-    "pre-commit>=4.2.0",
-    "pdoc>=16.0.0",
-]
-tests = ["pytest>=8.4.1", "pytest-cov>=6.2.1", "pytest-mock>=3.14.0"]
-linters = [
-    "flake8>=7.3.0",
-    "flake8-pyproject>=1.2.3",
-    "pep8-naming>=0.15.1",
-    "pydocstyle>=6.3.0",
-    "interrogate>=1.7.0",
-    "pydoclint>=0.5.0",
-]
+[project.optional-dependencies]
 formatters = ["black>=23.7.0", "isort>=6.0.1"]
+dev = [
+  "pre-commit>=4.5.1",
+  "flake8>=7.3.0",
+  "flake8-pyproject>=1.2.4",
+  "pytest>=9.0.3",
+  "pytest-cov>=7.1.0",
+  "coverage>=7.13.5",
+  "python-discovery>=1.2.2",
+]
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
-[project.scripts]
-psu-capstone = "psu_capstone:main"
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.uv]
 # package = true  # Disabled for offline environments
@@ -96,6 +99,7 @@ exclude_lines = [
 ############################
 [tool.black]
 line-length = 100
+target-version = ['py312']
 extend-exclude = '''
 (
   # Exclude template directories

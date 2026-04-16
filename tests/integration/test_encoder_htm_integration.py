@@ -54,6 +54,7 @@ class TestInputFieldRDSEIntegration:
       - Multiple encode calls produce consistent patterns
     """
 
+    # commit: integration test
     def test_input_field_initialization_with_rdse(self):
         # TI-001: Ensures that our input can reach the encoder and be transformed into a valid SDR.
         """
@@ -84,6 +85,7 @@ class TestInputFieldRDSEIntegration:
         assert isinstance(input_field.encoder, RandomDistributedScalarEncoder)
         assert input_field.encoder.size == 512
 
+    # commit: integration test
     def test_input_field_encode_scalar_values(self):
         # TI-002: Ensures that a batch of SDRs is being fed into the Agent (HTM) so that the HTM can learn from incoming SDRs.
         """
@@ -122,6 +124,7 @@ class TestInputFieldRDSEIntegration:
         assert isinstance(active_cells, set)
         assert len(active_cells) == active_bit_count
 
+    # commit: integration test
     def test_input_field_encode_sequence(self):
         # TI-003: Checks the InputField integration with the RDSE encoder
         """Test encoding a sequence of values and verify state management."""
@@ -151,6 +154,7 @@ class TestInputFieldRDSEIntegration:
                 # Different values should have different encodings
                 assert encodings[i] != encodings[j]
 
+    # commit: integration test
     def test_input_field_decode_active_state(self):
         # TI-004: Checks InputField integration with the Category encoder
         """Test decoding active cell state back to input value."""
@@ -181,6 +185,7 @@ class TestInputFieldRDSEIntegration:
 class TestInputFieldCategoryIntegration:
     """Test InputField integration with Category encoder."""
 
+    # commit: integration test
     def test_input_field_with_category_encoder(self):
         # TI-005: Checks InputField integration with the Date encoder
         """Test InputField with CategoryEncoder."""
@@ -194,6 +199,7 @@ class TestInputFieldCategoryIntegration:
         assert len(input_field.cells) > 0
         assert isinstance(input_field.encoder, CategoryEncoder)
 
+    # commit: integration test
     def test_category_encoding_through_input_field(self):
         # TI-006: Checks integration between InputField and ColumnField
         """Test encoding categorical values through InputField."""
@@ -217,6 +223,7 @@ class TestInputFieldCategoryIntegration:
             for j in range(i + 1, len(encoding_lists)):
                 assert encoding_lists[i] != encoding_lists[j]
 
+    # commit: integration test
     def test_category_unknown_value_handling(self):
         # TI-007: Checks multiple InputFields feeding into a single ColumnField
         """Test encoding unknown category through InputField."""
@@ -244,6 +251,7 @@ class TestInputFieldCategoryIntegration:
 class TestInputFieldDateIntegration:
     """Test InputField integration with Date encoder."""
 
+    # commit: integration test
     def test_input_field_with_date_encoder(self):
         # TI-008: Checks the full pipeline: encode to compute to decode
         """Test InputField with DateEncoder."""
@@ -260,6 +268,7 @@ class TestInputFieldDateIntegration:
         assert len(input_field.cells) > 0
         assert isinstance(input_field.encoder, DateEncoder)
 
+    # commit: integration test
     def test_date_encoding_through_input_field(self):
         # TI-009: Checks different encoder size and sparsity settings.
         """Test encoding date values through InputField."""
@@ -297,6 +306,7 @@ class TestInputFieldDateIntegration:
 class TestInputFieldToColumnFieldIntegration:
     """Test integration between InputField and ColumnField."""
 
+    # commit: integration test
     def test_single_input_field_to_column_field(self):
         # TI-010: Checks error handling and edge cases in integration
         """Test single InputField feeding into ColumnField."""
@@ -331,6 +341,7 @@ class TestInputFieldToColumnFieldIntegration:
         assert len(active_columns) > 0
         assert len(active_columns) <= len(column_field.columns)
 
+    # commit: integration test
     def test_non_spatial_column_field(self):
         # TI-011: Checks duty cycle tracking in ColumnField
         """Test ColumnField in non-spatial mode (direct pass-through)."""
@@ -364,6 +375,7 @@ class TestInputFieldToColumnFieldIntegration:
         active_columns = len(column_field.active_columns)
         assert active_columns == active_input_cells
 
+    # commit: integration test
     def test_temporal_learning_with_sequence(self):
         # TI-012: Checks HTM handling of branching sequences
         """Test temporal learning with a sequence of inputs."""
@@ -409,6 +421,7 @@ class TestInputFieldToColumnFieldIntegration:
 
         assert total_active > 0
 
+    # commit: integration test
     def test_column_field_bursting_behavior(self):
         # TI-013: Checks that spatial pooling learns correctly from encoder patterns
         """Test that unexpected inputs cause bursting in ColumnField."""
@@ -455,6 +468,7 @@ class TestInputFieldToColumnFieldIntegration:
 class TestMultipleInputFieldsIntegration:
     """Test multiple InputFields feeding into single ColumnField."""
 
+    # commit: integration test
     def test_two_input_fields_to_column_field(self):
         # TI-014: Checks the feedback loop between encoder predictions and HTM predictions
         """Test two different InputFields feeding into one ColumnField."""
@@ -496,6 +510,7 @@ class TestMultipleInputFieldsIntegration:
         assert len(column_field.active_columns) > 0
         assert len(column_field.active_columns) <= len(column_field.columns)
 
+    # commit: integration test
     def test_multiple_fields_temporal_sequence(self):
         """Test temporal learning with multiple input fields."""
         # Create two InputFields
@@ -549,6 +564,7 @@ class TestMultipleInputFieldsIntegration:
 class TestEncodeComputeDecodePipeline:
     """Test full pipeline: encode -> compute -> decode."""
 
+    # commit: integration test
     def test_encode_compute_decode_cycle(self):
         """Test encoding, computing, and decoding back to values."""
         # Create InputField with RDSE
@@ -575,6 +591,7 @@ class TestEncodeComputeDecodePipeline:
         assert decoded_value is not None
         assert confidence >= 0.0
 
+    # commit: integration test
     def test_predictive_state_decoding(self):
         """Test decoding predictive cells after temporal learning."""
         # Create InputField and ColumnField
@@ -616,6 +633,7 @@ class TestEncodeComputeDecodePipeline:
 class TestEncoderSizeAndSparsity:
     """Test various encoder size and sparsity configurations."""
 
+    # commit: integration test
     def test_small_encoder_size(self):
         """Test with small encoder size."""
         params = RDSEParameters()
@@ -641,6 +659,7 @@ class TestEncoderSizeAndSparsity:
         assert len(column_field.active_columns) > 0
         assert len(column_field.active_columns) == len(input_field.active_cells)
 
+    # commit: integration test
     def test_large_encoder_size(self):
         """Test with large encoder size."""
         params = RDSEParameters()
@@ -664,6 +683,7 @@ class TestEncoderSizeAndSparsity:
         assert len(column_field.active_columns) > 0
         assert len(column_field.active_columns) <= len(column_field.columns)
 
+    # commit: integration test
     def test_varying_sparsity_levels(self):
         """Test different sparsity levels."""
         sparsity_levels = [0.01, 0.02, 0.05, 0.1]
@@ -688,6 +708,7 @@ class TestEncoderSizeAndSparsity:
 class TestErrorHandlingAndEdgeCases:
     """Test error handling and edge cases in integration."""
 
+    # commit: integration test
     def test_invalid_decode_state(self):
         """Test that invalid decode state raises error."""
         params = RDSEParameters()
@@ -699,6 +720,7 @@ class TestErrorHandlingAndEdgeCases:
         with pytest.raises(ValueError, match="Invalid state"):
             input_field.decode(state="invalid_state")
 
+    # commit: integration test
     def test_clear_states_resets_properly(self):
         """Test that clear_states properly resets field state."""
         params = RDSEParameters()
@@ -719,6 +741,7 @@ class TestErrorHandlingAndEdgeCases:
         assert len(input_field.active_cells) == 0
         assert len(input_field.prev_active_cells) == 0
 
+    # commit: integration test
     def test_advance_states_preserves_history(self):
         """Test that advance_states preserves previous state."""
         params = RDSEParameters()
@@ -746,6 +769,7 @@ class TestErrorHandlingAndEdgeCases:
 class TestColumnFieldDutyCycles:
     """Test duty cycle tracking in ColumnField."""
 
+    # commit: integration test
     def test_duty_cycle_updates(self):
         """Test that duty cycles are updated during learning."""
         params = RDSEParameters()
@@ -783,6 +807,7 @@ class TestColumnFieldDutyCycles:
 class TestBranchingSequences:
     """Test HTM's ability to handle branching sequences (A→B and A→C)."""
 
+    # commit: integration test
     def test_simple_branching_sequence(self):
         """Test that HTM can learn two different continuations from same input."""
         # Create InputField
@@ -834,6 +859,7 @@ class TestBranchingSequences:
         assert len(column_field.active_columns) == len(input_field.active_cells)
         assert len(column_field.active_cells) == len(column_field.active_columns)
 
+    # commit: integration test
     def test_branching_with_different_contexts(self):
         """Test branching sequences with different temporal contexts."""
         rdse_params = RDSEParameters()
@@ -885,6 +911,7 @@ class TestBranchingSequences:
 
         assert len(column_field.active_columns) > 0
 
+    # commit: integration test
     def test_triple_branching(self):
         """Test that HTM can handle three-way branching (A→B, A→C, A→D)."""
         rdse_params = RDSEParameters()
@@ -929,6 +956,7 @@ class TestBranchingSequences:
 class TestSpatialPoolingFromEncoderPatterns:
     """Test that spatial pooling correctly learns from encoder patterns."""
 
+    # commit: integration test
     def test_similar_encoder_outputs_activate_similar_columns(self):
         """Test that semantically similar encoder outputs activate overlapping columns."""
         rdse_params = RDSEParameters()
@@ -989,6 +1017,7 @@ class TestSpatialPoolingFromEncoderPatterns:
             len(columns_50) > 0 and len(columns_51) > 0 and len(columns_90) > 0
         ), "All inputs should activate columns"
 
+    # commit: integration test
     def test_encoder_sparsity_affects_column_activation(self):
         """Test that encoder sparsity affects how columns activate."""
         # Dense encoding (more active bits)
@@ -1034,6 +1063,7 @@ class TestSpatialPoolingFromEncoderPatterns:
         assert len(dense_column_field.active_columns) > 0
         assert len(sparse_column_field.active_columns) > 0
 
+    # commit: integration test
     def test_proximal_synapses_strengthen_for_active_input(self):
         """Test that proximal synapses to active encoder bits are strengthened."""
         rdse_params = RDSEParameters()
@@ -1080,6 +1110,7 @@ class TestSpatialPoolingFromEncoderPatterns:
 class TestEncoderHTMFeedbackLoop:
     """Test the feedback loop between encoder predictions and HTM predictions."""
 
+    # commit: integration test
     def test_predictive_state_propagates_to_input_field(self):
         """Test that HTM predictions can propagate back to input field (in non-spatial mode)."""
         rdse_params = RDSEParameters()

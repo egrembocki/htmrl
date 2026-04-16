@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/millscb/repos/psu-capstone/.venv/bin/python3
 """Run the agent WebSocket server for real-time visualization.
 
 Branch behavior summary:

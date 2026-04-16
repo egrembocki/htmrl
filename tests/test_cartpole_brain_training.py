@@ -1,3 +1,4 @@
+# Test Suite: TS 21 (CartPole Brain Policy Training)
 """Smoke tests for generic env brain-policy training loop."""
 
 from __future__ import annotations
@@ -8,7 +9,9 @@ from psu_capstone.agent_layer.brain_training_helper import (
 )
 
 
+# commit: system/integration test
 def test_train_env_policy_returns_metrics() -> None:
+    # TC 167
     """Training helper should run and return structured metrics."""
 
     metrics = train_env_policy(

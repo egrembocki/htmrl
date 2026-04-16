@@ -15,6 +15,7 @@ Based on NuPIC's RDSE implementation.
 from __future__ import annotations
 
 import copy
+import math
 import random
 import struct
 from dataclasses import dataclass
@@ -102,7 +103,7 @@ class RandomDistributedScalarEncoder(BaseEncoder[float | int]):
         data = [0] * self.size
 
         assert self._resolution > 0, "Resolution must be greater than 0 to compute encoding"
-        index = int(input_value / self._resolution)
+        index = math.floor(input_value / self._resolution)
 
         for offset in range(self._active_bits):
             hash_buffer = index + offset
@@ -115,14 +116,6 @@ class RandomDistributedScalarEncoder(BaseEncoder[float | int]):
             """
             bucket = mmh3.hash(struct.pack("i", hash_buffer), self._seed, signed=False)
             bucket = bucket % self.size
-            """
-                Don't worry about hash collisions.  Instead measure the critical
-                properties of the encoder in unit tests and quantify how significant
-                the hash collisions are.  This encoder can not fix the collisions
-                because it does not record past encodings.  Collisions cause small
-                deviations in the sparsity or semantic similarity, depending on how
-                they're handled.
-            """
             data[bucket] = 1
         return data
 
@@ -177,6 +170,8 @@ class RandomDistributedScalarEncoder(BaseEncoder[float | int]):
         confidence = (
             best_overlap / self._active_bits if best_overlap >= 0 and self._active_bits else 0.0
         )
+        if best_overlap == 0:
+            best_value = None
         self.logger.info("Decoded SDR into value: %s, with confidence: %s", best_value, confidence)
         return best_value, confidence
 

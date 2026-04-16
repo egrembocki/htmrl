@@ -33,6 +33,7 @@ def temp_path(tmp_path: Path) -> Path:
     return work_dir
 
 
+# commit: unit test
 def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-001
     """[TS-01 TC-001] Ensure CSV files are parsed into record dictionaries."""
@@ -54,6 +55,7 @@ def test_load_input_data_csv(temp_path: Path, handler: InputHandler) -> None:
     ]
 
 
+# commit: unit test
 def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-002
     """[TS-01 TC-002] Confirm XLSX ingestion yields the requested columns."""
@@ -76,6 +78,7 @@ def test_load_input_data_excel_xlsx(temp_path: Path, handler: InputHandler) -> N
     assert records["b"] == [30, 40]
 
 
+# commit: unit test
 def test_load_input_data_excel_xls_is_unsupported(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-003
     """[TS-01 TC-003] Validate legacy XLS files raise a ValueError without optional XLS readers."""
@@ -89,6 +92,7 @@ def test_load_input_data_excel_xls_is_unsupported(temp_path: Path, handler: Inpu
         handler.input_data(str(xls_path), required_columns=required)
 
 
+# commit: unit test
 def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-004
     """[TS-01 TC-004] Check JSON records are converted into the expected record layout."""
@@ -106,6 +110,7 @@ def test_load_input_data_json(temp_path: Path, handler: InputHandler) -> None:
     assert records["b"] == [3, 4]
 
 
+# commit: unit test
 def test_load_input_data_txt_returns_dataframe_of_lines(
     # TS-01 TC-005
     temp_path: Path,
@@ -129,6 +134,7 @@ def test_load_input_data_txt_returns_dataframe_of_lines(
     assert records["value"] == lines
 
 
+# commit: unit test
 def test_load_input_data_unsupported_extension_treated_as_scalar(
     # TS-01 TC-006
     temp_path: Path,
@@ -149,6 +155,7 @@ def test_load_input_data_unsupported_extension_treated_as_scalar(
     assert records == {"value": [str(bad_path)]}
 
 
+# commit: unit test
 def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-007
     """[TS-01 TC-007] Ensure missing files raise FileNotFoundError for clearer diagnostics."""
@@ -160,6 +167,7 @@ def test_load_input_data_missing_file_raises(temp_path: Path, handler: InputHand
         handler.input_data(str(missing_path), required_columns=["timestamp", "a"])
 
 
+# commit: unit test
 def test_load_input_data_accepts_pathlike(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-008
     """[TS-01 TC-008] PathLike inputs are accepted as file paths."""
@@ -174,6 +182,7 @@ def test_load_input_data_accepts_pathlike(temp_path: Path, handler: InputHandler
     assert records == {"a": ["1"], "b": ["2"]} or records == {"a": [1], "b": [2]}
 
 
+# commit: unit test
 def test_input_handler_is_singleton() -> None:
     # TS-01 TC-009
     """[TS-01 TC-009] Confirm InputHandler enforces a singleton instance."""
@@ -185,6 +194,7 @@ def test_input_handler_is_singleton() -> None:
     assert h1 is h2
 
 
+# commit: unit test
 def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandler) -> None:
     # TS-01 TC-010
     """[TS-01 TC-010] Check the handler caches the latest records without sharing references."""
@@ -204,6 +214,7 @@ def test_load_input_data_sets_internal_data(temp_path: Path, handler: InputHandl
     assert records_two is not records_one
 
 
+# commit: unit test
 def test_load_input_data_bytearray(handler: InputHandler) -> None:
     """Ensure bytearray inputs become value records that preserve byte order."""
     payload = bytearray([1, 2, 255])

@@ -96,13 +96,18 @@ class ScalarEncoder(BaseEncoder[int]):
         self._encoding_cache.clear()
 
     def _compute_encoding(self, input_value: int | float) -> list[int]:
-        if self._clip_input:
-            if self._periodic:
 
-                input_value = input_value % self._maximum
-            else:
-                input_value = max(input_value, self._minimum)
-                input_value = min(input_value, self._maximum)
+        value = input_value
+        if self._periodic:
+            period = (
+                self._active_bits
+                if self._active_bits is not None
+                else (self._maximum - self._minimum)
+            )
+            value = ((value - self._minimum) % period) + self._minimum
+        elif self._clip_input:
+            value = max(value, self._minimum)
+            value = min(value, self._maximum)
         else:
             if self._category and input_value != float(int(input_value)):
                 raise ValueError("Input to category encoder must be an unsigned integer!")
@@ -112,7 +117,7 @@ class ScalarEncoder(BaseEncoder[int]):
                     f"Received {input_value}"
                 )
 
-        start = int(round((input_value - self._minimum) / self._resolution))
+        start = int(round((value - self._minimum) / self._resolution))
 
         """Handle edge case where start + active_bits exceeds output size.
           // The endpoints of the input range are inclusive, which means that the
@@ -124,13 +129,12 @@ class ScalarEncoder(BaseEncoder[int]):
         if not self._periodic:
             start = min(start, self.size - self._active_bits)
 
-        sparse: list[int] = []
-        sparse[:] = range(start, start + self._active_bits)
+        sparse: list[int] = list(range(start, start + self._active_bits))
 
         if self._periodic:
             for i, bit in enumerate(sparse):
                 if bit >= self.size:
-                    sparse[i] = bit - self.size.size
+                    sparse[i] = bit - self.size
             sparse.sort()
 
         dense = [0] * self.size

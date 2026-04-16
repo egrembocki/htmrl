@@ -352,6 +352,14 @@ class AgentWebSocketServer:
                 "max_episodes": self._max_episodes,
                 "max_steps_per_episode": self._max_steps_per_episode,
                 "action": self._serialize_value(action),
+                "visualization": self._build_trading_visualization(
+                    obs=obs,
+                    action=action,
+                    reward=float(reward),
+                    total_reward=float(state["total_reward"]),
+                    brain_outputs=brain_outputs,
+                    step=state["step_num"],
+                ),
                 "episode_done": done,
                 "total_reward": float(state["total_reward"]),
             }
@@ -417,6 +425,97 @@ class AgentWebSocketServer:
             return {k: self._serialize_value(v) for k, v in value.items()}
         else:
             return str(value)
+
+    def _build_trading_visualization(
+        self,
+        *,
+        obs: Any,
+        action: Any,
+        reward: float,
+        total_reward: float,
+        brain_outputs: dict[str, Any] | None,
+        step: int,
+    ) -> dict[str, Any] | None:
+        """Build a TradingEnv-friendly payload for frontend charting/diagnostics.
+
+        Returns ``None`` when the observation does not look like OHLCV trading data.
+        """
+
+        if not isinstance(obs, dict):
+            return None
+
+        required_keys = ("open", "high", "low", "close", "volume")
+        if not all(key in obs for key in required_keys):
+            return None
+
+        try:
+            open_price = float(obs["open"])
+            high_price = float(obs["high"])
+            low_price = float(obs["low"])
+            close_price = float(obs["close"])
+            volume = float(obs["volume"])
+        except (TypeError, ValueError):
+            return None
+
+        action_index: int | None = None
+        if isinstance(action, bool):
+            action_index = int(action)
+        elif isinstance(action, (int, float)):
+            action_index = int(action)
+
+        action_label_map = {0: "hold", 1: "buy", 2: "sell"}
+        action_label = action_label_map.get(action_index, "unknown")
+
+        candle_delta = close_price - open_price
+        momentum_sign = 0
+        if candle_delta > 0:
+            momentum_sign = 1
+        elif candle_delta < 0:
+            momentum_sign = -1
+
+        alignment = 0.0
+        if action_label == "hold":
+            alignment = 1.0 if momentum_sign == 0 else -0.2
+        elif action_label == "buy":
+            alignment = 1.0 if momentum_sign >= 0 else -1.0
+        elif action_label == "sell":
+            alignment = 1.0 if momentum_sign <= 0 else -1.0
+
+        confidence = 0.0
+        if isinstance(brain_outputs, dict):
+            conf_values: list[float] = []
+            for payload in brain_outputs.values():
+                if isinstance(payload, dict):
+                    raw_conf = payload.get("confidence")
+                    if isinstance(raw_conf, (int, float)):
+                        conf_values.append(float(raw_conf))
+            if conf_values:
+                confidence = sum(conf_values) / len(conf_values)
+
+        if alignment >= 0.5:
+            quality = "good"
+        elif alignment <= -0.5:
+            quality = "bad"
+        else:
+            quality = "neutral"
+
+        return {
+            "step": int(step),
+            "ohlcv": {
+                "open": open_price,
+                "high": high_price,
+                "low": low_price,
+                "close": close_price,
+                "volume": volume,
+            },
+            "action": {"index": action_index, "label": action_label},
+            "reward": float(reward),
+            "total_reward": float(total_reward),
+            "candle_delta": float(candle_delta),
+            "brain_confidence": float(confidence),
+            "alignment_score": float(alignment),
+            "quality": quality,
+        }
 
     async def start(self) -> None:
         """Start the WebSocket server and run forever."""

@@ -25,7 +25,7 @@ Tests validate:
 
 import pytest
 
-from psu_capstone.agent_layer.HTM import (
+from psu_capstone.agent_layer.pullin.pullin_htm import (
     CONNECTED_PERM,
     INITIAL_PERMANENCE,
     PERMANENCE_DEC,
@@ -65,6 +65,7 @@ def predictive_cell(cell):
 """Synapse"""
 
 
+# commit: unit test
 def test_synapse_adjust_permanence_increase(cell):
     """Checks that permanence is adjusted properly wiht increase true."""
     syn = Synapse(cell, 0.5)
@@ -73,6 +74,7 @@ def test_synapse_adjust_permanence_increase(cell):
     assert syn.permanence == pytest.approx(0.5 + PERMANENCE_INC)
 
 
+# commit: unit test
 def test_synapse_adjust_permanence_decrease(cell):
     """Checks that permanence is adjusted properly with increase false."""
     syn = Synapse(cell, 0.5)
@@ -81,6 +83,7 @@ def test_synapse_adjust_permanence_decrease(cell):
     assert syn.permanence == pytest.approx(0.5 - PERMANENCE_DEC)
 
 
+# commit: unit test
 def test_synapse_permanence_cannot_exceed_1(cell):
     """Checks that permanence cannot exceed 1.0 even with large strength."""
     syn = Synapse(cell, 0.99)
@@ -89,6 +92,7 @@ def test_synapse_permanence_cannot_exceed_1(cell):
     assert syn.permanence <= 1.0
 
 
+# commit: unit test
 def test_synapse_permanence_cannot_go_below_0(cell):
     """Checks that permanence cannot go below 0.0 even with large strength."""
     syn = Synapse(cell, 0.01)
@@ -97,6 +101,7 @@ def test_synapse_permanence_cannot_go_below_0(cell):
     assert syn.permanence >= 0.0
 
 
+# commit: unit test
 def test_synapse_adjust_permanence_negative_strength_increase_asserts(cell):
     """Checls that when we are increasing permanence that a negative strength is rejected."""
     syn = Synapse(cell, 0.5)
@@ -105,6 +110,7 @@ def test_synapse_adjust_permanence_negative_strength_increase_asserts(cell):
     assert syn.permanence < 0.5
 
 
+# commit: unit test
 def test_synapse_adjust_permanence_negative_strength_decrease_asserts(cell):
     """Checks that when we are decreasing permanence that a negative strength is rejected."""
     syn = Synapse(cell, 0.5)
@@ -116,6 +122,7 @@ def test_synapse_adjust_permanence_negative_strength_decrease_asserts(cell):
 """ApicalSynapse"""
 
 
+# commit: unit test
 def test_apical_synapse_uses_predictive(predictive_cell):
     """If the apical segment has a predictive cell and connected permanence threshold,
     it should be active."""
@@ -123,6 +130,7 @@ def test_apical_synapse_uses_predictive(predictive_cell):
     assert syn.active is True
 
 
+# commit: unit test
 def test_apical_synapse_not_active_if_not_predictive(cell):
     """If the apical segment has a normal cell and connected permanence
     threshold it should not be active."""
@@ -133,6 +141,7 @@ def test_apical_synapse_not_active_if_not_predictive(cell):
 """DistalSynapse"""
 
 
+# commit: unit test
 def test_distal_synapse_inherits_active_behavior(active_cell):
     """If the distal synapse has an active cell and connected permanence
     threshold it should be active."""
@@ -143,6 +152,7 @@ def test_distal_synapse_inherits_active_behavior(active_cell):
 """ProximalSynapse"""
 
 
+# commit: unit test
 def test_proximal_synapse_default_permanence(cell):
     """If the proximal synapse has a normal cell the permanence should be the initial value."""
     syn = ProximalSynapse(cell)
