@@ -21,7 +21,3 @@ exclude =
     ./README.md,
     build,
     __pycache__,
-
-
-    
-    

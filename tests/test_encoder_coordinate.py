@@ -24,9 +24,6 @@ These tests validate spatial encoding for location-based learning tasks,
 enabling HTM systems to learn spatial patterns and sequences.
 """
 
-import numpy as np
-import pytest
-
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 

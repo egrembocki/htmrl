@@ -18,14 +18,14 @@ import copy
 import random
 import struct
 from dataclasses import dataclass
-from typing import Any, Iterable, override
+from typing import Iterable, override
 
 import mmh3
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
-from psu_capstone.log import get_logger, logger
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.log import get_logger
 
 
 class RandomDistributedScalarEncoder(BaseEncoder[float | int]):
@@ -34,12 +34,12 @@ class RandomDistributedScalarEncoder(BaseEncoder[float | int]):
     The RDSE encodes numeric scalar values into SDRs using hash-based random
     bit selection. It provides more flexibility than ScalarEncoder by not
     requiring pre-specified input ranges and determining encodings at runtime.
-
-    Uses MurmurHash3 algorithm for deterministic, collision-resistant encoding.
-
-    Args:
-        parameters: Configuration for RDSE encoding behavior.
     """
+
+    @property
+    def encoding_cache(self) -> dict[float, list[int]]:
+        """Public accessor for the encoding cache (for compatibility)."""
+        return self._encoding_cache
 
     def __init__(self, parameters: RDSEParameters):
         self._parameters = copy.deepcopy(parameters)

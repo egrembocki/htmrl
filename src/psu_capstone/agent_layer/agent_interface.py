@@ -8,9 +8,6 @@ from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 
-from legacy.legacy_htm.spatial_pooler import SpatialPooler
-from legacy.sdr_layer.sdr_interface import SDRInterface
-
 
 @runtime_checkable
 class AgentInterface(Protocol):

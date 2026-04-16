@@ -36,8 +36,27 @@ import pytest
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
+@pytest.fixture
+def scalar_encoder_instance():
+    """Fixture to create a baseline ScalarEncoder instance for tests."""
+
+    params = ScalarEncoderParameters(
+        minimum=0,
+        maximum=100,
+        clip_input=True,
+        periodic=False,
+        active_bits=5,
+        sparsity=0.0,
+        size=50,
+        radius=1.0,
+        category=False,
+        resolution=0.0,
+    )
+    return ScalarEncoder(params)
+
+
 def do_scalar_value_cases(encoder: ScalarEncoder, cases: list[tuple[float, list[int]]]) -> None:
-    """Assert each case yields a valid active-bit window near expected indices."""
+    """Assert encoded active indices match expected windows for each scalar input."""
 
     for value, expected_indices in cases:
         try:
@@ -587,10 +606,11 @@ def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
 
 def test_scalar_hamming_distance():
     """
-    This test compares the mean hamming distances between consecutive encoded values like 1 compared to 2 all
-    of the way up to 1000. Then we take the mean of these hamming distances. On top of that it compares 1 through 500
-    of encoded values to 9000 through 10000. We then compare these hamming distances. The thought is that the values
-    right next to each other should have less bit differences than ones far away.
+    This test compares the mean hamming distances between consecutive encoded values
+    like 1 compared to 2 all of the way up to 1000. Then we take the mean of these
+    hamming distances. On top of that it compares 1 through 500 of encoded values to
+    9000 through 10000. We then compare these hamming distances. The thought is that
+    the values right next to each other should have less bit differences than ones far away.
     """
     import random
 

@@ -1,3 +1,5 @@
+from psu_capstone.log import get_logger
+
 """Field manager for simplified HTM input handling.
 
 Encapsulates InputFields and ColumnFields to provide a unified API
@@ -14,7 +16,6 @@ from typing import Any
 
 from psu_capstone.agent_layer.abstract_brain import AbstractBrain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.log import get_logger, logger
 
 
 class Brain(AbstractBrain):
@@ -101,9 +102,13 @@ class Brain(AbstractBrain):
         for input_name in self._input_fields:
             input_field = self._input_fields[input_name]
             if hasattr(input_field.encoder, "decode"):
-                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
-                    "predictive"
-                )
+                try:
+                    predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
+                        "predictive"
+                    )
+                except ValueError:
+                    predictions[input_name] = None
+                    predictions[input_name + ".conf"] = 0.0
 
         return predictions  # type: ignore
 

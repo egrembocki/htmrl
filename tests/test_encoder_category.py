@@ -32,10 +32,6 @@ import numpy as np
 import pytest
 
 from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-from psu_capstone.encoder_layer.category_encoder_new import (
-    CategoryEncoderNew,
-    CategoryParametersNew,
-)
 
 
 # TODO we might need confidence filters on the category tests.
