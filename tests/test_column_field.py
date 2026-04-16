@@ -206,8 +206,8 @@ def test_sparsity_invariant_to_input_density():
 
     # use encoders with different sparsity settings to vary input density
     for input_sparsity in (0.02, 0.05, 0.10, 0.20, 0.25, 0.30, 0.80):
-        cast(InputField, cf.input_fields[0])._encoder._sparsity = input_sparsity
-        print(cast(InputField, cf.input_fields[0])._encoder._sparsity)
+        cast(InputField, cf.input_fields[0]).encoder._sparsity = input_sparsity
+        print(cast(InputField, cf.input_fields[0]).encoder._sparsity)
         activate_cells(cf, 100.0)
         cf.compute(learn=True)
         active_cols = {i for i, col in enumerate(cf.columns) if col.active}

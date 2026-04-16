@@ -19,12 +19,18 @@ from collections import defaultdict
 from typing import Any, Literal
 
 import numpy as np
-from stable_baselines3 import PPO
 
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.log import get_logger
+
+
+def _import_ppo() -> Any:
+    """Import PPO lazily to avoid torch/cuda import side effects in non-PPO paths."""
+    from stable_baselines3 import PPO
+
+    return PPO
 
 
 class Agent:
@@ -100,6 +106,9 @@ class Agent:
             self._rng = random.Random()
         self._last_action_source = "unknown"
         self._last_reward = 0.0
+        # Keep q-table storage available across modes for compatibility checks.
+        self._action_count: int | None = None
+        self._q_values = defaultdict(lambda: np.array([], dtype=float))
 
         # --- Brain setup ---
         if brain is None and trainer is not None and adapter is not None and config is not None:
@@ -163,6 +172,7 @@ class Agent:
         kwargs = {"device": "cpu"}
         if hasattr(self, "_ppo_kwargs"):
             kwargs.update(self._ppo_kwargs)
+        PPO = _import_ppo()
         self._ppo_model = PPO.load(model_path, env=env, **kwargs)
         self._logger.info("PPO model loaded from %s.", model_path)
 
@@ -179,7 +189,7 @@ class Agent:
             env_id = "unknown_env"
         return f"ppo_model_{env_id}.zip"
 
-    def _build_ppo_model(self) -> PPO:
+    def _build_ppo_model(self) -> Any:
         """Create or load a Stable-Baselines3 PPO model bound to the adapter environment."""
 
         if not hasattr(self._adapter, "_env"):
@@ -187,6 +197,7 @@ class Agent:
 
         env = self._adapter._env
         kwargs = {"device": "cpu", **self._ppo_kwargs}
+        PPO = _import_ppo()
         model_path = self._get_ppo_model_path()
         if os.path.exists(model_path):
             self._logger.info(f"Loading pre-trained PPO model from {model_path}")
@@ -321,6 +332,22 @@ class Agent:
 
         return []
 
+    def _get_action_space(self) -> Any | None:
+        """Return adapter action space across old/new adapter attribute names."""
+
+        action_space = getattr(self._adapter, "_action_space", None)
+        if action_space is not None:
+            return action_space
+        return getattr(self._adapter, "action_space", None)
+
+    def _sample_action(self) -> Any:
+        """Sample a valid action from the adapter action space."""
+
+        action_space = self._get_action_space()
+        if action_space is None or not hasattr(action_space, "sample"):
+            raise ValueError("Adapter does not expose a sample-able action space.")
+        return action_space.sample()
+
     def _select_q_action(self, obs: Any) -> Any:
         """Select an action using epsilon-greedy Q-table behavior.
 
@@ -344,19 +371,19 @@ class Agent:
 
         if not candidate_actions:
             self._last_action_source = "q_table"
-            return self._adapter._action_space.sample()
+            return self._sample_action()
 
         # Epsilon-greedy action selection
         if self._rng.random() < self._epsilon:
             self._last_action_source = "q_table"
-            return self._adapter._action_space.sample()
+            return self._sample_action()
 
         q_row = self._q_values[state_key]
 
         # If spec/value mismatch occurs, degrade safely to random exploration.
         if len(q_row) != len(candidate_actions):
             self._last_action_source = "q_table"
-            return self._adapter._action_space.sample()
+            return self._sample_action()
 
         max_q = float(np.max(q_row))
         best_indices = [index for index, value in enumerate(q_row) if float(value) == max_q]
@@ -394,7 +421,7 @@ class Agent:
                             break
             if action is None:
                 candidate_actions = self._candidate_actions()
-                action_space = getattr(self._adapter, "_action_space", None)
+                action_space = self._get_action_space()
                 # If no candidate actions, handle continuous (Box) action space
                 if (
                     not candidate_actions
@@ -409,8 +436,6 @@ class Agent:
                                 val = payload["action"]
                                 # If action space is Box, clip to valid range
                                 if hasattr(action_space, "low") and hasattr(action_space, "high"):
-                                    import numpy as np
-
                                     val = np.clip(val, action_space.low, action_space.high)
                                 action = val
                                 self._last_action_source = "brain"
@@ -426,8 +451,6 @@ class Agent:
                         and hasattr(action_space, "low")
                         and hasattr(action_space, "high")
                     ):
-                        import numpy as np
-
                         # Handle all possible scalar/int/float/array cases
                         if isinstance(action, (int, float, np.integer, np.floating)):
                             action = np.full(action_space.shape, action, dtype=action_space.dtype)
@@ -449,7 +472,7 @@ class Agent:
                     predictions = self._brain.prediction()
                     if not isinstance(predictions, dict):
                         self._logger.info("Brain predictions unavailable; choosing random action.")
-                        action = self._adapter._action_space.sample()
+                        action = self._sample_action()
                     else:
                         action_predictions = {
                             key: value
@@ -460,7 +483,7 @@ class Agent:
                             self._logger.info(
                                 "No action-like brain predictions; choosing random action."
                             )
-                            action = self._adapter._action_space.sample()
+                            action = self._sample_action()
                         else:
 
                             def score_predicted_action(action):
@@ -506,15 +529,15 @@ class Agent:
             candidate_actions = self._candidate_actions()
             if not candidate_actions:
                 self._last_action_source = "q_table"
-                action = self._adapter._action_space.sample()
+                action = self._sample_action()
             elif self._rng.random() < self._epsilon:
                 self._last_action_source = "q_table"
-                action = self._adapter._action_space.sample()
+                action = self._sample_action()
             else:
                 q_row = self._q_values[state_key]
                 if len(q_row) != len(candidate_actions):
                     self._last_action_source = "q_table"
-                    action = self._adapter._action_space.sample()
+                    action = self._sample_action()
                 else:
                     max_q = float(np.max(q_row))
                     best_indices = [
@@ -527,7 +550,7 @@ class Agent:
             self._logger.warning(
                 f"Unknown policy_mode: {self._policy_mode}, choosing random action."
             )
-            action = self._adapter._action_space.sample()
+            action = self._sample_action()
         self._logger.info(
             "Policy step: mode=%s source=%s action=%s",
             self._policy_mode,
@@ -536,7 +559,7 @@ class Agent:
         )
 
         # --- FINAL Box action enforcement for all selection paths ---
-        action_space = getattr(self._adapter, "_action_space", None)
+        action_space = self._get_action_space()
         if (
             action_space is not None
             and hasattr(action_space, "shape")
@@ -544,8 +567,6 @@ class Agent:
             and hasattr(action_space, "low")
             and hasattr(action_space, "high")
         ):
-            import numpy as np
-
             if isinstance(action, (int, float, np.integer, np.floating)):
                 action = np.full(action_space.shape, action, dtype=action_space.dtype)
             else:

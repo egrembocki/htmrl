@@ -9,13 +9,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import websockets
 from websockets.server import ServerConnection
 
-from psu_capstone.agent_layer.agent import Agent
 from psu_capstone.log import get_logger
+
+if TYPE_CHECKING:
+    from psu_capstone.agent_layer.agent import Agent
 
 
 class AgentWebSocketServer:
