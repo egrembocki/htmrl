@@ -23,14 +23,15 @@ Tests validate:
   5. Multi-field motor coordination
 """
 
-from psu_capstone.agent_layer.pullin.pullin_htm import OutputField
+from psu_capstone.agent_layer.pullin.pullin_htm import InputField, OutputField
 
 """++++++++++Output Field Testing++++++++++"""
 
 
 # commit: unit test
 def test_outputfield_creation():
-    o = OutputField(size=16, motor_action=(0, 1))
+    input_field = InputField()
+    o = OutputField(input_field=input_field, size=16)
     assert isinstance(o, OutputField)
 
 

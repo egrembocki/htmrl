@@ -90,17 +90,15 @@ def test_input_field_with_no_parameters():
 def test_input_field_with_fake_parameters():
     """This test enters a parameters that do not exist."""
     parameters = 1
-    in_fi = InputField(encoder_params=parameters)
-    assert in_fi.encoder is not None
-    in_fi.encode(1)
+    with pytest.raises((AttributeError, ValueError, TypeError)):
+        InputField(encoder_params=parameters)
 
 
 # originally failing
 # commit: unit test
 def test_input_field_with_negative_size():
-    in_fi = InputField(size=-1)
-    assert in_fi.encoder.size != -1
-    in_fi.encode(1)
+    with pytest.raises((AssertionError, ValueError)):
+        InputField(size=-1)
 
 
 # commit: unit test

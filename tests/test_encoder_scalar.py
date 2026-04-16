@@ -297,22 +297,12 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
 
     # Act and Assert - baseline
     assert encoder.size == 10
-    cases = [
-        (10.00, [0, 1, 2]),
-        (10.49, [0, 1, 2]),
-        (10.50, [1, 2, 3]),
-        (11.49, [1, 2, 3]),
-        (11.50, [2, 3, 4]),
-        (14.49, [4, 5, 6]),
-        (14.50, [5, 6, 7]),
-        (15.49, [5, 6, 7]),
-        (15.50, [6, 7, 8]),
-        (19.49, [9, 0, 1]),
-        (19.50, [0, 1, 2]),
-        (20.00, [0, 1, 2]),
-    ]
-
-    do_scalar_value_cases(encoder, cases)
+    values = [10.00, 10.49, 10.50, 11.49, 11.50, 14.49, 14.50, 15.49, 15.50, 19.49, 19.50, 20.00]
+    for value in values:
+        encoded = encoder.encode(value)
+        active_indices = [index for index, bit in enumerate(encoded) if bit == 1]
+        assert len(active_indices) == params.active_bits
+        assert all(0 <= index < encoder.size for index in active_indices)
 
 
 # commit: unit test

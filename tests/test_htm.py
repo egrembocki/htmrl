@@ -39,9 +39,9 @@ def test_cell_initialization(cell):
 
 # commit: unit test
 def test_cell_store_segments(cell, segment):
-    cell.segments.append(segment)
-    assert len(cell.segments) == 1
-    assert cell.segments[0] is segment
+    cell.distal_segments.append(segment)
+    assert len(cell.distal_segments) == 1
+    assert cell.distal_segments[0] is segment
 
 
 # commit: unit test

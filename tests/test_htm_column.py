@@ -80,7 +80,8 @@ def test_column_potential_synapses_created_from_receptive_field():
 # commit: unit test
 def test_column_wrong_field_entry():
     """Makes sure that the field is an input field when wrong entry."""
-    in_fi = OutputField(size=10, motor_action=(None,))
+    input_field = make_input_field_helper()
+    in_fi = OutputField(input_field=input_field, size=10)
     c = Column(in_fi)
     assert isinstance(c.input_field, OutputField)
 
