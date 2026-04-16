@@ -336,15 +336,6 @@ wheels = [
 ]
 
 [[package]]
-name = "docstring-parser-fork"
-version = "0.0.14"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/66/bf/27f9cab2f0cd1d17a4420572088bbc19f36d726fbcf165edf226a8926dbc/docstring_parser_fork-0.0.14.tar.gz", hash = "sha256:a2743a63d8d36c09650594f7b4ab5b2758fee8629dcf794d1b221b23179baa5c", size = 34551, upload-time = "2025-09-07T17:27:38.272Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/50/98b146aea0f1cd7531d25f12bea69fa9ce8d1662124f93fb30dc4511b65e/docstring_parser_fork-0.0.14-py3-none-any.whl", hash = "sha256:4c544f234ef2cc2749a3df32b70c437d77888b1099143a1ad5454452c574b9af", size = 43063, upload-time = "2025-09-07T17:27:37.012Z" },
-]
-
-[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1505,9 +1496,13 @@ dependencies = [
     { name = "pyproj" },
     { name = "scikit-learn" },
     { name = "scipy" },
-    { name = "stable-baselines3" },
     { name = "sympy" },
     { name = "xlrd" },
+]
+
+[package.optional-dependencies]
+rl = [
+    { name = "stable-baselines3" },
 ]
 
 [package.dev-dependencies]
@@ -1526,7 +1521,6 @@ linters = [
     { name = "flake8-pyproject" },
     { name = "interrogate" },
     { name = "pep8-naming" },
-    { name = "pydoclint" },
     { name = "pydocstyle" },
 ]
 tests = [
@@ -1545,10 +1539,11 @@ requires-dist = [
     { name = "pyproj", specifier = ">=3.7.1" },
     { name = "scikit-learn", specifier = ">=1.7.2" },
     { name = "scipy", specifier = ">=1.15.3" },
-    { name = "stable-baselines3", specifier = ">=2.7.1" },
+    { name = "stable-baselines3", marker = "extra == 'rl'", specifier = ">=2.7.1" },
     { name = "sympy", specifier = ">=1.11" },
     { name = "xlrd", specifier = ">=2.0.2" },
 ]
+provides-extras = ["rl"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1566,7 +1561,6 @@ linters = [
     { name = "flake8-pyproject", specifier = ">=1.2.3" },
     { name = "interrogate", specifier = ">=1.7.0" },
     { name = "pep8-naming", specifier = ">=0.15.1" },
-    { name = "pydoclint", specifier = ">=0.5.0" },
     { name = "pydocstyle", specifier = ">=6.3.0" },
 ]
 tests = [
@@ -1591,19 +1585,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/11/e0/abfd2a0d2efe47670df87f3e3a0e2edda42f055053c85361f19c0e2c1ca8/pycodestyle-2.14.0.tar.gz", hash = "sha256:c4b5b517d278089ff9d0abdec919cd97262a3367449ea1c8b49b91529167b783", size = 39472, upload-time = "2025-06-20T18:49:48.75Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/27/a58ddaf8c588a3ef080db9d0b7e0b97215cee3a45df74f3a94dbbf5c893a/pycodestyle-2.14.0-py2.py3-none-any.whl", hash = "sha256:dd6bf7cb4ee77f8e016f9c8e74a35ddd9f67e1d5fd4184d86c3b98e07099f42d", size = 31594, upload-time = "2025-06-20T18:49:47.491Z" },
-]
-
-[[package]]
-name = "pydoclint"
-version = "0.8.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "docstring-parser-fork" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/70/58/bb3c7edd2bd06b07d9bbb494e52e2d2d6d53405b166aac531b1a27cef972/pydoclint-0.8.3.tar.gz", hash = "sha256:0c69c0ed92c6f6b5aec2a14371bbd9e0a77980da8e2fa0f708092aa06b3b20b3", size = 186619, upload-time = "2025-11-26T06:53:43.361Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/6f/cc2b231dc78d8c3aaa674a676db190b8f8071c50134af8f8cf39b9b8e8df/pydoclint-0.8.3-py3-none-any.whl", hash = "sha256:5fc9b82d0d515afce0908cb70e8ff695a68b19042785c248c4f227ad66b4a164", size = 79075, upload-time = "2025-11-26T06:53:42.129Z" },
 ]
 
 [[package]]

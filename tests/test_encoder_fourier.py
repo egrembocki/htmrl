@@ -29,7 +29,7 @@ import pytest
 
 from legacy.sdr_layer.sdr import SDR
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from src.utils import hamming_distance, overlap
+from utils import hamming_distance, overlap
 
 _SIGNAL_LENGTH = 2048
 
