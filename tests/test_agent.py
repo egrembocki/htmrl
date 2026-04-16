@@ -244,8 +244,7 @@ def test_step_runs_brain_then_env_and_returns_transition() -> None:
 
     transition = agent.step(learn=False)
 
-    # Agent now passes reward=0.0 in step inputs
-    assert brain.step_calls == [({"state": 0, "reward": 0.0}, False)]
+    assert brain.step_calls == [({"state": 0}, False)]
     assert adapter.last_step_action == 0
     assert transition["obs"] == {"state": 0}
     assert transition["next_obs"] == {"state": 1}
@@ -360,7 +359,7 @@ def test_real_brain_agent_adapter_gym_single_step_q_table() -> None:
         assert isinstance(transition["next_inputs"], dict)
         assert "reward" in transition
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_brain_policy_mode_fallback_to_q_table() -> None:
@@ -378,7 +377,7 @@ def test_real_brain_policy_mode_fallback_to_q_table() -> None:
         assert isinstance(transition["terminated"], bool)
         assert isinstance(transition["truncated"], bool)
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_brain_reads_and_encodes_adapter_inputs() -> None:
@@ -400,10 +399,9 @@ def test_real_brain_reads_and_encodes_adapter_inputs() -> None:
             transition = agent.step(learn=False)
 
         for name, encode_spy in encode_spies.items():
-            if name in transition["inputs"]:
-                encode_spy.assert_called_once_with(transition["inputs"][name])
+            encode_spy.assert_called_once_with(transition["inputs"][name])
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_input_fields_encode_values_into_sdr_vectors() -> None:
@@ -423,7 +421,7 @@ def test_real_input_fields_encode_values_into_sdr_vectors() -> None:
             assert set(encoded).issubset({0, 1})
             assert sum(encoded) > 0
     finally:
-        adapter._env.close()
+        adapter.env.close()
 
 
 def test_real_output_field_decode_drives_brain_policy_action() -> None:
@@ -445,4 +443,4 @@ def test_real_output_field_decode_drives_brain_policy_action() -> None:
         assert transition["action"] == 1
         assert transition["action"] in (0, 1)
     finally:
-        adapter._env.close()
+        adapter.env.close()

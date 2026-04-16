@@ -18,10 +18,11 @@ import numpy as np
 
 import grapher
 import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain
-from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
+from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
 
 # Rebind encoder parameter types locally so callers can use short names without
@@ -276,13 +277,13 @@ class Trainer:
                 CoordinateParameters,
             )
             if isinstance(param, encoder_param_types):
-                encoder_kwargs = asdict(param)
+                pass
             else:
                 raise ValueError(
                     f"Encoder parameter {param} is not a supported encoder parameter dataclass instance."
                 )
             created_encoder = cast(
-                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, encoder_kwargs)
+                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, asdict(param))
             )
             encoder_params = param
 
@@ -327,7 +328,7 @@ class Trainer:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
             input_fields=self._trainer_input_fields,
-            non_spatial=True,
+            non_spatial=False,
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )
@@ -535,6 +536,7 @@ class Trainer:
         if name.endswith("_column"):
             field = ColumnField(
                 input_fields=self._trainer_input_fields,
+                non_spatial=False,
                 num_columns=num_columns,
                 cells_per_column=cells_per_column,
             )
