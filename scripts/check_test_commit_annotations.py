@@ -65,7 +65,9 @@ def _find_commit_annotation(
 def _test_nodes(tree: ast.AST) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
     nodes: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith(
+            "test_"
+        ):
             nodes.append(node)
     return nodes
 
