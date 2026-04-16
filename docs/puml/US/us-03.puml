@@ -3,50 +3,36 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-03 Encode Data
+title US-03 Encode Data: Brain.step(inputs, learn)
 
 actor Developer
-participant "<u>ih:InputHandler</u>" as IH
 participant "<u>b:Brain</u>" as B
 participant "<u>if:InputField</u>" as IF
-participant "<u>be:BaseEncoder\n(concrete implementation)</u>" as BE
-participant "<u>h:ColumnField</u>" as H
+participant "<u>cf:ColumnField</u>" as CF
+participant "<u>of:OutputField</u>" as OF
 
-group Input layer prepares normalized rows
-  Developer -> IH: input_data(data, required_columns)
-  activate IH
-  IH -> IH: validate + normalize
-  IH --> Developer: normalized rows
-  deactivate IH
+Developer -> B: step(inputs, learn=True)
+activate B
+B -> B: encode_only(inputs)
+loop each registered input present in inputs
+  B -> IF: encode(value)
+  IF --> B: encoded SDR on input field
 end
 
-group Brain orchestrates encoding and compute
-  loop each normalized row
-    Developer -> B: step(row_inputs, learn=True)
-    activate B
-
-    B -> IF: encode(value)
-    activate IF
-    IF -> BE: encode(value)
-    activate BE
-    BE --> IF: encoded_bits
-    deactivate BE
-    IF -> IF: set active cells from encoded_bits
-    IF --> B: encoded_bits
-    deactivate IF
-
-    B -> H: compute(learn=True)
-    activate H
-    H --> B: active/predictive state
-    deactivate H
-
-    B --> Developer: step result
-    deactivate B
-  end
+B -> B: compute_only(learn=True)
+loop each column/value field
+  B -> CF: compute(learn=True)
+  CF --> B: updated HTM state
 end
 
-note over IF,BE
-InputField performs the delegation call.
-The concrete BaseEncoder implementation executes encode(value).
-end note
+B -> B: estimate_value(reward?)
+B -> B: activate_apical_segments()
+B -> B: generate_behavior()
+loop each output field
+  B -> OF: compute()
+  OF --> B: decode() -> {value, confidence}
+end
+
+B --> Developer: behavior map {output_name: {action, confidence}}
+deactivate B
 @enduml

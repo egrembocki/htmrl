@@ -2,39 +2,34 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-04 Input Parameters:Encoder Constructors
+
+title US-04 Input Parameters: Encoder parameter dataclasses + Trainer field setup
 
 actor Developer
-participant "<u>encoder:BaseEncoder</u>" as EC
-participant "<u>ih:InputHandler</u>" as IH
-participant "<u>b:Brain</u>" as B
-participant "<u>if:InputField</u>" as IFTS
+participant "<u>params:*Parameters</u>" as P
+participant "<u>tr:Trainer</u>" as TR
+participant "<u>factory:EncoderFactory</u>" as EF
+participant "<u>if/of:InputField/OutputField</u>" as F
 
-Developer -> EC: pass encoder parameters\n(e.g., ScalarEncoderParameters, RDSEParameters)
-EC --> Developer: configured encoder instances
+Developer -> P: Construct parameter dataclass\n(RDSEParameters/CategoryParameters/etc.)
+Developer -> TR: add_input_field(name, size, params)
+activate TR
+TR -> TR: _encoder_type_from_params(params)
+TR -> EF: create_encoder(encoder_type, **asdict(params))
+EF --> TR: encoder instance
+TR -> F: create InputField(..., encoder)
+TR --> Developer: field registered in main_brain.fields
+deactivate TR
 
-Developer -> IH: input_data(input_source, required_columns)
-activate IH
-IH -> IH: _process_dataframe(df, required_columns)
-opt required_columns provided
-  IH -> IH: add missing columns
-end
-IH --> Developer: normalized dict[Any, list[Any]]
-deactivate IH
+Developer -> TR: add_output_field(name, size, params or motor_action)
+TR -> F: create OutputField(...)
+TR --> Developer: output field registered
 
-Developer -> B: initialize Brain with configured components/params
-activate B
-B --> Developer: ready for step(inputs, learn)
+Developer -> TR: add_column_field(name, num_columns, cells_per_column)
+TR --> Developer: ColumnField registered
 
-B -> IFTS: initialize with provided encoder parameters
-activate IFTS
-IFTS --> B: encoder ready
-deactivate IFTS
-
-deactivate B
-
-note over EC,B
-Brain is the runtime entry point for encoder parameters.
-Parameter tuning is also entered manually via constructor args dataclass.
+note over TR
+Trainer enforces naming conventions:
+*_input, *_output, *_column.
 end note
 @enduml
