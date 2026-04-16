@@ -408,8 +408,6 @@ class Agent:
                                 val = payload["action"]
                                 # If action space is Box, clip to valid range
                                 if hasattr(action_space, "low") and hasattr(action_space, "high"):
-                                    import numpy as np
-
                                     val = np.clip(val, action_space.low, action_space.high)
                                 action = val
                                 self._last_action_source = "brain"
@@ -425,8 +423,6 @@ class Agent:
                         and hasattr(action_space, "low")
                         and hasattr(action_space, "high")
                     ):
-                        import numpy as np
-
                         # Handle all possible scalar/int/float/array cases
                         if isinstance(action, (int, float, np.integer, np.floating)):
                             action = np.full(action_space.shape, action, dtype=action_space.dtype)
@@ -543,8 +539,6 @@ class Agent:
             and hasattr(action_space, "low")
             and hasattr(action_space, "high")
         ):
-            import numpy as np
-
             if isinstance(action, (int, float, np.integer, np.floating)):
                 action = np.full(action_space.shape, action, dtype=action_space.dtype)
             else:
