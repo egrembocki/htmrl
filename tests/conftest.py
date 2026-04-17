@@ -46,12 +46,12 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         ):
             item.add_marker(pytest.mark.system)
             continue
+        if path.endswith("tests/test_agent_server.py"):
+            item.add_marker(pytest.mark.system)
+            continue
 
         # Integration: explicit integration folder and selected cross-component tests.
         if "/tests/integration/" in path:
-            item.add_marker(pytest.mark.integration)
-            continue
-        if path.endswith("tests/test_agent_server.py"):
             item.add_marker(pytest.mark.integration)
             continue
 

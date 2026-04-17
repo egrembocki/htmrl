@@ -34,9 +34,9 @@ tests/integration/test_encoder_htm_integration.py,1118,test_predictive_state_pro
 tests/integration/test_encoder_input_integration.py,83,test_input_handler_to_encoder_pipeline,—,—,TI-016,integration test,integration,commit:integration test
 tests/integration/test_encoder_to_htm.py,60,test_encoder_to_htm_receives_sdr_object,—,—,—,integration test,integration,commit:integration test
 tests/integration/test_input_to_encoder.py,54,test_input_to_encoder_passes_records_into_encoder,—,—,—,integration test,integration,commit:integration test
-tests/test_agent_server.py,48,test_build_trading_visualization_returns_none_for_non_trading_obs,—,—,—,integration test,integration,commit:integration test
-tests/test_agent_server.py,66,test_build_trading_visualization_computes_good_buy_alignment,—,—,—,integration test,integration,commit:integration test
 tests/integration/test_input_to_encoder.py,85,test_sine_wave_through_input_handler,—,—,TI-015,system test,system,commit:system test
+tests/test_agent_server.py,48,test_build_trading_visualization_returns_none_for_non_trading_obs,—,—,—,system test,system,commit:system test
+tests/test_agent_server.py,66,test_build_trading_visualization_computes_good_buy_alignment,—,—,—,system test,system,commit:system test
 tests/test_cartpole_brain_training.py,13,test_train_env_policy_returns_metrics,TS-21,—,—,system test,system,commit:system test
 tests/test_agent.py,84,test_q_table_policy_requires_discrete_action_space,TS-19,TC-155,—,unit test,unit,commit:unit test
 tests/test_agent.py,95,test_q_values_row_initialized_by_action_count,TS-19,TC-156,—,unit test,unit,commit:unit test

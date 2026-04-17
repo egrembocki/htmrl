@@ -6,8 +6,8 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 
 - Total discovered tests: **358**
 - Unit tests: **319**
-- Integration tests: **36**
-- System tests: **2**
+- Integration tests: **34**
+- System tests: **4**
 - Acceptance tests: **1**
 - Missing TS ID: **108** tests
 - Missing TC/TI ID: **205** tests
@@ -56,9 +56,9 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | integration | — | — | TI-016 | `test_input_handler_to_encoder_pipeline` | `tests/integration/test_encoder_input_integration.py` | 83 | `commit:integration test` |
 | integration | — | — | — | `test_encoder_to_htm_receives_sdr_object` | `tests/integration/test_encoder_to_htm.py` | 60 | `commit:integration test` |
 | integration | — | — | — | `test_input_to_encoder_passes_records_into_encoder` | `tests/integration/test_input_to_encoder.py` | 54 | `commit:integration test` |
-| integration | — | — | — | `test_build_trading_visualization_returns_none_for_non_trading_obs` | `tests/test_agent_server.py` | 48 | `commit:integration test` |
-| integration | — | — | — | `test_build_trading_visualization_computes_good_buy_alignment` | `tests/test_agent_server.py` | 66 | `commit:integration test` |
 | system | — | — | TI-015 | `test_sine_wave_through_input_handler` | `tests/integration/test_input_to_encoder.py` | 85 | `commit:system test` |
+| system | — | — | — | `test_build_trading_visualization_returns_none_for_non_trading_obs` | `tests/test_agent_server.py` | 48 | `commit:system test` |
+| system | — | — | — | `test_build_trading_visualization_computes_good_buy_alignment` | `tests/test_agent_server.py` | 66 | `commit:system test` |
 | system | TS-21 | — | — | `test_train_env_policy_returns_metrics` | `tests/test_cartpole_brain_training.py` | 13 | `commit:system test` |
 | unit | TS-19 | TC-155 | — | `test_q_table_policy_requires_discrete_action_space` | `tests/test_agent.py` | 84 | `commit:unit test` |
 | unit | TS-19 | TC-156 | — | `test_q_values_row_initialized_by_action_count` | `tests/test_agent.py` | 95 | `commit:unit test` |
