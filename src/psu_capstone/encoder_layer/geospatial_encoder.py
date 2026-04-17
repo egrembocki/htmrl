@@ -10,7 +10,7 @@ from typing import Iterable, Optional, override
 import numpy as np
 from pyproj import CRS, Transformer
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 # Good for 2D projected x/y coordinates in meters

@@ -237,7 +237,11 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
+    def _setup_io_fields(
+        self,
+        fields: list[tuple[str, int, ParameterMarker]],
+        possible_actions: list[Any] | None = None,
+    ) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -297,9 +301,13 @@ class Trainer:
                         "At least one input field must be defined before creating an OutputField."
                     )
                 input_field = self._trainer_input_fields[0]
-                field = OutputField(
-                    input_field=input_field, encoder_params=encoder_params, size=size
-                )
+                try:
+                    field = OutputField(
+                        input_field=input_field, encoder_params=encoder_params, size=size
+                    )
+                except TypeError:
+                    action_candidates = tuple(possible_actions) if possible_actions else (0,)
+                    field = OutputField(size=size, motor_action=action_candidates)
                 field.name = name
                 # Register all possible actions with the encoder for OutputField
                 if possible_actions is not None:
@@ -505,7 +513,16 @@ class Trainer:
                     "At least one input field must be defined before creating an OutputField."
                 )
             input_field = self._trainer_input_fields[0]
-            field = OutputField(input_field=input_field, encoder_params=encoder_params, size=size)
+            # Support both OutputField signatures used in this repository:
+            # - New: OutputField(input_field=..., encoder_params=..., size=...)
+            # - Legacy: OutputField(size=..., motor_action=...)
+            try:
+                field = OutputField(
+                    input_field=input_field, encoder_params=encoder_params, size=size
+                )
+            except TypeError:
+                action_candidates = tuple(possible_actions) if possible_actions else (0,)
+                field = OutputField(size=size, motor_action=action_candidates)
             field.name = name
             # Register all possible actions with the encoder for OutputField
             if possible_actions is not None:

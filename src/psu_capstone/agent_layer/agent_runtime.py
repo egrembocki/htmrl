@@ -75,6 +75,18 @@ FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
         },
         "max_steps_per_episode": 500,
     },
+    "TradingEnv": {
+        "observation_labels": ["open", "high", "low", "close", "volume"],
+        "action_count": 3,
+        "initial_observation": {
+            "open": 1769.5,
+            "high": 1773.5,
+            "low": 1739.75,
+            "close": 1749.25,
+            "volume": 1623508.0,
+        },
+        "max_steps_per_episode": 500,
+    },
     "CartPole-v1": {
         "observation_labels": [
             "Cart Position",
@@ -287,10 +299,6 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
         adapter=adapter,
         episodes=config.episodes,
         policy_mode=config.policy_mode,
-        # Keep confidence-threshold fallback behavior active in brain mode:
-        # brain (>= threshold) -> ppo -> q_table.
-        force_brain_mode=False,
-        config=config,  # Pass config so Agent can use the seed
     )
 
     # Only pre-train PPO if policy_mode is 'ppo'

@@ -18,6 +18,7 @@ Environments tested:
     - MountainCar-v0
     - Pendulum-v1
     - LunarLander-v3
+    - TradingEnv
     - (add more as needed)
 
 Requires: matplotlib, pandas, gymnasium, numpy
@@ -38,6 +39,7 @@ envs = [
     "MountainCar-v0",
     "Pendulum-v1",
     "LunarLander-v3",
+    "TradingEnv",
 ]
 
 REWARD_FILE_TEMPLATE = "episode_rewards_{env}.json"
