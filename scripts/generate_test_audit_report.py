@@ -147,7 +147,7 @@ def main() -> None:
                 "ti_id",
                 "commit_tag",
                 "test_type",
-                "type_source",
+                "Test Type:",
             ]
         )
         for r in rows:
@@ -199,7 +199,7 @@ def main() -> None:
     md.append("")
     md.append("## Full Table (all tests)")
     md.append("")
-    md.append("| Test Type | TS | TC | TI | Test Name | File | Line | Type Source |")
+    md.append("| Test Type | TS | TC | TI | Test Name | File | Line | Test Type: |")
     md.append("|---|---|---|---|---|---|---:|---|")
     for r in rows:
         md.append(
