@@ -1,5 +1,5 @@
-# Test Suite: TS 21 (Brain Policy Training Across Server Envs)
-"""Smoke tests for generic env brain-policy training loop."""
+# Test Suite: TS 29 (Brain Policy Training Across Server Envs)
+"""System smoke tests for brain-policy training across server environment types."""
 
 from __future__ import annotations
 
@@ -12,15 +12,12 @@ from psu_capstone.agent_layer.brain_training_helper import (
 )
 
 
-# Test Type: system test
+# Test Type: system test : TS 29 TC 261
 @pytest.mark.parametrize(
     "env_id",
-    [
-        pytest.param(name, id=name)
-        for name in FRONTEND_ENV_SPECS.keys()
-    ],
+    [pytest.param(name, id=name) for name in FRONTEND_ENV_SPECS.keys()],
 )
-def test_train_env_policy_returns_metrics(env_id: str) -> None:
+def test_train_env_policy_returns_metrics_for_each_server_env(env_id: str) -> None:
     """Training helper should run and return structured metrics for each server env type."""
 
     # LunarLander requires optional Box2D dependencies in some environments.
