@@ -5,9 +5,9 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 ## Summary
 
 - Total discovered tests: **358**
-- Unit tests: **314**
-- Integration tests: **34**
-- System tests: **9**
+- Unit tests: **312**
+- Integration tests: **41**
+- System tests: **4**
 - Acceptance tests: **1**
 - Missing TS ID: **151** tests
 - Missing TC/TI ID: **201** tests
@@ -21,7 +21,7 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 
 | Test Type | TS | TC | TI | Test Name | File | Line | Type Source |
 |---|---|---|---|---|---|---:|---|
-| acceptance | TS-10 | TC-097 | — | `test_run_full_demo_generates_visual_artifacts` | `tests/test_demo_driver_full_demo.py` | 7 | `commit:system/acceptance test` |
+| acceptance | TS-10 | TC-097 | — | `test_run_full_demo_generates_visual_artifacts` | `tests/test_demo_driver_full_demo.py` | 7 | `commit:acceptance test` |
 | integration | TS-11 | — | TI-001 | `test_input_field_initialization_with_rdse` | `tests/integration/test_encoder_htm_integration.py` | 58 | `commit:integration test` |
 | integration | TS-11 | — | TI-002 | `test_input_field_encode_scalar_values` | `tests/integration/test_encoder_htm_integration.py` | 89 | `commit:integration test` |
 | integration | TS-11 | — | TI-003 | `test_input_field_encode_sequence` | `tests/integration/test_encoder_htm_integration.py` | 128 | `commit:integration test` |
@@ -56,15 +56,17 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | integration | — | — | — | `test_input_handler_to_encoder_pipeline` | `tests/integration/test_encoder_input_integration.py` | 82 | `inferred:path(/integration/)` |
 | integration | — | — | — | `test_encoder_to_htm_receives_sdr_object` | `tests/integration/test_encoder_to_htm.py` | 60 | `commit:integration test` |
 | integration | — | — | — | `test_input_to_encoder_passes_records_into_encoder` | `tests/integration/test_input_to_encoder.py` | 54 | `commit:integration test` |
-| system | — | — | — | `test_sine_wave_through_input_handler` | `tests/integration/test_input_to_encoder.py` | 84 | `commit:system/integration test` |
-| system | TS-21 | TC-167 | — | `test_train_env_policy_returns_metrics` | `tests/test_cartpole_brain_training.py` | 13 | `commit:system/integration test` |
-| system | TS-20 | TC-170 | — | `test_env_adapter_accepts_instantiated_fingym` | `tests/test_env_adapter.py` | 15 | `commit:system/integration test` |
-| system | TS-20 | TC-171 | — | `test_env_adapter_accepts_make_kwargs` | `tests/test_env_adapter.py` | 54 | `commit:system/integration test` |
-| system | TS-20 | TC-172 | — | `test_env_adapter_rejects_kwargs_with_env_instance` | `tests/test_env_adapter.py` | 65 | `commit:system/integration test` |
-| system | — | — | — | `test_fingym_builds_observation_from_dataframe` | `tests/test_fin_gym.py` | 15 | `commit:system/integration test` |
-| system | — | — | — | `test_fingym_step_progression_and_reward` | `tests/test_fin_gym.py` | 36 | `commit:system/integration test` |
-| system | — | — | — | `test_fingym_rejects_invalid_action` | `tests/test_fin_gym.py` | 63 | `commit:system/integration test` |
-| system | — | — | — | `test_fingym_loads_csv` | `tests/test_fin_gym.py` | 75 | `commit:system/integration test` |
+| integration | TS-20 | TC-170 | — | `test_env_adapter_accepts_instantiated_fingym` | `tests/test_env_adapter.py` | 15 | `commit:integration test` |
+| integration | TS-20 | TC-171 | — | `test_env_adapter_accepts_make_kwargs` | `tests/test_env_adapter.py` | 54 | `commit:integration test` |
+| integration | TS-20 | TC-172 | — | `test_env_adapter_rejects_kwargs_with_env_instance` | `tests/test_env_adapter.py` | 65 | `commit:integration test` |
+| integration | — | — | — | `test_fingym_builds_observation_from_dataframe` | `tests/test_fin_gym.py` | 15 | `commit:integration test` |
+| integration | — | — | — | `test_fingym_step_progression_and_reward` | `tests/test_fin_gym.py` | 36 | `commit:integration test` |
+| integration | — | — | — | `test_fingym_rejects_invalid_action` | `tests/test_fin_gym.py` | 63 | `commit:integration test` |
+| integration | — | — | — | `test_fingym_loads_csv` | `tests/test_fin_gym.py` | 75 | `commit:integration test` |
+| system | — | — | — | `test_sine_wave_through_input_handler` | `tests/integration/test_input_to_encoder.py` | 84 | `commit:system test` |
+| system | — | — | — | `test_build_trading_visualization_returns_none_for_non_trading_obs` | `tests/test_agent_server.py` | 48 | `commit:system test` |
+| system | — | — | — | `test_build_trading_visualization_computes_good_buy_alignment` | `tests/test_agent_server.py` | 66 | `commit:system test` |
+| system | TS-21 | TC-167 | — | `test_train_env_policy_returns_metrics` | `tests/test_cartpole_brain_training.py` | 13 | `commit:system test` |
 | unit | TS-19 | TC-155 | — | `test_q_table_policy_requires_discrete_action_space` | `tests/test_agent.py` | 84 | `commit:unit test` |
 | unit | TS-19 | TC-156 | — | `test_q_values_row_initialized_by_action_count` | `tests/test_agent.py` | 95 | `commit:unit test` |
 | unit | TS-19 | TC-157 | — | `test_select_q_action_uses_argmax_when_not_exploring` | `tests/test_agent.py` | 108 | `commit:unit test` |
@@ -80,8 +82,6 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | TS-19 | TC-167 | — | `test_real_brain_reads_and_encodes_adapter_inputs` | `tests/test_agent.py` | 318 | `commit:unit test` |
 | unit | TS-19 | TC-168 | — | `test_real_input_fields_encode_values_into_sdr_vectors` | `tests/test_agent.py` | 345 | `commit:unit test` |
 | unit | TS-19 | TC-169 | — | `test_real_output_field_decode_drives_brain_policy_action` | `tests/test_agent.py` | 359 | `commit:unit test` |
-| unit | — | — | — | `test_build_trading_visualization_returns_none_for_non_trading_obs` | `tests/test_agent_server.py` | 48 | `commit:unit test` |
-| unit | — | — | — | `test_build_trading_visualization_computes_good_buy_alignment` | `tests/test_agent_server.py` | 66 | `commit:unit test` |
 | unit | TS-08 | TC-065 | — | `test_base_encoder_initialization` | `tests/test_base_encoder.py` | 43 | `commit:unit test` |
 | unit | TS-08 | TC-166 | — | `test_base_encoder_size_setter` | `tests/test_base_encoder.py` | 58 | `commit:unit test` |
 | unit | — | — | — | `test_add_noise` | `tests/test_column_field.py` | 156 | `commit:unit test` |
