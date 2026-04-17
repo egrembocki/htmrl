@@ -714,6 +714,9 @@ class Trainer:
 
         Returns:
             The deserialized Brain.
+
+        Raises:
+            TypeError: If the file does not unpickle to a :class:`Brain` instance.
         """
 
         path = Path(filename).expanduser()
