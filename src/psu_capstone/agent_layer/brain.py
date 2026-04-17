@@ -74,8 +74,11 @@ class Brain(AbstractBrain):
         return self.fields[name]
 
     def __getattr__(self, name: str) -> Field:
-        if name in self.fields:
-            return self.fields[name]
+        # Use __getattribute__ for `fields` so unpickling and edge cases do not recurse
+        # via attribute lookup on a half-restored instance.
+        fields = object.__getattribute__(self, "fields")
+        if name in fields:
+            return fields[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def step(

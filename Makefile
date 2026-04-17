@@ -76,7 +76,7 @@ lint-docs: ## Check docstring coverage and style
 
 lint-docs-strict: ## Strict docstring validation with pydoclint
 	@echo "📝 Running strict docstring validation..."
-	@uv run --active pydoclint --style=google --exclude='\.venv|tests|build' src/
+	@uv run --with pydoclint --with docstring-parser-fork pydoclint --style=google --exclude='\.venv|tests|build' src/
 	@echo "✅ Strict docstring validation complete"
 
 clean:
