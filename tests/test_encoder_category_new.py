@@ -116,6 +116,38 @@ def test_with_sparsity():
 
 
 # Test Type: unit test
+def test_sparsity_config_computes_meaningful_active_bits_attribute():
+    """When only sparsity is configured, active_bits_per_category should still be meaningful."""
+    parameters = CategoryParametersNew(
+        size=1000,
+        active_bits_per_category=0,
+        sparsity=0.02,
+        category_list=["A", "B", "C"],
+        rdse_used=True,
+    )
+    encoder = CategoryEncoderNew(parameters=parameters)
+
+    assert encoder.active_bits_per_category == 20
+    assert encoder.sparsity == pytest.approx(0.02)
+
+
+# Test Type: unit test
+def test_active_bits_config_computes_meaningful_sparsity_attribute():
+    """When only active_bits is configured, sparsity should still be meaningful."""
+    parameters = CategoryParametersNew(
+        size=500,
+        active_bits_per_category=25,
+        sparsity=0.0,
+        category_list=["A", "B", "C"],
+        rdse_used=False,
+    )
+    encoder = CategoryEncoderNew(parameters=parameters)
+
+    assert encoder.active_bits_per_category == 25
+    assert encoder.sparsity == pytest.approx(0.05)
+
+
+# Test Type: unit test
 def test_rdse_used():
     """
     This test uses the RDSE and demonstrates that the same encoder encoding a category twice

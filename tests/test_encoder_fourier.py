@@ -95,6 +95,7 @@ def _overlap(first: np.ndarray | list[int], second: np.ndarray | list[int]) -> i
 
 # Test Type: unit test
 def test_identical_frequencies_overlap_completely() -> None:
+    # TS-12 TC-080
     """A pure tone should map to the same SDR every time, proving determinism.
 
     TC-080: Identical frequencies should produce identical SDRs with high overlap.
@@ -112,6 +113,7 @@ def test_identical_frequencies_overlap_completely() -> None:
 
 # Test Type: unit test
 def test_close_frequencies_share_more_bits_than_far_ones() -> None:
+    # TS-12 TC-081
     """Neighbouring tones should collide more than mid or distant tones to prove locality.
 
     TC-081: SDRs for close frequencies should have higher overlap than those for mid or far frequencies.
@@ -137,6 +139,7 @@ def test_close_frequencies_share_more_bits_than_far_ones() -> None:
 
 # Test Type: unit test
 def test_identical_frequency_with_different_magnitudes_remains_similar() -> None:
+    # TS-12 TC-082
     """Amplitude changes alone should not scramble the SDR bits for a fixed frequency.
 
     TC-082: SDRs for the same frequency with different amplitudes should have high overlap.
@@ -153,6 +156,7 @@ def test_identical_frequency_with_different_magnitudes_remains_similar() -> None
 
 # Test Type: unit test
 def test_far_frequencies_remain_mostly_orthogonal() -> None:
+    # TS-12 TC-083
     """Widely separated tones should produce low overlap, validating global coverage.
 
     TC-083: SDRs for widely separated frequencies should have low overlap.
@@ -169,6 +173,7 @@ def test_far_frequencies_remain_mostly_orthogonal() -> None:
 
 # Test Type: unit test
 def test_composite_signal_retains_component_information() -> None:
+    # TS-12 TC-084
     """A sum of sinusoids should overlap strongly with each constituent tone.
 
     TC-084: SDRs for a composite signal should have high overlap with each component frequency.
@@ -193,6 +198,7 @@ def test_composite_signal_retains_component_information() -> None:
 
 # Test Type: unit test
 def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> None:
+    # TS-12 TC-085
     """
     Amplitude modulation generates the sum and difference frequencies.
     Carrier freq and modulator will be dimished near zero in the fft.
@@ -217,6 +223,7 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
 
 # Test Type: unit test
 def test_decode_single_tone_returns_expected_frequency() -> None:
+    # TS-12 TC-086
     """Decode should identify the strongest frequency when candidates are provided.
 
     TC-086: Decode should identify the strongest frequency when candidates are provided.
@@ -241,6 +248,7 @@ def test_decode_single_tone_returns_expected_frequency() -> None:
 
 # Test Type: unit test
 def test_decode_rejects_incorrect_sdr_size() -> None:
+    # TS-12 TC-087
     """Decode should raise when the SDR size does not match encoder size.
 
     TC-087: Decode should raise when the SDR size does not match encoder size.

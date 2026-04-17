@@ -357,6 +357,7 @@ def test_sdr_destroy():
 
 # Test Type: unit test
 def test_sdr_interface_object(sdr_fixture: SDR):
+    # TS-02 TC-030
     """Test that SDR implements SDRInterface."""
 
     # Arrange

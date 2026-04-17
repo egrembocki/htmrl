@@ -46,6 +46,7 @@ def real_server() -> AgentWebSocketServer:
 
 # Test Type: system test
 def test_build_trading_visualization_returns_none_for_non_trading_obs(
+    # TS-29 TC-261
     real_server: AgentWebSocketServer,
 ) -> None:
     server = real_server
@@ -64,6 +65,7 @@ def test_build_trading_visualization_returns_none_for_non_trading_obs(
 
 # Test Type: system test
 def test_build_trading_visualization_computes_good_buy_alignment(
+    # TS-29 TC-261
     real_server: AgentWebSocketServer,
 ) -> None:
     server = real_server

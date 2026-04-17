@@ -33,8 +33,7 @@ class CategoryEncoderNew(BaseEncoder[str]):
     """
 
     def __init__(self, parameters: CategoryParametersNew):
-        self._parameters = copy.deepcopy(parameters)
-        # self._w = self._parameters.w
+        self._parameters = self.check_parameters(copy.deepcopy(parameters))
         self._category_list = self._parameters.category_list
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
@@ -46,12 +45,10 @@ class CategoryEncoderNew(BaseEncoder[str]):
         super().__init__(self._size)
         # Configure RDSE for random distributed encoding
         if self._RDSEused:
-            print("Active bits: ", self.active_bits_per_category)
-            print("Sparsity: ", self.sparsity)
             self.rdsep = RDSEParameters(
                 size=self.size,
                 active_bits=self.active_bits_per_category,
-                sparsity=self.sparsity,
+                sparsity=0.0,
                 radius=0.0,
                 resolution=1.0,
                 category=False,
@@ -67,7 +64,7 @@ class CategoryEncoderNew(BaseEncoder[str]):
                 periodic=False,
                 category=False,
                 active_bits=self.active_bits_per_category,
-                sparsity=self.sparsity,
+                sparsity=0.0,
                 size=self.size,
                 radius=0.0,
                 resolution=1.0,

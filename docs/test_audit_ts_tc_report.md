@@ -4,13 +4,13 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 
 ## Summary
 
-- Total discovered tests: **358**
-- Unit tests: **319**
+- Total discovered tests: **360**
+- Unit tests: **322**
 - Integration tests: **34**
-- System tests: **4**
+- System tests: **3**
 - Acceptance tests: **1**
 - Missing TS ID: **108** tests
-- Missing TC/TI ID: **205** tests
+- Missing TC/TI ID: **176** tests
 
 ## Deliverables
 
@@ -21,7 +21,7 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 
 | Test Type | TS | TC | TI | Test Name | File | Line | Test Type: |
 |---|---|---|---|---|---|---:|---|
-| acceptance | TS-10 | — | — | `test_run_full_demo_generates_visual_artifacts` | `tests/test_demo_driver_full_demo.py` | 7 | `commit:acceptance test` |
+| acceptance | TS-30 | TC-262 | — | `test_run_full_demo_generates_visual_artifacts` | `tests/test_demo_driver_full_demo.py` | 7 | `inferred:test_name` |
 | integration | TS-11 | — | TI-001 | `test_input_field_initialization_with_rdse` | `tests/integration/test_encoder_htm_integration.py` | 58 | `commit:integration test` |
 | integration | TS-11 | — | TI-002 | `test_input_field_encode_scalar_values` | `tests/integration/test_encoder_htm_integration.py` | 89 | `commit:integration test` |
 | integration | TS-11 | — | TI-003 | `test_input_field_encode_sequence` | `tests/integration/test_encoder_htm_integration.py` | 128 | `commit:integration test` |
@@ -57,9 +57,8 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | integration | — | — | — | `test_encoder_to_htm_receives_sdr_object` | `tests/integration/test_encoder_to_htm.py` | 60 | `commit:integration test` |
 | integration | — | — | — | `test_input_to_encoder_passes_records_into_encoder` | `tests/integration/test_input_to_encoder.py` | 54 | `commit:integration test` |
 | system | — | — | TI-015 | `test_sine_wave_through_input_handler` | `tests/integration/test_input_to_encoder.py` | 85 | `commit:system test` |
-| system | — | — | — | `test_build_trading_visualization_returns_none_for_non_trading_obs` | `tests/test_agent_server.py` | 48 | `commit:system test` |
-| system | — | — | — | `test_build_trading_visualization_computes_good_buy_alignment` | `tests/test_agent_server.py` | 66 | `commit:system test` |
-| system | TS-21 | — | — | `test_train_env_policy_returns_metrics` | `tests/test_cartpole_brain_training.py` | 13 | `commit:system test` |
+| system | TS-29 | TC-261 | — | `test_build_trading_visualization_returns_none_for_non_trading_obs` | `tests/test_agent_server.py` | 48 | `commit:system test` |
+| system | TS-29 | TC-261 | — | `test_build_trading_visualization_computes_good_buy_alignment` | `tests/test_agent_server.py` | 67 | `commit:system test` |
 | unit | TS-19 | TC-155 | — | `test_q_table_policy_requires_discrete_action_space` | `tests/test_agent.py` | 84 | `commit:unit test` |
 | unit | TS-19 | TC-156 | — | `test_q_values_row_initialized_by_action_count` | `tests/test_agent.py` | 95 | `commit:unit test` |
 | unit | TS-19 | TC-157 | — | `test_select_q_action_uses_argmax_when_not_exploring` | `tests/test_agent.py` | 108 | `commit:unit test` |
@@ -76,7 +75,8 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | TS-19 | TC-168 | — | `test_real_input_fields_encode_values_into_sdr_vectors` | `tests/test_agent.py` | 345 | `commit:unit test` |
 | unit | TS-19 | TC-169 | — | `test_real_output_field_decode_drives_brain_policy_action` | `tests/test_agent.py` | 359 | `commit:unit test` |
 | unit | TS-08 | TC-065 | — | `test_base_encoder_initialization` | `tests/test_base_encoder.py` | 43 | `commit:unit test` |
-| unit | TS-08 | — | — | `test_base_encoder_size_setter` | `tests/test_base_encoder.py` | 58 | `commit:unit test` |
+| unit | TS-08 | TC-065 | — | `test_base_encoder_size_setter` | `tests/test_base_encoder.py` | 58 | `commit:unit test` |
+| unit | TS-29 | TC-261 | — | `test_train_env_policy_returns_metrics_for_each_server_env` | `tests/test_brain_training_env.py` | 20 | `inferred:default` |
 | unit | — | — | — | `test_add_noise` | `tests/test_column_field.py` | 156 | `commit:unit test` |
 | unit | TS-25 | — | — | `test_active_ratio_matches_desired_sparsity` | `tests/test_column_field.py` | 180 | `commit:unit test` |
 | unit | TS-25 | — | — | `test_sparsity_invariant_to_input_density` | `tests/test_column_field.py` | 199 | `commit:unit test` |
@@ -140,36 +140,38 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | — | — | — | `test_unknown_category` | `tests/test_encoder_category_new.py` | 75 | `commit:unit test` |
 | unit | — | — | — | `test_encode_es` | `tests/test_encoder_category_new.py` | 90 | `commit:unit test` |
 | unit | — | — | — | `test_with_sparsity` | `tests/test_encoder_category_new.py` | 105 | `commit:unit test` |
-| unit | — | — | — | `test_rdse_used` | `tests/test_encoder_category_new.py` | 119 | `commit:unit test` |
-| unit | — | — | — | `test_category_encode_output_only_zeros_and_ones` | `tests/test_encoder_category_new.py` | 149 | `commit:unit test` |
-| unit | — | — | — | `test_category_encode_output_length_equals_size` | `tests/test_encoder_category_new.py` | 163 | `commit:unit test` |
-| unit | — | — | — | `test_decode_returns_tuple_of_two` | `tests/test_encoder_category_new.py` | 197 | `commit:unit test` |
-| unit | — | — | — | `test_decode_value_in_categories_or_na` | `tests/test_encoder_category_new.py` | 211 | `commit:unit test` |
-| unit | — | — | — | `test_decode_confidence_in_range` | `tests/test_encoder_category_new.py` | 228 | `commit:unit test` |
-| unit | — | — | — | `test_decode_round_trip_same_category` | `tests/test_encoder_category_new.py` | 240 | `commit:unit test` |
-| unit | — | — | — | `test_decode_round_trip_unknown` | `tests/test_encoder_category_new.py` | 253 | `commit:unit test` |
-| unit | — | — | — | `test_decode_wrong_sdr_size_raises` | `tests/test_encoder_category_new.py` | 263 | `commit:unit test` |
-| unit | — | — | — | `test_demonstrate_anything_can_be_categories` | `tests/test_encoder_category_new.py` | 275 | `commit:unit test` |
-| unit | — | — | — | `test_close_categories_are_similar` | `tests/test_encoder_category_new.py` | 322 | `commit:unit test` |
+| unit | — | — | — | `test_sparsity_config_computes_meaningful_active_bits_attribute` | `tests/test_encoder_category_new.py` | 119 | `commit:unit test` |
+| unit | — | — | — | `test_active_bits_config_computes_meaningful_sparsity_attribute` | `tests/test_encoder_category_new.py` | 135 | `commit:unit test` |
+| unit | — | — | — | `test_rdse_used` | `tests/test_encoder_category_new.py` | 151 | `commit:unit test` |
+| unit | — | — | — | `test_category_encode_output_only_zeros_and_ones` | `tests/test_encoder_category_new.py` | 181 | `commit:unit test` |
+| unit | — | — | — | `test_category_encode_output_length_equals_size` | `tests/test_encoder_category_new.py` | 195 | `commit:unit test` |
+| unit | — | — | — | `test_decode_returns_tuple_of_two` | `tests/test_encoder_category_new.py` | 229 | `commit:unit test` |
+| unit | — | — | — | `test_decode_value_in_categories_or_na` | `tests/test_encoder_category_new.py` | 243 | `commit:unit test` |
+| unit | — | — | — | `test_decode_confidence_in_range` | `tests/test_encoder_category_new.py` | 260 | `commit:unit test` |
+| unit | — | — | — | `test_decode_round_trip_same_category` | `tests/test_encoder_category_new.py` | 272 | `commit:unit test` |
+| unit | — | — | — | `test_decode_round_trip_unknown` | `tests/test_encoder_category_new.py` | 285 | `commit:unit test` |
+| unit | — | — | — | `test_decode_wrong_sdr_size_raises` | `tests/test_encoder_category_new.py` | 295 | `commit:unit test` |
+| unit | — | — | — | `test_demonstrate_anything_can_be_categories` | `tests/test_encoder_category_new.py` | 307 | `commit:unit test` |
+| unit | — | — | — | `test_close_categories_are_similar` | `tests/test_encoder_category_new.py` | 354 | `commit:unit test` |
 | unit | — | — | — | `test_decode_is_deterministic` | `tests/test_encoder_coordinate.py` | 31 | `commit:unit test` |
 | unit | — | — | — | `test_decode_round_trip_same_coordinate` | `tests/test_encoder_coordinate.py` | 60 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_season_encode` | `tests/test_encoder_date.py` | 48 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_day_of_week_encode` | `tests/test_encoder_date.py` | 112 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_weekend_encode` | `tests/test_encoder_date.py` | 163 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_holiday_encode` | `tests/test_encoder_date.py` | 227 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_time_of_day_encode` | `tests/test_encoder_date.py` | 294 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_custom_day_encode` | `tests/test_encoder_date.py` | 357 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_all_combined_encode` | `tests/test_encoder_date.py` | 421 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_date_encode_output_only_zeros_and_ones` | `tests/test_encoder_date.py` | 515 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_date_encode_output_length_equals_size` | `tests/test_encoder_date.py` | 542 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_season` | `tests/test_encoder_date.py` | 598 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_rdse_decode_same_across_instances_with_same_params` | `tests/test_encoder_date.py` | 672 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_day_of_week` | `tests/test_encoder_date.py` | 708 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_weekend` | `tests/test_encoder_date.py` | 794 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_custom_days` | `tests/test_encoder_date.py` | 842 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_holiday` | `tests/test_encoder_date.py` | 891 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_time_of_day` | `tests/test_encoder_date.py` | 942 | `commit:unit test` |
-| unit | TS-05 | — | — | `test_all_combined` | `tests/test_encoder_date.py` | 992 | `commit:unit test` |
+| unit | TS-05 | TC-046 | — | `test_season_encode` | `tests/test_encoder_date.py` | 48 | `commit:unit test` |
+| unit | TS-05 | TC-047 | — | `test_day_of_week_encode` | `tests/test_encoder_date.py` | 113 | `commit:unit test` |
+| unit | TS-05 | TC-048 | — | `test_weekend_encode` | `tests/test_encoder_date.py` | 165 | `commit:unit test` |
+| unit | TS-05 | TC-049 | — | `test_holiday_encode` | `tests/test_encoder_date.py` | 230 | `commit:unit test` |
+| unit | TS-05 | TC-050 | — | `test_time_of_day_encode` | `tests/test_encoder_date.py` | 298 | `commit:unit test` |
+| unit | TS-05 | TC-051 | — | `test_custom_day_encode` | `tests/test_encoder_date.py` | 362 | `commit:unit test` |
+| unit | TS-05 | TC-052 | — | `test_all_combined_encode` | `tests/test_encoder_date.py` | 427 | `commit:unit test` |
+| unit | TS-13 | TC-096 | — | `test_date_encode_output_only_zeros_and_ones` | `tests/test_encoder_date.py` | 522 | `commit:unit test` |
+| unit | TS-13 | TC-097 | — | `test_date_encode_output_length_equals_size` | `tests/test_encoder_date.py` | 550 | `commit:unit test` |
+| unit | TS-13 | TC-088 | — | `test_season` | `tests/test_encoder_date.py` | 607 | `commit:unit test` |
+| unit | TS-13 | TC-089 | — | `test_rdse_decode_same_across_instances_with_same_params` | `tests/test_encoder_date.py` | 682 | `commit:unit test` |
+| unit | TS-13 | TC-090 | — | `test_day_of_week` | `tests/test_encoder_date.py` | 719 | `commit:unit test` |
+| unit | TS-13 | TC-091 | — | `test_weekend` | `tests/test_encoder_date.py` | 806 | `commit:unit test` |
+| unit | TS-13 | TC-092 | — | `test_custom_days` | `tests/test_encoder_date.py` | 855 | `commit:unit test` |
+| unit | TS-13 | TC-093 | — | `test_holiday` | `tests/test_encoder_date.py` | 905 | `commit:unit test` |
+| unit | TS-13 | TC-094 | — | `test_time_of_day` | `tests/test_encoder_date.py` | 957 | `commit:unit test` |
+| unit | TS-13 | TC-095 | — | `test_all_combined` | `tests/test_encoder_date.py` | 1008 | `commit:unit test` |
 | unit | — | — | — | `test_rdse_output_only_zeros_and_ones` | `tests/test_encoder_date_rdse.py` | 48 | `commit:unit test` |
 | unit | — | — | — | `test_rdse_output_length_equals_size` | `tests/test_encoder_date_rdse.py` | 67 | `commit:unit test` |
 | unit | — | — | — | `test_rdse_all_combined_output_binary_and_length` | `tests/test_encoder_date_rdse.py` | 88 | `commit:unit test` |
@@ -188,14 +190,14 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | TS-21 | TC-174 | — | `test_factory_rejects_unsupported_encoder_type` | `tests/test_encoder_factor.py` | 34 | `commit:unit test` |
 | unit | TS-21 | TC-175 | — | `test_factory_creates_geospatial_with_defaults` | `tests/test_encoder_factor.py` | 42 | `commit:unit test` |
 | unit | TS-21 | TC-176 | — | `test_factory_parameter_unpacking_for_category` | `tests/test_encoder_factor.py` | 50 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_identical_frequencies_overlap_completely` | `tests/test_encoder_fourier.py` | 97 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_close_frequencies_share_more_bits_than_far_ones` | `tests/test_encoder_fourier.py` | 114 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_identical_frequency_with_different_magnitudes_remains_similar` | `tests/test_encoder_fourier.py` | 139 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_far_frequencies_remain_mostly_orthogonal` | `tests/test_encoder_fourier.py` | 155 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_composite_signal_retains_component_information` | `tests/test_encoder_fourier.py` | 171 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_amplitude_modulation_preserves_carrier_bits_more_than_modulator` | `tests/test_encoder_fourier.py` | 195 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_decode_single_tone_returns_expected_frequency` | `tests/test_encoder_fourier.py` | 219 | `commit:unit test` |
-| unit | TS-12 | — | — | `test_decode_rejects_incorrect_sdr_size` | `tests/test_encoder_fourier.py` | 243 | `commit:unit test` |
+| unit | TS-12 | TC-080 | — | `test_identical_frequencies_overlap_completely` | `tests/test_encoder_fourier.py` | 97 | `commit:unit test` |
+| unit | TS-12 | TC-081 | — | `test_close_frequencies_share_more_bits_than_far_ones` | `tests/test_encoder_fourier.py` | 115 | `commit:unit test` |
+| unit | TS-12 | TC-082 | — | `test_identical_frequency_with_different_magnitudes_remains_similar` | `tests/test_encoder_fourier.py` | 141 | `commit:unit test` |
+| unit | TS-12 | TC-083 | — | `test_far_frequencies_remain_mostly_orthogonal` | `tests/test_encoder_fourier.py` | 158 | `commit:unit test` |
+| unit | TS-12 | TC-084 | — | `test_composite_signal_retains_component_information` | `tests/test_encoder_fourier.py` | 175 | `commit:unit test` |
+| unit | TS-12 | TC-085 | — | `test_amplitude_modulation_preserves_carrier_bits_more_than_modulator` | `tests/test_encoder_fourier.py` | 200 | `commit:unit test` |
+| unit | TS-12 | TC-086 | — | `test_decode_single_tone_returns_expected_frequency` | `tests/test_encoder_fourier.py` | 225 | `commit:unit test` |
+| unit | TS-12 | TC-087 | — | `test_decode_rejects_incorrect_sdr_size` | `tests/test_encoder_fourier.py` | 250 | `commit:unit test` |
 | unit | TS-09 | TC-066 | — | `test_handler_singleton` | `tests/test_encoder_handler_suite.py` | 46 | `commit:unit test` |
 | unit | TS-23 | TC-204 | — | `test_encoder_parameter_is_parameter_marker` | `tests/test_encoder_parameter_marker.py` | 42 | `commit:unit test` |
 | unit | TS-04 | TC-038 | — | `test_rdse_initialization` | `tests/test_encoder_rdse.py` | 45 | `commit:unit test` |
@@ -349,7 +351,7 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | TS-02 | TC-027 | — | `test_sdr_set_dense` | `tests/test_sdr_suite.py` | 305 | `commit:unit test` |
 | unit | TS-02 | TC-028 | — | `test_sdr_64_32_init` | `tests/test_sdr_suite.py` | 322 | `commit:unit test` |
 | unit | TS-02 | TC-029 | — | `test_sdr_destroy` | `tests/test_sdr_suite.py` | 341 | `commit:unit test` |
-| unit | TS-02 | — | — | `test_sdr_interface_object` | `tests/test_sdr_suite.py` | 359 | `commit:unit test` |
+| unit | TS-02 | TC-030 | — | `test_sdr_interface_object` | `tests/test_sdr_suite.py` | 359 | `commit:unit test` |
 | unit | TS-22 | TC-177 | — | `test_single_input_field_is_present_in_brain` | `tests/test_trainer.py` | 27 | `commit:unit test` |
 | unit | TS-22 | TC-178 | — | `test_single_input_field_is_instance_of_input_field` | `tests/test_trainer.py` | 34 | `commit:unit test` |
 | unit | TS-22 | TC-179 | — | `test_column_field_is_created_automatically` | `tests/test_trainer.py` | 41 | `commit:unit test` |

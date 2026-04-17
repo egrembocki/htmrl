@@ -339,6 +339,5 @@ if __name__ == "__main__":
     show_brain_creation_demo()
     sine_wave_demo(200)
     fin_data_demo(steps=3)
-
     rec_center_demo(200)
     show_field_single_encoding_demo()
