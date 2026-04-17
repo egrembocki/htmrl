@@ -81,11 +81,11 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
 
 
 # TI-015
-# Test Type: integration test
+# Test Type: system test
 def test_sine_wave_through_input_handler(input_handler, encoder):
     """Run a sine wave through the full input->encode->compute->predict pipeline.
 
-        This test validates a broad integration pipeline:
+        This test validates a broad system pipeline:
       1) InputHandler ingests an end-to-end signal stream.
       2) Brain executes encode/compute/learn steps via InputField+ColumnField.
       3) Prediction quality is checked on a held-out cycle.
