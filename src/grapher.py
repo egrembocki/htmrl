@@ -1,7 +1,3 @@
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from utils import PROJECT_ROOT
-
 """Visualization utilities for SDRs and encoder analysis.
 
 This module provides plotting functions for visualizing sparse distributed

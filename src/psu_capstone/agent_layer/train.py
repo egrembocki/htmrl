@@ -277,7 +277,7 @@ class Trainer:
                 CoordinateParameters,
             )
             if isinstance(param, encoder_param_types):
-                encoder_kwargs = asdict(param)
+                pass
             else:
                 raise ValueError(
                     f"Encoder parameter {param} is not a supported encoder parameter dataclass instance."

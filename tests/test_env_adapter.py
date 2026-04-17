@@ -1,4 +1,3 @@
-
 """Tests for EnvAdapter construction and FinGym integration."""
 
 from __future__ import annotations
@@ -70,9 +69,9 @@ def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
 
     try:
         _ = EnvAdapter(env, render_mode="human")
-            assert False, "Expected ValueError when kwargs are passed with env instance"
-        except ValueError as exc:
-            assert "gym_kwargs" in str(exc)
+        assert False, "Expected ValueError when kwargs are passed with env instance"
+    except ValueError as exc:
+        assert "gym_kwargs" in str(exc)
 
     @pytest.mark.parametrize(
         "env_id,step_action",

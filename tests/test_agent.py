@@ -307,6 +307,40 @@ def _build_real_brain_for_adapter_inputs(adapter: EnvAdapter) -> Brain:
             sparsity=0.02,
             resolution=0.001,
             category=False,
+            seed=100 + index,
+        )
+        input_fields[name] = InputField(size=64, encoder_params=rdse_params)
+
+    # Add reward input field to match agent step inputs
+    reward_params = RDSEParameters(
+        size=64,
+        active_bits=0,
+        sparsity=0.02,
+        resolution=0.01,
+        category=False,
+        seed=999,
+    )
+    input_fields["reward"] = InputField(size=64, encoder_params=reward_params)
+
+    column_field = ColumnField(
+        input_fields=list(input_fields.values()),
+        non_spatial=True,
+        num_columns=64,
+        cells_per_column=8,
+    )
+    fields = {**input_fields, "column": column_field}
+    return Brain(fields)
+
+
+def _build_real_brain_with_output_field(adapter: EnvAdapter) -> Brain:
+    """Create a real Brain with matching inputs plus a real OutputField."""
+
+    brain = _build_real_brain_for_adapter_inputs(adapter)
+    output_field = OutputField(size=4, motor_action=(0, 1))
+    brain.fields["action_output"] = output_field
+    return Brain(brain.fields)
+
+
 def test_real_brain_agent_adapter_gym_single_step_q_table() -> None:
     """Real Brain + Adapter should complete one CartPole step through Agent in q_table mode."""
 
