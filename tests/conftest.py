@@ -38,9 +38,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             continue
 
         # System: end-to-end behavior spanning major runtime subsystems.
-        if path.endswith("tests/test_agent_server.py"):
-            item.add_marker(pytest.mark.system)
-            continue
         if path.endswith("tests/test_cartpole_brain_training.py"):
             item.add_marker(pytest.mark.system)
             continue
@@ -52,6 +49,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
         # Integration: explicit integration folder and adapter/environment bridge tests.
         if "/tests/integration/" in path:
+            item.add_marker(pytest.mark.integration)
+            continue
+        if path.endswith("tests/test_agent_server.py"):
             item.add_marker(pytest.mark.integration)
             continue
         if path.endswith("tests/test_env_adapter.py"):
