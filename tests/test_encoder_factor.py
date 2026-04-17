@@ -8,6 +8,7 @@ import psu_capstone.encoder_layer as el
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
 
 
+# TS-21 TC-173
 @pytest.mark.parametrize(
     "encoder_type, expected_type",
     [
@@ -24,7 +25,6 @@ from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
 def test_factory_creates_supported_encoders_with_defaults(
     encoder_type: str, expected_type: type
 ) -> None:
-    # TS-21 TC-173
     """Ensure factory builds expected encoder classes from default parameters."""
     encoder = EncoderFactory.create_encoder(encoder_type)
     assert isinstance(encoder, expected_type)

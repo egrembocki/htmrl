@@ -10,7 +10,7 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 - System tests: **3**
 - Acceptance tests: **1**
 - Missing TS ID: **108** tests
-- Missing TC/TI ID: **176** tests
+- Missing TC/TI ID: **175** tests
 
 ## Deliverables
 
@@ -186,7 +186,7 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | — | — | — | `test_rdse_no_encoders_enabled_raises` | `tests/test_encoder_date_rdse.py` | 298 | `commit:unit test` |
 | unit | — | — | — | `test_rdse_different_dates_different_encodings` | `tests/test_encoder_date_rdse.py` | 324 | `commit:unit test` |
 | unit | — | — | — | `test_date_correctness` | `tests/test_encoder_date_rdse.py` | 360 | `commit:unit test` |
-| unit | TS-21 | — | — | `test_factory_creates_supported_encoders_with_defaults` | `tests/test_encoder_factor.py` | 24 | `commit:unit test` |
+| unit | TS-21 | TC-173 | — | `test_factory_creates_supported_encoders_with_defaults` | `tests/test_encoder_factor.py` | 25 | `commit:unit test` |
 | unit | TS-21 | TC-174 | — | `test_factory_rejects_unsupported_encoder_type` | `tests/test_encoder_factor.py` | 34 | `commit:unit test` |
 | unit | TS-21 | TC-175 | — | `test_factory_creates_geospatial_with_defaults` | `tests/test_encoder_factor.py` | 42 | `commit:unit test` |
 | unit | TS-21 | TC-176 | — | `test_factory_parameter_unpacking_for_category` | `tests/test_encoder_factor.py` | 50 | `commit:unit test` |

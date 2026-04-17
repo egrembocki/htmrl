@@ -164,7 +164,7 @@ tests/test_encoder_date_rdse.py,276,test_rdse_encode_rejects_unsupported_type,�
 tests/test_encoder_date_rdse.py,298,test_rdse_no_encoders_enabled_raises,—,—,—,unit test,unit,commit:unit test
 tests/test_encoder_date_rdse.py,324,test_rdse_different_dates_different_encodings,—,—,—,unit test,unit,commit:unit test
 tests/test_encoder_date_rdse.py,360,test_date_correctness,—,—,—,unit test,unit,commit:unit test
-tests/test_encoder_factor.py,24,test_factory_creates_supported_encoders_with_defaults,TS-21,—,—,unit test,unit,commit:unit test
+tests/test_encoder_factor.py,25,test_factory_creates_supported_encoders_with_defaults,TS-21,TC-173,—,unit test,unit,commit:unit test
 tests/test_encoder_factor.py,34,test_factory_rejects_unsupported_encoder_type,TS-21,TC-174,—,unit test,unit,commit:unit test
 tests/test_encoder_factor.py,42,test_factory_creates_geospatial_with_defaults,TS-21,TC-175,—,unit test,unit,commit:unit test
 tests/test_encoder_factor.py,50,test_factory_parameter_unpacking_for_category,TS-21,TC-176,—,unit test,unit,commit:unit test
