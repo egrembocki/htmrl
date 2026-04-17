@@ -178,7 +178,7 @@ def overlap_ratio(original: list[int], noisy: list[int]) -> float:
 
 # Test Type: unit test
 def test_active_ratio_matches_desired_sparsity():
-    # TS-09 TC-086
+    # TS-25
     """After compute, the number of active columns should match desired sparsity."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -197,7 +197,7 @@ def test_active_ratio_matches_desired_sparsity():
 
 # Test Type: unit test
 def test_sparsity_invariant_to_input_density():
-    # TS-09 TC-087
+    # TS-25
     """Output sparsity stays fixed regardless of how many input bits are on."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -219,7 +219,7 @@ def test_sparsity_invariant_to_input_density():
 
 # Test Type: unit test
 def test_activate_top_k_columns_respects_k():
-    # TS-09 TC-088
+    # TS-25
     """activate_top_k_columns should activate exactly k columns."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -243,7 +243,7 @@ def test_activate_top_k_columns_respects_k():
 
 # Test Type: unit test
 def test_many_columns_participate_across_patterns():
-    # TS-09 TC-089
+    # TS-25
     """Over many RDSE encoded inputs, a large share of columns should activate at least once."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -268,7 +268,7 @@ def test_many_columns_participate_across_patterns():
 
 # Test Type: unit test
 def test_no_single_column_dominates():
-    # TS-09 TC-090
+    # TS-25
     """No single column should be active in more than a small fraction of all patterns."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -787,7 +787,7 @@ def test_activation_converge_on_desired_sparsity_with_sin_wave():
 
 # Test Type: unit test
 def test_duty_cycle_boosting_engages_inactive_columns():
-    # TS-09 TC-091
+    # TS-25
     """Duty cycle tracking should engage after repeated presentations."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -809,7 +809,7 @@ def test_duty_cycle_boosting_engages_inactive_columns():
 
 # Test Type: unit test
 def test_similar_inputs_produce_similar_sdrs():
-    # TS-09 TC-092
+    # TS-25
     """Nearby scalar values should produce overlapping column activations."""
     input_size = 2048
     in_fi = make_input_field(input_size)
@@ -842,7 +842,7 @@ def test_similar_inputs_produce_similar_sdrs():
 
 # Test Type: unit test
 def test_dissimilar_inputs_produce_dissimilar_sdrs():
-    # TS-09 TC-093
+    # TS-25
     """Values far apart should produce low column overlap."""
     input_size = 2048
     in_fi = make_input_field(input_size)

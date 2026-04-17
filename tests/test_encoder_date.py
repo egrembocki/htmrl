@@ -17,6 +17,8 @@ Tests validate:
   5. Edge cases (midnight, new year, etc.)
 """
 
+# Test Suite: TS-05 (SDR Date Encoder)
+
 from __future__ import annotations
 
 from datetime import datetime

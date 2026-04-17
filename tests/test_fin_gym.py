@@ -1,5 +1,7 @@
 """Tests for FinGym tabular-data environment."""
 
+# Test Suite: TS-24 (FinGym)
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,6 +15,7 @@ from psu_capstone.environment.fin_gym import FinGym
 
 # Test Type: unit test
 def test_fingym_builds_observation_from_dataframe() -> None:
+    # TS-24 TC-205
     """Observations should be float32 vectors with one value per feature column."""
 
     frame = pd.DataFrame(

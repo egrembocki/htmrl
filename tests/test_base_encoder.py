@@ -56,7 +56,7 @@ def test_base_encoder_initialization(base_encoder_instance):
 
 # Test Type: unit test
 def test_base_encoder_size_setter(base_encoder_instance):
-    # TS-08 TC-166
+    # TS-08
     """Ensure size setter enforces constraints."""
 
     encoder = base_encoder_instance

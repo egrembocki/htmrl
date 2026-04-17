@@ -1,3 +1,4 @@
+# Test Suite: TS-12 (Fourier Transform Encoder)
 """
 Tests for Fourier Encoder frequency locality behavior.
 
@@ -195,6 +196,8 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
     """
     Amplitude modulation generates the sum and difference frequencies.
     Carrier freq and modulator will be dimished near zero in the fft.
+
+    TC-085: AM signals should preserve more carrier bits than modulator bits.
     """
 
     # Arrange

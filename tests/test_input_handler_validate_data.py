@@ -105,7 +105,7 @@ def test_process_dataframe_duplicate_columns(handler):
 
 # Test Type: unit test
 def test_normalize_column_types_mixed_numeric(handler):
-    # TC-016
+    # TS-07
     """Test that mixed numeric types are coerced correctly."""
     df = pd.DataFrame({"value": [1, 2.5, 3, 4.0]})
     result = handler._normalize_column_types(df)
@@ -127,7 +127,7 @@ def test_normalize_column_types_unsupported_type_raises(handler):
 
 # Test Type: unit test
 def test_fill_missing_values_numeric(handler):
-    # TC-018
+    # TS-07
     """Test that missing numeric values are filled with mean."""
     df = pd.DataFrame({"value": [10.0, None, 30.0, 40.0]})
     result = handler._fill_missing_values(df)
@@ -138,7 +138,7 @@ def test_fill_missing_values_numeric(handler):
 
 # Test Type: unit test
 def test_detect_repeating_values(handler):
-    # TC-019
+    # TS-07
     """Test detection of repeating values in columns."""
     df = pd.DataFrame({"category": ["A", "A", "A", "A", "B"]})
     is_repeating, cols = handler._detect_repeating_values(df, threshold=3)
@@ -148,7 +148,7 @@ def test_detect_repeating_values(handler):
 
 # Test Type: unit test
 def test_input_data_with_dict(handler):
-    # TC-020
+    # TS-07
     """Test that dictionary input is processed correctly."""
     data = {"id": [1, 2, 3], "value": [10, 20, 30]}
     result = handler.input_data(data)
@@ -160,7 +160,7 @@ def test_input_data_with_dict(handler):
 
 # Test Type: unit test
 def test_input_data_with_required_columns(handler):
-    # TC-021
+    # TS-07
     """Test that required columns are enforced."""
     data = {"id": [1, 2, 3], "value": [10, 20, 30]}
     result = handler.input_data(data, required_columns=["id", "value", "timestamp"])

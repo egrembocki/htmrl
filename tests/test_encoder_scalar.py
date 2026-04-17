@@ -667,6 +667,8 @@ def test_scalar_hamming_distance():
 """
 Tests for Scalar decode.
 
+# Test Suite: TS-26 (Scalar Decode)
+
 decode() returns (value, confidence) by finding the cached encoding with best
 overlap to the input SDR. Cache is populated on encode().
 """
@@ -674,6 +676,7 @@ overlap to the input SDR. Cache is populated on encode().
 
 # Test Type: unit test
 def test_scalar_decode_returns_tuple_value_confidence():
+    # TS-26 TC-241
     """decode() returns (value, confidence) tuple."""
     params = ScalarEncoderParameters(
         size=256,
@@ -695,6 +698,7 @@ def test_scalar_decode_returns_tuple_value_confidence():
 
 # Test Type: unit test
 def test_scalar_decode_round_trip_same_value():
+    # TS-26 TC-242
     """decode(encode(x)) returns (x, high confidence) for same encoder instance."""
     params = ScalarEncoderParameters(
         size=256,
@@ -714,6 +718,7 @@ def test_scalar_decode_round_trip_same_value():
 
 # Test Type: unit test
 def test_scalar_decode_wrong_size_raises():
+    # TS-26 TC-243
     """decode() with wrong-length SDR raises ValueError."""
     params = ScalarEncoderParameters(
         size=256,
@@ -733,6 +738,7 @@ def test_scalar_decode_wrong_size_raises():
 
 # Test Type: unit test
 def test_scalar_decode_no_candidates_raises():
+    # TS-26 TC-244
     """decode() with no prior encode (empty cache) raises ValueError."""
     params = ScalarEncoderParameters(
         size=256,

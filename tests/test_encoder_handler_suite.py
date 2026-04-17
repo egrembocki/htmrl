@@ -15,6 +15,8 @@ These tests validate the encoder coordination layer that converts tabular record
 with mixed data types into unified SDR representations for HTM processing.
 """
 
+# Test Suite: TS-09 (Encoder Handler Operations)
+
 from datetime import datetime
 
 import pytest
@@ -42,6 +44,7 @@ def handler() -> EncoderHandler:
 
 # Test Type: unit test
 def test_handler_singleton(handler: EncoderHandler):
+    # TS-09 TC-066
     """Test that EncoderHandler enforces singleton pattern"""
 
     # Arrange
