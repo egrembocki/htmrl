@@ -16,6 +16,8 @@ TEST_ROOT = Path("tests")
 ALLOWED_TAGS = {
     "unit test",
     "integration test",
+    "system test",
+    "acceptance test",
     "system/integration test",
     "system/acceptance test",
 }

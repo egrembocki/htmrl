@@ -672,6 +672,7 @@ overlap to the input SDR. Cache is populated on encode().
 """
 
 
+# commit: unit test
 def test_scalar_decode_returns_tuple_value_confidence():
     """decode() returns (value, confidence) tuple."""
     params = ScalarEncoderParameters(
@@ -692,6 +693,7 @@ def test_scalar_decode_returns_tuple_value_confidence():
     assert 0 <= confidence <= 1
 
 
+# commit: unit test
 def test_scalar_decode_round_trip_same_value():
     """decode(encode(x)) returns (x, high confidence) for same encoder instance."""
     params = ScalarEncoderParameters(
@@ -710,6 +712,7 @@ def test_scalar_decode_round_trip_same_value():
         assert confidence >= 0.9, f"Round-trip confidence should be high, got {confidence}"
 
 
+# commit: unit test
 def test_scalar_decode_wrong_size_raises():
     """decode() with wrong-length SDR raises ValueError."""
     params = ScalarEncoderParameters(
@@ -728,6 +731,7 @@ def test_scalar_decode_wrong_size_raises():
         encoder.decode([0] * 300)
 
 
+# commit: unit test
 def test_scalar_decode_no_candidates_raises():
     """decode() with no prior encode (empty cache) raises ValueError."""
     params = ScalarEncoderParameters(
