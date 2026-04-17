@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 
-# Test Type: acceptance test
+# Test Type: unit test
 def test_run_full_demo_generates_visual_artifacts(tmp_path: Path):
     # TS-10 TC-097
     pytest.importorskip("matplotlib")

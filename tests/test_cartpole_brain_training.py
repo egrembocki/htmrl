@@ -9,7 +9,7 @@ from psu_capstone.agent_layer.brain_training_helper import (
 )
 
 
-# Test Type: system test
+# Test Type: unit test
 def test_train_env_policy_returns_metrics() -> None:
     # TC 167
     """Training helper should run and return structured metrics."""

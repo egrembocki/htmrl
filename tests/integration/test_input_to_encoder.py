@@ -80,12 +80,12 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     assert encoded_from_sequence == encoded_reference
 
 
-# Test Type: system test
+# TI-015
+# Test Type: integration test
 def test_sine_wave_through_input_handler(input_handler, encoder):
     """Run a sine wave through the full input->encode->compute->predict pipeline.
 
-    This test is intentionally closer to an acceptance/system test than a
-    narrow component integration test:
+        This test validates a broad integration pipeline:
       1) InputHandler ingests an end-to-end signal stream.
       2) Brain executes encode/compute/learn steps via InputField+ColumnField.
       3) Prediction quality is checked on a held-out cycle.
@@ -118,7 +118,7 @@ def test_sine_wave_through_input_handler(input_handler, encoder):
     for value in seq_values[: cycle_len * train_cycles]:
         brain.step({"value": float(value)})
 
-    # Evaluate one held-out cycle without learning (acceptance-style gate)
+    # Evaluate one held-out cycle without learning.
     errors: list[float] = []
     predictions: list[float] = []
     missing_predictions = 0

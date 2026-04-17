@@ -1,6 +1,6 @@
 """Tests for EnvAdapter construction and FinGym integration."""
 
-# TS-20: EnvAdapter and FinGym integration tests (Team 20 SWENG 481)
+# TS-20: EnvAdapter wrapper unit tests (Team 20 SWENG 481)
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.environment.fin_gym import FinGym
 
 
-# Test Type: integration test
+# Test Type: unit test
 def test_env_adapter_accepts_instantiated_fingym() -> None:
     # TC-170
     """EnvAdapter should wrap a pre-built FinGym instance directly."""
@@ -50,7 +50,7 @@ def test_env_adapter_accepts_instantiated_fingym() -> None:
     assert "truncated" in step_bridge
 
 
-# Test Type: integration test
+# Test Type: unit test
 def test_env_adapter_accepts_make_kwargs() -> None:
     # TC-171
     """EnvAdapter should forward kwargs when constructing Gym env from id."""
@@ -61,7 +61,7 @@ def test_env_adapter_accepts_make_kwargs() -> None:
     assert isinstance(reset_bridge["inputs"], dict)
 
 
-# Test Type: integration test
+# Test Type: unit test
 def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
     # TC-172
     """Passing gym kwargs with an env instance should raise ValueError."""

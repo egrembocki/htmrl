@@ -1,5 +1,4 @@
 file,line,test_name,ts_id,tc_id,ti_id,commit_tag,test_type,Test Type:
-tests/test_demo_driver_full_demo.py,7,test_run_full_demo_generates_visual_artifacts,TS-10,TC-097,—,acceptance test,acceptance,commit:acceptance test
 tests/integration/test_encoder_htm_integration.py,58,test_input_field_initialization_with_rdse,TS-11,—,TI-001,integration test,integration,commit:integration test
 tests/integration/test_encoder_htm_integration.py,89,test_input_field_encode_scalar_values,TS-11,—,TI-002,integration test,integration,commit:integration test
 tests/integration/test_encoder_htm_integration.py,128,test_input_field_encode_sequence,TS-11,—,TI-003,integration test,integration,commit:integration test
@@ -34,17 +33,9 @@ tests/integration/test_encoder_htm_integration.py,1118,test_predictive_state_pro
 tests/integration/test_encoder_input_integration.py,83,test_input_handler_to_encoder_pipeline,—,—,—,integration test,integration,commit:integration test
 tests/integration/test_encoder_to_htm.py,60,test_encoder_to_htm_receives_sdr_object,—,—,—,integration test,integration,commit:integration test
 tests/integration/test_input_to_encoder.py,54,test_input_to_encoder_passes_records_into_encoder,—,—,—,integration test,integration,commit:integration test
+tests/integration/test_input_to_encoder.py,85,test_sine_wave_through_input_handler,—,—,TI-015,integration test,integration,commit:integration test
 tests/test_agent_server.py,48,test_build_trading_visualization_returns_none_for_non_trading_obs,—,—,—,integration test,integration,commit:integration test
 tests/test_agent_server.py,66,test_build_trading_visualization_computes_good_buy_alignment,—,—,—,integration test,integration,commit:integration test
-tests/test_env_adapter.py,15,test_env_adapter_accepts_instantiated_fingym,TS-20,TC-170,—,integration test,integration,commit:integration test
-tests/test_env_adapter.py,54,test_env_adapter_accepts_make_kwargs,TS-20,TC-171,—,integration test,integration,commit:integration test
-tests/test_env_adapter.py,65,test_env_adapter_rejects_kwargs_with_env_instance,TS-20,TC-172,—,integration test,integration,commit:integration test
-tests/test_fin_gym.py,15,test_fingym_builds_observation_from_dataframe,—,—,—,integration test,integration,commit:integration test
-tests/test_fin_gym.py,36,test_fingym_step_progression_and_reward,—,—,—,integration test,integration,commit:integration test
-tests/test_fin_gym.py,63,test_fingym_rejects_invalid_action,—,—,—,integration test,integration,commit:integration test
-tests/test_fin_gym.py,75,test_fingym_loads_csv,—,—,—,integration test,integration,commit:integration test
-tests/integration/test_input_to_encoder.py,84,test_sine_wave_through_input_handler,—,—,—,system test,system,commit:system test
-tests/test_cartpole_brain_training.py,13,test_train_env_policy_returns_metrics,TS-21,TC-167,—,system test,system,commit:system test
 tests/test_agent.py,84,test_q_table_policy_requires_discrete_action_space,TS-19,TC-155,—,unit test,unit,commit:unit test
 tests/test_agent.py,95,test_q_values_row_initialized_by_action_count,TS-19,TC-156,—,unit test,unit,commit:unit test
 tests/test_agent.py,108,test_select_q_action_uses_argmax_when_not_exploring,TS-19,TC-157,—,unit test,unit,commit:unit test
@@ -62,6 +53,7 @@ tests/test_agent.py,345,test_real_input_fields_encode_values_into_sdr_vectors,TS
 tests/test_agent.py,359,test_real_output_field_decode_drives_brain_policy_action,TS-19,TC-169,—,unit test,unit,commit:unit test
 tests/test_base_encoder.py,43,test_base_encoder_initialization,TS-08,TC-065,—,unit test,unit,commit:unit test
 tests/test_base_encoder.py,58,test_base_encoder_size_setter,TS-08,TC-166,—,unit test,unit,commit:unit test
+tests/test_cartpole_brain_training.py,13,test_train_env_policy_returns_metrics,TS-21,TC-167,—,unit test,unit,commit:unit test
 tests/test_column_field.py,156,test_add_noise,—,—,—,unit test,unit,commit:unit test
 tests/test_column_field.py,180,test_active_ratio_matches_desired_sparsity,TS-09,TC-086,—,unit test,unit,commit:unit test
 tests/test_column_field.py,199,test_sparsity_invariant_to_input_density,TS-09,TC-087,—,unit test,unit,commit:unit test
@@ -103,6 +95,7 @@ tests/test_decoder_rdse.py,33,test_rdse_decode_returns_tuple_value_confidence,TS
 tests/test_decoder_rdse.py,73,test_rdse_decode_round_trip_same_value,TS-07,TC-054,—,unit test,unit,commit:unit test
 tests/test_decoder_rdse.py,113,test_rdse_decode_wrong_size_raises,TS-07,TC-055,—,unit test,unit,commit:unit test
 tests/test_decoder_rdse.py,151,test_rdse_decode_no_candidates_raises,TS-07,TC-056,—,unit test,unit,commit:unit test
+tests/test_demo_driver_full_demo.py,7,test_run_full_demo_generates_visual_artifacts,TS-10,TC-097,—,unit test,unit,commit:unit test
 tests/test_encoder_batch_handler.py,67,test_handler_singleton,—,—,—,unit test,unit,commit:unit test
 tests/test_encoder_batch_handler.py,150,test_individual_column_sdrs,—,—,—,unit test,unit,commit:unit test
 tests/test_encoder_category.py,46,test_category_initialization,TS-06,TC-053,—,unit test,unit,commit:unit test
@@ -230,6 +223,13 @@ tests/test_encoder_scalar.py,676,test_scalar_decode_returns_tuple_value_confiden
 tests/test_encoder_scalar.py,697,test_scalar_decode_round_trip_same_value,TS-03,—,—,unit test,unit,commit:unit test
 tests/test_encoder_scalar.py,716,test_scalar_decode_wrong_size_raises,TS-03,—,—,unit test,unit,commit:unit test
 tests/test_encoder_scalar.py,735,test_scalar_decode_no_candidates_raises,TS-03,—,—,unit test,unit,commit:unit test
+tests/test_env_adapter.py,15,test_env_adapter_accepts_instantiated_fingym,TS-20,TC-170,—,unit test,unit,commit:unit test
+tests/test_env_adapter.py,54,test_env_adapter_accepts_make_kwargs,TS-20,TC-171,—,unit test,unit,commit:unit test
+tests/test_env_adapter.py,65,test_env_adapter_rejects_kwargs_with_env_instance,TS-20,TC-172,—,unit test,unit,commit:unit test
+tests/test_fin_gym.py,15,test_fingym_builds_observation_from_dataframe,—,—,—,unit test,unit,commit:unit test
+tests/test_fin_gym.py,36,test_fingym_step_progression_and_reward,—,—,—,unit test,unit,commit:unit test
+tests/test_fin_gym.py,63,test_fingym_rejects_invalid_action,—,—,—,unit test,unit,commit:unit test
+tests/test_fin_gym.py,75,test_fingym_loads_csv,—,—,—,unit test,unit,commit:unit test
 tests/test_htm.py,35,test_cell_initialization,—,—,—,unit test,unit,commit:unit test
 tests/test_htm.py,41,test_cell_store_segments,—,—,—,unit test,unit,commit:unit test
 tests/test_htm.py,48,test_cell_repr,—,—,—,unit test,unit,commit:unit test
