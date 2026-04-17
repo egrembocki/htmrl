@@ -164,6 +164,8 @@ tests/test_encoder_date_rdse.py,276,test_rdse_encode_rejects_unsupported_type,�
 tests/test_encoder_date_rdse.py,298,test_rdse_no_encoders_enabled_raises,—,—,—,unit test,unit,commit:unit test
 tests/test_encoder_date_rdse.py,324,test_rdse_different_dates_different_encodings,—,—,—,unit test,unit,commit:unit test
 tests/test_encoder_date_rdse.py,360,test_date_correctness,—,—,—,unit test,unit,commit:unit test
+tests/test_encoder_delta.py,10,test_delta_sparsity_config_computes_meaningful_active_bits_attribute,TS-31,TC-263,—,—,unit,inferred:default
+tests/test_encoder_delta.py,26,test_delta_active_bits_config_computes_meaningful_sparsity_attribute,TS-31,TC-264,—,—,unit,inferred:default
 tests/test_encoder_factor.py,25,test_factory_creates_supported_encoders_with_defaults,TS-21,TC-173,—,unit test,unit,commit:unit test
 tests/test_encoder_factor.py,34,test_factory_rejects_unsupported_encoder_type,TS-21,TC-174,—,unit test,unit,commit:unit test
 tests/test_encoder_factor.py,42,test_factory_creates_geospatial_with_defaults,TS-21,TC-175,—,unit test,unit,commit:unit test
@@ -176,6 +178,8 @@ tests/test_encoder_fourier.py,175,test_composite_signal_retains_component_inform
 tests/test_encoder_fourier.py,200,test_amplitude_modulation_preserves_carrier_bits_more_than_modulator,TS-12,TC-085,—,unit test,unit,commit:unit test
 tests/test_encoder_fourier.py,225,test_decode_single_tone_returns_expected_frequency,TS-12,TC-086,—,unit test,unit,commit:unit test
 tests/test_encoder_fourier.py,250,test_decode_rejects_incorrect_sdr_size,TS-12,TC-087,—,unit test,unit,commit:unit test
+tests/test_encoder_fourier.py,267,test_fourier_sparsity_config_derives_meaningful_active_bits_per_range,TS-12,TC-108,—,unit test,unit,commit:unit test
+tests/test_encoder_fourier.py,277,test_fourier_active_bits_config_derives_meaningful_sparsity_per_range,TS-12,TC-109,—,unit test,unit,commit:unit test
 tests/test_encoder_handler_suite.py,46,test_handler_singleton,TS-09,TC-066,—,unit test,unit,commit:unit test
 tests/test_encoder_parameter_marker.py,42,test_encoder_parameter_is_parameter_marker,TS-23,TC-204,—,unit test,unit,commit:unit test
 tests/test_encoder_rdse.py,45,test_rdse_initialization,TS-04,TC-038,—,unit test,unit,commit:unit test

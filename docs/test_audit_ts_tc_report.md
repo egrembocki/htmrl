@@ -4,8 +4,8 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 
 ## Summary
 
-- Total discovered tests: **360**
-- Unit tests: **322**
+- Total discovered tests: **364**
+- Unit tests: **326**
 - Integration tests: **34**
 - System tests: **3**
 - Acceptance tests: **1**
@@ -186,6 +186,8 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | — | — | — | `test_rdse_no_encoders_enabled_raises` | `tests/test_encoder_date_rdse.py` | 298 | `commit:unit test` |
 | unit | — | — | — | `test_rdse_different_dates_different_encodings` | `tests/test_encoder_date_rdse.py` | 324 | `commit:unit test` |
 | unit | — | — | — | `test_date_correctness` | `tests/test_encoder_date_rdse.py` | 360 | `commit:unit test` |
+| unit | TS-31 | TC-263 | — | `test_delta_sparsity_config_computes_meaningful_active_bits_attribute` | `tests/test_encoder_delta.py` | 10 | `inferred:default` |
+| unit | TS-31 | TC-264 | — | `test_delta_active_bits_config_computes_meaningful_sparsity_attribute` | `tests/test_encoder_delta.py` | 26 | `inferred:default` |
 | unit | TS-21 | TC-173 | — | `test_factory_creates_supported_encoders_with_defaults` | `tests/test_encoder_factor.py` | 25 | `commit:unit test` |
 | unit | TS-21 | TC-174 | — | `test_factory_rejects_unsupported_encoder_type` | `tests/test_encoder_factor.py` | 34 | `commit:unit test` |
 | unit | TS-21 | TC-175 | — | `test_factory_creates_geospatial_with_defaults` | `tests/test_encoder_factor.py` | 42 | `commit:unit test` |
@@ -198,6 +200,8 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | TS-12 | TC-085 | — | `test_amplitude_modulation_preserves_carrier_bits_more_than_modulator` | `tests/test_encoder_fourier.py` | 200 | `commit:unit test` |
 | unit | TS-12 | TC-086 | — | `test_decode_single_tone_returns_expected_frequency` | `tests/test_encoder_fourier.py` | 225 | `commit:unit test` |
 | unit | TS-12 | TC-087 | — | `test_decode_rejects_incorrect_sdr_size` | `tests/test_encoder_fourier.py` | 250 | `commit:unit test` |
+| unit | TS-12 | TC-108 | — | `test_fourier_sparsity_config_derives_meaningful_active_bits_per_range` | `tests/test_encoder_fourier.py` | 267 | `commit:unit test` |
+| unit | TS-12 | TC-109 | — | `test_fourier_active_bits_config_derives_meaningful_sparsity_per_range` | `tests/test_encoder_fourier.py` | 277 | `commit:unit test` |
 | unit | TS-09 | TC-066 | — | `test_handler_singleton` | `tests/test_encoder_handler_suite.py` | 46 | `commit:unit test` |
 | unit | TS-23 | TC-204 | — | `test_encoder_parameter_is_parameter_marker` | `tests/test_encoder_parameter_marker.py` | 42 | `commit:unit test` |
 | unit | TS-04 | TC-038 | — | `test_rdse_initialization` | `tests/test_encoder_rdse.py` | 45 | `commit:unit test` |

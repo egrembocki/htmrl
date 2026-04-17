@@ -24,6 +24,7 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
             if encoder_params is not None
             else DeltaEncoderParameters()
         )
+        params = self._normalize_parameters(params)
         self._logger = get_logger("DeltaEncoder")
         self._size = params.size
         self._sparsity = params.sparsity
@@ -32,7 +33,7 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
         self._delta_value = 0.0
 
         self._rdse_encoder = RandomDistributedScalarEncoder(
-            RDSEParameters(size=params.size, sparsity=params.sparsity)
+            RDSEParameters(size=params.size, active_bits=params.active_bits, sparsity=0.0)
         )
 
         self._coordinate_encoder = CoordinateEncoder(
@@ -40,6 +41,34 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
         )
 
         super().__init__(params.size)
+
+    def _normalize_parameters(self, params: DeltaEncoderParameters) -> DeltaEncoderParameters:
+        """Normalize active-bit and sparsity inputs so both attributes stay meaningful."""
+
+        if params.size <= 0:
+            raise ValueError("Parameter 'size' must be positive.")
+
+        has_active_bits = params.active_bits > 0
+        has_sparsity = params.sparsity > 0.0
+
+        if has_active_bits and has_sparsity:
+            raise ValueError("Choose only one of 'active_bits' or 'sparsity'.")
+
+        if not has_active_bits and not has_sparsity:
+            raise ValueError("You must provide one of 'active_bits' or 'sparsity'.")
+
+        if has_sparsity:
+            if not 0.0 < params.sparsity <= 1.0:
+                raise ValueError("sparsity must be between 0 and 1.")
+            params.active_bits = int(round(params.size * params.sparsity))
+            if params.active_bits <= 0:
+                raise ValueError("Computed active bits must be greater than 0.")
+        else:
+            if params.active_bits > params.size:
+                raise ValueError("active_bits cannot be greater than size.")
+            params.sparsity = params.active_bits / float(params.size)
+
+        return params
 
     @override
     def encode(self, input_value: tuple[float, float] | list[tuple[float, float]]) -> list[int]:

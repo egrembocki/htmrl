@@ -261,3 +261,23 @@ def test_decode_rejects_incorrect_sdr_size() -> None:
     # Act / Assert
     with pytest.raises(ValueError):
         encoder.decode(encoded[:-1])
+
+
+# Test Type: unit test
+def test_fourier_sparsity_config_derives_meaningful_active_bits_per_range() -> None:
+    # TS-12 TC-108
+    """When sparsity is provided, active_bits_in_ranges should be derived and usable."""
+    encoder = _build_encoder(sparsity_in_ranges=[0.025], active_bits_in_ranges=[])
+
+    assert encoder._params.sparsity_in_ranges == [0.025]
+    assert encoder._params.active_bits_in_ranges == [51]
+
+
+# Test Type: unit test
+def test_fourier_active_bits_config_derives_meaningful_sparsity_per_range() -> None:
+    # TS-12 TC-109
+    """When active bits are provided, sparsity_in_ranges should be derived and usable."""
+    encoder = _build_encoder(active_bits_in_ranges=[40], sparsity_in_ranges=[])
+
+    assert encoder._params.active_bits_in_ranges == [40]
+    assert encoder._params.sparsity_in_ranges == [pytest.approx(40 / 2048)]
