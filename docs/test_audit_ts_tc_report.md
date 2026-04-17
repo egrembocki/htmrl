@@ -53,7 +53,7 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | integration | TS-11 | — | — | `test_encoder_sparsity_affects_column_activation` | `tests/integration/test_encoder_htm_integration.py` | 1021 | `commit:integration test` |
 | integration | TS-11 | — | — | `test_proximal_synapses_strengthen_for_active_input` | `tests/integration/test_encoder_htm_integration.py` | 1067 | `commit:integration test` |
 | integration | TS-11 | — | — | `test_predictive_state_propagates_to_input_field` | `tests/integration/test_encoder_htm_integration.py` | 1118 | `commit:integration test` |
-| integration | — | — | — | `test_input_handler_to_encoder_pipeline` | `tests/integration/test_encoder_input_integration.py` | 82 | `inferred:path(/integration/)` |
+| integration | — | — | — | `test_input_handler_to_encoder_pipeline` | `tests/integration/test_encoder_input_integration.py` | 83 | `commit:integration test` |
 | integration | — | — | — | `test_encoder_to_htm_receives_sdr_object` | `tests/integration/test_encoder_to_htm.py` | 60 | `commit:integration test` |
 | integration | — | — | — | `test_input_to_encoder_passes_records_into_encoder` | `tests/integration/test_input_to_encoder.py` | 54 | `commit:integration test` |
 | integration | TS-20 | TC-170 | — | `test_env_adapter_accepts_instantiated_fingym` | `tests/test_env_adapter.py` | 15 | `commit:integration test` |
@@ -248,10 +248,10 @@ Generated from all `tests/test_*.py` and `tests/integration/test_*.py` functions
 | unit | TS-03 | — | — | `test_scalar_decode_empty_sdr` | `tests/test_encoder_scalar.py` | 538 | `commit:unit test` |
 | unit | TS-03 | — | — | `test_clear_registry_decode` | `tests/test_encoder_scalar.py` | 559 | `commit:unit test` |
 | unit | TS-03 | — | — | `test_scalar_hamming_distance` | `tests/test_encoder_scalar.py` | 594 | `commit:unit test` |
-| unit | TS-03 | — | — | `test_scalar_decode_returns_tuple_value_confidence` | `tests/test_encoder_scalar.py` | 675 | `inferred:default` |
-| unit | TS-03 | — | — | `test_scalar_decode_round_trip_same_value` | `tests/test_encoder_scalar.py` | 695 | `inferred:default` |
-| unit | TS-03 | — | — | `test_scalar_decode_wrong_size_raises` | `tests/test_encoder_scalar.py` | 713 | `inferred:default` |
-| unit | TS-03 | — | — | `test_scalar_decode_no_candidates_raises` | `tests/test_encoder_scalar.py` | 731 | `inferred:default` |
+| unit | TS-03 | — | — | `test_scalar_decode_returns_tuple_value_confidence` | `tests/test_encoder_scalar.py` | 676 | `commit:unit test` |
+| unit | TS-03 | — | — | `test_scalar_decode_round_trip_same_value` | `tests/test_encoder_scalar.py` | 697 | `commit:unit test` |
+| unit | TS-03 | — | — | `test_scalar_decode_wrong_size_raises` | `tests/test_encoder_scalar.py` | 716 | `commit:unit test` |
+| unit | TS-03 | — | — | `test_scalar_decode_no_candidates_raises` | `tests/test_encoder_scalar.py` | 735 | `commit:unit test` |
 | unit | — | — | — | `test_cell_initialization` | `tests/test_htm.py` | 35 | `commit:unit test` |
 | unit | — | — | — | `test_cell_store_segments` | `tests/test_htm.py` | 41 | `commit:unit test` |
 | unit | — | — | — | `test_cell_repr` | `tests/test_htm.py` | 48 | `commit:unit test` |

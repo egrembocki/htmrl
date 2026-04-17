@@ -44,7 +44,7 @@ def real_server() -> AgentWebSocketServer:
     return AgentWebSocketServer(agent=cast(Any, agent))
 
 
-# commit: system test
+# Test Type: system test
 def test_build_trading_visualization_returns_none_for_non_trading_obs(
     real_server: AgentWebSocketServer,
 ) -> None:
@@ -62,7 +62,7 @@ def test_build_trading_visualization_returns_none_for_non_trading_obs(
     assert payload is None
 
 
-# commit: system test
+# Test Type: system test
 def test_build_trading_visualization_computes_good_buy_alignment(
     real_server: AgentWebSocketServer,
 ) -> None:

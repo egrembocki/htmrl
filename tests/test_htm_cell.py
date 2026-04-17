@@ -40,7 +40,7 @@ class DummySegment:
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_cell_advance_state_moves_current_to_prev_and_resets_current():
     cell = Cell()
 
@@ -60,7 +60,7 @@ def test_cell_advance_state_moves_current_to_prev_and_resets_current():
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_cell_advance_state_advances_segments_too():
     # build a minimal distal field so Segment constructor can compute max_synapses safely
     distal = Field([Cell() for _ in range(10)])
@@ -78,7 +78,7 @@ def test_cell_advance_state_advances_segments_too():
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_cell_advance_state_twice_prev_tracks_last_step():
     cell = Cell()
     cell.set_active()
@@ -92,7 +92,7 @@ def test_cell_advance_state_twice_prev_tracks_last_step():
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_cell_advance_calls_advance_on_all_segments():
     c = Cell()
     s1, s2 = DummySegment(), DummySegment()
@@ -105,7 +105,7 @@ def test_cell_advance_calls_advance_on_all_segments():
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_cell_initialize_sets_fields():
     c = Cell()
     distal = Field([Cell() for _ in range(3)])
@@ -118,7 +118,7 @@ def test_cell_initialize_sets_fields():
 # Had one fail due to sources not being distals_cells[:10]
 # Had fail due to spelling error
 # Passed after that
-# commit: unit test
+# Test Type: unit test
 def test_segment_activations_set_parent_predictive():
     distals_cells = [Cell() for _ in range(20)]
     distal_field = Field(distals_cells)
@@ -150,7 +150,7 @@ def test_segment_activations_set_parent_predictive():
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_segment_does_not_activate_when_synapses_not_connected():
     perm = 0.5
     distal_cells = [Cell() for _ in range(20)]
@@ -183,7 +183,7 @@ def test_segment_does_not_activate_when_synapses_not_connected():
 # Had one fail because seg.potential_prev_active_synapses does not return a count
 # result was this: tests\test_htm_cell.py [<psu_capstone.agent_layer.pullin.pullin_htm.DistalSynapse
 #  object at 0x000001DD1942FB60>]
-# commit: unit test
+# Test Type: unit test
 def test_potential_prev_active_synapses_returns_count():
     distal = Field([Cell() for _ in range(10)])
     parent = Cell(distal_field=distal)
@@ -207,7 +207,7 @@ def test_potential_prev_active_synapses_returns_count():
 
 
 # Needs table
-# commit: unit test
+# Test Type: unit test
 def test_cell_advance_state_cascades_segment_state_history():
     distal = Field([Cell() for _ in range(50)])
     parent = Cell(distal_field=distal)

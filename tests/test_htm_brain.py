@@ -82,7 +82,7 @@ def create_brain_helper_single_field() -> Brain:
     return b
 
 
-# commit: unit test
+# Test Type: unit test
 def test_initialize_brain():
     """Test initialize the brain with all field types."""
     b = create_brain_helper_multi_field()
@@ -97,7 +97,7 @@ def test_initialize_brain():
     assert len(b._column_fields) == 1
 
 
-# commit: unit test
+# Test Type: unit test
 def test_get_field():
     b = create_brain_helper_multi_field()
     input_field = b.__getitem__("input")
@@ -108,7 +108,7 @@ def test_get_field():
     assert isinstance(column_field, ColumnField)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_step_and_prediction_method():
     b = create_brain_helper_single_field()
     b.step({"input": 10})

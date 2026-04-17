@@ -92,7 +92,7 @@ def _overlap(first: np.ndarray | list[int], second: np.ndarray | list[int]) -> i
     return int(np.sum(sdr_one & sdr_two))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_identical_frequencies_overlap_completely() -> None:
     """A pure tone should map to the same SDR every time, proving determinism.
 
@@ -109,7 +109,7 @@ def test_identical_frequencies_overlap_completely() -> None:
     assert _overlap(sd_first, sd_second) >= 40
 
 
-# commit: unit test
+# Test Type: unit test
 def test_close_frequencies_share_more_bits_than_far_ones() -> None:
     """Neighbouring tones should collide more than mid or distant tones to prove locality.
 
@@ -134,7 +134,7 @@ def test_close_frequencies_share_more_bits_than_far_ones() -> None:
     assert far_ratio <= 20
 
 
-# commit: unit test
+# Test Type: unit test
 def test_identical_frequency_with_different_magnitudes_remains_similar() -> None:
     """Amplitude changes alone should not scramble the SDR bits for a fixed frequency.
 
@@ -150,7 +150,7 @@ def test_identical_frequency_with_different_magnitudes_remains_similar() -> None
     assert _overlap(loud, quiet) >= 38
 
 
-# commit: unit test
+# Test Type: unit test
 def test_far_frequencies_remain_mostly_orthogonal() -> None:
     """Widely separated tones should produce low overlap, validating global coverage.
 
@@ -166,7 +166,7 @@ def test_far_frequencies_remain_mostly_orthogonal() -> None:
     assert _overlap(low, high) <= 20
 
 
-# commit: unit test
+# Test Type: unit test
 def test_composite_signal_retains_component_information() -> None:
     """A sum of sinusoids should overlap strongly with each constituent tone.
 
@@ -190,7 +190,7 @@ def test_composite_signal_retains_component_information() -> None:
     assert overlap_high >= 1
 
 
-# commit: unit test
+# Test Type: unit test
 def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> None:
     """
     Amplitude modulation generates the sum and difference frequencies.
@@ -212,7 +212,7 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
     assert overlap_modulator >= 0
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_single_tone_returns_expected_frequency() -> None:
     """Decode should identify the strongest frequency when candidates are provided.
 
@@ -236,7 +236,7 @@ def test_decode_single_tone_returns_expected_frequency() -> None:
     assert confidence > 0.0
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_rejects_incorrect_sdr_size() -> None:
     """Decode should raise when the SDR size does not match encoder size.
 

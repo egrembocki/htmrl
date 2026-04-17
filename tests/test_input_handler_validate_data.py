@@ -28,7 +28,7 @@ def handler():
     return InputHandler()
 
 
-# commit: unit test
+# Test Type: unit test
 def test_process_dataframe_valid(handler):
     # TC-059
     """
@@ -48,7 +48,7 @@ def test_process_dataframe_valid(handler):
     assert list(result.columns) == ["id", "timestamp", "value"]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_process_dataframe_adds_missing_required_columns(handler):
     # TC-060
     """
@@ -62,7 +62,7 @@ def test_process_dataframe_adds_missing_required_columns(handler):
     assert list(result.columns) == ["id", "timestamp", "value"]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_process_dataframe_empty(handler):
     # TC-061
     """
@@ -75,7 +75,7 @@ def test_process_dataframe_empty(handler):
     assert result.empty
 
 
-# commit: unit test
+# Test Type: unit test
 def test_process_dataframe_removes_all_nan_rows(handler):
     # TC-062
     """
@@ -89,7 +89,7 @@ def test_process_dataframe_removes_all_nan_rows(handler):
     assert len(result) <= len(df)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_process_dataframe_duplicate_columns(handler):
     # TC-063
     """
@@ -103,7 +103,7 @@ def test_process_dataframe_duplicate_columns(handler):
     assert "value" in result.columns
 
 
-# commit: unit test
+# Test Type: unit test
 def test_normalize_column_types_mixed_numeric(handler):
     # TC-016
     """Test that mixed numeric types are coerced correctly."""
@@ -112,7 +112,7 @@ def test_normalize_column_types_mixed_numeric(handler):
     assert pd.api.types.is_numeric_dtype(result["value"])
 
 
-# commit: unit test
+# Test Type: unit test
 def test_normalize_column_types_unsupported_type_raises(handler):
     # TC-064
     """
@@ -125,7 +125,7 @@ def test_normalize_column_types_unsupported_type_raises(handler):
         handler._normalize_column_types(df)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_fill_missing_values_numeric(handler):
     # TC-018
     """Test that missing numeric values are filled with mean."""
@@ -136,7 +136,7 @@ def test_fill_missing_values_numeric(handler):
     assert np.isclose(result["value"].iloc[1], 26.666666, rtol=0.01)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_detect_repeating_values(handler):
     # TC-019
     """Test detection of repeating values in columns."""
@@ -146,7 +146,7 @@ def test_detect_repeating_values(handler):
     assert "category" in cols
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_data_with_dict(handler):
     # TC-020
     """Test that dictionary input is processed correctly."""
@@ -158,7 +158,7 @@ def test_input_data_with_dict(handler):
     assert result["id"] == [1, 2, 3]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_data_with_required_columns(handler):
     # TC-021
     """Test that required columns are enforced."""

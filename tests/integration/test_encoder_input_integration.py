@@ -79,7 +79,7 @@ def fourier_helper():
         ),
     ],
 )
-# commit: integration test
+# Test Type: integration test
 def test_input_handler_to_encoder_pipeline(column, payload, encoder_type, parameters):
     ih = InputHandler()
     ih.input_data(payload)

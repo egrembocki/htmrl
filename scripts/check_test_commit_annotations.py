@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that repository tests include standardized ``# commit: ...`` annotations.
+"""Validate that repository tests include standardized ``# Test Type: ...`` annotations.
 
 This checker scans ``tests/`` for test functions/methods (``def test_*``) and
 verifies each has an allowed commit annotation comment immediately above its
@@ -32,7 +32,7 @@ class Violation:
 
 
 def _extract_commit_tag(line: str) -> str | None:
-    marker = "# commit:"
+    marker = "# Test Type:"
     if marker not in line:
         return None
     return line.split(marker, 1)[1].strip().lower()
@@ -88,7 +88,7 @@ def collect_violations() -> list[Violation]:
 
             if annotation is None:
                 violations.append(
-                    Violation(path, node.lineno, node.name, "missing '# commit:' annotation")
+                    Violation(path, node.lineno, node.name, "missing '# Test Type:' annotation")
                 )
                 continue
 
@@ -109,10 +109,10 @@ def main() -> int:
     violations = collect_violations()
 
     if not violations:
-        print("OK: all discovered tests have valid # commit annotations.")
+        print("OK: all discovered tests have valid # Test Type: annotations.")
         return 0
 
-    print("Found invalid/missing commit annotations:")
+    print("Found invalid/missing Test Type annotations:")
     for violation in violations:
         print(
             f"- {violation.path}:{violation.lineno} ({violation.function_name}) -> {violation.reason}"

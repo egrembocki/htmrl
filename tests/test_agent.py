@@ -80,7 +80,7 @@ def real_agent_brain_with_output(real_brain_with_output, real_adapter):
     return agent
 
 
-# commit: unit test
+# Test Type: unit test
 def test_q_table_policy_requires_discrete_action_space(real_brain):
     # TS-19 TC-155
     """q_table mode should reject non-discrete action spaces at construction."""
@@ -91,7 +91,7 @@ def test_q_table_policy_requires_discrete_action_space(real_brain):
         Agent(brain=real_brain, adapter=adapter, policy_mode="q_table")
 
 
-# commit: unit test
+# Test Type: unit test
 def test_q_values_row_initialized_by_action_count(real_brain, real_adapter):
     # TS-19 TC-156
     """Newly seen states should get zero Q rows sized to action-space cardinality."""
@@ -104,7 +104,7 @@ def test_q_values_row_initialized_by_action_count(real_brain, real_adapter):
     assert np.allclose(q_row, np.zeros(action_count))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_select_q_action_uses_argmax_when_not_exploring(real_brain, real_adapter):
     # TS-19 TC-157
     # TC 157
@@ -121,7 +121,7 @@ def test_select_q_action_uses_argmax_when_not_exploring(real_brain, real_adapter
     assert action == candidate_actions[1]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_update_applies_q_learning_bootstrap_target(real_brain, real_adapter):
     # TS-19 TC-158
     # TC 158
@@ -141,7 +141,7 @@ def test_update_applies_q_learning_bootstrap_target(real_brain, real_adapter):
     assert np.isclose(agent._q_values[state_key][0], 0.1495, rtol=1e-09, atol=1e-09)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_update_ignores_bootstrap_on_terminal_transition(real_brain, real_adapter):
     # TS-19 TC-159
     # TC 159
@@ -164,7 +164,7 @@ def test_update_ignores_bootstrap_on_terminal_transition(real_brain, real_adapte
     assert np.isclose(agent._q_values[state_key][0], 0.1, rtol=1e-09, atol=1e-09)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_update_is_noop_for_brain_policy_mode(real_brain, real_adapter):
     # TS-19 TC-160
     # TC 160
@@ -194,7 +194,7 @@ def test_update_is_noop_for_brain_policy_mode(real_brain, real_adapter):
     assert agent._training_error == []
 
 
-# commit: unit test
+# Test Type: unit test
 def test_step_runs_brain_then_env_and_returns_transition(real_agent_q_table):
     # TS-19 TC-161
     # TC 161
@@ -213,7 +213,7 @@ def test_step_runs_brain_then_env_and_returns_transition(real_agent_q_table):
     assert isinstance(transition["next_inputs"], dict)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_brain_policy_uses_action_from_brain_step_output() -> None:
     # TS-19 TC-162
     # TC 162
@@ -222,7 +222,7 @@ def test_brain_policy_uses_action_from_brain_step_output() -> None:
     # Removed: test_brain_policy_uses_action_from_brain_step_output (stub-only)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_ppo_policy_selects_action_from_injected_model() -> None:
     # TS-19 TC-163
     # TC 163
@@ -231,7 +231,7 @@ def test_ppo_policy_selects_action_from_injected_model() -> None:
     # Removed: test_ppo_policy_selects_action_from_injected_model (stub-only)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_ppo_policy_without_model_raises_value_error() -> None:
     # TS-19 TC-164
     # TC 164
@@ -291,7 +291,7 @@ def _build_real_brain_with_output_field(adapter: EnvAdapter) -> Brain:
     return Brain(brain.fields)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_real_brain_agent_adapter_gym_single_step_q_table(real_agent_q_table):
     # TS-19 TC-165
     """Real Brain + Adapter should complete one CartPole step through Agent in q_table mode."""
@@ -304,7 +304,7 @@ def test_real_brain_agent_adapter_gym_single_step_q_table(real_agent_q_table):
     assert "reward" in transition
 
 
-# commit: unit test
+# Test Type: unit test
 def test_real_brain_policy_mode_fallback_to_q_table(real_agent_brain):
     # TS-19 TC-166
     """brain policy mode should still step CartPole by falling back when no action predictions exist."""
@@ -314,7 +314,7 @@ def test_real_brain_policy_mode_fallback_to_q_table(real_agent_brain):
     assert isinstance(transition["truncated"], bool)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_real_brain_reads_and_encodes_adapter_inputs(real_brain, real_agent_q_table):
     # TS-19 TC-167
     """Agent.step should pass adapter inputs into real InputField encoders."""
@@ -341,7 +341,7 @@ def test_real_brain_reads_and_encodes_adapter_inputs(real_brain, real_agent_q_ta
         adapter.env.close()
 
 
-# commit: unit test
+# Test Type: unit test
 def test_real_input_fields_encode_values_into_sdr_vectors(real_brain, real_adapter):
     # TS-19 TC-168
     """Real InputField instances should encode adapter values into binary SDR vectors."""
@@ -355,7 +355,7 @@ def test_real_input_fields_encode_values_into_sdr_vectors(real_brain, real_adapt
         assert sum(encoded) > 0
 
 
-# commit: unit test
+# Test Type: unit test
 def test_real_output_field_decode_drives_brain_policy_action(real_agent_brain_with_output):
     # TS-19 TC-169
     """Real OutputField decode payload should directly determine brain-policy action."""

@@ -39,7 +39,7 @@ def base_encoder_instance() -> BaseEncoder:
     return TestEncoder(100)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_base_encoder_initialization(base_encoder_instance):
     # TS-08 TC-065
     """
@@ -54,7 +54,7 @@ def test_base_encoder_initialization(base_encoder_instance):
     assert encoder.size == 100
 
 
-# commit: unit test
+# Test Type: unit test
 def test_base_encoder_size_setter(base_encoder_instance):
     # TS-08 TC-166
     """Ensure size setter enforces constraints."""

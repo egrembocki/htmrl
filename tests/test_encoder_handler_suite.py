@@ -40,7 +40,7 @@ def handler() -> EncoderHandler:
     return handler
 
 
-# commit: unit test
+# Test Type: unit test
 def test_handler_singleton(handler: EncoderHandler):
     """Test that EncoderHandler enforces singleton pattern"""
 
@@ -56,7 +56,7 @@ def test_handler_singleton(handler: EncoderHandler):
 
 
 """
-# commit: unit test
+# Test Type: unit test
 def test_copy_deepcopy_sdr(handler: EncoderHandler):
     Test copying and deep copying SDRs from multiple encoders
 

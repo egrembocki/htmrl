@@ -39,7 +39,7 @@ class Row:
 
 
 def extract_commit_tag(line: str) -> str | None:
-    m = re.search(r"#\s*commit\s*:\s*(.+)$", line, re.IGNORECASE)
+    m = re.search(r"#\s*Test Type:\s*(.+)$", line, re.IGNORECASE)
     if not m:
         return None
     return m.group(1).strip().lower()

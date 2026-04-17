@@ -42,7 +42,7 @@ def category_instance():
     """
 
 
-# commit: unit test
+# Test Type: unit test
 def test_category_initialization():
     """
     This tests to make sure the Category Encoder can succesfully be created.
@@ -56,7 +56,7 @@ def test_category_initialization():
     """Checking if the instance is correct."""
 
 
-# commit: unit test
+# Test Type: unit test
 def test_encode_us():
     """
     This encodes the category "US" into an SDR of 1x12. That bit number is determined from
@@ -71,7 +71,7 @@ def test_encode_us():
     assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
-# commit: unit test
+# Test Type: unit test
 def test_unknown_category():
     """
     This encodes an unknown category. Here we use "NA" which as you can see is not one of
@@ -86,7 +86,7 @@ def test_unknown_category():
     assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
-# commit: unit test
+# Test Type: unit test
 def test_encode_es():
     """
     This is almost idential to the "US" encoding, I am just deomonstrating that the encoding
@@ -101,7 +101,7 @@ def test_encode_es():
     assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
-# commit: unit test
+# Test Type: unit test
 def test_with_sparsity():
     """This test is used to show how SDR outputs look with a single w or width."""
     categories = ["cat1", "cat2", "cat3", "cat4", "cat5"]
@@ -115,7 +115,7 @@ def test_with_sparsity():
         assert np.count_nonzero(a) > parameters.sparsity * parameters.size * 0.95
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_used():
     """
     This test uses the RDSE and demonstrates that the same encoder encoding a category twice
@@ -145,7 +145,7 @@ def test_rdse_used():
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_category_encode_output_only_zeros_and_ones():
     """CategoryEncoder output must contain only 0 and 1."""
     categories = ["ES", "GB", "US"]
@@ -159,7 +159,7 @@ def test_category_encode_output_only_zeros_and_ones():
             ), f"Output must be binary (0/1), rdse_used={rdse_used}, cat={cat!r}, got {set(out)}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_category_encode_output_length_equals_size():
     """CategoryEncoder output length must equal (num_categories + 1) * w."""
     categories = ["ES", "GB", "US"]
@@ -193,7 +193,7 @@ interpretable category values.
 """
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_returns_tuple_of_two():
     """Decode returns (value, confidence) tuple."""
     params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
@@ -207,7 +207,7 @@ def test_decode_returns_tuple_of_two():
     assert isinstance(confidence, (int, float))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_value_in_categories_or_na():
     """Decoded value is one of the category strings or 'NA'."""
     categories = ["ES", "GB", "US"]
@@ -224,7 +224,7 @@ def test_decode_value_in_categories_or_na():
     assert decoded_unknown[0] in valid_values
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_confidence_in_range():
     """Decoded confidence is in [0, 1]."""
     params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
@@ -236,7 +236,7 @@ def test_decode_confidence_in_range():
         assert 0 <= confidence <= 1, f"Confidence {confidence} not in [0, 1]"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_round_trip_same_category():
     """Encode then decode returns the same category (round-trip)."""
     categories = ["ES", "GB", "US"]
@@ -249,7 +249,7 @@ def test_decode_round_trip_same_category():
         assert value == cat, f"Round-trip: encoded {cat!r}, got back {value!r}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_round_trip_unknown():
     """Encode unknown category then decode returns 'NA'."""
     params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
@@ -259,7 +259,7 @@ def test_decode_round_trip_unknown():
     assert decoded[0] == "NA", f"Unknown should decode to 'NA', got {decoded[0]!r}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_wrong_sdr_size_raises():
     """Decode with wrong SDR length raises."""
     params = CategoryParametersNew(category_list=["ES", "GB", "US"], rdse_used=True)
@@ -271,7 +271,7 @@ def test_decode_wrong_sdr_size_raises():
         encoder.decode([0] * 20)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_demonstrate_anything_can_be_categories():
     """
     Tests that the category encoder can take any category list and encode it no matter the type.
@@ -318,7 +318,7 @@ def hamming_distance_helper(first, second) -> int:
 
 
 # Correctness tests
-# commit: unit test
+# Test Type: unit test
 def test_close_categories_are_similar():
     """
     This test checks to make sure categories by each other in the index are more similar

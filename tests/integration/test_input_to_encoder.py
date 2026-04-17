@@ -50,7 +50,7 @@ def encoder() -> ScalarEncoder:
     return ScalarEncoder(_make_scalar_params())
 
 
-# commit: integration test
+# Test Type: integration test
 def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     """
     This test verifies that InputHandler yields record dictionaries and that
@@ -80,7 +80,7 @@ def test_input_to_encoder_passes_records_into_encoder(input_handler, encoder):
     assert encoded_from_sequence == encoded_reference
 
 
-# commit: system test
+# Test Type: system test
 def test_sine_wave_through_input_handler(input_handler, encoder):
     """Run a sine wave through the full input->encode->compute->predict pipeline.
 

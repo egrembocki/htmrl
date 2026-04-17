@@ -31,7 +31,7 @@ tests/integration/test_encoder_htm_integration.py,960,test_similar_encoder_outpu
 tests/integration/test_encoder_htm_integration.py,1021,test_encoder_sparsity_affects_column_activation,TS-11,—,—,integration test,integration,commit:integration test
 tests/integration/test_encoder_htm_integration.py,1067,test_proximal_synapses_strengthen_for_active_input,TS-11,—,—,integration test,integration,commit:integration test
 tests/integration/test_encoder_htm_integration.py,1118,test_predictive_state_propagates_to_input_field,TS-11,—,—,integration test,integration,commit:integration test
-tests/integration/test_encoder_input_integration.py,82,test_input_handler_to_encoder_pipeline,—,—,—,—,integration,inferred:path(/integration/)
+tests/integration/test_encoder_input_integration.py,83,test_input_handler_to_encoder_pipeline,—,—,—,integration test,integration,commit:integration test
 tests/integration/test_encoder_to_htm.py,60,test_encoder_to_htm_receives_sdr_object,—,—,—,integration test,integration,commit:integration test
 tests/integration/test_input_to_encoder.py,54,test_input_to_encoder_passes_records_into_encoder,—,—,—,integration test,integration,commit:integration test
 tests/test_env_adapter.py,15,test_env_adapter_accepts_instantiated_fingym,TS-20,TC-170,—,integration test,integration,commit:integration test
@@ -226,10 +226,10 @@ tests/test_encoder_scalar.py,514,test_scalar_encode_empty_values,TS-03,—,—,u
 tests/test_encoder_scalar.py,538,test_scalar_decode_empty_sdr,TS-03,—,—,unit test,unit,commit:unit test
 tests/test_encoder_scalar.py,559,test_clear_registry_decode,TS-03,—,—,unit test,unit,commit:unit test
 tests/test_encoder_scalar.py,594,test_scalar_hamming_distance,TS-03,—,—,unit test,unit,commit:unit test
-tests/test_encoder_scalar.py,675,test_scalar_decode_returns_tuple_value_confidence,TS-03,—,—,—,unit,inferred:default
-tests/test_encoder_scalar.py,695,test_scalar_decode_round_trip_same_value,TS-03,—,—,—,unit,inferred:default
-tests/test_encoder_scalar.py,713,test_scalar_decode_wrong_size_raises,TS-03,—,—,—,unit,inferred:default
-tests/test_encoder_scalar.py,731,test_scalar_decode_no_candidates_raises,TS-03,—,—,—,unit,inferred:default
+tests/test_encoder_scalar.py,676,test_scalar_decode_returns_tuple_value_confidence,TS-03,—,—,unit test,unit,commit:unit test
+tests/test_encoder_scalar.py,697,test_scalar_decode_round_trip_same_value,TS-03,—,—,unit test,unit,commit:unit test
+tests/test_encoder_scalar.py,716,test_scalar_decode_wrong_size_raises,TS-03,—,—,unit test,unit,commit:unit test
+tests/test_encoder_scalar.py,735,test_scalar_decode_no_candidates_raises,TS-03,—,—,unit test,unit,commit:unit test
 tests/test_htm.py,35,test_cell_initialization,—,—,—,unit test,unit,commit:unit test
 tests/test_htm.py,41,test_cell_store_segments,—,—,—,unit test,unit,commit:unit test
 tests/test_htm.py,48,test_cell_repr,—,—,—,unit test,unit,commit:unit test

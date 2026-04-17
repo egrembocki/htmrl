@@ -59,7 +59,7 @@ def do_scalar_value_cases(encoder: ScalarEncoder, cases: list[tuple[float, list[
         assert active_indices in (expected_indices, shifted_left)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encoder_initialization():
     # TS-03 TC-030
     """
@@ -100,7 +100,7 @@ def test_scalar_encoder_initialization():
     assert encoder.size == 10
 
 
-# commit: unit test
+# Test Type: unit test
 def test_clipping_inputs():
     # TS-03 TC-031
     """Test that inputs are correctly clipped to the specified min/max range."""
@@ -136,7 +136,7 @@ def test_clipping_inputs():
         encoder.encode(20.1)  # Above maximum edge case
 
 
-# commit: unit test
+# Test Type: unit test
 def test_valid_scalar_inputs():
     # TS-03 TC-032
     """Test that valid scalar inputs are encoded correctly."""
@@ -169,7 +169,7 @@ def test_valid_scalar_inputs():
     encoder.encode(19.9)  # Just below maximum edge case
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encoder_category_encode():
     # TS-03 TC-033
     """Test that category scalar inputs are encoded correctly."""
@@ -206,7 +206,7 @@ def test_scalar_encoder_category_encode():
     encoder.encode(10.0)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encoder_non_integer_bucket_width():
     # TS-03 TC-034
     """Test that scalar encoder handles non-integer bucket widths correctly."""
@@ -234,7 +234,7 @@ def test_scalar_encoder_non_integer_bucket_width():
     do_scalar_value_cases(encoder, cases)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
     # TS-03 TC-035
     """Test that scalar encoder rounds to the nearest multiple of resolution correctly."""
@@ -276,7 +276,7 @@ def test_scalar_encoder_round_to_nearest_multiple_of_resolution():
     do_scalar_value_cases(encoder, cases)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
     # TS-03 TC-036
     """Test that periodic scalar encoder rounds to the nearest multiple of resolution correctly."""
@@ -305,7 +305,7 @@ def test_scalar_encoder_periodic_round_nearest_multiple_of_resolution():
         assert all(0 <= index < encoder.size for index in active_indices)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encoder_serialization():
     # TS-03 TC-037
     """Test serialization and deserialization of ScalarEncoder."""
@@ -414,7 +414,7 @@ def test_scalar_encoder_serialization():
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encode_output_only_zeros_and_ones():
     """Encoder output must contain only 0 and 1."""
     p = ScalarEncoderParameters(
@@ -435,7 +435,7 @@ def test_scalar_encode_output_only_zeros_and_ones():
         assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encode_output_length_equals_size():
     """Encoder output length must equal the configured size."""
     p = ScalarEncoderParameters(
@@ -455,7 +455,7 @@ def test_scalar_encode_output_length_equals_size():
     assert len(out) == 32, f"Output length must equal size (32), got {len(out)}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encode_output_active_bits_conforms():
     """Output must have exactly active_bits ones; sparsity = active_bits/size."""
     size = 64
@@ -484,7 +484,7 @@ def test_scalar_encode_output_active_bits_conforms():
 """Correctness tests below."""
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encode_improper_values():
     """
     This test tries to encode with multiple entry types.
@@ -510,7 +510,7 @@ def test_scalar_encode_improper_values():
         encoder.encode(((10, 20), 2))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_encode_empty_values():
     """
     Tests that encode properly raises an exception if no input value is entered.
@@ -534,7 +534,7 @@ def test_scalar_encode_empty_values():
         encoder.encode(None)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_decode_empty_sdr():
     """Tests that the decode method can raise an exception when an empty sdr is entered."""
     p = ScalarEncoderParameters(
@@ -555,7 +555,7 @@ def test_scalar_decode_empty_sdr():
         encoder.decode([])
 
 
-# commit: unit test
+# Test Type: unit test
 def test_clear_registry_decode():
     """
     This tests that a value error is raised if there are no registered
@@ -590,7 +590,7 @@ def hamming_distance_helper(first: np.ndarray, second: np.ndarray) -> int:
     return int(np.count_nonzero(first != second))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_hamming_distance():
     """
     This test compares the mean hamming distances between consecutive encoded values
@@ -672,7 +672,7 @@ overlap to the input SDR. Cache is populated on encode().
 """
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_decode_returns_tuple_value_confidence():
     """decode() returns (value, confidence) tuple."""
     params = ScalarEncoderParameters(
@@ -693,7 +693,7 @@ def test_scalar_decode_returns_tuple_value_confidence():
     assert 0 <= confidence <= 1
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_decode_round_trip_same_value():
     """decode(encode(x)) returns (x, high confidence) for same encoder instance."""
     params = ScalarEncoderParameters(
@@ -712,7 +712,7 @@ def test_scalar_decode_round_trip_same_value():
         assert confidence >= 0.9, f"Round-trip confidence should be high, got {confidence}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_decode_wrong_size_raises():
     """decode() with wrong-length SDR raises ValueError."""
     params = ScalarEncoderParameters(
@@ -731,7 +731,7 @@ def test_scalar_decode_wrong_size_raises():
         encoder.decode([0] * 300)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_scalar_decode_no_candidates_raises():
     """decode() with no prior encode (empty cache) raises ValueError."""
     params = ScalarEncoderParameters(

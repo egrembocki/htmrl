@@ -42,7 +42,7 @@ def category_instance():
     """
 
 
-# commit: unit test
+# Test Type: unit test
 def test_category_initialization():
     """
     TC-053
@@ -59,7 +59,7 @@ def test_category_initialization():
     """Checking if the instance is correct."""
 
 
-# commit: unit test
+# Test Type: unit test
 def test_encode_us():
     """
     TC-054
@@ -76,7 +76,7 @@ def test_encode_us():
     assert a == [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_unknown_category():
     """
     TC-055
@@ -93,7 +93,7 @@ def test_unknown_category():
     assert a == [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_encode_es():
     """
     TC-056
@@ -110,7 +110,7 @@ def test_encode_es():
     assert a == [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
 
 
-# commit: unit test
+# Test Type: unit test
 def test_with_width_one():
     """
     TC-057
@@ -137,7 +137,7 @@ def test_with_width_one():
         i = i + 1
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_used():
     """
     TC-058
@@ -170,7 +170,7 @@ def test_rdse_used():
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_category_encode_output_only_zeros_and_ones():
     """CategoryEncoder output must contain only 0 and 1."""
     categories = ["ES", "GB", "US"]
@@ -184,7 +184,7 @@ def test_category_encode_output_only_zeros_and_ones():
             ), f"Output must be binary (0/1), rdse_used={rdse_used}, cat={cat!r}, got {set(out)}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_category_encode_output_length_equals_size():
     """CategoryEncoder output length must equal (num_categories + 1) * w."""
     categories = ["ES", "GB", "US"]
@@ -219,7 +219,7 @@ interpretable category values.
 """
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_returns_tuple_of_two():
     """Decode returns (value, confidence) tuple."""
     params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
@@ -233,7 +233,7 @@ def test_decode_returns_tuple_of_two():
     assert isinstance(confidence, (int, float))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_value_in_categories_or_na():
     """Decoded value is one of the category strings or 'NA'."""
     categories = ["ES", "GB", "US"]
@@ -250,7 +250,7 @@ def test_decode_value_in_categories_or_na():
     assert decoded_unknown[0] in valid_values
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_confidence_in_range():
     """Decoded confidence is in [0, 1]."""
     params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
@@ -262,7 +262,7 @@ def test_decode_confidence_in_range():
         assert 0 <= confidence <= 1, f"Confidence {confidence} not in [0, 1]"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_round_trip_same_category():
     """Encode then decode returns the same category (round-trip)."""
     categories = ["ES", "GB", "US"]
@@ -275,7 +275,7 @@ def test_decode_round_trip_same_category():
         assert value == cat, f"Round-trip: encoded {cat!r}, got back {value!r}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_round_trip_unknown():
     """Encode unknown category then decode returns 'NA'."""
     params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
@@ -285,7 +285,7 @@ def test_decode_round_trip_unknown():
     assert decoded[0] == "NA", f"Unknown should decode to 'NA', got {decoded[0]!r}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_wrong_sdr_size_raises():
     """Decode with wrong SDR length raises."""
     params = CategoryParameters(w=3, category_list=["ES", "GB", "US"], rdse_used=True)
@@ -297,7 +297,7 @@ def test_decode_wrong_sdr_size_raises():
         encoder.decode([0] * 20)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_demonstrate_anything_can_be_categories():
     """
     Tests that the category encoder can take any category list and encode it no matter the type.

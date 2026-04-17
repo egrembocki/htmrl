@@ -28,7 +28,7 @@ from psu_capstone.agent_layer.pullin.pullin_htm import InputField, OutputField
 """++++++++++Output Field Testing++++++++++"""
 
 
-# commit: unit test
+# Test Type: unit test
 def test_outputfield_creation():
     input_field = InputField()
     o = OutputField(input_field=input_field, size=16)

@@ -11,7 +11,7 @@ import pytest
 from psu_capstone.environment.fin_gym import FinGym
 
 
-# commit: integration test
+# Test Type: integration test
 def test_fingym_builds_observation_from_dataframe() -> None:
     """Observations should be float32 vectors with one value per feature column."""
 
@@ -32,7 +32,7 @@ def test_fingym_builds_observation_from_dataframe() -> None:
     assert "close" not in info["feature_columns"]
 
 
-# commit: integration test
+# Test Type: integration test
 def test_fingym_step_progression_and_reward() -> None:
     """Long/short rewards should track target deltas and terminate on final transition."""
 
@@ -59,7 +59,7 @@ def test_fingym_step_progression_and_reward() -> None:
     assert info2["row_index"] == 1
 
 
-# commit: integration test
+# Test Type: integration test
 def test_fingym_rejects_invalid_action() -> None:
     """Invalid actions should raise ValueError."""
 
@@ -71,7 +71,7 @@ def test_fingym_rejects_invalid_action() -> None:
         env.step(99)
 
 
-# commit: integration test
+# Test Type: integration test
 def test_fingym_loads_csv(tmp_path: Path) -> None:
     """CSV data sources should load into a valid environment."""
 

@@ -44,7 +44,7 @@ pytest_plugins = ["tests.config_test"]
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_output_only_zeros_and_ones(date_params_season_only):
     """Verify RDSE DateEncoder output is strictly binary (only 0 and 1 values).
 
@@ -63,7 +63,7 @@ def test_rdse_output_only_zeros_and_ones(date_params_season_only):
     assert all(b in (0, 1) for b in out), f"Output must be binary (0/1), got {set(out)}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_output_length_equals_size(date_params_season_only):
     """Verify RDSE DateEncoder output length matches the configured encoder size.
 
@@ -84,7 +84,7 @@ def test_rdse_output_length_equals_size(date_params_season_only):
     ), f"Output length must equal _size ({encoder._size}), got {len(out)}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_all_combined_output_binary_and_length(date_params_all_combined_with_year):
     """Verify RDSE DateEncoder with all features produces correct output format.
 
@@ -122,7 +122,7 @@ def test_rdse_all_combined_output_binary_and_length(date_params_all_combined_wit
     ],
     ids=["year", "season", "day_of_week", "weekend", "custom", "holiday", "time_of_day"],
 )
-# commit: unit test
+# Test Type: unit test
 def test_rdse_single_feature_encode_binary_and_length(params_fixture, request):
     """Verify each individual RDSE encoder produces valid binary output.
 
@@ -148,7 +148,7 @@ def test_rdse_single_feature_encode_binary_and_length(params_fixture, request):
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_same_instance_same_input_same_encoding(date_params_season_only):
     """Verify RDSE encoding is deterministic for the same encoder instance.
 
@@ -173,7 +173,7 @@ def test_rdse_same_instance_same_input_same_encoding(date_params_season_only):
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_same_params_same_encoding_across_instances(date_params_season_only):
     """Verify RDSE produces identical encodings across different encoder instances.
 
@@ -195,7 +195,7 @@ def test_rdse_same_params_same_encoding_across_instances(date_params_season_only
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_encode_accepts_datetime(date_params_season_only):
     """Verify RDSE DateEncoder accepts Python datetime objects.
 
@@ -214,7 +214,7 @@ def test_rdse_encode_accepts_datetime(date_params_season_only):
     assert all(b in (0, 1) for b in out)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_encode_accepts_none_current_time(date_params_season_only):
     """Verify RDSE DateEncoder accepts None to represent current time.
 
@@ -232,7 +232,7 @@ def test_rdse_encode_accepts_none_current_time(date_params_season_only):
     assert all(b in (0, 1) for b in out)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_encode_accepts_epoch_seconds(date_params_season_only):
     """Verify RDSE DateEncoder accepts UNIX epoch seconds (int/float).
 
@@ -252,7 +252,7 @@ def test_rdse_encode_accepts_epoch_seconds(date_params_season_only):
     assert all(b in (0, 1) for b in out)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_encode_accepts_struct_time(date_params_season_only):
     """Verify RDSE DateEncoder accepts time.struct_time objects.
 
@@ -272,7 +272,7 @@ def test_rdse_encode_accepts_struct_time(date_params_season_only):
     assert all(b in (0, 1) for b in out)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_encode_rejects_unsupported_type(date_params_season_only):
     """Verify RDSE DateEncoder rejects unsupported input types.
 
@@ -294,7 +294,7 @@ def test_rdse_encode_rejects_unsupported_type(date_params_season_only):
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_no_encoders_enabled_raises():
     """Verify DateEncoder raises error when no encoders are enabled.
 
@@ -320,7 +320,7 @@ def test_rdse_no_encoders_enabled_raises():
 # ---------------------------------------------------------------------------
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_different_dates_different_encodings(date_params_all_combined_with_year):
     """Verify different dates produce different RDSE encodings.
 
@@ -356,7 +356,7 @@ def hamming_distance_helper(first, second) -> int:
     return result
 
 
-# commit: unit test
+# Test Type: unit test
 def test_date_correctness(date_params_all_combined_with_year, date_params_year_only):
     """Verify year encoding produces semantically correct Hamming distances.
 
