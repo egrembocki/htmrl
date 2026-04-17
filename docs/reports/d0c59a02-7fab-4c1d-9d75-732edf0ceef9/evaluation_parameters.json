@@ -1,0 +1,11 @@
+{
+    "steps": 200,
+    "dataset_fields": [
+        "sine_wave_input"
+    ],
+    "dataset_lengths": {
+        "sine_wave_input": 2048
+    },
+    "learn": false,
+    "timestamp": "2026-03-10T18:27:22.319959"
+}
