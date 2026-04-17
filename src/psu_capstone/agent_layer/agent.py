@@ -20,7 +20,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.log import get_logger
