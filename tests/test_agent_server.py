@@ -2,9 +2,9 @@
 
 import pytest
 
-pytest.importorskip("websockets")
-
 from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
+
+pytest.importorskip("websockets")
 
 
 class _StubAdapter:
