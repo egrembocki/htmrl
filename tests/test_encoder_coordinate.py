@@ -27,7 +27,7 @@ enabling HTM systems to learn spatial patterns and sequences.
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_is_deterministic():
     params = CoordinateParameters(n=40, w=25, seed=42, max_radius=3, dims=2)
     enc = CoordinateEncoder(params)
@@ -56,7 +56,7 @@ def test_decode_is_deterministic():
     assert first2 == key2
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_round_trip_same_coordinate():
     params = CoordinateParameters(n=2048, w=25, seed=0, max_radius=6, dims=2)
     enc = CoordinateEncoder(params)

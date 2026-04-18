@@ -3,37 +3,29 @@ skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-10 Decode SDR to Value
+title US-10 Decode SDR to Value: Brain.prediction()
+
 actor Developer as Dev
 participant "<u>b:Brain</u>" as BR
-participant "<u>cf:ColumnField</u>" as HTM
 participant "<u>if:InputField</u>" as IF
-participant "<u>enc:BaseEncoder</u>" as ENC
+participant "<u>enc:Encoder</u>" as ENC
+participant "<u>of:OutputField</u>" as OF
 
-Dev -> BR: step(inputs, learn=False)
+Dev -> BR: prediction()
 activate BR
-BR -> HTM: compute(learn=False)
-activate HTM
-HTM --> BR: predictive state
-deactivate HTM
 
-BR -> BR: prediction() uses predictive state
-loop for each registered input field
+loop each input field
   BR -> IF: decode("predictive")
-  activate IF
-  IF -> ENC: decode(bit_vector, candidates)
-  activate ENC
-  ENC --> IF: decoded value + confidence
-  deactivate ENC
-  IF --> BR: (value, confidence)
-  deactivate IF
+  IF -> ENC: decode(bit_vector, candidates?)
+  ENC --> IF: value, confidence
+  IF --> BR: value + confidence
 end
 
-BR --> Dev: decoded output map + HTM state
-deactivate BR
+loop each output field
+  BR -> OF: decode()
+  OF --> BR: {value, confidence}
+end
 
-note over BR,HTM
-Predictions are produced from Brain/HTM predictive state,
-then decoded by InputField + encoder decode APIs.
-end note
+BR --> Dev: predictions dict\n(input + input.conf + action_*.conf keys)
+deactivate BR
 @enduml

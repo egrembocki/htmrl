@@ -1,48 +1,27 @@
 @startuml
-scale 2000 width
-scale 2000 height
-skinparam TitleFontSize 40
-skinparam ObjectFontSize 30
-skinparam DefaultFontSize 32
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-07 Use HTM Engine
+
+title US-07 Use HTM Engine: ColumnField.compute()
 
 actor "Brain" as B
 participant "<u>cf:ColumnField</u>" as CF
-participant "HTM" as H
+participant "Cell/Segment/Synapse State" as H
 
-group Included by higher-level user stories
-  ref over B,H
-    <<included by>> US-05 Train Model
-    <<included by>> US-06 Train Brain
-  end ref
-end
-
-B -> CF: compute(encoded SDRs, learn=True)
+B -> CF: compute(learn=True|False)
 activate CF
-CF -> H: compute(learn=True)
-activate H
-
-== Calls inside HTM engine ==
-H -> H: advance_states()
-H -> H: compute_overlap(encoded SDRs)
-H -> H: activate_columns()
-H -> H: activate_cells()
-H -> H: depolarize_cells()
+CF -> H: advance states (active/predictive/winner)
+CF -> H: compute overlap from encoded input bits
+CF -> H: activate columns and cells
+CF -> H: depolarize / set predictive cells
 
 alt learn=True
-  H -> H: learn_columns()
-  H -> H: learn_segments()
-  H -> H: update_duty_cycles()
+  CF -> H: reinforce active segments/synapses
+  CF -> H: punish predicted-but-inactive segments
+  CF -> H: update duty cycles / boost stats
 end
 
-H -> H: set_prediction()
-
-H --> CF: active_columns,active_cells,predictive_cells,anomaly_score,confidence_signal
-deactivate H
-CF --> B: HTM result object
-
+CF --> B: updated field state\n(active_cells, predictive_cells, bursting_columns, metrics)
 deactivate CF
 @enduml

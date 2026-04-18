@@ -2,37 +2,36 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-02 Validate Data:InputHandler._process_dataframe()
 
-participant InputData
+title US-02 Validate Data: InputHandler._process_dataframe()
+
+participant Caller
 participant "<u>ih:InputHandler</u>" as IH
-participant "Logger\n<static>" as LOG
+participant "Logger" as LOG
 
-InputData -> IH: _process_dataframe(df, required_columns)
+Caller -> IH: _process_dataframe(df, required_columns?)
 activate IH
 
 alt df.empty
   IH -> IH: self._repeating_columns = []
-  IH --> InputData: empty DataFrame
-else dataframe has rows
-  alt duplicate column names exist
+  IH -> IH: self._is_repeating = false
+  IH --> Caller: empty DataFrame
+else non-empty dataframe
+  opt duplicate column names
     IH -> LOG: info("Duplicate columns detected")
-    IH -> IH: df = df.loc[:, ~df.columns.duplicated()] -- remove duplicates
-    IH -> LOG: info("Removed duplicate columns")
+    IH -> IH: df = df.loc[:, ~df.columns.duplicated()]
   end
 
   opt required_columns provided
-    IH -> IH: add missing required columns if set
+    IH -> IH: add missing required columns as None
     IH -> IH: df = df[required_columns]
-    IH -> LOG: info("Added missing required columns")
   end
 
-  IH -> IH: _normalize_datetime_columns(df) -- if datetime columns exist
+  IH -> IH: _normalize_datetime_columns(df)
   IH -> IH: _normalize_column_types(df)
   IH -> IH: _fill_missing_values(df)
   IH -> IH: _detect_repeating_values(df, threshold=3)
-  IH -> IH: tuple(self._is_repeating, self._repeating_columns)
-  IH --> InputData: processed DataFrame
+  IH --> Caller: processed DataFrame
 end
 
 deactivate IH

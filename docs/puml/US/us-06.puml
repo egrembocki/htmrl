@@ -8,53 +8,31 @@ skinparam ObjectFontSize 30
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-06 Train Brain
+title US-06 Train Brain: Trainer.train_full_brain()
 
 actor Developer as Dev
-participant "<u>trainer:Trainer</u>" as TR
+participant "<u>tr:Trainer</u>" as TR
 participant "<u>b:Brain</u>" as BR
 participant "<u>if:InputField</u>" as IF
-participant "<u>cf:ColumnField</u>" as CF
+participant "<u>cf/vf:ColumnField/ValueField</u>" as CF
 
-Dev -> TR: build_brain(fields)
+Dev -> TR: add_input_field(...)
+Dev -> TR: add_output_field(...)
+Dev -> TR: add_column_field(...)
+Dev -> TR: train_full_brain(brain, dataset, steps)
 activate TR
-TR -> TR: _setup_io_fields(fields)
-TR -> TR: _setup_column_fields(num_columns=max(size), cells_per_column=16)
-TR -> TR: _create_brain()
-TR -> BR: Brain({input_fields, output_fields, column_fields})
-activate BR
-BR --> TR: brain
-TR --> Dev: built Brain
 
-group Pre-train outside RL loop
-  Dev -> TR: train_full_brain(brain, dataset, steps)
-  activate TR
-  loop step in range(steps)
-    TR -> TR: column_data = {key: dataset[key][step % len(dataset[key])] for key in dataset}
-    TR -> TR: build input_dict from _trainer_input_fields
-    TR -> BR: step(inputs=input_dict, learn=True)
-    activate BR
-    BR -> BR: encode_only(inputs)
-    loop for each input field in inputs
-      BR -> IF: encode(value)
-      activate IF
-      IF --> BR: encoded state updated
-      deactivate IF
-    end
-    BR -> BR: compute_only(learn=True)
-    BR -> CF: compute(learn=True)
-    activate CF
-    CF --> BR: HTM state updated
-    deactivate CF
-    BR --> TR: decoded outputs
-    deactivate BR
-  end
-
-  TR -> TR: print_train_stats(save_path?, test_results?, training_steps?)
-  TR --> Dev: trained brain stats/report
-  deactivate TR
+loop step in range(steps)
+  TR -> TR: column_data = dataset[key][step % len(dataset[key])]
+  TR -> TR: input_dict from configured trainer input fields
+  TR -> BR: step(inputs=input_dict, learn=True)
+  activate BR
+  BR -> IF: encode(value) for each input
+  BR -> CF: compute(learn=True) for column/value fields
+  BR --> TR: behavior/action outputs
+  deactivate BR
 end
 
-deactivate BR
+TR --> Dev: training complete (state stored in brain)
 deactivate TR
 @enduml

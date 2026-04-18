@@ -438,11 +438,22 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
         if num_ranges == 0:
             raise ValueError("At least one frequency range must be provided.")
 
-        # Active bits and sparsity are mutually exclusive controls.
+        # Active bits and sparsity are mutually exclusive inputs, but normalized params
+        # can legitimately contain both when they are equivalent representations.
         if params.active_bits_in_ranges and params.sparsity_in_ranges:
-            raise ValueError(
-                "Cannot specify both active_bits_in_ranges and sparsity_in_ranges. Choose one."
+            same_length = len(params.active_bits_in_ranges) == len(params.sparsity_in_ranges)
+            equivalent = same_length and all(
+                int(round(sparsity * params.size)) == active_bits
+                for active_bits, sparsity in zip(
+                    params.active_bits_in_ranges,
+                    params.sparsity_in_ranges,
+                    strict=True,
+                )
             )
+            if not equivalent:
+                raise ValueError(
+                    "Cannot specify both active_bits_in_ranges and sparsity_in_ranges. Choose one."
+                )
 
         # Normalize per-range resolutions: allow a single global value.
         if len(params.resolutions_in_ranges) == 0:
@@ -469,6 +480,15 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
             if any(sparsity <= 0 or sparsity > 1 for sparsity in params.sparsity_in_ranges):
                 raise ValueError("Each sparsity value must be in the interval (0, 1].")
 
+            params.active_bits_in_ranges = [
+                int(round(sparsity * params.size)) for sparsity in params.sparsity_in_ranges
+            ]
+
+            if any(active_bits <= 0 for active_bits in params.active_bits_in_ranges):
+                raise ValueError(
+                    "sparsity_in_ranges and size must produce active_bits_in_ranges > 0."
+                )
+
         elif params.active_bits_in_ranges:
             if len(params.active_bits_in_ranges) == 1 and num_ranges > 1:
                 params.active_bits_in_ranges = [params.active_bits_in_ranges[0]] * num_ranges
@@ -491,6 +511,7 @@ class FourierEncoder(BaseEncoder[np.ndarray], list[int]):
                 if params.total_active_bits > params.size:
                     raise ValueError("total_active_bits cannot exceed encoder size.")
                 params.sparsity_in_ranges = [params.total_active_bits / params.size] * num_ranges
+                params.active_bits_in_ranges = [params.total_active_bits] * num_ranges
             else:
                 raise ValueError(
                     "Provide sparsity_in_ranges, active_bits_in_ranges, or total_active_bits > 0."

@@ -334,11 +334,10 @@ if __name__ == "__main__":
 
     # Example usage of the Brain and Trainer classes
 
-    # show_input_data_demo()
-    # show_input_to_encoder_demo(3)
-    # show_brain_creation_demo()
+    show_input_data_demo()
+    show_input_to_encoder_demo(3)
+    show_brain_creation_demo()
     sine_wave_demo(200)
-    # fin_data_demo(steps=3)
-
-    # rec_center_demo(200)
-    # show_field_single_encoding_demo()
+    fin_data_demo(steps=3)
+    rec_center_demo(200)
+    show_field_single_encoding_demo()

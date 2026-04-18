@@ -43,7 +43,7 @@ class Trainer:
         pretrain_dataset: dict | None = None,
         pretrain_steps: int = 0,
     ) -> Brain:
-        """Build a Brain that matches the adapter's observation/action schema, with optional pre-training."""
+        """Build a Brain that matches the adapter's observation/action          schema,      with optional pre-training."""
         logger = get_logger("Trainer.build_brain_for_env")
         reset_bridge = adapter.reset_bridge()
         input_names = list(reset_bridge["inputs"].keys())
@@ -329,6 +329,7 @@ class Trainer:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
             input_fields=self._trainer_input_fields,
+            non_spatial=False,
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )

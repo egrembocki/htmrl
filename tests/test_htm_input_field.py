@@ -40,7 +40,7 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncod
 """++++++++++Input Field Testing++++++++++"""
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_correct_encoder_created():
     """
     This class uses dynamic instantiation. The test is designed
@@ -70,7 +70,7 @@ def test_input_field_correct_encoder_created():
     # when geospatial is added, add it here.
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_check_cell_count():
     """Test to check that the number of cells is equal to the size in the encoder."""
     parameters = RDSEParameters()
@@ -78,7 +78,7 @@ def test_input_field_check_cell_count():
     assert len(in_fi.cells) == in_fi.encoder.size
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_with_no_parameters():
     """Test to make sure the input field defaults to rdse if no parameters are given."""
     in_fi = InputField()
@@ -86,24 +86,22 @@ def test_input_field_with_no_parameters():
 
 
 # originally failing
-# commit: unit test
+# Test Type: unit test
 def test_input_field_with_fake_parameters():
     """This test enters a parameters that do not exist."""
     parameters = 1
-    in_fi = InputField(encoder_params=parameters)
-    assert in_fi.encoder is not None
-    in_fi.encode(1)
+    with pytest.raises((AttributeError, ValueError, TypeError)):
+        InputField(encoder_params=parameters)
 
 
 # originally failing
-# commit: unit test
+# Test Type: unit test
 def test_input_field_with_negative_size():
-    in_fi = InputField(size=-1)
-    assert in_fi.encoder.size != -1
-    in_fi.encode(1)
+    with pytest.raises((AssertionError, ValueError)):
+        InputField(size=-1)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_check_cells_are_active_after_encode():
     """Test that we have active cells after encoding."""
     in_fi = InputField()
@@ -115,7 +113,7 @@ def test_input_field_check_cells_are_active_after_encode():
         assert np.array_equal(sparse, active_cells)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_advance_cell_states():
     """This test makes sure cell states are being adjusted properly."""
     in_fi = InputField()
@@ -139,7 +137,7 @@ def test_input_field_advance_cell_states():
     assert prev_predictive == predictive_cells
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_can_encode_and_decode():
     """Check RDSE encoding and decoding."""
     parameters = RDSEParameters()
@@ -185,7 +183,7 @@ def test_input_field_can_encode_and_decode():
     # TODO add geospatial encoding and decoding
 
 
-# commit: unit test
+# Test Type: unit test
 def test_input_field_can_encode_wrong_value_type():
     """
     The input field should return none if the wrong type of input value

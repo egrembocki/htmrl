@@ -1,3 +1,4 @@
+# Test Suite: TS-12 (Fourier Transform Encoder)
 """
 Tests for Fourier Encoder frequency locality behavior.
 
@@ -92,8 +93,9 @@ def _overlap(first: np.ndarray | list[int], second: np.ndarray | list[int]) -> i
     return int(np.sum(sdr_one & sdr_two))
 
 
-# commit: unit test
+# Test Type: unit test
 def test_identical_frequencies_overlap_completely() -> None:
+    # TS-12 TC-080
     """A pure tone should map to the same SDR every time, proving determinism.
 
     TC-080: Identical frequencies should produce identical SDRs with high overlap.
@@ -109,8 +111,9 @@ def test_identical_frequencies_overlap_completely() -> None:
     assert _overlap(sd_first, sd_second) >= 40
 
 
-# commit: unit test
+# Test Type: unit test
 def test_close_frequencies_share_more_bits_than_far_ones() -> None:
+    # TS-12 TC-081
     """Neighbouring tones should collide more than mid or distant tones to prove locality.
 
     TC-081: SDRs for close frequencies should have higher overlap than those for mid or far frequencies.
@@ -134,8 +137,9 @@ def test_close_frequencies_share_more_bits_than_far_ones() -> None:
     assert far_ratio <= 20
 
 
-# commit: unit test
+# Test Type: unit test
 def test_identical_frequency_with_different_magnitudes_remains_similar() -> None:
+    # TS-12 TC-082
     """Amplitude changes alone should not scramble the SDR bits for a fixed frequency.
 
     TC-082: SDRs for the same frequency with different amplitudes should have high overlap.
@@ -150,8 +154,9 @@ def test_identical_frequency_with_different_magnitudes_remains_similar() -> None
     assert _overlap(loud, quiet) >= 38
 
 
-# commit: unit test
+# Test Type: unit test
 def test_far_frequencies_remain_mostly_orthogonal() -> None:
+    # TS-12 TC-083
     """Widely separated tones should produce low overlap, validating global coverage.
 
     TC-083: SDRs for widely separated frequencies should have low overlap.
@@ -166,8 +171,9 @@ def test_far_frequencies_remain_mostly_orthogonal() -> None:
     assert _overlap(low, high) <= 20
 
 
-# commit: unit test
+# Test Type: unit test
 def test_composite_signal_retains_component_information() -> None:
+    # TS-12 TC-084
     """A sum of sinusoids should overlap strongly with each constituent tone.
 
     TC-084: SDRs for a composite signal should have high overlap with each component frequency.
@@ -190,11 +196,14 @@ def test_composite_signal_retains_component_information() -> None:
     assert overlap_high >= 1
 
 
-# commit: unit test
+# Test Type: unit test
 def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> None:
+    # TS-12 TC-085
     """
     Amplitude modulation generates the sum and difference frequencies.
     Carrier freq and modulator will be dimished near zero in the fft.
+
+    TC-085: AM signals should preserve more carrier bits than modulator bits.
     """
 
     # Arrange
@@ -212,8 +221,9 @@ def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> No
     assert overlap_modulator >= 0
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_single_tone_returns_expected_frequency() -> None:
+    # TS-12 TC-086
     """Decode should identify the strongest frequency when candidates are provided.
 
     TC-086: Decode should identify the strongest frequency when candidates are provided.
@@ -236,8 +246,9 @@ def test_decode_single_tone_returns_expected_frequency() -> None:
     assert confidence > 0.0
 
 
-# commit: unit test
+# Test Type: unit test
 def test_decode_rejects_incorrect_sdr_size() -> None:
+    # TS-12 TC-087
     """Decode should raise when the SDR size does not match encoder size.
 
     TC-087: Decode should raise when the SDR size does not match encoder size.
@@ -250,3 +261,23 @@ def test_decode_rejects_incorrect_sdr_size() -> None:
     # Act / Assert
     with pytest.raises(ValueError):
         encoder.decode(encoded[:-1])
+
+
+# Test Type: unit test
+def test_fourier_sparsity_config_derives_meaningful_active_bits_per_range() -> None:
+    # TS-12 TC-108
+    """When sparsity is provided, active_bits_in_ranges should be derived and usable."""
+    encoder = _build_encoder(sparsity_in_ranges=[0.025], active_bits_in_ranges=[])
+
+    assert encoder._params.sparsity_in_ranges == [0.025]
+    assert encoder._params.active_bits_in_ranges == [51]
+
+
+# Test Type: unit test
+def test_fourier_active_bits_config_derives_meaningful_sparsity_per_range() -> None:
+    # TS-12 TC-109
+    """When active bits are provided, sparsity_in_ranges should be derived and usable."""
+    encoder = _build_encoder(active_bits_in_ranges=[40], sparsity_in_ranges=[])
+
+    assert encoder._params.active_bits_in_ranges == [40]
+    assert encoder._params.sparsity_in_ranges == [pytest.approx(40 / 2048)]

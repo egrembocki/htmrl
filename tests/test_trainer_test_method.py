@@ -28,12 +28,14 @@ def trainer() -> Trainer:
     return Trainer(Brain())
 
 
+# Test Type: unit test
 def test_test_method_rejects_empty_series(trainer: Trainer) -> None:
     fake_brain = _FakeBrain()
     with pytest.raises(ValueError, match="empty series"):
         trainer.test(fake_brain, {"value_input": []}, steps=None)
 
 
+# Test Type: unit test
 def test_test_method_honors_zero_steps(trainer: Trainer) -> None:
     fake_brain = _FakeBrain()
     result = trainer.test(fake_brain, {"value_input": [1.0, 2.0]}, steps=0)

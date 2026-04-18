@@ -79,7 +79,7 @@ def plot_rewards(envs, episodes):
 def main():
     parser = argparse.ArgumentParser(description="Run all RL environments and graph results.")
     parser.add_argument(
-        "--episodes", type=int, default=200, help="Number of episodes per environment"
+        "--episodes", type=int, default=50, help="Number of episodes per environment"
     )
     parser.add_argument(
         "--render", action="store_true", help="Show environment window (human render mode)"

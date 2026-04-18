@@ -1,5 +1,7 @@
 """Tests for structural ParameterMarker compatibility across encoder parameter classes."""
 
+# Test Suite: TS-23 (Encoder-ParameterMarker)
+
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import ParameterMarker
@@ -36,7 +38,8 @@ from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
         "scalar",
     ],
 )
-# commit: unit test
+# Test Type: unit test
 def test_encoder_parameter_is_parameter_marker(params):
+    # TS-23 TC-204
     """All encoder parameter classes should satisfy the ParameterMarker protocol."""
     assert isinstance(params, ParameterMarker)

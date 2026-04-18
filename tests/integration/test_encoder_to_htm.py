@@ -56,7 +56,7 @@ class HTMinterface:
         self.last_received_sdr = sdr
 
 
-# commit: integration test
+# Test Type: integration test
 def test_encoder_to_htm_receives_sdr_object():
 
     # Arrange

@@ -1,4 +1,4 @@
-# Test Suite: TS-05 (SDR Date Encoder)
+# Test Suite: TS-13 (DateEncoder - Decode)
 """
 tests.test_decoder_date
 
@@ -46,9 +46,9 @@ pytest_plugins = ["tests.config_test"]
         ("date_params_time_of_day_only", "timeofday", 0, 24),
     ],
 )
-# commit: unit test
+# Test Type: unit test
 def test_single_encoder_decode(
-    # TS-06 TC-046, TC-047, TC-048, TC-049, TC-050, TC-051
+    # TS-13 TC-088, TC-090, TC-091, TC-092, TC-093, TC-094
     date_params_fixture,
     encoder_key,
     value_min,
@@ -101,9 +101,9 @@ def test_single_encoder_decode(
     ), "Round-trip should be deterministic for same encoder instance"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_decode_same_across_instances_with_same_params(date_params_day_of_week_only):
-    # TS-06 TC-051
+    # TS-13 TC-089
     """With same params, DateEncoder does not pass a seed to RDSE, so all instances use default seed and produce the same decode."""
     # Arrange
     date_params = date_params_day_of_week_only
@@ -123,9 +123,9 @@ def test_rdse_decode_same_across_instances_with_same_params(date_params_day_of_w
     ), f"With same params (no seed override), all instances should produce same decode; got {decoded_values}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_all_combined(date_params_all_combined, decoder_test_dates):
-    # TS-06 TC-052
+    # TS-13 TC-095
     """Decode with all six encoders enabled (RDSE): season, day_of_week, weekend, custom, holiday, time_of_day."""
     # Arrange
     date_params = date_params_all_combined

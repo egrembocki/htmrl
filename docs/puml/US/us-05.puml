@@ -9,103 +9,42 @@ skinparam ObjectFontSize 30
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-05 Train Model
+title US-05 Train Model: train_cartpole_brain_policy()
 
 actor Developer as Dev
-participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
-participant "<u>trainer:Trainer</u>" as TR
-participant "<u>a:Agent</u>" as AG
+participant "<u>entry:train_cartpole_brain_policy</u>" as Entry
+participant "<u>builder:build_cartpole_brain</u>" as Build
 participant "<u>adapter:EnvAdapter</u>" as EA
+participant "<u>a:Agent</u>" as AG
 participant "<u>b:Brain</u>" as BR
-participant "<u>if:InputField</u>" as IF
-participant "<u>cf:ColumnField</u>" as CF
 participant "Gym Env" as ENV
 
-actor Developer as Dev
-participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
-participant "<u>trainer:Trainer</u>" as TR
-participant "<u>a:Agent</u>" as AG
-participant "<u>adapter:EnvAdapter</u>" as EA
-participant "<u>b:Brain</u>" as BR
-participant "<u>if:InputField</u>" as IF
-participant "<u>cf:ColumnField</u>" as CF
-participant "Gym Env" as ENV
-
-
-Dev -> Entry: train_cartpole_brain_policy(config)
+Dev -> Entry: train_cartpole_brain_policy(config?)
 activate Entry
 Entry -> EA: EnvAdapter("CartPole-v1")
-activate EA
-EA --> Entry: adapter
-deactivate EA
+Entry -> Build: build_cartpole_brain(adapter, config)
+Build --> Entry: brain
+Entry -> AG: Agent(brain, adapter, policy_mode="brain")
 
-Entry -> Entry: build_cartpole_brain(adapter, config)
-Entry -> EA: reset_bridge()
-
-actor Developer as Dev
-  ENV --> EA: obs, info
-
-  deactivate ENV
-actor Developer as Dev
-participant "<u>entry:train_cartpole_brain_policy()</u>" as Entry
-participant "<u>trainer:Trainer</u>" as TR
-participant "<u>a:Agent</u>" as AG
-participant "<u>adapter:EnvAdapter</u>" as EA
-participant "<u>b:Brain</u>" as BR
-participant "<u>if:InputField</u>" as IF
-participant "<u>cf:ColumnField</u>" as CF
-participant "Gym Env" as ENV
-  deactivate EA
-
+loop episodes
+  Entry -> AG: reset_episode()
   loop while not done and steps < max_steps_per_episode
     Entry -> AG: step(learn=True)
     activate AG
-    AG -> BR: step(current_inputs, learn=True)
-    activate BR
-    BR -> BR: encode_only(inputs)
-    loop for each input field
-      BR -> IF: encode(value)
-      activate IF
-      IF --> BR: encoded state updated
-      deactivate IF
-    end
-    BR -> BR: compute_only(learn=True)
-    BR -> CF: compute(learn=True)
-    activate CF
-    CF --> BR: HTM state updated
-    deactivate CF
+    AG -> BR: step(inputs + reward, learn=True)
     BR --> AG: brain_outputs
-    deactivate BR
-
-    AG -> AG: select_action(current_obs, brain_outputs)
+    AG -> AG: select_action(obs, brain_outputs)
     AG -> EA: step_bridge(action)
-    activate EA
     EA -> ENV: step(action)
-    activate ENV
     ENV --> EA: obs, reward, terminated, truncated, info
-    EA -> EA: observation_to_inputs(obs)
-    EA --> AG: {obs, inputs, reward, terminated, truncated, info}
-    deactivate ENV
-    deactivate EA
-
-    AG -> AG: update(current_obs, action, reward, next_obs, done)
-    AG -> BR: rl_policy_update()
-    BR --> AG: no-op / future RL update hook
+    EA --> AG: transition bridge
+    AG -> AG: update(obs, action, reward, next_obs, done)
     AG --> Entry: transition
     deactivate AG
   end
-
   Entry -> BR: print_stats()
+end
 
-
-Entry --> Dev: training metrics dict
-deactivate AG
+Entry --> Dev: metrics {episode_rewards, steps, mean_reward, best_reward}
 deactivate Entry
-
-
-
-note over Dev, ENV
-This sequence shows how a developer trains a Brain/Model in a CartPole environment using Trainer, Agent, and EnvAdapter.
-end note
-
 @enduml

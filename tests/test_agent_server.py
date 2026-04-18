@@ -1,24 +1,58 @@
 """Tests for AgentWebSocketServer visualization payload helpers."""
 
+from types import SimpleNamespace
+from typing import Any, cast
+
 import pytest
 
 from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.train import Trainer
+from psu_capstone.environment.frontend_env_adapter import FrontendEnvAdapter
 
 pytest.importorskip("websockets")
 
 
-class _StubAdapter:
-    max_steps_per_episode = 100
+@pytest.fixture()
+def real_server() -> AgentWebSocketServer:
+    """Build a server with the real pullin Brain/HTM stack for TradingEnv schema."""
+    adapter = FrontendEnvAdapter(
+        env_name="TradingEnv",
+        observation_labels=["open", "high", "low", "close", "volume"],
+        action_count=3,
+        initial_observation={
+            "open": 1769.5,
+            "high": 1773.5,
+            "low": 1739.75,
+            "close": 1749.25,
+            "volume": 1623508.0,
+        },
+    )
+    config = SimpleNamespace(
+        input_size=64,
+        resolution=0.01,
+        seed=5,
+        cells_per_column=4,
+    )
+    trainer = Trainer(Brain({}))
+    brain = trainer.build_brain_for_env(adapter, config)
+    agent = SimpleNamespace(
+        _training_episodes=10,
+        _adapter=adapter,
+        _brain=brain,
+    )
+    return AgentWebSocketServer(agent=cast(Any, agent))
 
 
-class _StubAgent:
-    def __init__(self) -> None:
-        self._training_episodes = 10
-        self._adapter = _StubAdapter()
+pytest.importorskip("websockets")
 
 
-def test_build_trading_visualization_returns_none_for_non_trading_obs() -> None:
-    server = AgentWebSocketServer(agent=_StubAgent())
+# Test Type: system test
+def test_build_trading_visualization_returns_none_for_non_trading_obs(
+    # TS-29 TC-261
+    real_server: AgentWebSocketServer,
+) -> None:
+    server = real_server
 
     payload = server._build_trading_visualization(
         obs={"x": 1.0},
@@ -32,8 +66,12 @@ def test_build_trading_visualization_returns_none_for_non_trading_obs() -> None:
     assert payload is None
 
 
-def test_build_trading_visualization_computes_good_buy_alignment() -> None:
-    server = AgentWebSocketServer(agent=_StubAgent())
+# Test Type: system test
+def test_build_trading_visualization_computes_good_buy_alignment(
+    # TS-29 TC-261
+    real_server: AgentWebSocketServer,
+) -> None:
+    server = real_server
     obs = {
         "open": 100.0,
         "high": 104.0,

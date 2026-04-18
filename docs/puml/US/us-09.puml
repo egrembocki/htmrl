@@ -2,20 +2,22 @@
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
-title US-09 Generate Report (Current Code Reality)
+
+title US-09 Generate Report: current implementation
 
 actor Developer
-participant "<u>reporter:ReportGenerator</u>" as TS
-participant "<u>out:SystemFileIO</u>" as OUT
+participant "<u>entry scripts/tests</u>" as TS
+participant "<u>logger/stdout/file io</u>" as OUT
 
-Developer -> TS: run demo_driver.py or pytest suites
+Developer -> TS: run cartpole_brain_training.py / demo_driver.py / pytest
 activate TS
-TS -> OUT: print SDR stats/results
-TS --> Developer: textual outputs
-deactivate TS
+TS -> OUT: print metrics, step logs, train/test summaries
+OUT --> Developer: console text + optional saved artifacts
 
 note over TS
-No ReportGenerator or structured report API exists.
-Reporting is manual via logs, prints, and test output.
+No standalone ReportGenerator class exists.
+Reporting is emitted by training/testing flows and log output.
 end note
+
+deactivate TS
 @enduml

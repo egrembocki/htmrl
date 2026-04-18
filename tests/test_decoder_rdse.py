@@ -29,9 +29,9 @@ import pytest
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_decode_returns_tuple_value_confidence():
-    # TS-07 TC-053
+    # TS-15 TC-104
     """
     Verify decode() returns (value, confidence) tuple (not single value).
 
@@ -69,9 +69,9 @@ def test_rdse_decode_returns_tuple_value_confidence():
     assert 0 <= confidence <= 1
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_decode_round_trip_same_value():
-    # TS-07 TC-054
+    # TS-15 TC-105
     """
     Verify round-trip encoding/decoding returns original value with high confidence.
 
@@ -109,9 +109,9 @@ def test_rdse_decode_round_trip_same_value():
         assert confidence >= 0.9, f"Round-trip confidence should be high, got {confidence}"
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_decode_wrong_size_raises():
-    # TS-07 TC-055
+    # TS-15 TC-106
     """
     Verify decode() validates input SDR length matches encoder size.
 
@@ -147,9 +147,9 @@ def test_rdse_decode_wrong_size_raises():
         encoder.decode([0] * 300)
 
 
-# commit: unit test
+# Test Type: unit test
 def test_rdse_decode_no_candidates_raises():
-    # TS-07 TC-056
+    # TS-15 TC-107
     """
     Verify decode() requires prior encode() to populate cache.
 

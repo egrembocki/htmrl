@@ -33,32 +33,22 @@ class CategoryEncoderNew(BaseEncoder[str]):
     """
 
     def __init__(self, parameters: CategoryParametersNew):
-        self._parameters = copy.deepcopy(parameters)
-        # self._w = self._parameters.w
+        self._parameters = self.check_parameters(copy.deepcopy(parameters))
         self._category_list = self._parameters.category_list
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
-        if self._parameters.size == 0:
-            self.size = self._num_categories * self._w
-        else:
-            self.size = self._parameters.size
-        if self._parameters.sparsity != 0:
-            self.sparsity = self._parameters.sparsity
-            self.active_bits_per_category = 0
-        else:
-            self.sparsity = 0
-            self.active_bits_per_category = self._parameters.active_bits_per_category
+        self.size = self._parameters.size
+        self.sparsity = self._parameters.sparsity
+        self.active_bits_per_category = self._parameters.active_bits_per_category
         self.logger = get_logger(self)
 
         super().__init__(self._size)
         # Configure RDSE for random distributed encoding
         if self._RDSEused:
-            print("Active bits: ", self.active_bits_per_category)
-            print("Sparsity: ", self.sparsity)
             self.rdsep = RDSEParameters(
                 size=self.size,
                 active_bits=self.active_bits_per_category,
-                sparsity=self.sparsity,
+                sparsity=0.0,
                 radius=0.0,
                 resolution=1.0,
                 category=False,
@@ -74,7 +64,7 @@ class CategoryEncoderNew(BaseEncoder[str]):
                 periodic=False,
                 category=False,
                 active_bits=self.active_bits_per_category,
-                sparsity=self.sparsity,
+                sparsity=0.0,
                 size=self.size,
                 radius=0.0,
                 resolution=1.0,
@@ -155,12 +145,37 @@ class CategoryEncoderNew(BaseEncoder[str]):
             ValueError: If w is non-positive, category_list is empty, or
                 category_list contains duplicates.
         """
-        if parameters.w <= 0:
-            raise ValueError("Parameter 'w' must be positive.")
+        if parameters.size <= 0:
+            raise ValueError("Parameter 'size' must be positive.")
+
         if not parameters.category_list:
             raise ValueError("category_list cannot be empty.")
+
         if len(set(parameters.category_list)) != len(parameters.category_list):
             raise ValueError("category_list contains duplicate entries.")
+
+        has_active_bits = parameters.active_bits_per_category > 0
+        has_sparsity = parameters.sparsity > 0.0
+
+        if has_active_bits and has_sparsity:
+            raise ValueError("Choose only one of 'active_bits_per_category' or 'sparsity'.")
+
+        if not has_active_bits and not has_sparsity:
+            raise ValueError("You must provide one of 'active_bits_per_category' or 'sparsity'.")
+
+        if has_sparsity:
+            if not 0.0 < parameters.sparsity <= 1.0:
+                raise ValueError("sparsity must be between 0 and 1.")
+            parameters.active_bits_per_category = int(round(parameters.size * parameters.sparsity))
+            if parameters.active_bits_per_category <= 0:
+                raise ValueError("Computed active bits must be greater than 0.")
+        else:
+            if parameters.active_bits_per_category <= 0:
+                raise ValueError("active_bits_per_category must be greater than 0.")
+            if parameters.active_bits_per_category > parameters.size:
+                raise ValueError("active_bits_per_category cannot be greater than size.")
+            parameters.sparsity = parameters.active_bits_per_category / parameters.size
+
         return parameters
 
 
@@ -189,7 +204,7 @@ class CategoryParametersNew:
 if __name__ == "__main__":
     categories = ["ES", "GB", "US"]
     parameters = CategoryParametersNew(
-        active_bits_per_category=0, category_list=categories, rdse_used=True
+        size=0, active_bits_per_category=0, category_list=categories, rdse_used=True
     )
     e = CategoryEncoderNew(parameters=parameters)
     a = e.encode("US")

@@ -63,7 +63,7 @@ def handler() -> BatchEncoderHandler:
     return handler
 
 
-# commit: unit test
+# Test Type: unit test
 def test_handler_singleton(handler: BatchEncoderHandler):
     """
     Tests to make sure the handler is a singleton.
@@ -80,7 +80,7 @@ def test_handler_singleton(handler: BatchEncoderHandler):
 
 
 """
-# commit: unit test
+# Test Type: unit test
 def test_dataframe_composite():
     This test makes sure our built composite sdr is identical to if
     we built it in separate sdrs. Concatenation was employed from the
@@ -146,7 +146,7 @@ def test_dataframe_composite():
 """
 
 
-# commit: unit test
+# Test Type: unit test
 def test_individual_column_sdrs(sample_batch_data, rdse_params_small, category_params_basic):
     """
     This tests to make sure our dictionary encoding allows us to access every
@@ -189,7 +189,7 @@ def test_individual_column_sdrs(sample_batch_data, rdse_params_small, category_p
 
 
 """
-# commit: unit test
+# Test Type: unit test
 def test_custom_encoding():
     This tests that we can tell the handler that we want the float_col to be encoded
     as a category instead of an rdse.
