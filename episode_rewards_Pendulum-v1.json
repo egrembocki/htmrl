@@ -1,0 +1,13 @@
+{
+  "env_id": "Pendulum-v1",
+  "episodes": 1,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    -854.9899329058704
+  ],
+  "episode_steps": [
+    200
+  ],
+  "mean_reward": -854.9899329058704,
+  "best_reward": -854.9899329058704
+}
