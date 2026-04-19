@@ -54,7 +54,7 @@ def reward_file_path(env):
 
 
 def run_env(env, episodes, render, step_delay, no_spatial=False, no_temporal=False, policy="brain"):
-    print(f"\n=== Running {env} for {episodes} episodes ===")
+    print(f"\n=== Running {env} for {episodes} episodes | policy={policy} ===")
     cmd = [
         sys.executable,
         str(RUN_AGENT_SERVER),
