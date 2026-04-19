@@ -412,6 +412,7 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
 
         results = {
             "env_id": config.env_id,
+            "policy_mode": config.policy_mode,
             "episodes": config.episodes,
             "max_steps_per_episode": config.max_steps_per_episode,
             "episode_rewards": episode_rewards,

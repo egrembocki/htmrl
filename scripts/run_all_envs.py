@@ -8,7 +8,7 @@ Usage:
     python run_all_envs.py [--episodes N] [--no-render] [--step-delay S] [--graph]
 
 Options:
-    --episodes N   Number of episodes to run (default: 200)
+    --episodes N   Number of episodes to run (default: 5)
     --no-render    Disable environment window (headless mode)
     --step-delay S Sleep S seconds after each step (default: 0.08 when rendering, else 0)
     --graph        Plot episode rewards after all runs
@@ -98,7 +98,8 @@ def plot_rewards(envs, episodes):
         with reward_file.open("r") as f:
             payload = json.load(f)
         rewards = payload.get("episode_rewards", payload)
-        plt.plot(rewards, label=env)
+        policy = payload.get("policy_mode", "unknown") if isinstance(payload, dict) else "unknown"
+        plt.plot(rewards, label=f"{env} ({policy})")
     plt.xlabel("Episode")
     plt.ylabel("Reward")
     plt.title(f"Episode Rewards over {episodes} Episodes")
@@ -110,7 +111,7 @@ def plot_rewards(envs, episodes):
 def main():
     parser = argparse.ArgumentParser(description="Run all RL environments and graph results.")
     parser.add_argument(
-        "--episodes", type=int, default=200, help="Number of episodes per environment"
+        "--episodes", type=int, default=5, help="Number of episodes per environment"
     )
     parser.add_argument(
         "--render",
