@@ -69,7 +69,7 @@ class Brain(AbstractBrain):
             k: v for k, v in fields.items() if isinstance(v, ColumnField)
         }
         self.fields = fields
-        self.logger = LoggerManager.get_logger(self)
+        self.logger = get_logger(self)
 
         self.logger.info("Brain initialized with fields: %s", list(fields.keys()))
 

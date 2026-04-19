@@ -195,6 +195,8 @@ class AgentRuntimeConfig:
     render_mode: str | None = None
     reward_output_file: str = "episode_rewards.json"
     step_delay_seconds: float = 0.0
+    non_spatial: bool = False
+    non_temporal: bool = False
     host: str = "localhost"
     port: int = 8765
     ppo_pretrain_timesteps: int = 50_000

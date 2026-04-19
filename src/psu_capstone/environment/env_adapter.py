@@ -75,6 +75,10 @@ class EnvAdapter(gym.Wrapper):
             # If the caller already built an env, just wrap it.
             self._wrapped_env = gym_env
 
+        # Maintain compatibility with older runtime code that expects
+        # adapters to expose the underlying Gym env as ``_env``.
+        self._env = self._wrapped_env
+
         super().__init__(self._wrapped_env)
 
         # Internal observation cache for episode state.

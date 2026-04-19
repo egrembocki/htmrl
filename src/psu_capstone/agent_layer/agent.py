@@ -84,7 +84,8 @@ class Agent:
         self._adapter = adapter
         self._policy_mode: Literal["q_table", "brain", "ppo"] = policy_mode
         self._ppo_policy = ppo_policy
-        self._ppo_kwargs = ppo_kwargs or {}
+        self._ppo_kwargs = dict(ppo_kwargs or {})
+        self._ppo_kwargs.setdefault("device", "cpu")
         self._ppo_model: PPO | None = None
         self._ppo_deterministic = ppo_deterministic
 

@@ -126,6 +126,8 @@ class Trainer:
             "column_column",
             num_columns=config.input_size,
             cells_per_column=config.cells_per_column,
+            non_spatial=getattr(config, "non_spatial", False),
+            non_temporal=getattr(config, "non_temporal", False),
         )
         logger.info(
             f"Added column_column field (num_columns={config.input_size}, cells_per_column={config.cells_per_column})."
@@ -540,7 +542,14 @@ class Trainer:
         else:
             raise ValueError("Output field name must end with '_output'.")
 
-    def add_column_field(self, name: str, num_columns: int, cells_per_column: int) -> None:
+    def add_column_field(
+        self,
+        name: str,
+        num_columns: int,
+        cells_per_column: int,
+        non_spatial: bool = False,
+        non_temporal: bool = False,
+    ) -> None:
         """Add a column field to the Brain."""
 
         if self._main_brain is None:
@@ -549,7 +558,8 @@ class Trainer:
         if name.endswith("_column"):
             field = ColumnField(
                 input_fields=self._trainer_input_fields,
-                non_spatial=False,
+                non_spatial=non_spatial,
+                non_temporal=non_temporal,
                 num_columns=num_columns,
                 cells_per_column=cells_per_column,
             )

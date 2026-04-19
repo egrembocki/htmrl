@@ -45,6 +45,8 @@ def main_sync(args: argparse.Namespace) -> None:
         render_mode=render_mode,
         reward_output_file=args.reward_file,
         step_delay_seconds=max(0.0, step_delay),
+        non_spatial=args.no_spatial,
+        non_temporal=args.no_temporal,
         host=args.host,
         port=args.port,
     )
@@ -155,6 +157,18 @@ if __name__ == "__main__":
             "Delay in seconds after each local env step for human-readable playback "
             "(default: 0.08 for --mode local with --render-mode human, otherwise 0.0)"
         ),
+    )
+    parser.add_argument(
+        "--no-spatial",
+        action="store_true",
+        default=False,
+        help="Disable Spatial Pooling in the HTM brain (default: spatial enabled)",
+    )
+    parser.add_argument(
+        "--no-temporal",
+        action="store_true",
+        default=False,
+        help="Disable Temporal Memory in the HTM brain (default: temporal enabled)",
     )
 
     args = parser.parse_args()
