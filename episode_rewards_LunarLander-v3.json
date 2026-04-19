@@ -3,11 +3,11 @@
   "episodes": 1,
   "max_steps_per_episode": 200,
   "episode_rewards": [
-    -155.8561048305623
+    -92.99710943271756
   ],
   "episode_steps": [
-    59
+    89
   ],
-  "mean_reward": -155.8561048305623,
-  "best_reward": -155.8561048305623
+  "mean_reward": -92.99710943271756,
+  "best_reward": -92.99710943271756
 }

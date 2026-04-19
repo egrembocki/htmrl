@@ -10,7 +10,7 @@ Usage:
 Options:
     --episodes N   Number of episodes to run (default: 200)
     --render       Show environment window (human render mode)
-    --step-delay S Sleep S seconds after each step (default: 0.03 when --render, else 0)
+    --step-delay S Sleep S seconds after each step (default: 0.08 when --render, else 0)
     --graph        Plot episode rewards after all runs
 
 Environments tested:
@@ -108,12 +108,12 @@ def main():
         "--step-delay",
         type=float,
         default=None,
-        help="Delay in seconds after each step (default: 0.03 with --render, otherwise 0)",
+        help="Delay in seconds after each step (default: 0.08 with --render, otherwise 0)",
     )
     parser.add_argument("--graph", action="store_true", help="Plot episode rewards after all runs")
     args = parser.parse_args()
 
-    step_delay = args.step_delay if args.step_delay is not None else (0.03 if args.render else 0.0)
+    step_delay = args.step_delay if args.step_delay is not None else (0.08 if args.render else 0.0)
 
     for env in envs:
         run_env(env, args.episodes, args.render, step_delay)

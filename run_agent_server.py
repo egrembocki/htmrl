@@ -30,6 +30,12 @@ def main_sync(args: argparse.Namespace) -> None:
     logger = get_logger(None)
     policy_mode = cast(Literal["q_table", "brain", "ppo"], args.policy)
     render_mode = None if args.render_mode == "none" else args.render_mode
+    step_delay = args.step_delay
+    if step_delay is None and args.mode == "local" and render_mode == "human":
+        # Default to a readable pace when a human-rendered window is enabled.
+        step_delay = 0.08
+    if step_delay is None:
+        step_delay = 0.0
 
     config = AgentRuntimeConfig(
         env_id=args.env,
@@ -38,7 +44,7 @@ def main_sync(args: argparse.Namespace) -> None:
         max_steps_per_episode=args.max_steps,
         render_mode=render_mode,
         reward_output_file=args.reward_file,
-        step_delay_seconds=max(0.0, args.step_delay),
+        step_delay_seconds=max(0.0, step_delay),
         host=args.host,
         port=args.port,
     )
@@ -144,10 +150,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--step-delay",
         type=float,
-        default=defaults.step_delay_seconds,
+        default=None,
         help=(
             "Delay in seconds after each local env step for human-readable playback "
-            f"(default: {defaults.step_delay_seconds})"
+            "(default: 0.08 for --mode local with --render-mode human, otherwise 0.0)"
         ),
     )
 
