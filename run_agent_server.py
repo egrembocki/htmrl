@@ -52,7 +52,12 @@ def main_sync(args: argparse.Namespace) -> None:
     )
 
     try:
-        logger.info("Starting %s mode for env %s", args.mode, args.env)
+        logger.info(
+            "Starting %s mode for env %s with policy %s",
+            args.mode,
+            args.env,
+            policy_mode,
+        )
         if policy_mode == "ppo":
             logger.info(
                 "PPO mode selected: runtime will pre-train for %d timesteps before normal execution.",

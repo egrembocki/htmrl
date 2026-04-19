@@ -374,7 +374,13 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
         env = getattr(runtime.adapter, "_env", None)
 
         for episode_index in range(config.episodes):
-            logger.info("Starting local episode %d/%d", episode_index + 1, config.episodes)
+            logger.info(
+                "Starting local episode %d/%d for env %s with policy %s",
+                episode_index + 1,
+                config.episodes,
+                config.env_id,
+                config.policy_mode,
+            )
             runtime.agent.reset_episode()
             done = False
             total_reward = 0.0
