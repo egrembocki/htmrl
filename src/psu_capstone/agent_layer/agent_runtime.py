@@ -34,14 +34,17 @@ To get the backend and frontend working together:
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from statistics import fmean
 from typing import Any, Literal, TypedDict, cast
 
-import gym_trading_env  # Ensure TradingEnv is registered with Gymnasium
+try:
+    import gym_trading_env  # noqa: F401  # Ensure TradingEnv is registered with Gymnasium
+except ModuleNotFoundError:
+    gym_trading_env = None
 
 from psu_capstone.agent_layer.agent import Agent
-from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
@@ -174,6 +177,8 @@ class AgentRuntimeConfig:
         resolution: RDSE resolution used for continuous inputs.
         seed: Base seed for encoder parameter generation.
         render_mode: Optional Gymnasium render mode for local runs.
+        reward_output_file: Output JSON path for local run episode metrics.
+        step_delay_seconds: Optional delay after each env step for readability.
         host: WebSocket bind host for server mode.
         port: WebSocket bind port for server mode.
         ppo_pretrain_timesteps: PPO warm-up timesteps before serving/running.
@@ -188,6 +193,8 @@ class AgentRuntimeConfig:
     resolution: float = 0.01
     seed: int = 5
     render_mode: str | None = None
+    reward_output_file: str = "episode_rewards.json"
+    step_delay_seconds: float = 0.0
     host: str = "localhost"
     port: int = 8765
     ppo_pretrain_timesteps: int = 50_000
@@ -236,10 +243,13 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
     adapter_kwargs: dict[str, Any] = {}
     if config.render_mode is not None:
         adapter_kwargs["render_mode"] = config.render_mode
-    if hasattr(config, "max_steps_per_episode") and config.max_steps_per_episode is not None:
-        adapter_kwargs["max_steps_per_episode"] = config.max_steps_per_episode
     # Special handling for TradingEnv: provide a default DataFrame
     if config.env_id == "TradingEnv":
+        if gym_trading_env is None:
+            raise ModuleNotFoundError(
+                "TradingEnv requires optional dependency 'gym_trading_env'. "
+                "Install it or remove TradingEnv from the run list."
+            )
         import pandas as pd
 
         df = pd.read_csv("data/fin_test.csv")
@@ -268,16 +278,8 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
     try:
         return EnvAdapter(config.env_id, **adapter_kwargs), False
     except Exception as exc:
-        # Error handling for adapter creation
-        if config.env_id in FRONTEND_ENV_SPECS and not allow_frontend_env:
-            raise ValueError(
-                f"Environment '{config.env_id}' is frontend-driven in this mode. Use server mode for frontend aliases or pass a valid Gym env id."
-            ) from exc
-        if config.env_id in FRONTEND_ENV_SPECS and config.policy_mode == "ppo":
-            raise ValueError(
-                f"PPO mode requires a Gym-backed environment. '{config.env_id}' is configured as a frontend env and could not be created via Gym."
-            ) from exc
-        raise
+        # Preserve the original exception so missing deps and bad env kwargs are explicit.
+        raise exc
 
 
 def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> AgentRuntime:
@@ -325,8 +327,10 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
     )
 
 
-def build_server(runtime: AgentRuntime) -> AgentWebSocketServer:
+def build_server(runtime: AgentRuntime) -> Any:
     """Create the websocket server for a built runtime."""
+
+    from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
 
     return AgentWebSocketServer(
         runtime.agent,
@@ -386,6 +390,9 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
                 if env is not None and config.render_mode is not None and hasattr(env, "render"):
                     env.render()
 
+                if config.step_delay_seconds > 0:
+                    time.sleep(config.step_delay_seconds)
+
             episode_rewards.append(total_reward)
             episode_steps.append(steps)
             logger.info(
@@ -406,8 +413,12 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
         }
         # Save results to file for graphing
         import json
+        from pathlib import Path
 
-        with open("episode_rewards.json", "w") as f:
+        reward_path = Path(config.reward_output_file)
+        if reward_path.parent != Path("."):
+            reward_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(reward_path, "w") as f:
             json.dump(results, f, indent=2)
         return results
     finally:

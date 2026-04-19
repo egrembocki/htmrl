@@ -287,6 +287,16 @@ class EnvAdapter(gym.Wrapper):
         Use step_bridge if you also need Brain-ready flattened inputs.
         """
 
+        if isinstance(self.action_space, gym.spaces.Box):
+            # Continuous-action envs expect ndarray-shaped actions.
+            if np.isscalar(action):
+                action = np.full(
+                    self.action_space.shape, float(action), dtype=self.action_space.dtype
+                )
+            else:
+                action = np.asarray(action, dtype=self.action_space.dtype)
+            action = np.clip(action, self.action_space.low, self.action_space.high)
+
         # Local role: run one Gym transition and normalize result types.
         self._obs, reward, terminated, truncated, info = self.env.step(action)
         return self._obs, float(reward), bool(terminated), bool(truncated), info

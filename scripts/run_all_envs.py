@@ -5,11 +5,12 @@ run_all_envs.py
 Easily run all supported RL environments locally and graph performance after training.
 
 Usage:
-    python run_all_envs.py [--episodes N] [--render] [--graph]
+    python run_all_envs.py [--episodes N] [--render] [--step-delay S] [--graph]
 
 Options:
     --episodes N   Number of episodes to run (default: 200)
     --render       Show environment window (human render mode)
+    --step-delay S Sleep S seconds after each step (default: 0.03 when --render, else 0)
     --graph        Plot episode rewards after all runs
 
 Environments tested:
@@ -45,7 +46,7 @@ envs = [
 REWARD_FILE_TEMPLATE = "episode_rewards_{env}.json"
 
 
-def run_env(env, episodes, render):
+def run_env(env, episodes, render, step_delay):
     print(f"\n=== Running {env} for {episodes} episodes ===")
     cmd = [
         sys.executable,
@@ -56,10 +57,14 @@ def run_env(env, episodes, render):
         "local",
         "--policy",
         "brain",
+        "--log-level",
+        "ERROR",
         "--episodes",
         str(episodes),
         "--reward-file",
         REWARD_FILE_TEMPLATE.format(env=env),
+        "--step-delay",
+        str(step_delay),
     ]
     if render:
         cmd += ["--render-mode", "human"]
@@ -80,7 +85,8 @@ def plot_rewards(envs, episodes):
             print(f"[WARN] No reward file for {env}, skipping plot.")
             continue
         with open(reward_file, "r") as f:
-            rewards = json.load(f)
+            payload = json.load(f)
+        rewards = payload.get("episode_rewards", payload)
         plt.plot(rewards, label=env)
     plt.xlabel("Episode")
     plt.ylabel("Reward")
@@ -98,11 +104,19 @@ def main():
     parser.add_argument(
         "--render", action="store_true", help="Show environment window (human render mode)"
     )
+    parser.add_argument(
+        "--step-delay",
+        type=float,
+        default=None,
+        help="Delay in seconds after each step (default: 0.03 with --render, otherwise 0)",
+    )
     parser.add_argument("--graph", action="store_true", help="Plot episode rewards after all runs")
     args = parser.parse_args()
 
+    step_delay = args.step_delay if args.step_delay is not None else (0.03 if args.render else 0.0)
+
     for env in envs:
-        run_env(env, args.episodes, args.render)
+        run_env(env, args.episodes, args.render, step_delay)
 
     if args.graph:
         plot_rewards(envs, args.episodes)

@@ -1,0 +1,13 @@
+{
+  "env_id": "LunarLander-v3",
+  "episodes": 1,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    -144.648337844024
+  ],
+  "episode_steps": [
+    63
+  ],
+  "mean_reward": -144.648337844024,
+  "best_reward": -144.648337844024
+}

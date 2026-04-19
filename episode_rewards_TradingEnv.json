@@ -1,0 +1,13 @@
+{
+  "env_id": "TradingEnv",
+  "episodes": 1,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    0.2670773114840663
+  ],
+  "episode_steps": [
+    200
+  ],
+  "mean_reward": 0.2670773114840663,
+  "best_reward": 0.2670773114840663
+}

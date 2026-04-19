@@ -30,8 +30,6 @@ def main_sync(args: argparse.Namespace) -> None:
     logger = get_logger(None)
     policy_mode = cast(Literal["q_table", "brain", "ppo"], args.policy)
     render_mode = None if args.render_mode == "none" else args.render_mode
-    if render_mode is None and args.mode == "local":
-        render_mode = "human"
 
     config = AgentRuntimeConfig(
         env_id=args.env,
@@ -39,6 +37,8 @@ def main_sync(args: argparse.Namespace) -> None:
         episodes=args.episodes,
         max_steps_per_episode=args.max_steps,
         render_mode=render_mode,
+        reward_output_file=args.reward_file,
+        step_delay_seconds=max(0.0, args.step_delay),
         host=args.host,
         port=args.port,
     )
@@ -132,6 +132,23 @@ if __name__ == "__main__":
         type=str,
         default="none",
         help="Gym render mode for local runs; use 'none' to disable (default: none, local defaults to human)",
+    )
+    parser.add_argument(
+        "--reward-file",
+        type=str,
+        default=defaults.reward_output_file,
+        help=(
+            "Output file for local-run metrics JSON " f"(default: {defaults.reward_output_file})"
+        ),
+    )
+    parser.add_argument(
+        "--step-delay",
+        type=float,
+        default=defaults.step_delay_seconds,
+        help=(
+            "Delay in seconds after each local env step for human-readable playback "
+            f"(default: {defaults.step_delay_seconds})"
+        ),
     )
 
     args = parser.parse_args()

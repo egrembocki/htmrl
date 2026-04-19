@@ -1,0 +1,13 @@
+{
+  "env_id": "MountainCar-v0",
+  "episodes": 1,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    -200.0
+  ],
+  "episode_steps": [
+    200
+  ],
+  "mean_reward": -200.0,
+  "best_reward": -200.0
+}
