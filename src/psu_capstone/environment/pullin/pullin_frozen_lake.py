@@ -47,6 +47,11 @@ NUM_EPISODES = 5_000
 MAX_STEPS_PER_EPISODE = 100
 PRINT_EVERY = 5
 
+# Strong no-go penalty injected into the ValueField when the agent falls into a hole.
+# FrozenLake gives reward=0 on a hole and terminates, so we must supply an explicit
+# negative signal that the base rl_policy_update loop never sees.
+HOLE_PENALTY = -10.0
+
 
 def build_brain() -> Brain:
     """Construct the HTM brain for FrozenLake."""
@@ -156,7 +161,10 @@ def run_episode(agent: GymBrain, env: gym.Env, learn: bool = True) -> tuple[floa
         total_reward += float(reward)
 
         if terminated or truncated:
-            agent.step(obs, reward=total_reward, learn=learn)
+            # Fell into a hole: reward=0 and no goal reached → inject strong no-go penalty
+            # so the ValueField receives a clear negative reinforcement signal.
+            terminal_reward = HOLE_PENALTY if (terminated and reward == 0.0) else total_reward
+            agent.step(obs, reward=terminal_reward, learn=learn)
             return total_reward, step + 1
 
     return total_reward, MAX_STEPS_PER_EPISODE

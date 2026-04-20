@@ -27,6 +27,7 @@ dependencies = [
  "torch>=2.11.0",
  "pygame>=2.6.1",
  "gym-trading-env>=0.3.5",
+ "box2d>=2.3.10",
 ]
 
 

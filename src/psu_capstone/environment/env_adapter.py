@@ -27,6 +27,7 @@ This keeps the adapter compatible with Gym while still giving the Brain the
 simple key/value input map it expects.
 """
 
+from collections.abc import Callable
 from typing import Any
 
 import gymnasium as gym
@@ -55,7 +56,12 @@ class EnvAdapter(gym.Wrapper):
             a ``gym.Env`` instance instead of a string id.
     """
 
-    def __init__(self, gym_env: str | gym.Env = "CartPole-v1", **gym_kwargs: Any) -> None:
+    def __init__(
+        self,
+        gym_env: str | gym.Env = "CartPole-v1",
+        reward_shaper: Callable[[float, bool, bool, Any], float] | None = None,
+        **gym_kwargs: Any,
+    ) -> None:
         # Constructor role in the adapter: ensure we always wrap one concrete
         # Gym env object, regardless of whether caller passed an id or instance.
         if isinstance(gym_env, str):
@@ -83,6 +89,9 @@ class EnvAdapter(gym.Wrapper):
 
         # Internal observation cache for episode state.
         self._obs: Any | None = None
+
+        # Optional reward shaper: (reward, terminated, truncated, obs) -> float
+        self._reward_shaper = reward_shaper
 
     def _to_serializable(self, value: Any) -> Any:
         """Convert numpy values to JSON-friendly Python types.
@@ -321,6 +330,9 @@ class EnvAdapter(gym.Wrapper):
 
         # Outside role: this is the main per-step handoff from Gym to Brain.
         obs, reward, terminated, truncated, info = self.step(action)
+
+        if self._reward_shaper is not None:
+            reward = self._reward_shaper(reward, terminated, truncated, obs)
 
         return {
             "obs": obs,

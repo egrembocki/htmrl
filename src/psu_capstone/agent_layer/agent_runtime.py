@@ -74,7 +74,6 @@ FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
             "high": 1773.5,
             "low": 1739.75,
             "close": 1749.25,
-            "volume": 1623508.0,
         },
         "max_steps_per_episode": 500,
     },
@@ -276,6 +275,40 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
                 "borrow_interest_rate": 0.0003 / 100,
             }
         )
+
+    # Inject env-specific failure penalty so the ValueField receives a strong
+    # no-go signal when an episode ends in failure. Each env has distinct reward
+    # structure, so the failure condition is defined per-env:
+    #
+    #  CartPole-v1   : any terminated=True is failure (pole fell; success is truncated)
+    #  FrozenLake-v1 : terminated and reward<=0 is a hole (reward=1 for goal)
+    #  MountainCar-v0: truncated=True means ran out of time without reaching goal
+    #  LunarLander-v3: crash already gives reward=-100, amplify to match scale
+    #
+    # Pendulum-v1 and TradingEnv have continuous/no discrete failure — no shaping.
+    failure_penalty = -10.0
+
+    def _cartpole_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
+        return failure_penalty if terminated else reward
+
+    def _frozen_lake_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
+        return failure_penalty if (terminated and reward <= 0.0) else reward
+
+    def _mountain_car_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
+        return failure_penalty if truncated else reward
+
+    def _lunar_lander_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
+        return failure_penalty if (terminated and reward < 0.0) else reward
+
+    env_failure_shapers = {
+        "CartPole-v1": _cartpole_shaper,
+        "FrozenLake-v1": _frozen_lake_shaper,
+        "MountainCar-v0": _mountain_car_shaper,
+        "LunarLander-v3": _lunar_lander_shaper,
+    }
+
+    if config.env_id in env_failure_shapers:
+        adapter_kwargs["reward_shaper"] = env_failure_shapers[config.env_id]
 
     try:
         return EnvAdapter(config.env_id, **adapter_kwargs), False

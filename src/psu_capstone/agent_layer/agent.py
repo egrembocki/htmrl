@@ -225,17 +225,17 @@ class Agent:
         candidate_actions = self._candidate_actions()
 
         if not candidate_actions:
-            return self._adapter._action_space.sample()
+            return self._adapter.action_space.sample()
 
         # Epsilon-greedy action selection
         if self._rng.random() < self._epsilon:
-            return self._adapter._action_space.sample()
+            return self._adapter.action_space.sample()
 
         q_row = self._q_values[state_key]
 
         # If spec/value mismatch occurs, degrade safely to random exploration.
         if len(q_row) != len(candidate_actions):
-            return self._adapter._action_space.sample()
+            return self._adapter.action_space.sample()
 
         best_index = int(np.argmax(q_row))
         return candidate_actions[best_index]
