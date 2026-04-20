@@ -58,25 +58,25 @@ setup-dev: ## Setup development environment
 
 format: ## Format code with isort and black
 	@echo "🎨 Formatting code..."
-	@uv run --active isort . --line-length=100
-	@uv run --active black . --line-length=100
+	@uv run --active --no-sync isort . --line-length=100
+	@uv run --active --no-sync black . --line-length=100
 	@echo "✅ Code formatted"
 
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
-	@uv run --active flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
-	@uv run --active flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
+	@uv run --active --no-sync flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
+	@uv run --active --no-sync flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
 lint-docs: ## Check docstring coverage and style
 	@echo "📝 Checking docstring coverage and style..."
-	@uv run --active pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
-	@uv run --active interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
+	@uv run --active --no-sync pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
+	@uv run --active --no-sync interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
 	@echo "✅ Docstring checks complete"
 
 lint-docs-strict: ## Strict docstring validation with pydoclint
 	@echo "📝 Running strict docstring validation..."
-	@uv run --active pydoclint --style=google --exclude='\.venv|tests|build' src/
+	@uv run --active --no-sync pydoclint --style=google --exclude='\.venv|tests|build' src/
 	@echo "✅ Strict docstring validation complete"
 
 clean:
