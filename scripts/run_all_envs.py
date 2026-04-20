@@ -41,7 +41,7 @@ envs = [
     "MountainCar-v0",
     "Pendulum-v1",
     "LunarLander-v3",
-    "TradingEnv",
+    "TradingEnv",  # requires optional dependency 'gym_trading_env'
 ]
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +53,16 @@ def reward_file_path(env):
     return REPO_ROOT / REWARD_FILE_TEMPLATE.format(env=env)
 
 
-def run_env(env, episodes, render, step_delay, no_spatial=False, no_temporal=False, policy="brain"):
+def run_env(
+    env,
+    episodes,
+    render,
+    step_delay,
+    no_spatial=False,
+    no_temporal=False,
+    policy="brain",
+    log_level="DEBUG",
+):
     print(f"\n=== Running {env} for {episodes} episodes | policy={policy} ===")
     cmd = [
         sys.executable,
@@ -65,7 +74,7 @@ def run_env(env, episodes, render, step_delay, no_spatial=False, no_temporal=Fal
         "--policy",
         policy,
         "--log-level",
-        "ERROR",
+        log_level,
         "--episodes",
         str(episodes),
         "--reward-file",
@@ -152,6 +161,13 @@ def main():
         default=False,
         help="Disable Temporal Memory in the HTM brain for all environments",
     )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="DEBUG",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Log level forwarded to run_agent_server (default: DEBUG)",
+    )
     args = parser.parse_args()
 
     step_delay = args.step_delay if args.step_delay is not None else (0.08 if args.render else 0.0)
@@ -165,6 +181,7 @@ def main():
             args.no_spatial,
             args.no_temporal,
             args.policy,
+            args.log_level,
         )
 
     if args.graph:

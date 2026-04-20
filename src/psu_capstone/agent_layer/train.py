@@ -18,8 +18,10 @@ import numpy as np
 
 import grapher
 import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.pullin.field_base import Field
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
 from psu_capstone.input_layer.input_handler import InputHandler
@@ -134,10 +136,33 @@ class Trainer:
         )
 
         trainer_brain = self.main_brain
-        remapped_fields = {name: trainer_brain.fields[f"{name}_input"] for name in input_names}
+        column_field = cast(ColumnField, trainer_brain.fields["column_column"])
+        go_field = ValueField(
+            input_fields=[column_field],
+            num_columns=config.input_size,
+            non_spatial=getattr(config, "non_spatial", False),
+            non_temporal=getattr(config, "non_temporal", False),
+            cells_per_column=config.cells_per_column,
+        )
+        nogo_field = ValueField(
+            input_fields=[column_field],
+            num_columns=config.input_size,
+            non_spatial=getattr(config, "non_spatial", False),
+            non_temporal=getattr(config, "non_temporal", False),
+            cells_per_column=config.cells_per_column,
+        )
+
+        column_field.go_field = go_field
+        column_field.nogo_field = nogo_field
+
+        remapped_fields: dict[str, Any] = {
+            name: trainer_brain.fields[f"{name}_input"] for name in input_names
+        }
         remapped_fields["reward"] = trainer_brain.fields["reward_input"]
         remapped_fields["action_output"] = trainer_brain.fields["action_output"]
-        remapped_fields["column"] = trainer_brain.fields["column_column"]
+        remapped_fields["column"] = column_field
+        remapped_fields["go"] = go_field
+        remapped_fields["nogo"] = nogo_field
 
         logger.info(f"Brain fields: {list(remapped_fields.keys())}")
         logger.info("Brain construction complete.")
@@ -303,13 +328,9 @@ class Trainer:
                         "At least one input field must be defined before creating an OutputField."
                     )
                 input_field = self._trainer_input_fields[0]
-                try:
-                    field = OutputField(
-                        input_field=input_field, encoder_params=encoder_params, size=size
-                    )
-                except TypeError:
-                    action_candidates = tuple(possible_actions) if possible_actions else (0,)
-                    field = OutputField(size=size, motor_action=action_candidates)
+                field = OutputField(
+                    input_field=input_field, encoder_params=encoder_params, size=size
+                )
                 field.name = name
                 # Register all possible actions with the encoder for OutputField
                 if possible_actions is not None:
@@ -518,13 +539,7 @@ class Trainer:
             # Support both OutputField signatures used in this repository:
             # - New: OutputField(input_field=..., encoder_params=..., size=...)
             # - Legacy: OutputField(size=..., motor_action=...)
-            try:
-                field = OutputField(
-                    input_field=input_field, encoder_params=encoder_params, size=size
-                )
-            except TypeError:
-                action_candidates = tuple(possible_actions) if possible_actions else (0,)
-                field = OutputField(size=size, motor_action=action_candidates)
+            field = OutputField(input_field=input_field, encoder_params=encoder_params, size=size)
             field.name = name
             # Register all possible actions with the encoder for OutputField
             if possible_actions is not None:

@@ -20,7 +20,7 @@ from typing import Any, Literal
 import numpy as np
 from stable_baselines3 import PPO
 
-from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
 
 
@@ -450,8 +450,7 @@ class Agent:
         """
 
         if self._policy_mode == "brain":
-            # Brain-driven policy updates are not implemented yet.
-            self._brain.rl_policy_update()
+            self._brain.rl_policy_update(reward=reward)
             return
 
         if self._policy_mode == "ppo":

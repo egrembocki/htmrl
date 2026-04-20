@@ -82,12 +82,13 @@ class Brain:
             learn: Whether to enable learning during this step.
             reward: External reward signal. If None, reward is computed internally.
         """
-        self._logger.debug(f"step() called with inputs={inputs}, learn={learn}, reward={reward}")
+        self._logger.info(f"Brain.step inputs={inputs} learn={learn} reward={reward}")
         self.encode_only(inputs)
         self.compute_only(learn=learn)
         if "reward" in inputs:
             reward = inputs["reward"]
-        self.estimate_value(reward)
+        if reward is not None:
+            self.estimate_value(reward)
         self.activate_apical_segments()
         behavior = self.generate_behavior()
         self._logger.debug(f"generate_behavior() output: {behavior}")
@@ -149,10 +150,7 @@ class Brain:
         Args:
             learn: Whether to enable learning during this step.
         """
-        # TODO: No distinction between column and value fields right now
         for field in self._column_fields.values():
-            field.compute(learn=learn)
-        for field in self._value_fields.values():
             field.compute(learn=learn)
 
     def compute_intrinsic_reward(self) -> float:
