@@ -14,7 +14,7 @@ install: ## Install package and pre-commit hooks (Windows)
 		echo "ℹ️ Existing .venv detected. Skipping Python reinstall."; \
 	) ELSE ( \
 		echo "🚀 Creating new uv environment..."; \
-		uv python install 3.12 && uv python pin 3.12; \
+		uv python install 3.13 && uv python pin 3.13; \
 	)
 	@uv lock --upgrade
 	@uv sync --all-groups
@@ -29,7 +29,7 @@ install: ## Install package and pre-commit hooks (Unix)
 		echo "ℹ️ Existing .venv detected. Skipping Python reinstall."; \
 	else \
 		echo "🚀 Creating new uv environment..."; \
-		uv python install 3.12 && uv python pin 3.12; \
+		uv python install 3.13 && uv python pin 3.13; \
 	fi
 	@uv lock --upgrade
 	@uv sync --all-groups
@@ -46,8 +46,8 @@ ifeq ($(OS),Windows_NT)
 else
 	@rm -rf .venv || true
 endif
-	@uv python install 3.12
-	@uv python pin 3.12
+	@uv python install 3.13
+	@uv python pin 3.13
 	@uv sync --all-groups
 	@echo "✅ Environment recreated"
 
