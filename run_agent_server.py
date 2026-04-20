@@ -49,6 +49,7 @@ def main_sync(args: argparse.Namespace) -> None:
         non_temporal=args.no_temporal,
         host=args.host,
         port=args.port,
+        ppo_pretrain_timesteps=args.ppo_pretrain_timesteps,
     )
 
     try:
@@ -174,6 +175,15 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Disable Temporal Memory in the HTM brain (default: temporal enabled)",
+    )
+    parser.add_argument(
+        "--ppo-pretrain-timesteps",
+        type=int,
+        default=defaults.ppo_pretrain_timesteps,
+        help=(
+            "Warm-up timesteps used when --policy ppo is selected "
+            f"(default: {defaults.ppo_pretrain_timesteps})"
+        ),
     )
 
     args = parser.parse_args()

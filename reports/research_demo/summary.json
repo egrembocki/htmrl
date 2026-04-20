@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-20T05:29:59.311247+00:00",
+  "generated_at": "2026-04-20T05:53:21.893344+00:00",
   "pipeline": [
     "encoder_demo",
     "experiment_matrix",
@@ -23,6 +23,12 @@
       "policy": "brain",
       "no_spatial": false,
       "no_temporal": true
+    },
+    {
+      "name": "ppo",
+      "policy": "ppo",
+      "no_spatial": false,
+      "no_temporal": false
     },
     {
       "name": "q_table",
@@ -61,6 +67,16 @@
         "mean_reward": -2.0,
         "best_reward": -2.0,
         "reward_file": "reports/research_demo/rewards/CartPole-v1__brain_no_temporal.json",
+        "error": null
+      },
+      {
+        "experiment": "ppo",
+        "policy": "ppo",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -2.0,
+        "best_reward": -2.0,
+        "reward_file": "reports/research_demo/rewards/CartPole-v1__ppo.json",
         "error": null
       },
       {
