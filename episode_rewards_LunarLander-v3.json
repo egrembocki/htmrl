@@ -1,0 +1,22 @@
+{
+  "env_id": "LunarLander-v3",
+  "policy_mode": "brain",
+  "episodes": 5,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    -242.72898174516814,
+    -396.0381916549142,
+    -208.31206817485673,
+    -307.49002944534175,
+    -354.207533509437
+  ],
+  "episode_steps": [
+    95,
+    89,
+    98,
+    135,
+    80
+  ],
+  "mean_reward": -301.7553609059436,
+  "best_reward": -208.31206817485673
+}
