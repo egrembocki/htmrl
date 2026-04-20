@@ -20,12 +20,14 @@ class EncoderFactory:
     # Mapping of encoder type to (EncoderClass, ParameterClass)
     ENCODER_MAP: dict[str, tuple[type, type]] = {
         "category": (en.CategoryEncoder, en.CategoryParameters),
+        "new_category": (en.CategoryEncoderNew, en.CategoryParametersNew),
         "date": (en.DateEncoder, en.DateEncoderParameters),
         "rdse": (en.RandomDistributedScalarEncoder, en.RDSEParameters),
         "scalar": (en.ScalarEncoder, en.ScalarEncoderParameters),
         "fourier": (en.FourierEncoder, en.FourierEncoderParameters),
         "geospatial": (en.GeospatialEncoder, en.GeospatialParameters),
         "coordinate": (en.CoordinateEncoder, en.CoordinateParameters),
+        "delta": (en.DeltaEncoder, en.DeltaEncoderParameters),
     }
 
     @staticmethod

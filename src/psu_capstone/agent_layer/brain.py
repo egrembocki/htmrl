@@ -11,12 +11,14 @@ for encoding inputs and computing temporal memory in a single step.
 """
 
 from typing import Any
+from uuid import uuid4
 
+from psu_capstone.agent_layer.abstract_brain import AbstractBrain
 from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
-from psu_capstone.log import get_logger, logger
+from psu_capstone.log import LoggerManager
 
 
-class Brain:
+class Brain(AbstractBrain):
     """Manages HTM input fields and column fields with a unified API.
 
     Allows binding named inputs to InputFields and processing all inputs
@@ -25,6 +27,7 @@ class Brain:
     Args:
         fields: Optional dictionary of named Field instances to initialize with.
             Can include InputField, OutputField, and ColumnField types.
+        brain_id: To save the id of the brain.
 
     Example:
         manager = Trainer()
@@ -40,10 +43,16 @@ class Brain:
             })
     """
 
-    def __init__(self, fields: dict[str, Field] | None = None) -> None:
+    def __init__(
+        self,
+        fields: dict[str, Field] | None = None,
+        brain_id: str | None = None,
+    ) -> None:
 
         if fields is None:
             fields = {}
+
+        self.brain_id = brain_id or str(uuid4())
 
         # Separate fields into input, output, and column fields for easy access
         # ensure that values are instances of the correct type
@@ -57,7 +66,7 @@ class Brain:
             k: v for k, v in fields.items() if isinstance(v, ColumnField)
         }
         self.fields = fields
-        self.logger = get_logger(self)
+        self.logger = LoggerManager.get_logger(self)
 
         self.logger.info("Brain initialized with fields: %s", list(fields.keys()))
 
@@ -65,8 +74,11 @@ class Brain:
         return self.fields[name]
 
     def __getattr__(self, name: str) -> Field:
-        if name in self.fields:
-            return self.fields[name]
+        # Use __getattribute__ for `fields` so unpickling and edge cases do not recurse
+        # via attribute lookup on a half-restored instance.
+        fields = object.__getattribute__(self, "fields")
+        if name in fields:
+            return fields[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def step(
@@ -102,6 +114,11 @@ class Brain:
             if hasattr(input_field.encoder, "decode"):
                 predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
                     "predictive"
+                )
+                self.logger.info(
+                    "Decoded SDR into value: %s, with confidence: %s",
+                    predictions[input_name],
+                    predictions[input_name + ".conf"],
                 )
 
         return predictions  # type: ignore

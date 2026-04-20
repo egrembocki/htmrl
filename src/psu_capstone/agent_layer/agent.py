@@ -18,7 +18,6 @@ from collections import defaultdict
 from typing import Any, Literal
 
 import numpy as np
-from stable_baselines3 import PPO
 
 from psu_capstone.agent_layer.brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
@@ -85,7 +84,7 @@ class Agent:
         self._policy_mode: Literal["q_table", "brain", "ppo"] = policy_mode
         self._ppo_policy = ppo_policy
         self._ppo_kwargs = ppo_kwargs or {}
-        self._ppo_model: PPO | None = None
+        self._ppo_model: Any | None = None
         self._ppo_deterministic = ppo_deterministic
 
         # q_table policy only makes sense when actions can be indexed.
@@ -109,11 +108,19 @@ class Agent:
         if self._policy_mode == "ppo":
             self._ppo_model = self._build_ppo_model()
 
-    def _build_ppo_model(self) -> PPO:
+    def _build_ppo_model(self) -> Any:
         """Create a Stable-Baselines3 PPO model bound to the adapter environment."""
 
         if not hasattr(self._adapter, "_env"):
             raise ValueError("ppo policy mode requires an adapter with a Gym environment (_env).")
+
+        try:
+            from stable_baselines3 import PPO
+        except ImportError as e:
+            raise ImportError(
+                "stable-baselines3 is required for policy_mode='ppo'. "
+                "Install with: uv sync --extra rl"
+            ) from e
 
         env = self._adapter._env
         return PPO(self._ppo_policy, env, verbose=0, **self._ppo_kwargs)
