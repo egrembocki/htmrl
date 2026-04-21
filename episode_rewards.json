@@ -1,14 +1,14 @@
 {
-  "env_id": "TradingEnv",
+  "env_id": "LunarLander-v3",
   "policy_mode": "brain",
   "episodes": 1,
-  "max_steps_per_episode": 200,
+  "max_steps_per_episode": 1,
   "episode_rewards": [
-    0.05868055693616266
+    0.651869298160932
   ],
   "episode_steps": [
-    200
+    1
   ],
-  "mean_reward": 0.05868055693616266,
-  "best_reward": 0.05868055693616266
+  "mean_reward": 0.651869298160932,
+  "best_reward": 0.651869298160932
 }

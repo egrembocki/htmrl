@@ -33,6 +33,8 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from psu_capstone.log import get_logger
+
 
 class EnvAdapter(gym.Wrapper):
     """Wrap any Gymnasium environment and translate data for HTM usage.
@@ -89,6 +91,7 @@ class EnvAdapter(gym.Wrapper):
 
         # Internal observation cache for episode state.
         self._obs: Any | None = None
+        self._logger = get_logger(self)
 
         # Optional reward shaper: (reward, terminated, truncated, obs) -> float
         self._reward_shaper = reward_shaper
@@ -333,6 +336,17 @@ class EnvAdapter(gym.Wrapper):
 
         if self._reward_shaper is not None:
             reward = self._reward_shaper(reward, terminated, truncated, obs)
+
+        action_inputs = self.action_to_inputs(action)
+
+        self._logger.info(
+            "[Layer:EnvAdapter] action=%s action_inputs=%s reward=%.6f terminated=%s truncated=%s",
+            action,
+            action_inputs,
+            float(reward),
+            bool(terminated),
+            bool(truncated),
+        )
 
         return {
             "obs": obs,

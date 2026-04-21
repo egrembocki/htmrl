@@ -56,6 +56,37 @@ from psu_capstone.log import get_logger
 PolicyMode = Literal["q_table", "brain", "ppo"]
 
 
+@dataclass(frozen=True)
+class AgentPolicyProfile:
+    """Environment-specific tuning knobs for the shared Agent.update method."""
+
+    q_learning_rate: float = 0.1
+    q_discount_factor: float = 0.99
+    epsilon_start: float = 1.0
+    epsilon_decay: float = 0.01
+    reward_scale: float = 1.0
+
+
+DEFAULT_POLICY_PROFILE = AgentPolicyProfile()
+
+ENV_POLICY_PROFILES: dict[str, AgentPolicyProfile] = {
+    # Sparse reward grid world: keep exploration high for longer.
+    "FrozenLake-v1": AgentPolicyProfile(epsilon_start=1.0, epsilon_decay=0.002, reward_scale=5.0),
+    # Dense low-magnitude positive rewards.
+    "CartPole-v1": AgentPolicyProfile(q_learning_rate=0.1, reward_scale=1.0),
+    # Mostly -1 step costs, slower and conservative updates.
+    "MountainCar-v0": AgentPolicyProfile(q_learning_rate=0.05, q_discount_factor=0.995),
+    # Dense negative rewards; scale for a stronger learning signal in shared update path.
+    "Pendulum-v1": AgentPolicyProfile(q_learning_rate=0.05, reward_scale=0.1),
+    # Higher variance rewards; use moderate learning rate.
+    "LunarLander-v3": AgentPolicyProfile(q_learning_rate=0.07, q_discount_factor=0.99),
+    # Trading rewards can vary substantially by setup.
+    "TradingEnv": AgentPolicyProfile(
+        q_learning_rate=0.03, q_discount_factor=0.995, reward_scale=0.5
+    ),
+}
+
+
 class FrontendEnvSpec(TypedDict):
     """Frontend-managed environment schema used by the websocket runtime."""
 
@@ -291,6 +322,17 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
     np.random.seed(config.seed)
 
     adapter, is_frontend_env = build_adapter(config, allow_frontend_env=allow_frontend_env)
+    profile = ENV_POLICY_PROFILES.get(config.env_id, DEFAULT_POLICY_PROFILE)
+    logger = get_logger(None)
+    logger.info(
+        "Using policy profile for %s: lr=%.4f gamma=%.4f eps_start=%.4f eps_decay=%.4f reward_scale=%.4f",
+        config.env_id,
+        profile.q_learning_rate,
+        profile.q_discount_factor,
+        profile.epsilon_start,
+        profile.epsilon_decay,
+        profile.reward_scale,
+    )
     trainer = Trainer(Brain({}))
     brain = trainer.build_brain_for_env(adapter, config)
     agent = Agent(
@@ -298,6 +340,11 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
         adapter=adapter,
         episodes=config.episodes,
         policy_mode=config.policy_mode,
+        q_learning_rate=profile.q_learning_rate,
+        q_discount_factor=profile.q_discount_factor,
+        epsilon_start=profile.epsilon_start,
+        epsilon_decay=profile.epsilon_decay,
+        reward_scale=profile.reward_scale,
     )
 
     # Only pre-train PPO if policy_mode is 'ppo'

@@ -37,13 +37,17 @@ def main_sync(args: argparse.Namespace) -> None:
     if step_delay is None:
         step_delay = 0.0
 
+    reward_file = args.reward_file
+    if reward_file is None:
+        reward_file = f"episode_rewards_{args.env}.json"
+
     config = AgentRuntimeConfig(
         env_id=args.env,
         policy_mode=policy_mode,
         episodes=args.episodes,
         max_steps_per_episode=args.max_steps,
         render_mode=render_mode,
-        reward_output_file=args.reward_file,
+        reward_output_file=reward_file,
         step_delay_seconds=max(0.0, step_delay),
         non_spatial=args.no_spatial,
         non_temporal=args.no_temporal,
@@ -150,9 +154,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--reward-file",
         type=str,
-        default=defaults.reward_output_file,
+        default=None,
         help=(
-            "Output file for local-run metrics JSON " f"(default: {defaults.reward_output_file})"
+            "Output file for local-run metrics JSON "
+            "(default: episode_rewards_<env>.json in the repo root)"
         ),
     )
     parser.add_argument(

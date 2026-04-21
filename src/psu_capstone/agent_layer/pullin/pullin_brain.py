@@ -82,7 +82,10 @@ class Brain:
             learn: Whether to enable learning during this step.
             reward: External reward signal. If None, reward is computed internally.
         """
-        self._logger.info(f"Brain.step inputs={inputs} learn={learn} reward={reward}")
+        logged_reward = inputs.get("reward", reward)
+        if logged_reward is None:
+            logged_reward = "pending"
+        self._logger.info(f"Brain.step inputs={inputs} learn={learn} reward={logged_reward}")
         self.encode_only(inputs)
         self.compute_only(learn=learn)
         if "reward" in inputs:
