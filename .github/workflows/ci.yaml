@@ -103,7 +103,7 @@ jobs:
       
       - name: Install dependencies
         run: |-
-          uv sync --active --group dev --group tests --group linters --group formatters
+          uv sync --python ${{ matrix.python-version }} --group dev --group tests --group linters --group formatters
       
       - name: Lint code
         if: matrix.python-version == needs.setup.outputs.latest-python-version
