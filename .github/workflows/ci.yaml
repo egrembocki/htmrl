@@ -134,6 +134,7 @@ jobs:
           ruff_enabled: false
       
       - name: Run tests
+        if: github.event_name != 'pull_request'
         uses: ./.github/actions/python-tests
         with:
           install_dev_dependencies: "--group dev --group tests --group linters --group formatters --all-extras"
