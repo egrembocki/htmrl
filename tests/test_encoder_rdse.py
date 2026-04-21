@@ -629,9 +629,8 @@ def test_rdse_encode_output_sparsity_conforms():
     num_ones = sum(out)
     actual_sparsity = num_ones / len(out)
     # Allow tolerance: hash collisions can reduce ones slightly
-    assert (
-        0.15 <= actual_sparsity <= 0.25
-    ), f"Sparsity={sparsity} => ~{sparsity * 100}% ones expected, got {actual_sparsity:.3f} ({num_ones}/{len(out)})"
+    assert 0.15 <= actual_sparsity <= 0.25, f"Sparsity={sparsity} => \
+        ~{sparsity * 100}% ones expected, got {actual_sparsity:.3f}({num_ones}/{len(out)})"
 
 
 """Correctness tests below."""

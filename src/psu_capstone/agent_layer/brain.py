@@ -1,3 +1,5 @@
+from psu_capstone.log import get_logger
+
 """Field manager for simplified HTM input handling.
 
 Encapsulates InputFields and ColumnFields to provide a unified API
@@ -14,11 +16,13 @@ from typing import Any
 from uuid import uuid4
 
 from psu_capstone.agent_layer.abstract_brain import AbstractBrain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.pullin.field_base import Field
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from psu_capstone.log import LoggerManager
 
 
 class Brain(AbstractBrain):
+    CONF_SUFFIX = ".conf"
     """Manages HTM input fields and column fields with a unified API.
 
     Allows binding named inputs to InputFields and processing all inputs
@@ -66,7 +70,7 @@ class Brain(AbstractBrain):
             k: v for k, v in fields.items() if isinstance(v, ColumnField)
         }
         self.fields = fields
-        self.logger = LoggerManager.get_logger(self)
+        self.logger = get_logger(self)
 
         self.logger.info("Brain initialized with fields: %s", list(fields.keys()))
 
@@ -112,14 +116,18 @@ class Brain(AbstractBrain):
         for input_name in self._input_fields:
             input_field = self._input_fields[input_name]
             if hasattr(input_field.encoder, "decode"):
-                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
-                    "predictive"
-                )
-                self.logger.info(
-                    "Decoded SDR into value: %s, with confidence: %s",
-                    predictions[input_name],
-                    predictions[input_name + ".conf"],
-                )
+                try:
+                    predictions[input_name], predictions[input_name + self.CONF_SUFFIX] = input_field.decode(  # type: ignore
+                        "predictive"
+                    )
+                    self.logger.info(
+                        "Decoded SDR into value: %s, with confidence: %s",
+                        predictions[input_name],
+                        predictions[input_name + self.CONF_SUFFIX],
+                    )
+                except ValueError:
+                    predictions[input_name] = None
+                    predictions[input_name + self.CONF_SUFFIX] = 0.0
 
         return predictions  # type: ignore
 

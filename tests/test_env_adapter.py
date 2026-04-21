@@ -73,22 +73,21 @@ def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
     except ValueError as exc:
         assert "gym_kwargs" in str(exc)
 
-
-@pytest.mark.parametrize(
-    "env_id,step_action",
-    [
-        ("CartPole-v1", 0),
-        ("MountainCar-v0", 0),
-        ("FrozenLake-v1", 0),
-        ("Pendulum-v1", [0.0]),
-    ],
-)
-def test_env_adapter_accepts_standard_gym_envs(env_id, step_action):
-    """EnvAdapter should accept and run standard Gym environments."""
-    adapter = EnvAdapter(env_id)
-    reset_bridge = adapter.reset_bridge()
-    assert isinstance(reset_bridge["inputs"], dict)
-    step_bridge = adapter.step_bridge(step_action)
-    assert "reward" in step_bridge
-    assert "terminated" in step_bridge
-    assert "truncated" in step_bridge
+    @pytest.mark.parametrize(
+        "env_id,step_action",
+        [
+            ("CartPole-v1", 0),
+            ("MountainCar-v0", 0),
+            ("FrozenLake-v1", 0),
+            ("Pendulum-v1", [0.0]),
+        ],
+    )
+    def test_env_adapter_accepts_standard_gym_envs(env_id, step_action):
+        """EnvAdapter should accept and run standard Gym environments."""
+        adapter = EnvAdapter(env_id)
+        reset_bridge = adapter.reset_bridge()
+        assert isinstance(reset_bridge["inputs"], dict)
+        step_bridge = adapter.step_bridge(step_action)
+        assert "reward" in step_bridge
+        assert "terminated" in step_bridge
+        assert "truncated" in step_bridge

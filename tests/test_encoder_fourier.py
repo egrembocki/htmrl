@@ -27,7 +27,6 @@ Tests validate:
 import numpy as np
 import pytest
 
-from legacy.sdr_layer.sdr import SDR
 from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from utils import hamming_distance, overlap
 
@@ -91,7 +90,7 @@ def _overlap(first: np.ndarray | list[int], second: np.ndarray | list[int]) -> i
 
     sdr_one = np.asarray(first, dtype=np.int8)
     sdr_two = np.asarray(second, dtype=np.int8)
-    return overlap(sdr_one, sdr_two)
+    return int(np.sum(sdr_one & sdr_two))
 
 
 def test_identical_frequencies_overlap_completely() -> None:
@@ -173,7 +172,10 @@ def test_composite_signal_retains_component_information() -> None:
 
 
 def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> None:
-    """Amplitude modulation generates the sum and difference frequencies. Carrier freq and modulator will be dimished near zero in the fft."""
+    """
+    Amplitude modulation generates the sum and difference frequencies.
+    Carrier freq and modulator will be dimished near zero in the fft.
+    """
 
     # Arrange
     encoder = _build_encoder()

@@ -19,8 +19,9 @@ from typing import Any, Literal
 
 import numpy as np
 
-from psu_capstone.agent_layer.brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.environment.env_adapter import EnvAdapter
+from psu_capstone.log import get_logger
 
 
 class Agent:
@@ -58,6 +59,11 @@ class Agent:
             ``stable_baselines3.PPO`` during model construction.
         ppo_deterministic: Passed to ``ppo_model.predict`` when policy mode is
             ``ppo``.
+        q_learning_rate: Learning rate used by tabular Q updates.
+        q_discount_factor: Discount factor used by TD targets.
+        epsilon_start: Initial epsilon value for epsilon-greedy exploration.
+        epsilon_decay: Epsilon decay applied after each Q-table action selection.
+        reward_scale: Multiplier applied to rewards before update logic runs.
 
     Raises:
         TypeError: If ``policy_mode`` is ``'q_table'`` but the environment
@@ -73,11 +79,17 @@ class Agent:
         ppo_policy: str = "MlpPolicy",
         ppo_kwargs: dict[str, Any] | None = None,
         ppo_deterministic: bool = True,
+        q_learning_rate: float = 0.1,
+        q_discount_factor: float = 0.99,
+        epsilon_start: float = 1.0,
+        epsilon_decay: float = 0.01,
+        reward_scale: float = 1.0,
     ) -> None:
-        self._learning_rate: float = 0.1
-        self._discount_factor: float = 0.99
-        self._epsilon: float = 1.0
-        self._epsilon_decay: float = 0.01
+        self._learning_rate: float = q_learning_rate
+        self._discount_factor: float = q_discount_factor
+        self._epsilon: float = epsilon_start
+        self._epsilon_decay: float = epsilon_decay
+        self._reward_scale: float = reward_scale
 
         self._brain = brain
         self._adapter = adapter
@@ -86,6 +98,15 @@ class Agent:
         self._ppo_kwargs = ppo_kwargs or {}
         self._ppo_model: Any | None = None
         self._ppo_deterministic = ppo_deterministic
+        self._logger = get_logger(self)
+        self._logger.info(
+            "[Layer:Agent] update params lr=%.4f gamma=%.4f epsilon_start=%.4f epsilon_decay=%.4f reward_scale=%.4f",
+            self._learning_rate,
+            self._discount_factor,
+            self._epsilon,
+            self._epsilon_decay,
+            self._reward_scale,
+        )
 
         # q_table policy only makes sense when actions can be indexed.
         action_spec = self._adapter.get_action_spec()
@@ -162,6 +183,7 @@ class Agent:
         result = self._adapter.reset_bridge()
         self._obs = result["obs"]
         self._inputs = result["inputs"]
+        self._logger.info("[Layer:Agent] episode reset complete")
         return result
 
     def _initialize_q_values(self, obs: Any) -> tuple[tuple[str, Any], ...]:
@@ -231,17 +253,17 @@ class Agent:
         candidate_actions = self._candidate_actions()
 
         if not candidate_actions:
-            return self._adapter._action_space.sample()
+            return self._adapter.action_space.sample()
 
         # Epsilon-greedy action selection
         if self._rng.random() < self._epsilon:
-            return self._adapter._action_space.sample()
+            return self._adapter.action_space.sample()
 
         q_row = self._q_values[state_key]
 
         # If spec/value mismatch occurs, degrade safely to random exploration.
         if len(q_row) != len(candidate_actions):
-            return self._adapter._action_space.sample()
+            return self._adapter.action_space.sample()
 
         best_index = int(np.argmax(q_row))
         return candidate_actions[best_index]
@@ -401,9 +423,11 @@ class Agent:
         if current_obs is None:
             raise RuntimeError("Agent observation state was not initialized.")
 
+        self._logger.info("[Layer:Agent] step start policy=%s learn=%s", self._policy_mode, learn)
         brain_outputs = self._brain.step(current_inputs, learn=learn)
         action = self.select_action(current_obs, brain_outputs=brain_outputs)
         result = self._adapter.step_bridge(action)
+        action_inputs = self._adapter.action_to_inputs(action)
 
         next_obs = result["obs"]
         reward = result["reward"]
@@ -419,6 +443,15 @@ class Agent:
         # Cache the next timestep state so the next Agent.step() can continue the loop.
         self._obs = next_obs
         self._inputs = result["inputs"]
+
+        self._logger.info(
+            "[Layer:Agent] step end action=%s action_inputs=%s reward=%.6f terminated=%s truncated=%s",
+            action,
+            action_inputs,
+            float(reward),
+            bool(result["terminated"]),
+            bool(result["truncated"]),
+        )
 
         return {
             "obs": current_obs,
@@ -455,9 +488,10 @@ class Agent:
             done: Whether the transition ended the episode.
         """
 
+        scaled_reward = float(reward) * self._reward_scale
+
         if self._policy_mode == "brain":
-            # Brain-driven policy updates are not implemented yet.
-            self._brain.rl_policy_update()
+            self._brain.rl_policy_update(reward=scaled_reward)
             return
 
         if self._policy_mode == "ppo":
@@ -477,7 +511,7 @@ class Agent:
         current_q = float(self._q_values[state_key][action_index])
         next_best_q = 0.0 if done else float(np.max(self._q_values[next_state_key]))
 
-        td_target = float(reward) + (self._discount_factor * next_best_q)
+        td_target = scaled_reward + (self._discount_factor * next_best_q)
         td_error = td_target - current_q
 
         self._q_values[state_key][action_index] = current_q + (self._learning_rate * td_error)

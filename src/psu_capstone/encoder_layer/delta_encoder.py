@@ -8,7 +8,7 @@ from typing import override
 
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from psu_capstone.log import get_logger

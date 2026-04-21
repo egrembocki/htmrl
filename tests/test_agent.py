@@ -311,13 +311,23 @@ def _build_real_brain_for_adapter_inputs(adapter: EnvAdapter) -> Brain:
         )
         input_fields[name] = InputField(size=64, encoder_params=rdse_params)
 
+    # Add reward input field to match agent step inputs
+    reward_params = RDSEParameters(
+        size=64,
+        active_bits=0,
+        sparsity=0.02,
+        resolution=0.01,
+        category=False,
+        seed=999,
+    )
+    input_fields["reward"] = InputField(size=64, encoder_params=reward_params)
+
     column_field = ColumnField(
         input_fields=list(input_fields.values()),
         non_spatial=True,
         num_columns=64,
         cells_per_column=8,
     )
-
     fields = {**input_fields, "column": column_field}
     return Brain(fields)
 

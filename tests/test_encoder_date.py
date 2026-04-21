@@ -1,6 +1,5 @@
 """
 Test suite for Date Encoder (basic version).
-
 The Date Encoder with rdse_used=False produces basic scalar encodings for
 temporal components (season, day of week, time of day, etc.).
 
@@ -25,8 +24,6 @@ from datetime import datetime
 import pytest
 
 from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
 from psu_capstone.log import logger
 
 
@@ -1039,7 +1036,9 @@ def test_all_combined():
         actual_decoded.append(decoded)
         logger.info(f"Date: {dt} -> Encoding: {encoded} -> Decoding: {decoded}")
 
-    # Decode returns dict of 6 keys: season, dayofweek, weekend, customdays, holiday, timeofday; each value is (value, confidence)
+    # Decode returns dict of 6 keys:
+    # season, dayofweek, weekend, customdays, holiday, timeofday;
+    # each value is (value, confidence)
     assert len(actual_decoded) == len(test_case)
     keys = ["season", "dayofweek", "weekend", "customdays", "holiday", "timeofday"]
     for i, decoded in enumerate(actual_decoded):

@@ -41,7 +41,10 @@ def show_active_columns(brain: Any, dataset_name: str | None = None) -> None:
         dataset_info = f" - {dataset_name}" if dataset_name else ""
         plot_sdr(
             sdr,
-            title=f"Active Columns: {column_field.name}{dataset_info}\n({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)",
+            title=(
+                f"Active Columns: {column_field.name}{dataset_info}\n"
+                f"({num_active}/{len(sdr)} active, {sparsity:.1f}% sparsity)"
+            ),
         )
 
 
@@ -66,7 +69,10 @@ def show_heat_map(brain: Any, dataset_name: str | None = None) -> None:
     max_duty = float(positive.max()) if positive.size > 0 else 0.0
 
     dataset_info = f" - {dataset_name}" if dataset_name else ""
-    title = f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
+    title = (
+        f"Column Duty Cycle Heat Map: {column_field.name}{dataset_info}\n"
+        f"({active_columns}/{len(duty_cycles)} active columns, max duty={max_duty:.3f})"
+    )
 
     if positive.size > 0:
         vmax = max(max_duty, 1e-6)
@@ -122,13 +128,67 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     # colormap: white for 0, blue for 1
     cmap = ListedColormap(["white", "blue"])
 
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(12, 12))
     plt.imshow(grid, cmap=cmap, interpolation="nearest")
     plot_title = title or "SDR Visualization"
-    plt.title(plot_title)
+    plt.title(plot_title, fontsize=14)
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
+    plt.show(block=True)
+
+
+def _sdr_to_grid(data: list[int]) -> np.ndarray:
+    """Convert 1D SDR bits into a square 2D grid with zero-padding."""
+    sdr = SDR([len(data)])
+    sdr.set_dense(data)
+    dense = np.array(sdr.get_dense(), dtype=int)
+
+    n = dense.size
+    side = int(np.ceil(np.sqrt(n)))
+    padded = np.zeros(side * side, dtype=int)
+    padded[:n] = dense
+    return padded.reshape(side, side)
+
+
+def plot_sdr_sequence(items: list[tuple[list[int], str]]) -> None:
+    """Interactive SDR gallery.
+
+    Controls:
+    - Right arrow / 'n': next SDR
+    - Left arrow / 'p': previous SDR
+    - Escape / 'q': close viewer
+    """
+    if not items:
+        raise ValueError("items must contain at least one SDR plot entry.")
+
+    cmap = ListedColormap(["white", "blue"])
+    index = 0
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+    im = ax.imshow(_sdr_to_grid(items[index][0]), cmap=cmap, interpolation="nearest")
+    ax.set_title(items[index][1], fontsize=14)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(False)
+
+    def _render(i: int) -> None:
+        nonlocal index
+        index = i % len(items)
+        im.set_data(_sdr_to_grid(items[index][0]))
+        ax.set_title(items[index][1], fontsize=14)
+        fig.canvas.draw_idle()
+
+    def _on_key(event: Any) -> None:
+        key = (event.key or "").lower()
+        if key in {"right", "n"}:
+            _render(index + 1)
+        elif key in {"left", "p"}:
+            _render(index - 1)
+        elif key in {"escape", "q"}:
+            plt.close(fig)
+
+    fig.canvas.mpl_connect("key_press_event", _on_key)
     plt.show(block=True)
 
 

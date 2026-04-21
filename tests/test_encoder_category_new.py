@@ -304,7 +304,10 @@ def hamming_distance_helper(first, second) -> int:
 
 # Correctness tests
 def test_close_categories_are_similar():
-    """This test checks to make sure categories by each other in the index are more similar than categories distanced from each other."""
+    """
+    This test checks to make sure categories by each other in the index are more similar
+    than categories distanced from each other.
+    """
     params = CategoryParametersNew(
         category_list=["ES", "GB", "US", "RU", "JP", "FR", "GR", "TU", "IT"], rdse_used=True
     )

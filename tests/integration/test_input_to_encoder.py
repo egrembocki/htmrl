@@ -15,7 +15,6 @@ SDR encoding, ensuring data integrity across component boundaries.
 """
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters

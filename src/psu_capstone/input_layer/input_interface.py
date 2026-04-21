@@ -6,7 +6,7 @@ satisfy for data loading, validation, and normalization.
 
 from typing import Any, Protocol, runtime_checkable
 
-from psu_capstone.agent_layer.HTM import Field, InputField
+from psu_capstone.agent_layer.HTM import Field
 
 
 @runtime_checkable
