@@ -8,6 +8,7 @@ without needing to interact with the Brain's internal fields directly.
 from __future__ import annotations
 
 import io
+import pickle
 import sys
 from dataclasses import asdict
 from datetime import datetime
@@ -16,7 +17,6 @@ from typing import Any, cast
 
 import numpy as np
 
-import grapher
 import psu_capstone.encoder_layer as el
 from psu_capstone.agent_layer.pullin.field_base import Field
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
@@ -264,11 +264,18 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
-    def _setup_io_fields(
-        self,
-        fields: list[tuple[str, int, ParameterMarker]],
-        possible_actions: list[Any] | None = None,
-    ) -> None:
+    def _sync_trainer_fields_from_brain(self, brain: Brain) -> None:
+        """Align cached field lists with ``brain.fields`` (e.g. after :meth:`load_brain`)."""
+
+        self._trainer_input_fields = [f for f in brain.fields.values() if isinstance(f, InputField)]
+        self._trainer_output_fields = [
+            f for f in brain.fields.values() if isinstance(f, OutputField)
+        ]
+        self._trainer_column_fields = [
+            f for f in brain.fields.values() if isinstance(f, ColumnField)
+        ]
+
+    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
@@ -883,19 +890,55 @@ class Trainer:
     def show_active_columns(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show the active columns in the Brain."""
 
-        grapher.show_active_columns(brain, dataset_name)
+        import grapher as _grapher
+
+        _grapher.show_active_columns(brain, dataset_name)
 
     def show_heat_map(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show a heat map of the Brain's column duty cycle activity."""
 
-        grapher.show_heat_map(brain, dataset_name)
+        import grapher as _grapher
 
-    # TODO: Implement save_brain and load_brain methods for persistence of trained Brains
-    def save_brain(self, brain: Brain, filename: str) -> None:
-        """Save the Brain to a file."""
-        # Implement saving logic, e.g., using joblib or pickle
+        _grapher.show_heat_map(brain, dataset_name)
 
-    def load_brain(self, filename: str) -> Brain:
-        """Load a Brain from a file."""
-        # Implement loading logic, e.g., using joblib or pickle
-        return Brain({})  # Placeholder return
+    def save_brain(self, brain: Brain, filename: str | Path) -> None:
+        """Persist a trained Brain (weights, encoders, column state) to disk.
+
+        Data is written with :mod:`pickle`. Only load files you produced yourself;
+        unpickling untrusted files can execute arbitrary code.
+
+        Args:
+            brain: Brain to save.
+            filename: Destination path; parent directories are created if missing.
+        """
+
+        path = Path(filename).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as f:
+            pickle.dump(brain, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_brain(self, filename: str | Path, *, set_as_main: bool = True) -> Brain:
+        """Load a Brain previously saved with :meth:`save_brain`.
+
+        Args:
+            filename: Path to the saved file.
+            set_as_main: If True, set :attr:`main_brain` and refresh trainer field
+                lists so :meth:`train_full_brain`, :meth:`train_column`, and
+                :meth:`test` run against this Brain.
+
+        Returns:
+            The deserialized Brain.
+
+        Raises:
+            TypeError: If the file does not unpickle to a :class:`Brain` instance.
+        """
+
+        path = Path(filename).expanduser()
+        with path.open("rb") as f:
+            loaded = pickle.load(f)
+        if not isinstance(loaded, Brain):
+            raise TypeError(f"Expected a Brain in {path}, got {type(loaded).__name__}")
+        if set_as_main:
+            self.main_brain = loaded
+            self._sync_trainer_fields_from_brain(loaded)
+        return loaded

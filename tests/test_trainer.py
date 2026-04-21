@@ -1,11 +1,53 @@
-"""Tests for Trainer brain creation with proper InputFields, OutputFields, and ColumnFields."""
+"""Tests for Trainer brain creation with proper InputFields, OutputFields, and ColumnFields.
+
+``TestSaveLoadBrain`` (below) checks that checkpoints preserve learned HTM state, not only
+structure. It uses ``_learned_htm_snapshot`` to fingerprint proximal + distal weights; see that
+helper and the class docstring for what is and is not asserted. Encoder internals are still
+serialized with pickle but are not part of the snapshot tuple.
+"""
+
+import pickle
+from pathlib import Path
 
 import pytest
 
 import psu_capstone.encoder_layer as el
 from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, InputField, OutputField
+from psu_capstone.agent_layer.HTM import CONNECTED_PERM, ColumnField, InputField, OutputField
 from psu_capstone.agent_layer.train import Trainer
+
+
+def _learned_htm_snapshot(brain: Brain) -> tuple[int, float, int, float]:
+    """Summarize HTM weights so save/load can be checked for true learning state.
+
+    Returns:
+        (connected_proximal_synapses, sum_proximal_permanence, distal_segment_count,
+         sum_distal_permanence)
+    """
+
+    prox_connected = 0
+    prox_perm_sum = 0.0
+    distal_segments = 0
+    distal_perm_sum = 0.0
+
+    for cf in brain.column_fields:
+        for column in cf.columns:
+            for syn in column.potential_synapses:
+                prox_perm_sum += syn.permanence
+                if syn.permanence >= CONNECTED_PERM:
+                    prox_connected += 1
+        for cell in cf.cells:
+            for seg in cell.segments:
+                distal_segments += 1
+                for syn in seg.synapses:
+                    distal_perm_sum += syn.permanence
+
+    return (
+        prox_connected,
+        round(prox_perm_sum, 9),
+        distal_segments,
+        round(distal_perm_sum, 9),
+    )
 
 
 @pytest.fixture
@@ -213,3 +255,72 @@ class TestAddFields:
         trainer.build_brain([("base_input", 512, el.RDSEParameters(size=512, resolution=1.0))])
         with pytest.raises(ValueError):
             trainer.add_column_field("extra", num_columns=512, cells_per_column=8)
+
+
+# ---------------------------------------------------------------------------
+# save_brain / load_brain
+# ---------------------------------------------------------------------------
+
+
+class TestSaveLoadBrain:
+    """Trainer persistence: pickle round-trip and ``set_as_main`` behavior.
+
+    **Fingerprint:** ``_learned_htm_snapshot`` returns ``(connected proximal count,
+    sum proximal permanence, distal segment count, sum distal permanence)``. That
+    summarizes spatial-pooler and temporal-memory learning on ``ColumnField``; it
+    does not separately hash encoder/RDSE state (still present in the pickled ``Brain``).
+
+    **Round-trip test:** Asserts (1) the snapshot changes after many ``learn=True`` steps
+    so "progress" is real, and (2) the snapshot after ``load_brain`` equals the snapshot
+    just before ``save_brain``, so the file fully encodes that progress for what we measure.
+
+    Other tests cover ``set_as_main=False`` and rejecting non-``Brain`` pickle payloads.
+    """
+
+    def test_roundtrip_persists_state_and_syncs_trainer_for_testing(self, tmp_path: Path):
+        t1 = Trainer(Brain({}))
+        brain = t1.build_brain(
+            [("value_input", 64, el.RDSEParameters(size=64, resolution=1.0, seed=7))]
+        )
+        before_train = _learned_htm_snapshot(brain)
+        for i in range(120):
+            brain.step({"value_input": (i % 40) * 0.01}, learn=True)
+        after_train = _learned_htm_snapshot(brain)
+        assert after_train != before_train, "training should change HTM synapse / segment state"
+
+        path = tmp_path / "checkpoint.pkl"
+        t1.save_brain(brain, path)
+        assert path.is_file()
+
+        t2 = Trainer(Brain({}))
+        loaded = t2.load_brain(path)
+        assert loaded is t2.main_brain
+        assert (
+            _learned_htm_snapshot(loaded) == after_train
+        ), "pickle round-trip must preserve learned weights (proximal + distal)"
+
+        assert len(t2.input_fields) == 1
+        assert t2.input_fields[0].name == "value_input"
+        loaded.step({"value_input": 0.5}, learn=False)
+        t2.train_full_brain(loaded, {"value_input": [0.1, 0.2]}, steps=2)
+
+    def test_load_set_as_main_false_does_not_replace_main(self, tmp_path: Path):
+        t = Trainer(Brain({}))
+        brain = t.build_brain(
+            [("value_input", 64, el.RDSEParameters(size=64, resolution=1.0, seed=3))]
+        )
+        path = tmp_path / "c.pkl"
+        t.save_brain(brain, path)
+
+        empty = Brain({})
+        t2 = Trainer(empty)
+        loaded = t2.load_brain(path, set_as_main=False)
+        assert loaded is not t2.main_brain
+        assert t2.main_brain is empty
+
+    def test_load_non_brain_file_raises(self, trainer, tmp_path: Path):
+        path = tmp_path / "bad.pkl"
+        with path.open("wb") as f:
+            pickle.dump({"not": "a brain"}, f)
+        with pytest.raises(TypeError, match="Expected a Brain"):
+            trainer.load_brain(path)
