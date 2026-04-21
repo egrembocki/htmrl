@@ -120,6 +120,18 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
         delta_encoding = self._rdse_encoder.encode((t_delta_distance))
 
         e_or: list[int] = np.logical_and(encoding_one, encoding_two).astype(int).tolist()
+        if len(e_or) != len(delta_encoding):
+            # CoordinateEncoder can produce concatenated block SDRs. Collapse blocks
+            # back to the RDSE output width so representations are compatible.
+            block_count, remainder = divmod(len(e_or), len(delta_encoding))
+            if remainder != 0:
+                raise ValueError(
+                    "Coordinate encoding length must be divisible by RDSE encoding length."
+                )
+
+            reduced = np.array(e_or, dtype=int).reshape(block_count, len(delta_encoding))
+            e_or = np.any(reduced, axis=0).astype(int).tolist()
+
         delta_encoding: list[int] = np.logical_or(e_or, delta_encoding).astype(int).tolist()
 
         return delta_encoding

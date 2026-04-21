@@ -63,7 +63,7 @@ def fourier_helper():
                 {"categore": "PF"},
             ],
             "new_category",
-            {"size": 2048},
+            {"size": 2048, "category_list": ["dog", "CA", "PF"]},
         ),
         (
             "four",

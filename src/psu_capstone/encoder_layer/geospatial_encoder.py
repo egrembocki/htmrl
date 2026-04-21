@@ -164,6 +164,9 @@ class GeospatialEncoder(
 class GeospatialParameters(ParameterMarker):
     """Configuration parameters for :class:`GeospatialEncoder`."""
 
+    # Included for parity with other encoder parameter objects used by Trainer.
+    size: int = 2048
+
     # Horizontal meters per grid unit for lon/lat projected into Mercator.
     xy_scale: float = 5.0
 

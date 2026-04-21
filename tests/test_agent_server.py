@@ -92,7 +92,7 @@ def test_build_trading_visualization_computes_good_buy_alignment(
 
     assert payload is not None
     assert payload["action"]["label"] == "buy"
-    assert payload["alignment_score"] == 1.0
+    assert payload["alignment_score"] == pytest.approx(1.0)
     assert payload["quality"] == "good"
-    assert payload["brain_confidence"] == 0.8
-    assert payload["ohlcv"]["close"] == 103.0
+    assert payload["brain_confidence"] == pytest.approx(0.8)
+    assert payload["ohlcv"]["close"] == pytest.approx(103.0)

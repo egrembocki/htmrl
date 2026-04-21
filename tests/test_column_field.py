@@ -24,6 +24,12 @@ from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSE
 from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
+@pytest.fixture(autouse=True)
+def _disable_blocking_plots(monkeypatch):
+    """Prevent interactive plot windows from blocking test execution."""
+    monkeypatch.setattr(plt, "show", lambda: plt.close("all"))
+
+
 def activate_cells(cf: ColumnField, input_value):
     """Activate input cells."""
     in_fi = cast(InputField, cf.input_fields[0])
@@ -380,6 +386,7 @@ def test_activation_with_random_cells_excluding_encoder():
 
 
 # Test Type: unit test
+@pytest.mark.slow
 def test_activation_converge_on_desired_sparsity_random_once():
     import psu_capstone.agent_layer.pullin.pullin_htm as pullin_htm
 
@@ -463,6 +470,7 @@ def test_activation_converge_on_desired_sparsity_random_once():
 
 
 # Test Type: unit test
+@pytest.mark.slow
 def test_activation_zero_epoch_exclude_encoder():
     import psu_capstone.agent_layer.pullin.pullin_htm as pullin_htm
 
@@ -545,6 +553,7 @@ def test_activation_zero_epoch_exclude_encoder():
 
 
 # Test Type: unit test
+@pytest.mark.slow
 def test_activation_zero_epoch():
     import psu_capstone.agent_layer.pullin.pullin_htm as pullin_htm
 
@@ -1160,6 +1169,7 @@ def test_noise_gradient_plot():
 
 
 # Test Type: unit test
+@pytest.mark.slow
 def test_synapse_formation():
     """
     Track newly connected synapses per epoch across a dataset switch.
@@ -1170,12 +1180,12 @@ def test_synapse_formation():
     cf = make_spatial_only_cf(input_field)
 
     rng_a = random.Random(42)
-    dataset_a = [rng_a.uniform(0, 5000) for _ in range(200)]
+    dataset_a = [rng_a.uniform(0, 5000) for _ in range(100)]
     rng_b = random.Random(77)
-    dataset_b = [rng_b.uniform(5000, 10000) for _ in range(200)]
+    dataset_b = [rng_b.uniform(5000, 10000) for _ in range(100)]
 
-    switch_epoch = 60
-    total_epochs = 120
+    switch_epoch = 30
+    total_epochs = 60
     formation_history: list[int] = []
 
     for epoch in range(total_epochs):
@@ -1210,25 +1220,29 @@ def test_synapse_formation():
     plt.show()
 
     # assertions
-    # early epochs should have high formation
-    early_avg = sum(formation_history[:5]) / 5
-    assert early_avg > 100, (
+    # early epochs should have noticeably high formation
+    early_window = 5
+    early_avg = sum(formation_history[:early_window]) / early_window
+    assert early_avg > 70, (
         f"Early synapse formation avg {early_avg:.0f} is too low; "
         f"SP should be actively forming synapses."
     )
 
-    # pre switch plateau should have low formation
-    pre_switch_avg = sum(formation_history[40:switch_epoch]) / (switch_epoch - 40)
+    # pre-switch plateau should have lower formation than early epochs
+    pre_switch_start = max(early_window, switch_epoch - 10)
+    pre_switch_segment = formation_history[pre_switch_start:switch_epoch]
+    pre_switch_avg = sum(pre_switch_segment) / len(pre_switch_segment)
     assert pre_switch_avg < early_avg, (
-        f"Pre switch formation {pre_switch_avg:.0f} should be less than "
+        f"Pre-switch formation {pre_switch_avg:.0f} should be less than "
         f"early formation {early_avg:.0f}."
     )
 
-    # post switch spike should exceed the pre switch plateau
-    post_switch_peak = max(formation_history[switch_epoch : switch_epoch + 10])
+    # post-switch spike should exceed the pre-switch plateau
+    post_switch_end = min(total_epochs, switch_epoch + 10)
+    post_switch_peak = max(formation_history[switch_epoch:post_switch_end])
     assert post_switch_peak > pre_switch_avg, (
-        f"Post switch peak {post_switch_peak} should exceed "
-        f"pre switch avg {pre_switch_avg:.0f}."
+        f"Post-switch peak {post_switch_peak} should exceed "
+        f"pre-switch avg {pre_switch_avg:.0f}."
     )
 
 

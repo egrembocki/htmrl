@@ -8,7 +8,7 @@ from typing import Iterable, override
 import mmh3
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
@@ -22,6 +22,11 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
         self._parameters = (
             copy.deepcopy(parameters) if parameters is not None else CoordinateParameters()
         )
+
+        if self._parameters.size is not None:
+            self._parameters.n = self._parameters.size
+        else:
+            self._parameters.size = self._parameters.n
 
         self._n = self._parameters.n
         self._w = self._parameters.w
@@ -180,8 +185,10 @@ class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
 
 
 @dataclass
-class CoordinateParameters:
+class CoordinateParameters(ParameterMarker):
     """Configuration parameters for :class:`CoordinateEncoder`."""
+
+    size: int | None = None
 
     n: int = 2048
     w: int = 25
@@ -190,6 +197,14 @@ class CoordinateParameters:
     dims: int = 2
     use_all_neighbors: bool = False
     encoder_class = CoordinateEncoder
+
+    def __post_init__(self) -> None:
+        if self.size is None:
+            self.size = self.n
+        elif self.n != 2048 and self.size != self.n:
+            raise ValueError("CoordinateParameters 'size' must match 'n' when both are provided.")
+        else:
+            self.n = self.size
 
 
 if __name__ == "__main__":
