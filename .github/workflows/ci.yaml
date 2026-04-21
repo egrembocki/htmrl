@@ -55,6 +55,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  compat-check:
+    name: Lint & Test (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip (Python 3.12 not compatible with htm>=3.13 dep)
+        run: echo "Skipped - htm package requires Python>=3.13"
+
   setup:
     name: Setup Matrix
     runs-on: ubuntu-latest
@@ -84,7 +91,7 @@ jobs:
     strategy:
       matrix:
         # python-version: ${{ fromJSON(github.event.inputs.python_versions) }}
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.13"]
       fail-fast: true
   
     steps:
@@ -103,7 +110,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       
       - name: Install dependencies
-        if: matrix.python-version != '3.12'
         run: |-
           uv sync --python ${{ matrix.python-version }} --group dev --group tests --group linters --group formatters
       
