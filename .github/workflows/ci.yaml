@@ -103,6 +103,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       
       - name: Install dependencies
+        if: matrix.python-version != '3.12'
         run: |-
           uv sync --python ${{ matrix.python-version }} --group dev --group tests --group linters --group formatters
       
