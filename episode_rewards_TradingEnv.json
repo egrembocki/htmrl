@@ -1,22 +1,14 @@
 {
   "env_id": "TradingEnv",
   "policy_mode": "brain",
-  "episodes": 5,
-  "max_steps_per_episode": 10,
+  "episodes": 1,
+  "max_steps_per_episode": 1000,
   "episode_rewards": [
-    0.01031281956457166,
-    0.008320492710144987,
-    0.028900394493341842,
-    0.021532264332397615,
-    0.017564589967764492
+    -0.5805092448672856
   ],
   "episode_steps": [
-    10,
-    10,
-    10,
-    10,
-    10
+    1000
   ],
-  "mean_reward": 0.017326112213644117,
-  "best_reward": 0.028900394493341842
+  "mean_reward": -0.5805092448672856,
+  "best_reward": -0.5805092448672856
 }
