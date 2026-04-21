@@ -282,14 +282,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--episodes",
         type=int,
-        default=5,
-        help="Episodes per env/experiment combination (default: 5).",
+        default=10,
+        help="Episodes per env/experiment combination (default: 10).",
     )
     parser.add_argument(
         "--max-steps",
         type=int,
-        default=50,
-        help="Maximum steps per episode (default: 50).",
+        default=100,
+        help="Maximum steps per episode (default: 100).",
     )
     parser.add_argument(
         "--envs",

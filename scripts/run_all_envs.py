@@ -147,7 +147,7 @@ def main():
     parser.add_argument(
         "--episodes", type=int, default=5, help="Number of episodes per environment"
     )
-    parser.add_argument("--max-steps", type=int, default=1000, help="Maximum steps per episode")
+    parser.add_argument("--max-steps", type=int, default=10, help="Maximum steps per episode")
     parser.add_argument(
         "--render",
         action="store_true",
@@ -200,6 +200,16 @@ def main():
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Log level forwarded to run_agent_server (default: DEBUG)",
     )
+    parser.add_argument(
+        "--envs",
+        nargs="+",
+        default=None,
+        metavar="ENV",
+        help=(
+            "Subset of environments to run (default: all). "
+            "Example: --envs Pendulum-v1 CartPole-v1"
+        ),
+    )
     args = parser.parse_args()
 
     if args.step_delay is not None:
@@ -209,7 +219,14 @@ def main():
     else:
         step_delay = 0.0
 
-    for env in envs:
+    target_envs = envs
+    if args.envs is not None:
+        unknown = [e for e in args.envs if e not in envs]
+        if unknown:
+            print(f"[WARN] Unknown env(s) ignored: {unknown}")
+        target_envs = [e for e in args.envs if e in envs]
+
+    for env in target_envs:
         run_env(
             env,
             args.episodes,
@@ -225,7 +242,7 @@ def main():
             launch_trading_renderer()
 
     if args.graph:
-        plot_rewards(envs, args.episodes)
+        plot_rewards(target_envs, args.episodes)
 
 
 if __name__ == "__main__":
