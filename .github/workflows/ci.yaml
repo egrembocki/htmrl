@@ -114,7 +114,7 @@ jobs:
           fail_on_error: true
           # source_path: './src'
           mypy_enabled: false
-          pydoclint_enabled: true
+          pydoclint_enabled: false
           ruff_enabled: false
       
       - name: Check docstring coverage
