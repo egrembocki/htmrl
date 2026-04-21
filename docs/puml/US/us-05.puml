@@ -9,42 +9,44 @@ skinparam ObjectFontSize 30
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title US-05 Train Model: train_cartpole_brain_policy()
+title US-05 Train Model: Trainer
 
 actor Developer as Dev
-participant "<u>entry:train_cartpole_brain_policy</u>" as Entry
-participant "<u>builder:build_cartpole_brain</u>" as Build
-participant "<u>adapter:EnvAdapter</u>" as EA
-participant "<u>a:Agent</u>" as AG
+participant "<u>t:Trainer</u>" as TR
 participant "<u>b:Brain</u>" as BR
-participant "Gym Env" as ENV
+participant "Dataset" as DS
 
-Dev -> Entry: train_cartpole_brain_policy(config?)
-activate Entry
-Entry -> EA: EnvAdapter("CartPole-v1")
-Entry -> Build: build_cartpole_brain(adapter, config)
-Build --> Entry: brain
-Entry -> AG: Agent(brain, adapter, policy_mode="brain")
+Dev -> TR: Trainer(Brain({}))
+activate TR
+TR -> BR: initialize Brain
+BR --> TR: brain ready
 
-loop episodes
-  Entry -> AG: reset_episode()
-  loop while not done and steps < max_steps_per_episode
-    Entry -> AG: step(learn=True)
-    activate AG
-    AG -> BR: step(inputs + reward, learn=True)
-    BR --> AG: brain_outputs
-    AG -> AG: select_action(obs, brain_outputs)
-    AG -> EA: step_bridge(action)
-    EA -> ENV: step(action)
-    ENV --> EA: obs, reward, terminated, truncated, info
-    EA --> AG: transition bridge
-    AG -> AG: update(obs, action, reward, next_obs, done)
-    AG --> Entry: transition
-    deactivate AG
-  end
-  Entry -> BR: print_stats()
+alt Explicit field-control build
+  Dev -> TR: build_brain(fields, possible_actions?)
+  TR -> BR: create fields from tuples
+  BR --> TR: brain built
+else Dataset-driven quick build
+  Dev -> TR: build_full_brain(dataset, size, params)
+  TR -> BR: infer fields from dataset
+  BR --> TR: brain built
+else Environment-driven build
+  Dev -> TR: build_brain_for_env(adapter, config)
+  TR -> BR: map env observation/action spec
+  BR --> TR: brain built
 end
 
-Entry --> Dev: metrics {episode_rewards, steps, mean_reward, best_reward}
-deactivate Entry
+TR --> Dev: configured Brain
+
+Dev -> TR: train_full_brain(brain, dataset, steps)
+TR -> DS: iterate training samples
+
+loop training steps
+  TR -> BR: step(sample, learn=True)
+  BR -> BR: encode -> spatial pool -> temporal learn
+  BR --> TR: active columns / predictions
+end
+
+Dev -> TR: test(brain, dataset, steps)
+TR --> Dev: metrics {accuracy, confidence, training stats}
+deactivate TR
 @enduml
