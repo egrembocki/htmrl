@@ -67,7 +67,7 @@ jobs:
         run: |-
           # Parse the JSON array, sort versions, and get the latest version
           # versions='["3.10", "3.11", "3.12", "3.13"]'
-          versions='["3.12"]'
+          versions='["3.13"]'
           latest=$(echo "$versions" | jq -r '.[]' | sort -V | tail -n 1)
           echo "latest-version=${latest}" >> $GITHUB_OUTPUT
           echo "Latest Python version is $latest"
@@ -84,7 +84,7 @@ jobs:
     strategy:
       matrix:
         # python-version: ${{ fromJSON(github.event.inputs.python_versions) }}
-        python-version: ["3.12"]
+        python-version: ["3.13"]
       fail-fast: true
   
     steps:
@@ -103,7 +103,7 @@ jobs:
       
       - name: Install dependencies
         run: |-
-          uv sync --group dev --group tests --group linters --group formatters
+          uv sync --active --group dev --group tests --group linters --group formatters
       
       - name: Lint code
         if: matrix.python-version == needs.setup.outputs.latest-python-version
