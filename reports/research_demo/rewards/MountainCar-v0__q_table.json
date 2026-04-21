@@ -1,6 +1,6 @@
 {
   "env_id": "MountainCar-v0",
-  "policy_mode": "brain",
+  "policy_mode": "q_table",
   "episodes": 5,
   "max_steps_per_episode": 50,
   "episode_rewards": [

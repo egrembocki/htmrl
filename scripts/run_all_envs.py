@@ -5,13 +5,15 @@ run_all_envs.py
 Easily run all supported RL environments locally and graph performance after training.
 
 Usage:
-    python run_all_envs.py [--episodes N] [--no-render] [--step-delay S] [--graph]
+    python run_all_envs.py [--episodes N] [--max-steps N] [--no-render] [--step-delay S] [--graph]
 
 Options:
-    --episodes N   Number of episodes to run (default: 5)
-    --no-render    Disable environment window (headless mode)
-    --step-delay S Sleep S seconds after each step (default: 0.08 when rendering, else 0)
-    --graph        Plot episode rewards after all runs
+    --episodes N       Number of episodes to run (default: 5)
+    --max-steps N      Maximum steps per episode (default: 1000)
+    --no-render        Disable environment window (headless mode)
+    --step-delay S     Sleep S seconds after each step (default: 0.08 when rendering, else 0)
+    --graph            Plot episode rewards after all runs
+    --no-trade-render  Skip launching the TradingEnv Flask renderer after the run
 
 Environments tested:
     - CartPole-v1
@@ -53,9 +55,30 @@ def reward_file_path(env):
     return REPO_ROOT / REWARD_FILE_TEMPLATE.format(env=env)
 
 
+RENDER_TRADING_SCRIPT = REPO_ROOT / "scripts" / "render_trading.py"
+
+
+def launch_trading_renderer() -> None:
+    """Start the gym-trading-env Flask renderer in a subprocess and wait for Ctrl+C."""
+    render_logs = REPO_ROOT / "render_logs"
+    if not render_logs.exists() or not any(render_logs.iterdir()):
+        print("[WARN] No render_logs found – skipping TradingEnv renderer.")
+        return
+    print("\n=== Launching TradingEnv renderer at http://127.0.0.1:5000 ===")
+    print("Press Ctrl+C to stop the renderer and continue.")
+    try:
+        subprocess.run(
+            [sys.executable, str(RENDER_TRADING_SCRIPT)],
+            cwd=REPO_ROOT,
+        )
+    except KeyboardInterrupt:
+        print("\n[INFO] TradingEnv renderer stopped.")
+
+
 def run_env(
     env,
     episodes,
+    max_steps,
     render,
     step_delay,
     no_spatial=False,
@@ -77,6 +100,8 @@ def run_env(
         log_level,
         "--episodes",
         str(episodes),
+        "--max-steps",
+        str(max_steps),
         "--reward-file",
         str(reward_file_path(env)),
         "--step-delay",
@@ -122,6 +147,7 @@ def main():
     parser.add_argument(
         "--episodes", type=int, default=5, help="Number of episodes per environment"
     )
+    parser.add_argument("--max-steps", type=int, default=1000, help="Maximum steps per episode")
     parser.add_argument(
         "--render",
         action="store_true",
@@ -142,6 +168,12 @@ def main():
         help="Delay in seconds after each step (default: 0.08 when rendering, otherwise 0)",
     )
     parser.add_argument("--graph", action="store_true", help="Plot episode rewards after all runs")
+    parser.add_argument(
+        "--no-trade-render",
+        action="store_true",
+        default=False,
+        help="Skip launching the TradingEnv Flask renderer after the TradingEnv run",
+    )
     parser.add_argument(
         "--policy",
         type=str,
@@ -170,12 +202,18 @@ def main():
     )
     args = parser.parse_args()
 
-    step_delay = args.step_delay if args.step_delay is not None else (0.08 if args.render else 0.0)
+    if args.step_delay is not None:
+        step_delay = args.step_delay
+    elif args.render:
+        step_delay = 0.08
+    else:
+        step_delay = 0.0
 
     for env in envs:
         run_env(
             env,
             args.episodes,
+            args.max_steps,
             args.render,
             step_delay,
             args.no_spatial,
@@ -183,6 +221,8 @@ def main():
             args.policy,
             args.log_level,
         )
+        if env == "TradingEnv" and not args.no_trade_render:
+            launch_trading_renderer()
 
     if args.graph:
         plot_rewards(envs, args.episodes)

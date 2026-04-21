@@ -113,6 +113,8 @@ def _run_single_experiment(
     env: str,
     exp: ExperimentConfig,
     episodes: int,
+    max_steps: int,
+    ppo_max_steps: int,
     render: bool,
     step_delay: float,
     log_level: str,
@@ -133,6 +135,8 @@ def _run_single_experiment(
             error="Skipped: q_table requires a discrete action space.",
         )
 
+    effective_max_steps = ppo_max_steps if exp.policy == "ppo" else max_steps
+
     cmd = [
         sys.executable,
         str(RUN_AGENT_SERVER),
@@ -144,6 +148,8 @@ def _run_single_experiment(
         exp.policy,
         "--episodes",
         str(episodes),
+        "--max-steps",
+        str(effective_max_steps),
         "--render-mode",
         "human" if render else "none",
         "--step-delay",
@@ -201,7 +207,8 @@ def _plot_by_env(results: list[RunResult], plots_dir: Path) -> list[Path]:
         fig = plt.figure(figsize=(10, 6))
         for item in env_results:
             assert item.episode_rewards is not None
-            plt.plot(item.episode_rewards, label=item.experiment)
+            x_values = list(range(1, len(item.episode_rewards) + 1))
+            plt.plot(x_values, item.episode_rewards, label=item.experiment)
         plt.xlabel("Episode")
         plt.ylabel("Reward")
         plt.title(f"HTMRL Research Pipeline - {env}")
@@ -279,6 +286,12 @@ def parse_args() -> argparse.Namespace:
         help="Episodes per env/experiment combination (default: 5).",
     )
     parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=50,
+        help="Maximum steps per episode (default: 50).",
+    )
+    parser.add_argument(
         "--envs",
         nargs="+",
         default=DEFAULT_ENVS,
@@ -312,8 +325,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ppo-pretrain-timesteps",
         type=int,
-        default=5_000,
-        help=("Warm-up timesteps for PPO runs inside the research demo " "(default: 5000)."),
+        default=20_000,
+        help="Warm-up timesteps for PPO runs inside the research demo (default: 20000).",
+    )
+    parser.add_argument(
+        "--ppo-max-steps",
+        type=int,
+        default=200,
+        help="Maximum steps per episode used for PPO runs only (default: 200).",
     )
     parser.add_argument(
         "--out-dir",
@@ -345,6 +364,8 @@ def main() -> None:
                 env=env,
                 exp=exp,
                 episodes=args.episodes,
+                max_steps=args.max_steps,
+                ppo_max_steps=args.ppo_max_steps,
                 render=args.render,
                 step_delay=max(0.0, args.step_delay),
                 log_level=args.log_level,

@@ -2,7 +2,7 @@
   "env_id": "FrozenLake-v1",
   "policy_mode": "brain",
   "episodes": 5,
-  "max_steps_per_episode": 1000,
+  "max_steps_per_episode": 50,
   "episode_rewards": [
     0.0,
     0.0,
@@ -13,9 +13,9 @@
   "episode_steps": [
     6,
     2,
-    2,
-    23,
-    4
+    9,
+    19,
+    2
   ],
   "mean_reward": 0.0,
   "best_reward": 0.0

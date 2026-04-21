@@ -64,7 +64,8 @@ def plot_rewards(files: list[Path], *, output: Path | None = None, show: bool = 
         if not rewards:
             continue
         label = _series_label(file_path)
-        plt.plot(rewards, label=label)
+        episodes = range(1, len(rewards) + 1)
+        plt.plot(episodes, rewards, label=label)
 
     plt.xlabel("Episode")
     plt.ylabel("Total Reward")

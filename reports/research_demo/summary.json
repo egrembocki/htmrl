@@ -1,0 +1,302 @@
+{
+  "generated_at": "2026-04-21T00:04:59.838280+00:00",
+  "pipeline": [
+    "encoder_demo",
+    "experiment_matrix",
+    "analysis_plots"
+  ],
+  "experiments": [
+    {
+      "name": "brain_full",
+      "policy": "brain",
+      "no_spatial": false,
+      "no_temporal": false
+    },
+    {
+      "name": "brain_no_spatial",
+      "policy": "brain",
+      "no_spatial": true,
+      "no_temporal": false
+    },
+    {
+      "name": "brain_no_temporal",
+      "policy": "brain",
+      "no_spatial": false,
+      "no_temporal": true
+    },
+    {
+      "name": "ppo",
+      "policy": "ppo",
+      "no_spatial": false,
+      "no_temporal": false
+    },
+    {
+      "name": "q_table",
+      "policy": "q_table",
+      "no_spatial": false,
+      "no_temporal": false
+    }
+  ],
+  "results": {
+    "CartPole-v1": [
+      {
+        "experiment": "brain_full",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 9.8,
+        "best_reward": 11.0,
+        "reward_file": "reports/research_demo/rewards/CartPole-v1__brain_full.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_spatial",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 9.4,
+        "best_reward": 10.0,
+        "reward_file": "reports/research_demo/rewards/CartPole-v1__brain_no_spatial.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_temporal",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 9.2,
+        "best_reward": 10.0,
+        "reward_file": "reports/research_demo/rewards/CartPole-v1__brain_no_temporal.json",
+        "error": null
+      },
+      {
+        "experiment": "ppo",
+        "policy": "ppo",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 37.8,
+        "best_reward": 59.0,
+        "reward_file": "reports/research_demo/rewards/CartPole-v1__ppo.json",
+        "error": null
+      },
+      {
+        "experiment": "q_table",
+        "policy": "q_table",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 12.8,
+        "best_reward": 21.0,
+        "reward_file": "reports/research_demo/rewards/CartPole-v1__q_table.json",
+        "error": null
+      }
+    ],
+    "FrozenLake-v1": [
+      {
+        "experiment": "brain_full",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 0.0,
+        "best_reward": 0.0,
+        "reward_file": "reports/research_demo/rewards/FrozenLake-v1__brain_full.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_spatial",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 0.0,
+        "best_reward": 0.0,
+        "reward_file": "reports/research_demo/rewards/FrozenLake-v1__brain_no_spatial.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_temporal",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 0.0,
+        "best_reward": 0.0,
+        "reward_file": "reports/research_demo/rewards/FrozenLake-v1__brain_no_temporal.json",
+        "error": null
+      },
+      {
+        "experiment": "ppo",
+        "policy": "ppo",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 0.0,
+        "best_reward": 0.0,
+        "reward_file": "reports/research_demo/rewards/FrozenLake-v1__ppo.json",
+        "error": null
+      },
+      {
+        "experiment": "q_table",
+        "policy": "q_table",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": 0.0,
+        "best_reward": 0.0,
+        "reward_file": "reports/research_demo/rewards/FrozenLake-v1__q_table.json",
+        "error": null
+      }
+    ],
+    "MountainCar-v0": [
+      {
+        "experiment": "brain_full",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -50.0,
+        "best_reward": -50.0,
+        "reward_file": "reports/research_demo/rewards/MountainCar-v0__brain_full.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_spatial",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -50.0,
+        "best_reward": -50.0,
+        "reward_file": "reports/research_demo/rewards/MountainCar-v0__brain_no_spatial.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_temporal",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -50.0,
+        "best_reward": -50.0,
+        "reward_file": "reports/research_demo/rewards/MountainCar-v0__brain_no_temporal.json",
+        "error": null
+      },
+      {
+        "experiment": "ppo",
+        "policy": "ppo",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -200.0,
+        "best_reward": -200.0,
+        "reward_file": "reports/research_demo/rewards/MountainCar-v0__ppo.json",
+        "error": null
+      },
+      {
+        "experiment": "q_table",
+        "policy": "q_table",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -50.0,
+        "best_reward": -50.0,
+        "reward_file": "reports/research_demo/rewards/MountainCar-v0__q_table.json",
+        "error": null
+      }
+    ],
+    "Pendulum-v1": [
+      {
+        "experiment": "brain_full",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -243.2965085423829,
+        "best_reward": -129.81165808763092,
+        "reward_file": "reports/research_demo/rewards/Pendulum-v1__brain_full.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_spatial",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -340.3919741786823,
+        "best_reward": -125.49085714303453,
+        "reward_file": "reports/research_demo/rewards/Pendulum-v1__brain_no_spatial.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_temporal",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -287.1466833828521,
+        "best_reward": -125.6344644165258,
+        "reward_file": "reports/research_demo/rewards/Pendulum-v1__brain_no_temporal.json",
+        "error": null
+      },
+      {
+        "experiment": "ppo",
+        "policy": "ppo",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -1337.8468494369579,
+        "best_reward": -1068.9548736238685,
+        "reward_file": "reports/research_demo/rewards/Pendulum-v1__ppo.json",
+        "error": null
+      },
+      {
+        "experiment": "q_table",
+        "policy": "q_table",
+        "succeeded": false,
+        "exit_code": 2,
+        "mean_reward": null,
+        "best_reward": null,
+        "reward_file": "reports/research_demo/rewards/Pendulum-v1__q_table.json",
+        "error": "Skipped: q_table requires a discrete action space."
+      }
+    ],
+    "LunarLander-v3": [
+      {
+        "experiment": "brain_full",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -81.36789781529566,
+        "best_reward": -15.406288897908627,
+        "reward_file": "reports/research_demo/rewards/LunarLander-v3__brain_full.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_spatial",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -68.67757959651033,
+        "best_reward": 3.735665827646038,
+        "reward_file": "reports/research_demo/rewards/LunarLander-v3__brain_no_spatial.json",
+        "error": null
+      },
+      {
+        "experiment": "brain_no_temporal",
+        "policy": "brain",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -89.48958222554421,
+        "best_reward": -7.700329125553592,
+        "reward_file": "reports/research_demo/rewards/LunarLander-v3__brain_no_temporal.json",
+        "error": null
+      },
+      {
+        "experiment": "ppo",
+        "policy": "ppo",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -176.3631911416433,
+        "best_reward": -115.95014284891539,
+        "reward_file": "reports/research_demo/rewards/LunarLander-v3__ppo.json",
+        "error": null
+      },
+      {
+        "experiment": "q_table",
+        "policy": "q_table",
+        "succeeded": true,
+        "exit_code": 0,
+        "mean_reward": -32.6010968715157,
+        "best_reward": -22.342234505657803,
+        "reward_file": "reports/research_demo/rewards/LunarLander-v3__q_table.json",
+        "error": null
+      }
+    ]
+  }
+}

@@ -253,7 +253,7 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
             )
         import pandas as pd
 
-        df = pd.read_csv("data/fin_test.csv")
+        df = pd.read_csv("data/fin_test.csv", parse_dates=["timestamp"], index_col="timestamp")
         # Rename columns to feature_* as required by gym_trading_env
         feature_cols = ["open", "high", "low", "close", "volume"]
         for col in feature_cols:
@@ -276,45 +276,7 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
             }
         )
 
-    # Inject env-specific failure penalty so the ValueField receives a strong
-    # no-go signal when an episode ends in failure. Each env has distinct reward
-    # structure, so the failure condition is defined per-env:
-    #
-    #  CartPole-v1   : any terminated=True is failure (pole fell; success is truncated)
-    #  FrozenLake-v1 : terminated and reward<=0 is a hole (reward=1 for goal)
-    #  MountainCar-v0: truncated=True means ran out of time without reaching goal
-    #  LunarLander-v3: crash already gives reward=-100, amplify to match scale
-    #
-    # Pendulum-v1 and TradingEnv have continuous/no discrete failure — no shaping.
-    failure_penalty = -10.0
-
-    def _cartpole_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
-        return failure_penalty if terminated else reward
-
-    def _frozen_lake_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
-        return failure_penalty if (terminated and reward <= 0.0) else reward
-
-    def _mountain_car_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
-        return failure_penalty if truncated else reward
-
-    def _lunar_lander_shaper(reward: float, terminated: bool, truncated: bool, obs: Any) -> float:
-        return failure_penalty if (terminated and reward < 0.0) else reward
-
-    env_failure_shapers = {
-        "CartPole-v1": _cartpole_shaper,
-        "FrozenLake-v1": _frozen_lake_shaper,
-        "MountainCar-v0": _mountain_car_shaper,
-        "LunarLander-v3": _lunar_lander_shaper,
-    }
-
-    if config.env_id in env_failure_shapers:
-        adapter_kwargs["reward_shaper"] = env_failure_shapers[config.env_id]
-
-    try:
-        return EnvAdapter(config.env_id, **adapter_kwargs), False
-    except Exception as exc:
-        # Preserve the original exception so missing deps and bad env kwargs are explicit.
-        raise exc
+    return EnvAdapter(config.env_id, **adapter_kwargs), False
 
 
 def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> AgentRuntime:
@@ -442,6 +404,15 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
                 total_reward,
                 steps,
             )
+
+            # Save TradingEnv render logs after every episode so the Flask
+            # renderer can replay any episode without re-running the agent.
+            if (
+                config.env_id == "TradingEnv"
+                and env is not None
+                and hasattr(env, "save_for_render")
+            ):
+                env.save_for_render(dir="render_logs")
 
         results = {
             "env_id": config.env_id,
