@@ -75,7 +75,7 @@ runs:
 
         # Install pydoclint if enabled (fork pins docstring_parser API flake8/pydoclint need)
         if [ "${{ inputs.pydoclint_enabled }}" = "true" ]; then
-          pip install "pydoclint>=0.5" "docstring-parser-fork>=0.0.14"
+            pip install "docstring-parser<0.18" pydoclint
           echo "✅ Pydoclint installed"
         else  
           echo "⏩ Pydoclint not enabled, skipping installation"

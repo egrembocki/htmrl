@@ -275,11 +275,16 @@ class Trainer:
             f for f in brain.fields.values() if isinstance(f, ColumnField)
         ]
 
-    def _setup_io_fields(self, fields: list[tuple[str, int, ParameterMarker]]) -> None:
+    def _setup_io_fields(
+        self,
+        fields: list[tuple[str, int, ParameterMarker]],
+        possible_actions: list[Any] | None = None,
+    ) -> None:
         """Setup the fields for the Brain through the passed in tuple.
 
         Args:
             fields: A list of tuples containing field name, field size, and encoder parameters.
+            possible_actions: Optional action values to pre-register on output encoders.
 
         Raises:
             ValueError: If unsupported encoder parameter type is provided.
@@ -489,6 +494,7 @@ class Trainer:
 
         Args:
             fields: A list of tuples containing field name, field size, and encoder parameters.
+            possible_actions: Optional action values to pre-register on output encoders.
 
                 Example:
                 fields = [

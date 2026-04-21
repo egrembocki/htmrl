@@ -59,6 +59,11 @@ class Agent:
             ``stable_baselines3.PPO`` during model construction.
         ppo_deterministic: Passed to ``ppo_model.predict`` when policy mode is
             ``ppo``.
+        q_learning_rate: Learning rate used by tabular Q updates.
+        q_discount_factor: Discount factor used by TD targets.
+        epsilon_start: Initial epsilon value for epsilon-greedy exploration.
+        epsilon_decay: Epsilon decay applied after each Q-table action selection.
+        reward_scale: Multiplier applied to rewards before update logic runs.
 
     Raises:
         TypeError: If ``policy_mode`` is ``'q_table'`` but the environment

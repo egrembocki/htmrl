@@ -64,8 +64,8 @@ format: ## Format code with isort and black
 
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
-	@uv run --active --no-sync flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
-	@uv run --active --no-sync flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
+	@uv run --isolated --with flake8 --with flake8-pyproject --with pep8-naming python -m flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
+	@uv run --isolated --with flake8 --with flake8-pyproject --with pep8-naming python -m flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
 lint-docs: ## Check docstring coverage and style

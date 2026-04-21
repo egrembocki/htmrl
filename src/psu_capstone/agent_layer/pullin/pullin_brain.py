@@ -29,6 +29,9 @@ class Brain:
                 "consumption": row["value"],
                 "date": row["timestamp"],
             })
+
+    Args:
+        fields: Mapping of field names to field objects managed by the brain.
     """
 
     def __init__(self, fields: dict[str, Field]) -> None:
@@ -81,6 +84,9 @@ class Brain:
             inputs: Dict mapping field names to input values.
             learn: Whether to enable learning during this step.
             reward: External reward signal. If None, reward is computed internally.
+
+        Returns:
+            Behavior mapping produced by the output fields for this timestep.
         """
         logged_reward = inputs.get("reward", reward)
         if logged_reward is None:

@@ -48,6 +48,8 @@ class EnvAdapter(gym.Wrapper):
     Args:
         gym_env: Gym environment id (for gym.make) or any pre-built
             gym.Env instance (for example FinGym(...)).
+        reward_shaper: Optional callback used to transform the raw reward
+            from ``step`` using ``(reward, terminated, truncated, obs)``.
         **gym_kwargs: Optional kwargs used only when gym_env is a
             string id. These are forwarded to gym.make(...).Example:
             EnvAdapter("CartPole-v1", render_mode="human").

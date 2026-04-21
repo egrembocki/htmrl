@@ -1271,6 +1271,14 @@ class OutputField(InputField):
             probabilities: Per-cell activation probabilities. If None, computed
                 from the current Go/NoGo modulation state.
             candidates: Values to consider. Defaults to the encoder's cache.
+
+        Returns:
+            Mapping containing the decoded value, confidence, and the
+            probabilities used for scoring.
+
+        Raises:
+            ValueError: If the probability vector length does not match the
+                number of output cells.
         """
         if probabilities is None:
             probabilities = self.activation_probabilities()

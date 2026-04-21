@@ -209,6 +209,8 @@ class AgentRuntimeConfig:
         render_mode: Optional Gymnasium render mode for local runs.
         reward_output_file: Output JSON path for local run episode metrics.
         step_delay_seconds: Optional delay after each env step for readability.
+        non_spatial: Whether spatial pooling should be disabled.
+        non_temporal: Whether temporal memory should be disabled.
         host: WebSocket bind host for server mode.
         port: WebSocket bind port for server mode.
         ppo_pretrain_timesteps: PPO warm-up timesteps before serving/running.
