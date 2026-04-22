@@ -16,6 +16,9 @@ from typing import Any
 from uuid import uuid4
 
 from psu_capstone.agent_layer.abstract_brain import AbstractBrain
+from psu_capstone.agent_layer.HTM import ColumnField as LegacyColumnField
+from psu_capstone.agent_layer.HTM import InputField as LegacyInputField
+from psu_capstone.agent_layer.HTM import OutputField as LegacyOutputField
 from psu_capstone.agent_layer.pullin.field_base import Field
 from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from psu_capstone.log import LoggerManager
