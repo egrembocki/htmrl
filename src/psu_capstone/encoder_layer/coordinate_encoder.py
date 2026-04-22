@@ -8,7 +8,7 @@ from typing import Iterable, override
 import mmh3
 import numpy as np
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
 from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 

@@ -18,8 +18,9 @@ from typing import Any, cast
 import numpy as np
 
 import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.pullin.field_base import Field
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
@@ -314,7 +315,6 @@ class Trainer:
                 FourierEncoderParameters,
                 GeospatialParameters,
                 CoordinateParameters,
-                ScalarEncoderParameters,
             )
             if isinstance(param, encoder_param_types):
                 pass
@@ -335,8 +335,15 @@ class Trainer:
                 field = InputField(size=size, encoder_params=encoder_params)
                 field.name = name
             elif name.endswith("_output"):
-                motor_actions = tuple(possible_actions) if possible_actions is not None else (None,)
-                field = OutputField(size=size, motor_action=motor_actions)
+                # Use the first input field as the input_field for OutputField by default
+                if not self._trainer_input_fields:
+                    raise ValueError(
+                        "At least one input field must be defined before creating an OutputField."
+                    )
+                input_field = self._trainer_input_fields[0]
+                field = OutputField(
+                    input_field=input_field, encoder_params=encoder_params, size=size
+                )
                 field.name = name
                 # Register all possible actions with the encoder for OutputField
                 if possible_actions is not None:
@@ -361,7 +368,7 @@ class Trainer:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
             input_fields=self._trainer_input_fields,
-            non_spatial=False,
+            non_spatial=True,
             num_columns=num_columns,
             cells_per_column=cells_per_column,
         )
@@ -530,12 +537,7 @@ class Trainer:
             raise ValueError("Input field name must end with '_input'.")
 
     def add_output_field(
-        self,
-        name: str,
-        size: int,
-        encoder_params: Any | None = None,
-        possible_actions: list[Any] | None = None,
-        motor_action: tuple[Any, ...] | None = None,
+        self, name: str, size: int, encoder_params: Any, possible_actions: list[Any] | None = None
     ) -> None:
         """Add an output field to the Brain using the new OutputField signature."""
 
@@ -543,14 +545,15 @@ class Trainer:
             raise ValueError(self._BRAIN_NOT_INITIALIZED_ERROR)
 
         if name.endswith("_output"):
-            actions = motor_action
-            if actions is None:
-                if possible_actions is not None:
-                    actions = tuple(possible_actions)
-                else:
-                    actions = (None,)
-
-            field = OutputField(size=size, motor_action=actions)
+            if not self._trainer_input_fields:
+                raise ValueError(
+                    "At least one input field must be defined before creating an OutputField."
+                )
+            input_field = self._trainer_input_fields[0]
+            # Support both OutputField signatures used in this repository:
+            # - New: OutputField(input_field=..., encoder_params=..., size=...)
+            # - Legacy: OutputField(size=..., motor_action=...)
+            field = OutputField(input_field=input_field, encoder_params=encoder_params, size=size)
             field.name = name
             # Register all possible actions with the encoder for OutputField
             if possible_actions is not None:

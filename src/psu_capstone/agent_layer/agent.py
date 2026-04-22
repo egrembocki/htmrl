@@ -501,6 +501,7 @@ class Agent:
         scaled_reward = float(reward) * self._reward_scale
 
         if self._policy_mode == "brain":
+            self._brain.rl_policy_update(reward=scaled_reward)
             return
 
         if self._policy_mode == "ppo":
