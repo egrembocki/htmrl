@@ -35,6 +35,7 @@ DateEncoderParameters = el.DateEncoderParameters
 FourierEncoderParameters = el.FourierEncoderParameters
 GeospatialParameters = el.GeospatialParameters
 RDSEParameters = el.RDSEParameters
+ScalarEncoderParameters = el.ScalarEncoderParameters
 
 
 class Trainer:

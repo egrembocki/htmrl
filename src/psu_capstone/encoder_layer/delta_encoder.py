@@ -90,7 +90,11 @@ class DeltaEncoder(BaseEncoder[tuple[float, float] | list[tuple[float, float]]])
 
         delta_encoding = self._rdse_encoder.encode((t_delta_distance))
 
-        e_or: list[int] = np.logical_and(encoding_one, encoding_two).astype(int).tolist()
+        e_or: list[int] = (
+            np.logical_and(encoding_one[: self._size], encoding_two[: self._size])
+            .astype(int)
+            .tolist()
+        )
         delta_encoding: list[int] = np.logical_or(e_or, delta_encoding).astype(int).tolist()
 
         return delta_encoding

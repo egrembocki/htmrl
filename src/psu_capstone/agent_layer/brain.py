@@ -16,6 +16,9 @@ from typing import Any
 from uuid import uuid4
 
 from psu_capstone.agent_layer.abstract_brain import AbstractBrain
+from psu_capstone.agent_layer.HTM import ColumnField as LegacyColumnField
+from psu_capstone.agent_layer.HTM import InputField as LegacyInputField
+from psu_capstone.agent_layer.HTM import OutputField as LegacyOutputField
 from psu_capstone.agent_layer.pullin.field_base import Field
 from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from psu_capstone.log import LoggerManager
@@ -61,13 +64,19 @@ class Brain(AbstractBrain):
         # Separate fields into input, output, and column fields for easy access
         # ensure that values are instances of the correct type
         self._input_fields: dict[str, InputField] = {
-            k: v for k, v in fields.items() if isinstance(v, InputField)
+            k: v  # type: ignore[assignment]
+            for k, v in fields.items()
+            if isinstance(v, (InputField, LegacyInputField))
         }
         self._output_fields: dict[str, OutputField] = {
-            k: v for k, v in fields.items() if isinstance(v, OutputField)
+            k: v  # type: ignore[assignment]
+            for k, v in fields.items()
+            if isinstance(v, (OutputField, LegacyOutputField))
         }
         self._column_fields: dict[str, ColumnField] = {
-            k: v for k, v in fields.items() if isinstance(v, ColumnField)
+            k: v  # type: ignore[assignment]
+            for k, v in fields.items()
+            if isinstance(v, (ColumnField, LegacyColumnField))
         }
         self.fields = fields
         self.logger = get_logger(self)
