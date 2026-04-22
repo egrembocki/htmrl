@@ -418,7 +418,17 @@ class Agent:
             self.reset_episode()
 
         current_obs = self._obs
-        current_inputs = self._inputs
+        current_inputs = dict(self._inputs)
+
+        brain_input_fields = getattr(self._brain, "_input_fields", None)
+        if (
+            isinstance(brain_input_fields, dict)
+            and "reward" in brain_input_fields
+            and "reward" not in current_inputs
+        ):
+            # Some Brain configurations include an explicit reward input field.
+            # Before the environment step, use a neutral default reward.
+            current_inputs["reward"] = 0.0
 
         if current_obs is None:
             raise RuntimeError("Agent observation state was not initialized.")
@@ -491,7 +501,6 @@ class Agent:
         scaled_reward = float(reward) * self._reward_scale
 
         if self._policy_mode == "brain":
-            self._brain.rl_policy_update(reward=scaled_reward)
             return
 
         if self._policy_mode == "ppo":

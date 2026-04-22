@@ -164,6 +164,10 @@ class GeospatialEncoder(
 class GeospatialParameters(ParameterMarker):
     """Configuration parameters for :class:`GeospatialEncoder`."""
 
+    # Backward-compatible aliases used by older trainer/tests.
+    size: int | None = None
+    scale: float | None = None
+
     # Horizontal meters per grid unit for lon/lat projected into Mercator.
     xy_scale: float = 5.0
 
@@ -180,6 +184,10 @@ class GeospatialParameters(ParameterMarker):
     use_altitude: bool = True
 
     encoder_class = GeospatialEncoder
+
+    def __post_init__(self) -> None:
+        if self.scale is not None:
+            self.xy_scale = float(self.scale)
 
 
 if __name__ == "__main__":

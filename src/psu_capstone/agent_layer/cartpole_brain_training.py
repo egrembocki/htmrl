@@ -59,7 +59,20 @@ def build_cartpole_brain(
         trainer.add_input_field(f"{name}_input", config.input_size, params)
 
     # Motor action candidates map to CartPole's discrete actions.
-    trainer.add_output_field("action_output", 4, motor_action=(0, 1))
+    action_encoder_params = RDSEParameters(
+        size=4,
+        active_bits=1,
+        sparsity=0.0,
+        resolution=0.01,
+        category=False,
+        seed=config.rdse_seed + 999,
+    )
+    trainer.add_output_field(
+        "action_output",
+        4,
+        action_encoder_params,
+        possible_actions=[0, 1],
+    )
 
     # Non-spatial column setup keeps one-to-one alignment from input bits to columns.
     trainer.add_column_field(
