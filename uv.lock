@@ -922,6 +922,102 @@ wheels = [
 ]
 
 [[package]]
+name = "htmrl"
+version = "0.9.0"
+source = { editable = "." }
+dependencies = [
+    { name = "box2d" },
+    { name = "gym-trading-env" },
+    { name = "gymnasium" },
+    { name = "matplotlib" },
+    { name = "mmh3" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pygame" },
+    { name = "pyproj" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "stable-baselines3" },
+    { name = "sympy" },
+    { name = "torch" },
+    { name = "xlrd" },
+]
+
+[package.optional-dependencies]
+rl = [
+    { name = "stable-baselines3" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pdoc" },
+    { name = "pre-commit" },
+    { name = "snakeviz" },
+]
+formatters = [
+    { name = "black" },
+    { name = "isort" },
+]
+linters = [
+    { name = "flake8" },
+    { name = "flake8-pyproject" },
+    { name = "interrogate" },
+    { name = "pep8-naming" },
+    { name = "pydocstyle" },
+]
+tests = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "box2d", specifier = ">=2.3.10" },
+    { name = "gym-trading-env", specifier = ">=0.3.5" },
+    { name = "gymnasium", specifier = ">=1.2.3" },
+    { name = "matplotlib", specifier = ">=3.7" },
+    { name = "mmh3", specifier = ">=3.0" },
+    { name = "openpyxl", specifier = ">=3.1.2" },
+    { name = "pandas", specifier = ">=2.1" },
+    { name = "pygame", specifier = ">=2.6.1" },
+    { name = "pyproj", specifier = ">=3.7.1" },
+    { name = "scikit-learn", specifier = ">=1.7.2" },
+    { name = "scipy", specifier = ">=1.15.3" },
+    { name = "stable-baselines3", specifier = ">=2.7.1" },
+    { name = "stable-baselines3", marker = "extra == 'rl'", specifier = ">=2.7.1" },
+    { name = "sympy", specifier = ">=1.11" },
+    { name = "torch", specifier = ">=2.11.0" },
+    { name = "xlrd", specifier = ">=2.0.2" },
+]
+provides-extras = ["rl"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.17.0" },
+    { name = "pdoc", specifier = ">=16.0.0" },
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "snakeviz", specifier = ">=2.2.2" },
+]
+formatters = [
+    { name = "black", specifier = ">=23.7.0" },
+    { name = "isort", specifier = ">=6.0.1" },
+]
+linters = [
+    { name = "flake8", specifier = ">=7.3.0" },
+    { name = "flake8-pyproject", specifier = ">=1.2.3" },
+    { name = "interrogate", specifier = ">=1.7.0" },
+    { name = "pep8-naming", specifier = ">=0.15.1" },
+    { name = "pydocstyle", specifier = ">=6.3.0" },
+]
+tests = [
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "pytest-mock", specifier = ">=3.14.0" },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.19"
 source = { registry = "https://pypi.org/simple" }
@@ -2069,102 +2165,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/ef/3c6ecf8b317aa982f309835e8f96987466123c6e596646d4e6a1dfcd080f/propcache-0.4.1-cp314-cp314t-win_amd64.whl", hash = "sha256:990f6b3e2a27d683cb7602ed6c86f15ee6b43b1194736f9baaeb93d0016633b1", size = 46259, upload-time = "2025-10-08T19:48:34.226Z" },
     { url = "https://files.pythonhosted.org/packages/c4/2d/346e946d4951f37eca1e4f55be0f0174c52cd70720f84029b02f296f4a38/propcache-0.4.1-cp314-cp314t-win_arm64.whl", hash = "sha256:ecef2343af4cc68e05131e45024ba34f6095821988a9d0a02aa7c73fcc448aa9", size = 40428, upload-time = "2025-10-08T19:48:35.441Z" },
     { url = "https://files.pythonhosted.org/packages/5b/5a/bc7b4a4ef808fa59a816c17b20c4bef6884daebbdf627ff2a161da67da19/propcache-0.4.1-py3-none-any.whl", hash = "sha256:af2a6052aeb6cf17d3e46ee169099044fd8224cbaf75c76a2ef596e8163e2237", size = 13305, upload-time = "2025-10-08T19:49:00.792Z" },
-]
-
-[[package]]
-name = "psu-capstone"
-version = "0.0.1"
-source = { virtual = "." }
-dependencies = [
-    { name = "box2d" },
-    { name = "gym-trading-env" },
-    { name = "gymnasium" },
-    { name = "matplotlib" },
-    { name = "mmh3" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pygame" },
-    { name = "pyproj" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "stable-baselines3" },
-    { name = "sympy" },
-    { name = "torch" },
-    { name = "xlrd" },
-]
-
-[package.optional-dependencies]
-rl = [
-    { name = "stable-baselines3" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pdoc" },
-    { name = "pre-commit" },
-    { name = "snakeviz" },
-]
-formatters = [
-    { name = "black" },
-    { name = "isort" },
-]
-linters = [
-    { name = "flake8" },
-    { name = "flake8-pyproject" },
-    { name = "interrogate" },
-    { name = "pep8-naming" },
-    { name = "pydocstyle" },
-]
-tests = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-mock" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "box2d", specifier = ">=2.3.10" },
-    { name = "gym-trading-env", specifier = ">=0.3.5" },
-    { name = "gymnasium", specifier = ">=1.2.3" },
-    { name = "matplotlib", specifier = ">=3.7" },
-    { name = "mmh3", specifier = ">=3.0" },
-    { name = "openpyxl", specifier = ">=3.1.2" },
-    { name = "pandas", specifier = ">=2.1" },
-    { name = "pygame", specifier = ">=2.6.1" },
-    { name = "pyproj", specifier = ">=3.7.1" },
-    { name = "scikit-learn", specifier = ">=1.7.2" },
-    { name = "scipy", specifier = ">=1.15.3" },
-    { name = "stable-baselines3", specifier = ">=2.7.1" },
-    { name = "stable-baselines3", marker = "extra == 'rl'", specifier = ">=2.7.1" },
-    { name = "sympy", specifier = ">=1.11" },
-    { name = "torch", specifier = ">=2.11.0" },
-    { name = "xlrd", specifier = ">=2.0.2" },
-]
-provides-extras = ["rl"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=1.17.0" },
-    { name = "pdoc", specifier = ">=16.0.0" },
-    { name = "pre-commit", specifier = ">=4.2.0" },
-    { name = "snakeviz", specifier = ">=2.2.2" },
-]
-formatters = [
-    { name = "black", specifier = ">=23.7.0" },
-    { name = "isort", specifier = ">=6.0.1" },
-]
-linters = [
-    { name = "flake8", specifier = ">=7.3.0" },
-    { name = "flake8-pyproject", specifier = ">=1.2.3" },
-    { name = "interrogate", specifier = ">=1.7.0" },
-    { name = "pep8-naming", specifier = ">=0.15.1" },
-    { name = "pydocstyle", specifier = ">=6.3.0" },
-]
-tests = [
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "pytest-cov", specifier = ">=6.2.1" },
-    { name = "pytest-mock", specifier = ">=3.14.0" },
 ]
 
 [[package]]

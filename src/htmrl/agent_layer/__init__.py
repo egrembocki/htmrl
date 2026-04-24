@@ -39,16 +39,16 @@ __all__ = [
 
 
 _EXPORTS = {
-    "Agent": ("psu_capstone.agent_layer.agent", "Agent"),
-    "AgentRuntimeConfig": ("psu_capstone.agent_layer.agent_runtime", "AgentRuntimeConfig"),
-    "AgentInterface": ("psu_capstone.agent_layer.agent_interface", "AgentInterface"),
-    "Brain": ("psu_capstone.agent_layer.brain", "Brain"),
+    "Agent": ("htmrl.agent_layer.agent", "Agent"),
+    "AgentRuntimeConfig": ("htmrl.agent_layer.agent_runtime", "AgentRuntimeConfig"),
+    "AgentInterface": ("htmrl.agent_layer.agent_interface", "AgentInterface"),
+    "Brain": ("htmrl.agent_layer.brain", "Brain"),
     "ColumnField": (HTM_MODULE, "ColumnField"),
     "Field": (HTM_MODULE, "Field"),
     "InputField": (HTM_MODULE, "InputField"),
     "OutputField": (HTM_MODULE, "OutputField"),
-    "AgentWebSocketServer": ("psu_capstone.agent_layer.agent_server", "AgentWebSocketServer"),
-    "Trainer": ("psu_capstone.agent_layer.train", "Trainer"),
+    "AgentWebSocketServer": ("htmrl.agent_layer.agent_server", "AgentWebSocketServer"),
+    "Trainer": ("htmrl.agent_layer.train", "Trainer"),
 }
 
 

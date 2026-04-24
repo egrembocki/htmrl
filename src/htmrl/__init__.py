@@ -16,13 +16,11 @@ import htmrl.environment as environment_tools
 import htmrl.input_layer as input_tools
 
 try:
-    __version__ = version("psu_capstone")
+    __version__ = version("htmrl")
 except PackageNotFoundError:
-    __version__ = "0.0.1"
+    __version__ = "0.9.0"
 
-PYTHONPATH = "/src"
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "easyData.xlsx")
+PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 __all__ = ["agent_tools", "encoder_tools", "environment_tools", "input_tools"]
