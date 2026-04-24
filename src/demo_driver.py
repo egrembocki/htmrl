@@ -22,10 +22,10 @@ import grapher
 
 # Import each layer once so the demos read like the architecture they exercise.
 # This keeps example code focused on workflow rather than repeated module paths.
-import psu_capstone.agent_layer as ag
-import psu_capstone.encoder_layer as en
-import psu_capstone.input_layer as il
-from psu_capstone.log import logger
+import htmrl.agent_layer as ag
+import htmrl.encoder_layer as en
+import htmrl.input_layer as il
+from htmrl.log import logger
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")

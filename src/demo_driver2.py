@@ -12,15 +12,15 @@ Note: Some of the demonstration functions may require specific datasets to be av
 import os
 
 import grapher
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.log_train import Trainer
-from psu_capstone.encoder_layer.base_encoder import ParameterMarker
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger, set_report_artifact_path
+from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.log_train import Trainer
+from htmrl.encoder_layer.base_encoder import ParameterMarker
+from htmrl.encoder_layer.category_encoder import CategoryParameters
+from htmrl.encoder_layer.date_encoder import DateEncoderParameters
+from htmrl.encoder_layer.fourier_encoder import FourierEncoderParameters
+from htmrl.encoder_layer.rdse import RDSEParameters
+from htmrl.input_layer.input_handler import InputHandler
+from htmrl.log import logger, set_report_artifact_path
 from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")

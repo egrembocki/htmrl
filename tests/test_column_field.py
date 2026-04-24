@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.HTM import (
+from htmrl.agent_layer.HTM import (
     CONNECTED_PERM,
     DESIRED_LOCAL_SPARSITY,
     PERMANENCE_DEC,
@@ -20,8 +20,8 @@ from psu_capstone.agent_layer.HTM import (
     InputField,
     ProximalSynapse,
 )
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 
 def activate_cells(cf: ColumnField, input_value):
@@ -285,10 +285,10 @@ def test_no_single_column_dominates():
 
 def test_activation_with_random_cells_excluding_encoder():
     """Checks active column over 49 epochs on a random input excluding the built in encoder."""
-    import psu_capstone.agent_layer.HTM
+    import htmrl.agent_layer.HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    htmrl.agent_layer.HTM.PERMANENCE_INC = 0.10
+    htmrl.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -371,10 +371,10 @@ def test_activation_with_random_cells_excluding_encoder():
 
 def test_activation_converge_on_desired_sparsity_random_once_with_encoder():
     """Tests random inputs to the spatial pooler to see that our activations converge on the desired sparsity."""
-    import psu_capstone.agent_layer.HTM
+    import htmrl.agent_layer.HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    htmrl.agent_layer.HTM.PERMANENCE_INC = 0.10
+    htmrl.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -454,10 +454,10 @@ def test_activation_converge_on_desired_sparsity_random_once_with_encoder():
 
 def test_activation_zero_epoch_exclude_encoder():
     """Tests a zero epoch excluding encoder on the spatial pooler."""
-    import psu_capstone.agent_layer.HTM
+    import htmrl.agent_layer.HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    htmrl.agent_layer.HTM.PERMANENCE_INC = 0.10
+    htmrl.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -535,10 +535,10 @@ def test_activation_zero_epoch_exclude_encoder():
 
 def test_activation_zero_epoch_with_encoder():
     """Tests zero epoch with encoder on spatial pooler."""
-    import psu_capstone.agent_layer.HTM
+    import htmrl.agent_layer.HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    htmrl.agent_layer.HTM.PERMANENCE_INC = 0.10
+    htmrl.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -610,10 +610,10 @@ def test_activation_zero_epoch_with_encoder():
 
 def test_activation_with_sin_wave_scalar_encoder_periodic_false():
     """Tests a spatial pooler with the scalar encoder and periodic false."""
-    import psu_capstone.agent_layer.HTM
+    import htmrl.agent_layer.HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    htmrl.agent_layer.HTM.PERMANENCE_INC = 0.10
+    htmrl.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field_scalar(input_size, 0.001, min=-1, max=1, periodic=True)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)
@@ -693,10 +693,10 @@ def test_activation_with_sin_wave_scalar_encoder_periodic_false():
 
 def test_activation_with_sin_wave_with_encoder():
     """Tests a sin wave and rdse encoder spatial pooler to see dominate columns form on the pattern."""
-    import psu_capstone.agent_layer.HTM
+    import htmrl.agent_layer.HTM
 
-    psu_capstone.agent_layer.HTM.PERMANENCE_INC = 0.10
-    psu_capstone.agent_layer.HTM.PERMANENCE_DEC = 0.02
+    htmrl.agent_layer.HTM.PERMANENCE_INC = 0.10
+    htmrl.agent_layer.HTM.PERMANENCE_DEC = 0.02
     input_size = 2048
     in_fi = make_input_field_sin(input_size)
     cf = make_spatial_only_cf(in_fi, num_columns=input_size)

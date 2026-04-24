@@ -20,8 +20,8 @@ from typing import Any
 
 import pytest
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.input_layer.input_handler import InputHandler
+from htmrl.encoder_layer.base_encoder import BaseEncoder
+from htmrl.input_layer.input_handler import InputHandler
 
 
 class DummyEncoder(BaseEncoder):

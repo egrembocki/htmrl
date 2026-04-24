@@ -16,13 +16,13 @@ from matplotlib import ticker
 from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq
 
+from htmrl.encoder_layer.base_encoder import BaseEncoder
+from htmrl.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from htmrl.input_layer.input_handler import InputHandler
+from htmrl.log import logger
 from legacy.sdr_layer.sdr import SDR
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.log import logger
 from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")

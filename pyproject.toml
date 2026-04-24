@@ -1,12 +1,12 @@
 [project]
-name = "psu-capstone"
+name = "htmrl"
 version = "0.0.1"
 authors = [
     { name = "PSU Capstone Team" },
 ]
 description = "PSU Capstone Project"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -22,7 +22,6 @@ dependencies = [
  "xlrd>=2.0.2",
  "pyproj>=3.7.1",
  "scipy>=1.15.3",
- "htm",
  "gymnasium>=1.2.3",
  "stable-baselines3>=2.7.1",
  "torch>=2.11.0",

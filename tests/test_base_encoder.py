@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from htmrl.encoder_layer.base_encoder import BaseEncoder
 
 # from legacy.sdr_layer.sdr import SDR
 

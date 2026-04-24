@@ -27,7 +27,7 @@ Tests validate:
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from htmrl.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
 from utils import hamming_distance, overlap
 
 _SIGNAL_LENGTH = 2048

@@ -15,8 +15,8 @@ from tqdm import tqdm
 
 # The manual test imports the agent and encoder layers as packages to keep the
 # experiment code concise while still making the architectural dependency obvious.
-import psu_capstone.agent_layer as ag
-import psu_capstone.encoder_layer as en
+import htmrl.agent_layer as ag
+import htmrl.encoder_layer as en
 
 sys.path.append(str(Path(__file__).parent.parent))
 

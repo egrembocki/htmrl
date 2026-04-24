@@ -24,7 +24,7 @@ Tests validate:
   5. Learning state management
 """
 
-from psu_capstone.agent_layer.HTM import Cell, DistalSynapse, Field, Segment
+from htmrl.agent_layer.HTM import Cell, DistalSynapse, Field, Segment
 
 
 class DummySegment:
