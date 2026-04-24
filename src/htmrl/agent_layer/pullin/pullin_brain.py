@@ -34,7 +34,8 @@ class Brain:
         fields: Mapping of field names to field objects managed by the brain.
     """
 
-    def __init__(self, fields: dict[str, Field]) -> None:
+    def __init__(self, fields: dict[str, Field] | None = None) -> None:
+        fields = fields or {}
         self._output_fields: dict[str, OutputField] = {
             k: v for k, v in fields.items() if isinstance(v, OutputField)
         }

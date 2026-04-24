@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 from matplotlib.colors import PowerNorm
 
-import grapher
+import htmrl.grapher as grapher
 from htmrl.agent_layer.brain import Brain
 from htmrl.agent_layer.HTM import ColumnField, Field, InputField, OutputField
 from htmrl.encoder_layer.base_encoder import ParameterMarker

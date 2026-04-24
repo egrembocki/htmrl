@@ -22,8 +22,8 @@ from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParamet
 from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from htmrl.input_layer.input_handler import InputHandler
 from htmrl.log import logger
+from htmrl.utils import DATA_PATH, PROJECT_ROOT
 from legacy.sdr_layer.sdr import SDR
-from utils import DATA_PATH, PROJECT_ROOT
 
 plt.style.use("seaborn-v0_8-poster")
 
@@ -31,7 +31,7 @@ plt.style.use("seaborn-v0_8-poster")
 def show_active_columns(brain: Any, dataset_name: str | None = None) -> None:
     """Visualize active columns for each column field in a brain."""
 
-    for column_field in brain.column_fields:
+    for column_field in brain._column_fields.values():
         sdr = [
             (1 if column in column_field.active_columns else 0) for column in column_field.columns
         ]
@@ -51,7 +51,7 @@ def show_active_columns(brain: Any, dataset_name: str | None = None) -> None:
 def show_heat_map(brain: Any, dataset_name: str | None = None) -> None:
     """Visualize column duty-cycle activity as a heat map."""
 
-    if not brain.column_fields:
+    if not brain._column_fields:
         raise ValueError("No column fields available to visualize.")
 
     column_field = brain.column_fields[0]

@@ -21,8 +21,8 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-import grapher  # noqa: E402
 import htmrl.encoder_layer as el  # noqa: E402
+import htmrl.grapher as grapher  # noqa: E402
 from htmrl.encoder_layer.encoder_factory import EncoderFactory  # noqa: E402
 
 # Keep demo/probe resolutions in one place so behavior stays consistent.

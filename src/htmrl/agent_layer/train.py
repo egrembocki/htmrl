@@ -24,7 +24,6 @@ from htmrl.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputF
 from htmrl.agent_layer.pullin.sungur import ValueField
 from htmrl.encoder_layer.base_encoder import ParameterMarker
 from htmrl.encoder_layer.encoder_factory import EncoderFactory
-from htmrl.input_layer.input_handler import InputHandler
 from htmrl.log import get_logger
 
 # Rebind encoder parameter types locally so callers can use short names without
@@ -598,7 +597,9 @@ class Trainer:
         else:
             raise ValueError("Column field name must end with '_column'.")
 
-    def train_column(self, brain: Brain, column: dict[str, list[Any]], steps: int) -> None:
+    def train_column(
+        self, column: dict[str, list[Any]], steps: int, brain: Brain = main_brain
+    ) -> None:
         """Train the Brain on the specified dataset."""
 
         self._main_brain = brain if brain is not None else self._main_brain
@@ -897,14 +898,14 @@ class Trainer:
     def show_active_columns(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show the active columns in the Brain."""
 
-        import grapher as _grapher
+        import htmrl.grapher as _grapher
 
         _grapher.show_active_columns(brain, dataset_name)
 
     def show_heat_map(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show a heat map of the Brain's column duty cycle activity."""
 
-        import grapher as _grapher
+        import htmrl.grapher as _grapher
 
         _grapher.show_heat_map(brain, dataset_name)
 
