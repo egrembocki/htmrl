@@ -369,7 +369,7 @@ class Trainer:
             input_fields=self._trainer_input_fields,
             non_spatial=True,
             num_columns=num_columns,
-            cells_per_column=cells_per_column,
+            cells_per_column=1,
         )
         column_field.name = "Column_Field"
         self._trainer_column_fields.append(column_field)
