@@ -24,7 +24,6 @@ from htmrl.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputF
 from htmrl.log import LoggerManager
 
 
-
 class Brain(AbstractBrain):
     CONF_SUFFIX = ".conf"
     """Manages HTM input fields and column fields with a unified API.

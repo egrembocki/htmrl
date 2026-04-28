@@ -12,7 +12,6 @@ from htmrl.encoder_layer.base_encoder import BaseEncoder, ParameterMarker
 from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
-
 class CoordinateEncoder(BaseEncoder[tuple[tuple[int, ...] | list[int], int]]):
     """Encode integer grid coordinates and radius into an SDR."""
 

@@ -24,7 +24,6 @@ from htmrl.encoder_layer.base_encoder import BaseEncoder
 from htmrl.input_layer.input_handler import InputHandler
 
 
-
 def test_encoder_to_htm_receives_sdr_object():
     """Real ScalarEncoder output is passed into a real InputField (HTM cell consumer)."""
 
