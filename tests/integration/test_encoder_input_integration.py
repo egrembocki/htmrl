@@ -63,7 +63,7 @@ def fourier_helper():
                 {"categore": "PF"},
             ],
             "new_category",
-            {"size": 2048},
+            {"size": 2048, "category_list": ["dog", "CA", "PF"]},
         ),
         (
             "four",
@@ -79,7 +79,9 @@ def fourier_helper():
         ),
     ],
 )
+# Test Type: integration test
 def test_input_handler_to_encoder_pipeline(column, payload, encoder_type, parameters):
+    # TI-016
     ih = InputHandler()
     ih.input_data(payload)
     values = ih.get_column_data(column)

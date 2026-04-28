@@ -642,7 +642,8 @@ class ColumnField(Field):
         """Activate the top-k columns based on overlap.
 
         If there are ties at the lowest overlap value in top-k,
-        randomly select among the tied columns to meet exactly k.
+        prefer columns with lower active duty cycle to avoid repeatedly
+        selecting the same tied columns.
         """
         sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
 
@@ -664,10 +665,13 @@ class ColumnField(Field):
             self.active_columns.append(col)
             col.set_active()
 
-        # Randomly select from tied columns to fill remaining spots
+        # Select from tied columns by lowest duty cycle to improve usage balance
         remaining_spots = k - len(above_threshold)
         if remaining_spots > 0 and at_threshold:
-            selected = at_threshold[:remaining_spots]
+            selected = sorted(
+                at_threshold,
+                key=lambda col: col.active_duty_cycle,
+            )[:remaining_spots]
             for col in selected:
                 self.active_columns.append(col)
                 col.set_active()
@@ -842,19 +846,24 @@ class InputField(Field):
     managing a Field of cells corresponding to the encoder's output bits.
 
     Args:
-        encoder_params: Configuration parameters for the encoder. If None
-            or not a ParameterMarker-compatible object, defaults to RDSEParameters.
+        encoder_params: Configuration parameters for the encoder. If None,
+            defaults to RDSEParameters. Must inherit from ParameterMarker.
         size: Optional size override for the encoder output. If provided,
-            overrides the size parameter in encoder_params.
+            overrides the size parameter in encoder_params and must be > 0.
     """
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        if encoder_params is not None and isinstance(encoder_params, ParameterMarker):
+        if encoder_params is None:
+            params = RDSEParameters()
+        elif isinstance(encoder_params, ParameterMarker):
             params = copy.deepcopy(encoder_params)
         else:
-            params = RDSEParameters()
+            raise TypeError("encoder_params must inherit from ParameterMarker or be None.")
 
-        if size is not None and hasattr(params, "size") and size > 0:
+        if size is not None and size <= 0:
+            raise ValueError("size must be greater than 0.")
+
+        if size is not None and hasattr(params, "size"):
             params.size = size
 
         self._encoder = params.encoder_class(params)  # type: ignore
