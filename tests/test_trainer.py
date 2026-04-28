@@ -11,10 +11,10 @@ from pathlib import Path
 
 import pytest
 
-import psu_capstone.encoder_layer as el
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import CONNECTED_PERM, ColumnField, InputField, OutputField
-from psu_capstone.agent_layer.train import Trainer
+import htmrl.encoder_layer as el
+from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.HTM import CONNECTED_PERM, ColumnField, InputField, OutputField
+from htmrl.agent_layer.train import Trainer
 
 
 def _learned_htm_snapshot(brain: Brain) -> tuple[int, float, int, float]:

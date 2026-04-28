@@ -20,7 +20,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from psu_capstone.encoder_layer.encoder_handler import EncoderHandler
+from htmrl.encoder_layer.encoder_handler import EncoderHandler
 
 
 @pytest.fixture
