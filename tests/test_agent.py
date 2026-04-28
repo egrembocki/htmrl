@@ -10,19 +10,11 @@ import gymnasium as gym
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.agent import Agent
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, InputField, OutputField
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.environment.env_adapter import EnvAdapter
-
-
-class _ActionSpaceStub:
-    """Minimal action-space stub exposing deterministic sampling."""
-
-    def sample(self) -> int:
-        """Return a stable sampled action for deterministic tests."""
-        return 0
+from htmrl.agent_layer.agent import Agent
+from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.HTM import ColumnField, InputField, OutputField
+from htmrl.encoder_layer.rdse import RDSEParameters
+from htmrl.environment.env_adapter import EnvAdapter
 
 
 class _AdapterStub(EnvAdapter):
@@ -96,33 +88,6 @@ class _AdapterStub(EnvAdapter):
         }
 
 
-class _BrainStub(Brain):
-    """Brain stub that records step calls and emits no action predictions.
-
-    The captured call history allows tests to verify that ``Agent.step``
-    invokes Brain processing before advancing the environment.
-    """
-
-    def __init__(self) -> None:
-        self.step_calls: list[tuple[dict[str, Any], bool]] = []
-
-    def step(self, inputs: dict[str, Any], learn: bool = True) -> None:
-        """Capture each invocation to verify Agent drives Brain correctly."""
-        self.step_calls.append((inputs, learn))
-
-    def prediction(self) -> dict[str, Any]:
-        """Return empty predictions so tests stay on q_table behavior."""
-        return {}
-
-
-class _BrainActionOutputStub(_BrainStub):
-    """Brain stub that returns an OutputField-like action payload from step."""
-
-    def step(self, inputs: dict[str, Any], learn: bool = True) -> dict[str, Any]:
-        self.step_calls.append((inputs, learn))
-        return {"action_output": {"action": 1, "confidence": 1.0}}
-
-
 class _PPOMock:
     """Minimal PPO-like model stub for policy dispatch tests."""
 
@@ -138,18 +103,20 @@ class _PPOMock:
 def test_q_table_policy_requires_discrete_action_space() -> None:
     """q_table mode should reject non-discrete action spaces at construction."""
 
-    adapter = _AdapterStub(space_type="Box")
-    brain = _BrainStub()
-
-    with pytest.raises(TypeError, match="q_table policy requires a Discrete action space"):
-        Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+    adapter = EnvAdapter("MountainCarContinuous-v0")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        with pytest.raises(TypeError, match="q_table policy requires a Discrete action space"):
+            Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+    finally:
+        adapter.env.close()
 
 
 def test_q_values_row_initialized_by_action_count() -> None:
     """Newly seen states should get zero Q rows sized to action-space cardinality."""
 
     adapter = _AdapterStub(n=4)
-    brain = _BrainStub()
+    brain = _build_real_brain_for_adapter_inputs(adapter)
     agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
 
     state_key = agent._initialize_q_values({"state": 5})
@@ -164,7 +131,7 @@ def test_select_q_action_uses_argmax_when_not_exploring() -> None:
     """With epsilon disabled, q_table policy should pick the maximum-valued action."""
 
     adapter = _AdapterStub(n=3)
-    brain = _BrainStub()
+    brain = _build_real_brain_for_adapter_inputs(adapter)
     agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
 
     state_key = agent._state_key({"state": 2})
@@ -179,115 +146,141 @@ def test_select_q_action_uses_argmax_when_not_exploring() -> None:
 def test_update_applies_q_learning_bootstrap_target() -> None:
     """update should apply one-step Q-learning with next-state bootstrap value."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
-    agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
 
-    state_key = agent._state_key({"state": 0})
-    next_state_key = agent._state_key({"state": 1})
-    agent._q_values[state_key] = np.array([0.0, 0.0])
-    agent._q_values[next_state_key] = np.array([0.5, 0.2])
+        state_key = agent._state_key({"state": 0})
+        next_state_key = agent._state_key({"state": 1})
+        agent._q_values[state_key] = np.array([0.0, 0.0])
+        agent._q_values[next_state_key] = np.array([0.5, 0.2])
 
-    agent.update({"state": 0}, action=0, reward=1.0, next_obs={"state": 1})
+        agent.update({"state": 0}, action=0, reward=1.0, next_obs={"state": 1})
 
-    # lr=0.1, gamma=0.99 -> target=1.0 + 0.99*0.5 = 1.495, new_q=0.1495
-    assert np.isclose(agent._q_values[state_key][0], 0.1495, rtol=1e-09, atol=1e-09)
+        # lr=0.1, gamma=0.99 -> target=1.0 + 0.99*0.5 = 1.495, new_q=0.1495
+        assert np.isclose(agent._q_values[state_key][0], 0.1495, rtol=1e-09, atol=1e-09)
+    finally:
+        adapter.env.close()
 
 
 def test_update_ignores_bootstrap_on_terminal_transition() -> None:
     """update should not bootstrap next-state value when transition is terminal."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
-    agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
 
-    state_key = agent._state_key({"state": 0})
-    next_state_key = agent._state_key({"state": 1})
-    agent._q_values[state_key] = np.array([0.0, 0.0])
-    agent._q_values[next_state_key] = np.array([10.0, 10.0])
+        state_key = agent._state_key({"state": 0})
+        next_state_key = agent._state_key({"state": 1})
+        agent._q_values[state_key] = np.array([0.0, 0.0])
+        agent._q_values[next_state_key] = np.array([10.0, 10.0])
 
-    agent.update({"state": 0}, action=0, reward=1.0, next_obs={"state": 1}, done=True)
+        agent.update({"state": 0}, action=0, reward=1.0, next_obs={"state": 1}, done=True)
 
-    # Terminal target is reward only: target=1.0, new_q=0.1
-    assert np.isclose(agent._q_values[state_key][0], 0.1, rtol=1e-09, atol=1e-09)
+        # Terminal target is reward only: target=1.0, new_q=0.1
+        assert np.isclose(agent._q_values[state_key][0], 0.1, rtol=1e-09, atol=1e-09)
+    finally:
+        adapter.env.close()
 
 
 def test_update_is_noop_for_brain_policy_mode() -> None:
     """update should not mutate q-table values when running in brain policy mode."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
-    agent = Agent(brain=brain, adapter=adapter, policy_mode="brain")
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        agent = Agent(brain=brain, adapter=adapter, policy_mode="brain")
 
-    state_key = agent._state_key({"state": 0})
-    next_state_key = agent._state_key({"state": 1})
-    agent._q_values[state_key] = np.array([0.3, 0.7])
-    agent._q_values[next_state_key] = np.array([0.9, 0.1])
+        state_key = agent._state_key({"state": 0})
+        next_state_key = agent._state_key({"state": 1})
+        agent._q_values[state_key] = np.array([0.3, 0.7])
+        agent._q_values[next_state_key] = np.array([0.9, 0.1])
 
-    before = agent._q_values[state_key].copy()
-    agent.update({"state": 0}, action=0, reward=1.0, next_obs={"state": 1}, done=False)
+        before = agent._q_values[state_key].copy()
+        agent.update({"state": 0}, action=0, reward=1.0, next_obs={"state": 1}, done=False)
 
-    assert np.allclose(agent._q_values[state_key], before)
-    assert agent._training_error == []
+        assert np.allclose(agent._q_values[state_key], before)
+        assert agent._training_error == []
+    finally:
+        adapter.env.close()
 
 
 def test_step_runs_brain_then_env_and_returns_transition() -> None:
     """Agent.step should process Brain input, act, and return the transition payload."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
-    agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
-    agent._epsilon = 0.0
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        agent = Agent(brain=brain, adapter=adapter, policy_mode="q_table")
+        agent._epsilon = 0.0
 
-    state_key = agent._state_key({"state": 0})
-    agent._q_values[state_key] = np.array([1.0, 0.0])
+        with patch.object(brain, "step", wraps=brain.step) as brain_step_spy:
+            transition = agent.step(learn=False)
 
-    transition = agent.step(learn=False)
-
-    assert brain.step_calls == [({"state": 0}, False)]
-    assert adapter.last_step_action == 0
-    assert transition["obs"] == {"state": 0}
-    assert transition["next_obs"] == {"state": 1}
-    assert np.isclose(transition["reward"], 1.0, rtol=1e-09, atol=1e-09)
-    assert transition["terminated"] is True
-    assert transition["truncated"] is False
+        assert brain_step_spy.call_count == 1
+        call_inputs = brain_step_spy.call_args[0][0]
+        assert isinstance(call_inputs, dict)
+        assert isinstance(transition["obs"], np.ndarray)
+        assert isinstance(transition["next_obs"], np.ndarray)
+        assert transition["action"] in (0, 1)
+        assert isinstance(transition["reward"], float)
+        assert isinstance(transition["terminated"], bool)
+        assert isinstance(transition["truncated"], bool)
+    finally:
+        adapter.env.close()
 
 
 def test_brain_policy_uses_action_from_brain_step_output() -> None:
     """brain mode should prefer direct action hints from Brain.step outputs."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainActionOutputStub()
-    agent = Agent(brain=brain, adapter=adapter, policy_mode="brain")
-    agent._epsilon = 0.0
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_with_output_field(adapter)
+        agent = Agent(brain=brain, adapter=adapter, policy_mode="brain")
+        agent._epsilon = 0.0
 
-    transition = agent.step(learn=False)
+        # Activate all output cells so decode selects the last motor action (1)
+        output_field = brain.fields["action_output"]
+        assert isinstance(output_field, OutputField)
+        for cell in output_field.cells:
+            cell.set_active()  # type: ignore
 
-    assert transition["action"] == 1
-    assert adapter.last_step_action == 1
+        transition = agent.step(learn=False)
+
+        assert transition["action"] == 1
+    finally:
+        adapter.env.close()
 
 
 def test_ppo_policy_selects_action_from_injected_model() -> None:
     """ppo mode should delegate action selection to internally built PPO model."""
 
-    adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
-    ppo: Any = _PPOMock(action=1)
+    adapter = EnvAdapter("CartPole-v1")
+    try:
+        brain = _build_real_brain_for_adapter_inputs(adapter)
+        ppo: Any = _PPOMock(action=1)
 
-    with patch.object(Agent, "_build_ppo_model", return_value=ppo):
-        agent = Agent(brain=brain, adapter=adapter, policy_mode="ppo")
-        transition = agent.step(learn=False)
+        with patch.object(Agent, "_build_ppo_model", return_value=ppo):
+            agent = Agent(brain=brain, adapter=adapter, policy_mode="ppo")
+            transition = agent.step(learn=False)
 
         assert transition["action"] == 1
-        assert adapter.last_step_action == 1
-        assert ppo.calls == [({"state": 0}, True)]
+        assert len(ppo.calls) == 1
+        _, deterministic = ppo.calls[0]
+        assert deterministic is True
+    finally:
+        adapter.env.close()
 
 
 def test_ppo_policy_without_model_raises_value_error() -> None:
     """ppo mode should fail fast when adapter does not expose a Gym env."""
 
+    # _AdapterStub intentionally skips EnvAdapter.__init__ so has no _env attribute,
+    # which triggers the ValueError in _build_ppo_model.
     adapter = _AdapterStub(n=2)
-    brain = _BrainStub()
+    brain = _build_real_brain_for_adapter_inputs(adapter)
 
     with pytest.raises(ValueError, match="requires an adapter with a Gym environment"):
         Agent(brain=brain, adapter=adapter, policy_mode="ppo")

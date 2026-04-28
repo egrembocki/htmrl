@@ -3,8 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
-from psu_capstone.input_layer.input_handler import InputHandler
+from htmrl.encoder_layer.encoder_factory import EncoderFactory
+from htmrl.input_layer.input_handler import InputHandler
 
 
 def fourier_helper():
@@ -63,7 +63,7 @@ def fourier_helper():
                 {"categore": "PF"},
             ],
             "new_category",
-            {"size": 2048},
+            {"size": 2048, "category_list": ["dog", "CA", "PF"]},
         ),
         (
             "four",
@@ -79,7 +79,9 @@ def fourier_helper():
         ),
     ],
 )
+# Test Type: integration test
 def test_input_handler_to_encoder_pipeline(column, payload, encoder_type, parameters):
+    # TI-016
     ih = InputHandler()
     ih.input_data(payload)
     values = ih.get_column_data(column)
